@@ -142,7 +142,8 @@ end subroutine interpolate_z2fire
 !
 
 subroutine crash(s)
-use module_wrf_error
+!use module_wrf_error
+use wrf_atmosphere_mod, only : wrf_error_fatal
 implicit none
 character(len=*), intent(in)::s
 character(len=128)msg
@@ -158,7 +159,8 @@ end subroutine crash
 !
 
 subroutine message(s,level)
-use module_wrf_error
+!use module_wrf_error
+use wrf_atmosphere_mod, only : wrf_message
 #ifdef _OPENMP
 use OMP_LIB 
 #endif

@@ -19,8 +19,8 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     ! stub to call fire_driver_em with irun=0 and omit last 3 args
 
-    USE module_domain , only: domain , get_ijk_from_subgrid
-    USE module_configure , only : grid_config_rec_type
+    USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
+    USE wrf_atmosphere_mod, only : grid_config_rec_type
     implicit none
 
     TYPE(domain) , TARGET          :: grid   ! data
@@ -73,8 +73,8 @@ subroutine fire_driver_em_step (grid , config_flags               &
 
     ! stub to call fire_driver_em 
 
-    USE module_domain, only: domain , get_ijk_from_subgrid
-    USE module_configure , only : grid_config_rec_type
+    USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
+    USE wrf_atmosphere_mod , only : grid_config_rec_type
     USE module_fr_fire_util, only : fire_test_steps
     implicit none
 

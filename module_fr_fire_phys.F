@@ -1,7 +1,8 @@
 !
 module module_fr_fire_phys
 
-use module_model_constants, only: cp,xlv
+!use module_model_constants, only: cp,xlv
+use wrf_atmosphere_mod, only: CP, XLV
 use module_fr_fire_util
 
 PRIVATE

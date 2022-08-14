@@ -1290,7 +1290,7 @@ subroutine prop_ls_rk3(id,               &
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_1_sub, halo_fire_lfn_2_sub, halo_fire_lfn_0_sub
 #endif
-USE module_domain , only: domain
+USE wrf_atmosphere_mod, only: domain
 
 implicit none
 
@@ -1527,8 +1527,8 @@ subroutine reinit_ls_rk3(id,                       &
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_s1_sub,halo_fire_lfn_s2_sub,halo_fire_lfn_s3_sub
 #endif
-USE module_domain , only: domain
-USE module_configure, only: grid_config_rec_type
+USE wrf_atmosphere_mod, only: domain
+USE wrf_atmosphere_mod, only: grid_config_rec_type
 
 implicit none
 
@@ -1709,19 +1709,25 @@ real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,tend_r
             case(1)
              diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
              diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-             diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j),lfn_s0(i,j)*diff2x)
-             diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2),lfn_s0(i,j)*diff2y)
+             diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j), &
+                 lfn_s0(i,j)*diff2x)
+             diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2), &
+               lfn_s0(i,j)*diff2y)
             case(2)
              diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
              diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-             diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j),lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-             diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1),lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
+             diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
+                 lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
+             diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
+                 lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
             case(3)
              if (lfn_curr(i,j).lt.threshold_HLu) then
                diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
                diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j),lfn_s0(i,j)*diff2x)
-               diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2),lfn_s0(i,j)*diff2y)
+               diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j), &
+                   lfn_s0(i,j)*diff2x)
+               diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2), &
+                   lfn_s0(i,j)*diff2y)
              else
                diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
                diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
@@ -1734,8 +1740,10 @@ real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,tend_r
              if (lfn_curr(i,j).lt.threshold_HLu) then
                diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
                diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j),lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1),lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
+               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
+                   lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
+               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
+                   lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
              else
                diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
                diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
@@ -1748,8 +1756,10 @@ real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,tend_r
              if (lfn_curr(i,j).lt.threshold_HLu) then
                diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
                diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j),lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1),lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
+               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
+                   lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
+               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
+                   lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
              else
                diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
                diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
@@ -2103,10 +2113,13 @@ threshold_AV=fire_viscosity_ngp*dx
             endif
 
             ! DME: adds spatially variable artificial viscosity
-            if (abs(lfn(i,j)).lt.threshold_AV .AND. (i.gt.ids+bdy_eno1 .and. i.lt.ide-bdy_eno1) .AND. (j.gt.jds+bdy_eno1 .and. j.lt.jde-bdy_eno1)) then 
+            if (abs(lfn(i,j)).lt.threshold_AV .AND. (i.gt.ids+bdy_eno1 .and. i.lt.ide-bdy_eno1) .AND. &
+                (j.gt.jds+bdy_eno1 .and. j.lt.jde-bdy_eno1)) then 
               fire_viscosity_var=fire_viscosity_bg
-            elseif (abs(lfn(i,j)).ge.threshold_AV .AND. abs(lfn(i,j)).lt.threshold_AV*(1.0+fire_viscosity_band) .AND. (i.gt.ids+10 .and. i.lt.ide-10) .AND. (j.gt.jds+10 .and. j.lt.jde-10)) then
-              fire_viscosity_var=min(fire_viscosity_bg+(fire_viscosity-fire_viscosity_bg)*(abs(lfn(i,j))-threshold_AV)/(fire_viscosity_band*threshold_AV),fire_viscosity)
+            elseif (abs(lfn(i,j)).ge.threshold_AV .AND. abs(lfn(i,j)).lt.threshold_AV*(1.0+fire_viscosity_band) .AND. &
+                (i.gt.ids+10 .and. i.lt.ide-10) .AND. (j.gt.jds+10 .and. j.lt.jde-10)) then
+              fire_viscosity_var=min(fire_viscosity_bg+(fire_viscosity-fire_viscosity_bg)* &
+                  (abs(lfn(i,j))-threshold_AV)/(fire_viscosity_band*threshold_AV),fire_viscosity)
             else
               fire_viscosity_var=fire_viscosity
             endif

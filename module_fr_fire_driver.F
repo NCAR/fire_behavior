@@ -24,9 +24,9 @@ use module_fr_fire_util
 use module_fr_fire_core, only: ignition_line_type
 use module_fr_fire_atm, only: add_fire_tracer_emissions 
 
-USE module_domain, only: domain
-USE module_configure, only: grid_config_rec_type
-use module_model_constants, only: reradius,    & ! 1/earth radiusw
+USE wrf_atmosphere_mod, only: domain
+USE wrf_atmosphere_mod, only: grid_config_rec_type
+use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
                                   g,           & ! gravitation acceleration
                                   pi2            ! 2*pi
 
@@ -159,7 +159,8 @@ halo_fire_mag_sub
         else ! regular timestep
             if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
                 if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
-                    write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ',config_flags%fmoist_freq
+                    write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
+                        config_flags%fmoist_freq
                     call message(msg)
                     run_advance_moisture = .true.
                 endif
@@ -174,7 +175,8 @@ halo_fire_mag_sub
                 dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
                 grid%fmoist_lasttime = moisture_time
                 if(config_flags%fmoist_freq > 0)then
-                    write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ',config_flags%fmoist_freq,' steps'
+                    write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ', &
+                        config_flags%fmoist_freq,' steps'
                     call message(msg)
                 else
                     grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
@@ -426,8 +428,10 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     config_flags & 
     )
 
+#ifdef DM_PARALLEL
 USE module_dm, only:wrf_dm_maxval
-USE module_domain, only: domain
+#endif
+USE wrf_atmosphere_mod, only: domain
 
 implicit none
 
@@ -1042,7 +1046,7 @@ end subroutine fire_driver_phys
 
 subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
     ignition_line,fire_num_ignitions,unit_fxlong,unit_fxlat)
-    USE module_configure, only : grid_config_rec_type
+    USE wrf_atmosphere_mod, only : grid_config_rec_type
     implicit none
 ! create ignition arrays from scalar flags
 !*** arguments
