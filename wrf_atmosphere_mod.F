@@ -1,5 +1,7 @@
   module wrf_atmosphere_mod
 
+    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
     implicit none
 
     private
@@ -125,7 +127,9 @@
       real :: fmoist_nexttime ! "next time the moisture model will run" "s"
       real :: u_frame          ! "FRAME X WIND"         "m s-1"
       real :: v_frame          ! "FRAME Y WIND"         "m s-1"
-
+    contains
+      procedure, public :: Set_default => Set_default_domain
+      procedure, public :: Print => Print_domain
     end type domain
 
     type :: grid_config_rec_type
@@ -248,7 +252,9 @@
       real :: fire_ignition_start_time5
       real :: fire_ignition_end_time5
       real :: fire_ignition_radius5
-
+    contains
+      procedure, public :: Set_default => Set_default_config_flags
+      procedure, public :: Print => Print_config_flags
     end type grid_config_rec_type
 
   contains
@@ -348,6 +354,52 @@
       return
 
     end subroutine Get_ijk_from_subgrid
+
+    subroutine Print_config_flags (this)
+
+      implicit none
+
+      class (grid_config_rec_type), intent(in out) :: this
+
+
+      write (OUTPUT_UNIT, *) 'restart = ', this%restart
+
+    end subroutine Print_config_flags
+
+    subroutine Print_domain (this)
+
+      implicit none
+
+      class (domain), intent(in out) :: this
+
+
+      write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
+      write (OUTPUT_UNIT, *) 'sr_y = ', this%sr_y
+
+    end subroutine Print_domain
+
+    subroutine Set_default_config_flags (this)
+
+      implicit none
+
+      class (grid_config_rec_type), intent(in out) :: this
+
+
+      this%restart = .false.
+
+    end subroutine Set_default_config_flags
+
+    subroutine Set_default_domain (this)
+
+      implicit none
+
+      class (domain), intent(in out) :: this
+
+
+      this%sr_x = 2
+      this%sr_y = 2
+
+    end subroutine Set_default_domain
 
     subroutine wrf_error_fatal( str )
 
