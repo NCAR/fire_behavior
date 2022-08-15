@@ -8,24 +8,24 @@ CPPFLAGS=-nostdinc -C -P -w
 target: fire_behavior.exe
 
 objects: wrf_atmosphere_mod.o module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o \
-	 module_fr_fire_model.o module_fr_fire_atm.o module_fr_fire_driver.o module_fr_fire_driver_wrf.o
+	 module_fr_fire_model.o module_fr_fire_atm.o module_fr_fire_driver.o module_fr_fire_driver_wrf.o module_fr_fire_util.o
 
   # Executable(s)
-fire_behavior.exe: fire_behavior.o wrf_atmosphere_mod.o wrf_fire_test1_mod.o
-# module_fr_fire_driver_wrf.o module_fr_fire_util.o \
-#	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o
+fire_behavior.exe: fire_behavior.o wrf_atmosphere_mod.o wrf_fire_test1_mod.o \
+	module_fr_fire_driver.o	module_fr_fire_driver_wrf.o  module_fr_fire_util.o \
+	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o
 	$(FC) -o $@ $^
 
-fire_behavior.o: fire_behavior.F wrf_atmosphere_mod.o wrf_fire_test1_mod.o
-# module_fr_fire_driver_wrf.o  module_fr_fire_util.o \
-#	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o
+fire_behavior.o: fire_behavior.F wrf_atmosphere_mod.o wrf_fire_test1_mod.o \
+	module_fr_fire_driver.o	module_fr_fire_driver_wrf.o  module_fr_fire_util.o \
+	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o
 	$(CPP) $(CPPFLAGS) $< > fire_behavior.f90
 	$(FC) $(FCFLAGS) -c fire_behavior.f90
 
   # Test cases
-wrf_fire_test1_mod.o: wrf_fire_test1_mod.F wrf_atmosphere_mod.o
-# module_fr_fire_driver_wrf.o module_fr_fire_driver.o \
-#	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o
+wrf_fire_test1_mod.o: wrf_fire_test1_mod.F wrf_atmosphere_mod.o \
+	module_fr_fire_driver.o	module_fr_fire_driver_wrf.o  module_fr_fire_util.o \
+	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o
 	$(CPP) $(CPPFLAGS) $< > wrf_fire_test1_mod.f90
 	$(FC) $(FCFLAGS) -c wrf_fire_test1_mod.f90
 

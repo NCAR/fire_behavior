@@ -1789,6 +1789,8 @@ subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
                        lfn_in,lfn_out,tign  &              ! arrays inout          
                       )
 
+use wrf_atmosphere_mod, only : wrf_debug
+
 implicit none
 
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,ifds,jfds,ifde,jfde

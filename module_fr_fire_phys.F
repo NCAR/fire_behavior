@@ -619,7 +619,9 @@ implicit none
 !*** purpose: read namelist.fire 
 !*** arguments: 
 logical, intent(in)::init_fuel_moisture
+#ifdef DM_PARALLEL
 logical, external:: wrf_dm_on_monitor
+#endif
 #ifdef _OPENMP
 !integer, external:: OMP_GET_THREAD_NUM
 #endif
@@ -642,8 +644,10 @@ namelist /fuel_moisture/ moisture_classes,drying_lag,wetting_lag,saturation_mois
 !   endif
 #endif
 
+#ifdef DM_PARALLEL
 IF ( wrf_dm_on_monitor() ) THEN
     ! we are the MPI rank 0
+#endif
 
     ! read the file
     call message('Reading file namelist.fire',level=0)
@@ -751,7 +755,9 @@ IF ( wrf_dm_on_monitor() ) THEN
     enddo
 
     
+#ifdef DM_PARALLEL
 ENDIF
+#endif
 
 end subroutine read_namelist_fire
 
@@ -761,7 +767,9 @@ implicit none
 !*** purpose: initialize fuel tables and variables by constants
 !*** arguments: 
 logical, intent(in)::init_fuel_moisture
+#ifdef DM_PARALLEL
 logical, external:: wrf_dm_on_monitor
+#endif
 #ifdef _OPENMP
 !integer, external:: OMP_GET_THREAD_NUM
 #endif
@@ -779,6 +787,7 @@ character(len=128):: msg
 
 call read_namelist_fire(init_fuel_moisture)
 
+#ifdef DM_PARALLEL
 ! broadcast the contents of the file
 call wrf_dm_bcast_real(cmbcnst,1)
 call wrf_dm_bcast_real(hfgl,1)
@@ -810,6 +819,7 @@ call wrf_dm_bcast_integer(wetting_model,     max_moisture_classes)
 call wrf_dm_bcast_integer(fmc_gc_initialization,     max_moisture_classes)
 call wrf_dm_bcast_real(fmc_gc_initial_value,     max_moisture_classes)
 call wrf_dm_bcast_real(fmc_gw,     mfuelcats*max_moisture_classes)
+#endif
 
 ! moisture model derived scalars
 do i=1,moisture_classes
@@ -939,10 +949,12 @@ if(init_fuel_moisture)then
     call message(' ')
 endif
 
+#ifdef DM_PARALLEL
 ! and print to file
 IF ( wrf_dm_on_monitor() ) THEN
 !jm  call write_fuels_m(61,30.,1.)
 ENDIF
+#endif
 end subroutine init_fuel_cats
 
 

@@ -1281,8 +1281,12 @@ character(len=128)::fname,msg
 !****
 if(fire_print_file.eq.0.or.id.le.0)return
 call check_mesh_2dim(its,ite,jts,jte,ims,ime,jms,jme)
+#ifdef DM_PARALLEL
 call wrf_get_nproc (nprocs)
 call wrf_get_myproc(myproc)
+#else
+nprocs = 1
+#endif
 
 !$OMP CRITICAL(FIRE_UTIL_CRIT)
 if(nprocs.eq.1)then
@@ -1373,8 +1377,14 @@ logical op
 character(len=128)::fname,msg
 !*** executable
 
+#ifdef DM_PARALLEL
 call wrf_get_nproc (nprocs)
 call wrf_get_myproc( myproc )
+#else
+nprocs=1
+myproc=0
+#endif
+
 mythread=0
 #ifdef _OPENMP
     mythread=omp_get_thread_num()

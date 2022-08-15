@@ -4,7 +4,7 @@
 
     use wrf_atmosphere_mod, only : domain, grid_config_rec_type
     use wrf_fire_test1_mod, only : Set_wrf_fire_test1
-!    use module_fr_fire_driver_wrf, only : fire_driver_em_init, fire_driver_em_step
+    use module_fr_fire_driver_wrf, only : fire_driver_em_init, fire_driver_em_step
 
     implicit none
 

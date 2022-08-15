@@ -7,7 +7,7 @@
     private
 
     public :: CP, XLV, RERADIUS, G, PI2, wrf_error_fatal, wrf_message, domain, grid_config_rec_type, NUM_TRACER, P_FIRE_SMOKE, &
-        get_ijk_from_subgrid
+        get_ijk_from_subgrid, wrf_debug
 
     real, parameter :: R_D = 287.0                ! gas constant of dry air (J deg^-1 kg^-1)
     real, parameter :: CP = 7.0 * R_D / 2.0
@@ -400,6 +400,20 @@
       this%sr_y = 2
 
     end subroutine Set_default_domain
+
+    subroutine Wrf_debug (level , str)
+
+      implicit none
+
+      character (len = *) :: str
+      integer, intent (in) :: level
+
+
+      call wrf_message (str)
+
+      return
+
+    end subroutine wrf_debug
 
     subroutine wrf_error_fatal( str )
 
