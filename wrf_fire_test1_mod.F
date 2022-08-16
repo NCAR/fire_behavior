@@ -24,7 +24,21 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test1'
 
+        ! Set config_flags
       call Load_config_flags_test1 (config_flags)
+      if (DEBUG) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) 'Contents of config_flags:'
+        call config_flags%Print ()
+      end if
+
+        ! Set grid
+      grid = domain (ids = 1, ide = 51, kds = 1, kde = 51, jds = 1, jde = 51, sr_x = 2, sr_y = 2)
+      if (DEBUG) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) 'Contents of grid:'
+        call grid%Print ()
+      end if
 
       call Load_domain_test1 (grid)
 
@@ -42,6 +56,13 @@
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_config_flags_test1'
+
+      config_flags%fire_print_msg = 2
+      config_flags%fire_num_ignitions = 1
+      config_flags%fire_ignition_radius1 = 200.0
+
+      config_flags%fire_fuel_read = 0
+      config_flags%fire_fuel_cat = 1
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test1'
 

@@ -19,28 +19,14 @@
     write (OUTPUT_UNIT, *) '1. WRF-Fire test1'
     read (INPUT_UNIT, *) case_to_run
 
-      ! Loading default settings
-    call config_flags%Set_default ()
-    if (DEBUG) then
-      write (OUTPUT_UNIT, *) 'Contents of config_flags:'
-      call config_flags%Print ()
-    end if
-
-    call grid%Set_default ()
-    if (DEBUG) then
-      write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'Contents of grid:'
-      call grid%Print ()
-    end if
-
     select_case_to_run: select case (case_to_run)
       case (CASE_WRF_FIRE_TEST1)
           ! Loading test1
         if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test1'
-      end if
-      call Set_wrf_fire_test1 (grid, config_flags)
+          write (OUTPUT_UNIT, *) ''
+          write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test1'
+        end if
+        call Set_wrf_fire_test1 (grid, config_flags)
 
       case default
         write (OUTPUT_UNIT, *) ''
@@ -49,11 +35,10 @@
     end select select_case_to_run
 
       ! initialize fire behavior
-!    call fire_driver_em_init (grid , config_flags               & 
-!                ,ids,ide, kds,kde, jds,jde                              &
-!                ,ims,ime, kms,kme, jms,jme                              &
-!                ,ips,ipe, kps,kpe, jps,jpe)
-
+    call fire_driver_em_init (grid , config_flags                            & 
+                ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
+                ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
+                ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
 
         ! Run fire behavior
 !     call fire_driver_em_step (grid , config_flags               & 

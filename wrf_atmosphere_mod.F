@@ -6,304 +6,269 @@
 
     private
 
-    public :: CP, XLV, RERADIUS, G, PI2, wrf_error_fatal, wrf_message, domain, grid_config_rec_type, NUM_TRACER, P_FIRE_SMOKE, &
-        get_ijk_from_subgrid, wrf_debug
+    public :: CP, XLV, RERADIUS, G, PI2, Wrf_error_fatal, Wrf_message, domain, grid_config_rec_type, NUM_TRACER, P_FIRE_SMOKE, &
+        Get_ijk_from_subgrid, Wrf_debug
 
     real, parameter :: R_D = 287.0                ! gas constant of dry air (J deg^-1 kg^-1)
     real, parameter :: CP = 7.0 * R_D / 2.0
     real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
     real, parameter :: XLV = 2.5E6                ! latent heat of vaporization of water at 0^oC (J kg^-1)
     real, parameter :: G = 9.81                   ! acceleration due to gravity (m {s}^-2)
-    real, parameter :: PI2=2.*3.1415926
+    real, parameter :: PI2 = 2.0 * 3.1415926
 
-
-    integer, parameter :: NUM_TRACER = 1, P_FIRE_SMOKE = 1, DEFAULT_DOMAIN_SIZE = 50, DEFAULT_DOMAIN_SIZE_FIRE = 50
-    integer, parameter :: ifms = 1, ifme = DEFAULT_DOMAIN_SIZE_FIRE, jfms = 1, jfme = DEFAULT_DOMAIN_SIZE_FIRE
-    integer, parameter :: ims = 1, ime = DEFAULT_DOMAIN_SIZE, kms = 1, kme = DEFAULT_DOMAIN_SIZE, &
-        jms = 1, jme = DEFAULT_DOMAIN_SIZE
-    integer, parameter :: NUM_FMC = 2 ! hardcoded here but it seems it is cotrolled by namelist setting
-    integer, parameter :: NUM_FMEP = 2 ! constant
-
-    integer, parameter :: NUM_TILES_PAJ = 1
+    integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, NUM_FMC = 5, P_FIRE_SMOKE = 1
+    integer, parameter :: N_POINTS_IN_HALO = 5
 
     type :: domain
-       ! Atmosphere
-      real, dimension(ims:ime, kms:kme, jms:jme, NUM_TRACER) :: tracer
-      real, dimension(ims:ime, kms:kme, jms:jme) :: ph_2  ! "perturbation geopotential"  "m2 s-2"
-      real, dimension(ims:ime, kms:kme, jms:jme) :: phb   ! "base-state geopotential"  "m2 s-2"
-      real, dimension(ims:ime, kms:kme, jms:jme) :: u_2   ! "x-wind component"   "m s-1"
-      real, dimension(ims:ime, kms:kme, jms:jme) :: v_2   ! "y-wind component"   "m s-1"
-      real, dimension(ims:ime, jms:jme) :: z0             ! "Background ROUGHNESS LENGTH" "m"
-      real, dimension(ims:ime, jms:jme) :: ht             ! "Terrain Height"   "m"
-      real, dimension(ims:ime, jms:jme) :: xlat           ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
-      real, dimension(ims:ime, jms:jme) :: xlong          ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-      real, dimension(ims:ime, jms:jme) :: rainc          ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
-      real, dimension(ims:ime, jms:jme) :: rainnc         ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
-      real, dimension(ims:ime, jms:jme) :: t2             ! "TEMP at 2 M"       "K"
-      real, dimension(ims:ime, jms:jme) :: q2             ! "QV at 2 M"         "kg kg-1"
-      real, dimension(ims:ime, jms:jme) :: psfc           ! "SFC PRESSURE"      "Pa"
-      real, dimension(ims:ime, jms:jme) :: mut
+      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe
+      integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
+                 ifps, ifpe, jfps, jfpe, kfps, kfpe
+        ! Atmosphere
+        ! 4D
+      real, dimension(:, :, :, :), allocatable :: tracer
+        ! 3D
+      real, dimension(:, :, :), allocatable :: ph_2   ! "perturbation geopotential"  "m2 s-2"
+      real, dimension(:, :, :), allocatable :: phb    ! "base-state geopotential"  "m2 s-2"
+      real, dimension(:, :, :), allocatable :: u_2    ! "x-wind component"   "m s-1"
+      real, dimension(:, :, :), allocatable :: v_2    ! "x-wind component"   "m s-1"
+      real, dimension(:, :, :), allocatable :: rho    ! "DENSITY"         "Kg m-3"
+      real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
+      real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
+        ! 2D
+      real, dimension(:, :), allocatable :: z0       ! "Background ROUGHNESS LENGTH" "m"
+      real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
+      real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
+      real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
+      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
+      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
+      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
+      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
+      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
+      real, dimension(:, :), allocatable :: mut
+        ! 1D
+      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
+      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
 
-      real, dimension(kms:kme) :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
-      real, dimension(kms:kme) :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
+        ! Fire vars in the atm grid
+        ! 1) Atm vars
+      real, dimension(:, :), allocatable :: rain_old ! "previous value of accumulated rain" "mm"
+      real, dimension(:, :), allocatable :: t2_old   ! "previous value of air temperature at 2m" "K"
+      real, dimension(:, :), allocatable :: q2_old   ! "previous value of 2m specific humidity" "kg/kg"
+      real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
+      real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
+        ! 2) Fire diag vars
+      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
+      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
+        ! 3) Output vars with feedback to the atmospheric model
+      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
+      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
+        ! 4) 3D vars for FMC model
+      real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
+      real, dimension(:, :, :), allocatable :: fmep  ! "fuel moisture extended model parameters" "1"
+      real, dimension(:, :, :), allocatable :: fmc_equi ! "fuel moisture contents by class equilibrium (diagnostics only)" "1"
+      real, dimension(:, :, :), allocatable :: fmc_lag ! "fuel moisture contents by class time lag (diagnostics only)" "h"
 
-      integer :: num_tiles
-
-        ! Fire var in atm grid
-      real, dimension(ims:ime, jms:jme) :: rain_old       ! "previous value of accumulated rain" "mm"
-      real, dimension(ims:ime, jms:jme) :: t2_old         ! "previous value of air temperature at 2m" "K"
-      real, dimension(ims:ime, jms:jme) :: q2_old         ! "previous value of 2m specific humidity" "kg/kg"
-      real, dimension(ims:ime, jms:jme) :: psfc_old       ! "previous value of surface pressure" "Pa"
-      real, dimension(ims:ime, jms:jme) :: rh_fire        ! "relative humidity at the surface" "1"
-
-        ! Fire fmc model
-      real, dimension(ims:ime, NUM_FMC, jms:jme) :: fmc_gc ! "fuel moisture contents by class" "1"
-      real, dimension(ims:ime, NUM_FMEP, jms:jme) :: fmep  ! "fuel moisture extended model parameters" "1"
-      real, dimension(ims:ime, NUM_FMC, jms:jme) :: fmc_equi ! "fuel moisture contents by class equilibrium (diagnostics only)" "1"
-      real, dimension(ims:ime, NUM_FMC, jms:jme) :: fmc_lag ! "fuel moisture contents by class time lag (diagnostics only)" "h"
+        ! Fire vars in fire grid
+        ! 2D
+      real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
+      real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
+      real, dimension(:, :), allocatable :: zsf    ! terrain height
+      real, dimension(:, :), allocatable :: dzdxf  ! terrain grad
+      real, dimension(:, :), allocatable :: dzdyf  ! terrain grad
+      real, dimension(:, :), allocatable :: bbb    ! ta rate of spread formula coeff
+      real, dimension(:, :), allocatable :: betafl ! a rate of spread formula variable 
+      real, dimension(:, :), allocatable :: phiwc  ! a rate of spread formula coeff 
+      real, dimension(:, :), allocatable :: r_0    ! a rate of spread formula variable
+      real, dimension(:, :), allocatable :: fgip   ! a rate of spread formula coeff 
+      real, dimension(:, :), allocatable :: ischap ! a rate of spread formula switch
+      real, dimension(:, :), allocatable :: iboros ! Ib divided by ROS
+      real, dimension(:, :), allocatable :: fmc_g  ! fuel moisture, ground
+      real, dimension(:, :), allocatable :: lfn    ! "level function" "1"
+      real, dimension(:, :), allocatable :: lfn_hist ! "level function history" "1"
+      real, dimension(:, :), allocatable :: lfn_0 ! "level function for time integration, step 0" "1"
+      real, dimension(:, :), allocatable :: lfn_1 ! "level function for time integration, step 1" "1"
+      real, dimension(:, :), allocatable :: lfn_2 ! "level function for time integration, step 2" "1"
+      real, dimension(:, :), allocatable :: lfn_s0 ! "level set sign function from LSM integration" "1"
+      real, dimension(:, :), allocatable :: lfn_s1 ! "level set function for reinitialization integration" "1"
+      real, dimension(:, :), allocatable :: lfn_s2 ! "level set function for reinitialization integration" "1"
+      real, dimension(:, :), allocatable :: lfn_s3 ! "level set function for reinitialization integration" "1"
+      real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
+      real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
+      real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
+      real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
+      real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
+      real, dimension(:, :), allocatable :: burnt_area_dt ! "fraction of cell area burnt on current dt" "-"
+      real, dimension(:, :), allocatable :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: fcanhfx ! "heat flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: fcanqfx ! "moisture flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: ros ! "rate of spread" "m/s"
+      real, dimension(:, :), allocatable :: fxlong ! "longitude of midpoints of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: fxlat ! "latitude of midpoints of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
+      real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
+      real, dimension(:, :), allocatable :: fuel_time ! "fuel"
   
-        ! Fire var in fire grid
-      real, dimension(ifms:ifme, jfms:jfme) :: uf     ! W-E winds used in fire module
-      real, dimension(ifms:ifme, jfms:jfme) :: vf     ! W-E winds used in fire module
-      real, dimension(ifms:ifme, jfms:jfme) :: zsf    ! terrain height
-      real, dimension(ifms:ifme, jfms:jfme) :: dzdxf  ! terrain grad
-      real, dimension(ifms:ifme, jfms:jfme) :: dzdyf  ! terrain grad
-      real, dimension(ifms:ifme, jfms:jfme) :: bbb    ! ta rate of spread formula coeff
-      real, dimension(ifms:ifme, jfms:jfme) :: betafl ! a rate of spread formula variable 
-      real, dimension(ifms:ifme, jfms:jfme) :: phiwc  ! a rate of spread formula coeff 
-      real, dimension(ifms:ifme, jfms:jfme) :: r_0    ! a rate of spread formula variable
-      real, dimension(ifms:ifme, jfms:jfme) :: fgip   ! a rate of spread formula coeff 
-      real, dimension(ifms:ifme, jfms:jfme) :: ischap ! a rate of spread formula switch
-      real, dimension(ifms:ifme, jfms:jfme) :: iboros ! Ib divided by ROS
-      real, dimension(ifms:ifme, jfms:jfme) :: fmc_g  ! fuel moisture, ground
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn    ! "level function" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_hist ! "level function history" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_0 ! "level function for time integration, step 0" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_1 ! "level function for time integration, step 1" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_2 ! "level function for time integration, step 2" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_s0 ! "level set sign function from LSM integration" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_s1 ! "level set function for reinitialization integration" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_s2 ! "level set function for reinitialization integration" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: lfn_s3 ! "level set function for reinitialization integration" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: flame_length ! "fire flame length" "m"
-      real, dimension(ifms:ifme, jfms:jfme) :: ros_front ! "rate of spread at fire front" "m/s"
-      real, dimension(ifms:ifme, jfms:jfme) :: tign_g ! "ignition time on ground" "s"
-      real, dimension(ifms:ifme, jfms:jfme) :: fuel_frac ! "fuel remaining" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: fire_area ! "fraction of cell area on fire" "1"
-      real, dimension(ifms:ifme, jfms:jfme) :: burnt_area_dt ! "fraction of cell area burnt on current dt" "-"
-      real, dimension(ifms:ifme, jfms:jfme) :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
-      real, dimension(ifms:ifme, jfms:jfme) :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
-      real, dimension(ifms:ifme, jfms:jfme) :: fcanhfx ! "heat flux from crown fire" "W/m^2"
-      real, dimension(ifms:ifme, jfms:jfme) :: fcanqfx ! "moisture flux from crown fire" "W/m^2"
-      real, dimension(ifms:ifme, jfms:jfme) :: ros ! "rate of spread" "m/s"
-      real, dimension(ifms:ifme, jfms:jfme) :: fxlong ! "longitude of midpoints of fire cells" "degrees"
-      real, dimension(ifms:ifme, jfms:jfme) :: fxlat ! "latitude of midpoints of fire cells" "degrees"
-      real, dimension(ifms:ifme, jfms:jfme) :: fz0 ! "roughness length of fire cells" "m"
-      real, dimension(ifms:ifme, jfms:jfme) :: nfuel_cat ! "fuel data"
-      real, dimension(ifms:ifme, jfms:jfme) :: fuel_time ! "fuel"
-
-        ! Diagnostic only
-      real, dimension(ims:ime, jms:jme) :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
-      real, dimension(ims:ime, jms:jme) :: grnhfx ! "heat flux from ground fire" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: grnqfx ! "moisture flux from ground fire" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: canhfx ! "heat flux from crown fire" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: canqfx ! "moisture flux from crown fire" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(ims:ime, jms:jme) :: uah, vah ! "wind at fire_wind_height" "m/s"
-
-        ! Output to atmospheric model
-      real, dimension (ims:ime, kms:kme, jms:jme) :: rthfrten ! "temperature tendency" "K/s"
-      real, dimension (ims:ime, kms:kme, jms:jme) :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
-
-      integer :: sr_x, sr_y ! Refinement ratios
       integer :: itimestep
-      integer, dimension (NUM_TILES_PAJ) :: i_start, i_end, j_start, j_end
-
-      real :: dt ! "TEMPORAL RESOLUTION"      "SECONDS"
-      real :: dx ! "X HORIZONTAL RESOLUTION"   "METERS"
-      real :: dy ! "Y HORIZONTAL RESOLUTION"   "METERS"
-      real :: fmoist_lasttime ! "last time the moisture model was run" "s"
-      real :: fmoist_nexttime ! "next time the moisture model will run" "s"
-      real :: u_frame          ! "FRAME X WIND"         "m s-1"
-      real :: v_frame          ! "FRAME Y WIND"         "m s-1"
+      integer :: num_tiles
+      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
+      real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
+      real :: dx = 200.0            ! "X HORIZONTAL RESOLUTION"   "METERS"
+      real :: dy = 200.0            ! "Y HORIZONTAL RESOLUTION"   "METERS"
+      integer :: sr_x = 0, sr_y = 0 ! Refinement ratios
+      real :: fmoist_lasttime       ! "last time the moisture model was run" "s"
+      real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
+      real :: u_frame               ! "FRAME X WIND"         "m s-1"
+      real :: v_frame               ! "FRAME Y WIND"         "m s-1"
     contains
-      procedure, public :: Set_default => Set_default_domain
       procedure, public :: Print => Print_domain
     end type domain
 
+    interface domain
+      module procedure Domain_const
+    end interface domain
+
     type :: grid_config_rec_type
         ! Atmosphere
-      logical :: restart
-      real :: cen_lat ! "center latitude"      "degrees, negative is south"
-      real :: cen_lon ! "central longitude"      "degrees, negative is west"
+      logical :: restart = .false.
+      real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
+      real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
 
         ! Fire
-      integer :: fire_print_msg ! "write fire statistics, 0 no writes, 1+ for more"  ""
-      integer :: fire_print_file ! "write fire output text files, 0 no writes, 1+ for more" ""
-      integer :: fire_fuel_left_method ! "submesh to compute fuel lwft, even, at least 2" ""
-      integer :: fire_fuel_left_irl ! "submesh to compute fuel lwft, even, at least 2" ""
-      integer :: fire_fuel_left_jrl ! "submesh to compute fuel lwft, even, at least 2" ""
-      real :: fire_const_time ! "time from ignition to freeze fire, <0 never" "s"
-      real :: fire_const_grnhfx ! "if both >=0, the amount of constant heat flux" "1"
-      real :: fire_const_grnqfx ! "if both >=0, the amount of constant heat flux" "1"
-      real :: fire_atm_feedback ! "the heat fluxes to the atmosphere are multiplied by this" "1"
-      integer :: fire_boundary_guard ! "cells to stop when fire close to domain boundary"
-      integer :: fire_grows_only ! "if >0 level set function cannot increase = fire can only grow" "1"
-      integer :: fire_upwinding ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
-      integer :: fire_upwind_split ! "1=upwind advection separately from normal direction spread" "1"
-      real :: fire_viscosity ! "artificial viscosity in level set method" "1"
-      real :: fire_lfn_ext_up ! "0.=extend level set function at boundary by reflection, 1.=always up" "1"
-      integer :: fire_test_steps ! ">0 = on first call, do specified number of steps and terminate (testing only)" "1"
-      integer :: fire_advection ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
-      logical :: fire_lsm_reinit ! "flag to activate reinitialization of level set method"
-      integer :: fire_lsm_reinit_iter ! "number of iterations for the reinitialization PDE"
-      integer :: fire_upwinding_reinit ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
-      integer :: fire_lsm_band_ngp ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere), for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
-      logical :: fire_lsm_zcoupling ! "flag to activate reference velocity at a different height from fire_wind_height"
-      real :: fire_lsm_zcoupling_ref ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
-      real :: fire_viscosity_bg ! "artificial viscosity in the near-front region" "1"
-      real :: fire_viscosity_band ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
-      integer :: fire_viscosity_ngp ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
-      real :: fire_slope_factor ! "slope correction factor" "-"
-
-      integer :: fire_fmc_read ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file" 
-      logical :: fmoist_run     ! "run moisture model (on the atmospheric grid), output to fmc_gc"
-      logical :: fmoist_interp  ! "interpolate moisture from the model or the input to fuels on the fire grid"
-      logical :: fmoist_only    ! "only run moisture model, skip fire"
-      integer :: fmoist_freq    ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
-      real :: fmoist_dt         ! "moisture model time step" "s"
-      integer :: fire_fuel_read ! "fuel categories are set by: if 0, uniform; if 1, user-presc; if 2, read from file"   ""
-      integer :: fire_fuel_cat  ! "fuel category if ifuelread=0"              ""
-      real :: fire_ext_grnd     ! "extinction depth of sfc fire heat"   "m"
-      real :: fire_ext_crwn     ! "extinction depth of crown fire heat" "m"
-      real :: fire_crwn_hgt     ! "height that heat from crown fire is released" "m"
-      real :: fire_wind_height  ! "height of uah,vah wind in fire spread formula" "m"
-      logical :: fire_is_real_perim ! .false. = point/line ignition, .true. = observed perimeter"
-      integer :: nfmc ! "number of fuel moisture classes" related to NUM_NFMC
-      real :: fmep_decay_tlag ! "time constant of assimilated adjustments of equilibria decay" "1"
-      integer :: tracer_opt
-      real :: fire_tracer_smoke ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
+      integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
+      integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
+      integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
+      integer :: fire_fuel_left_irl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
+      integer :: fire_fuel_left_jrl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
+      real :: fire_const_time = -1.0          ! "time from ignition to freeze fire, <0 never" "s"
+      real :: fire_const_grnhfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
+      real :: fire_const_grnqfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
+      real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
+      integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
+      integer :: fire_grows_only = 1          ! "if >0 level set function cannot increase = fire can only grow" "1"
+      integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
+      integer :: fire_upwind_split = 0        ! "1=upwind advection separately from normal direction spread" "1"
+      real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
+      real :: fire_lfn_ext_up = 1.0           ! "0.=extend level set function at boundary by reflection, 1.=always up" "1"
+      integer :: fire_test_steps = 0          ! ">0 = on first call, do specified number of steps and terminate (testing only)" "1"
+      integer :: fire_advection = 1           ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
+      logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
+      integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
+      integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
+      integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere), for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
+      logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
+      real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
+      real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
+      real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
+      integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
+      real :: fire_slope_factor = 1.0         ! "slope correction factor" "-"
+      integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file" 
+      logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
+      logical :: fmoist_interp = .false.      ! "interpolate moisture from the model or the input to fuels on the fire grid"
+      logical :: fmoist_only = .false.        ! "only run moisture model, skip fire"
+      integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
+      real :: fmoist_dt = 600                 ! "moisture model time step" "s"
+      integer :: fire_fuel_read = -1          ! "fuel categories are set by: if 0, uniform; if 1, user-presc; if 2, read from file"   ""
+      integer :: fire_fuel_cat = 1            ! "fuel category if ifuelread=0"              ""
+      real :: fire_ext_grnd = 50.0            ! "extinction depth of sfc fire heat"   "m"
+      real :: fire_ext_crwn = 50.0            ! "extinction depth of crown fire heat" "m"
+      real :: fire_crwn_hgt = 15.0            ! "height that heat from crown fire is released" "m"
+      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
+      logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
+      integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
+      real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
+      integer :: tracer_opt = 0               ! 3) Activates smoke tracer
+      real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
 
         ! Ignitions
-      integer :: fire_num_ignitions ! "number of ignition lines"
+      integer :: fire_num_ignitions = 0 ! "number of ignition lines"
 
-      real :: fire_ignition_start_x1 ! "x coord of start of ignition line" "m"
-      real :: fire_ignition_start_y1 ! "y coord of start of ignition line" "m"
-      real :: fire_ignition_start_lon1 ! "long coord of start of ignition line" "deg"
-      real :: fire_ignition_start_lat1 ! "lat coord of start of ignition line" "deg"
-      real :: fire_ignition_end_x1 ! "x coord of end of ignition line" "m"
-      real :: fire_ignition_end_y1 ! "y coord of end of ignition line" "m"
-      real :: fire_ignition_end_lon1 ! "long coord of end of ignition line" "deg"
-      real :: fire_ignition_end_lat1 ! "lat coord of end of ignition line" "deg"
-      real :: fire_ignition_ros1 ! "rate of spread during ignition" "m/s"
-      real :: fire_ignition_start_time1 ! "ignition line start time" "s"
-      real :: fire_ignition_end_time1 ! "ignition line end time" "s"
-      real :: fire_ignition_radius1 ! "ignite all within the radius" "m"
+      real :: fire_ignition_start_x1 = 0.0    ! "x coord of start of ignition line" "m"
+      real :: fire_ignition_start_y1 = 0.0    ! "y coord of start of ignition line" "m"
+      real :: fire_ignition_start_lon1 = 0.0  ! "long coord of start of ignition line" "deg"
+      real :: fire_ignition_start_lat1 = 0.0  ! "lat coord of start of ignition line" "deg"
+      real :: fire_ignition_end_x1 = 0.0      ! "x coord of end of ignition line" "m"
+      real :: fire_ignition_end_y1 = 0.0      ! "y coord of end of ignition line" "m"
+      real :: fire_ignition_end_lon1 = 0.0    ! "long coord of end of ignition line" "deg"
+      real :: fire_ignition_end_lat1 = 0.0    ! "lat coord of end of ignition line" "deg"
+      real :: fire_ignition_ros1 = 0.01       ! "rate of spread during ignition" "m/s"
+      real :: fire_ignition_start_time1 = 0.0 ! "ignition line start time" "s"
+      real :: fire_ignition_end_time1 = 0.0   ! "ignition line end time" "s"
+      real :: fire_ignition_radius1 = 0.0     ! "ignite all within the radius" "m"
 
-      real :: fire_ignition_start_x2
-      real :: fire_ignition_start_y2 
-      real :: fire_ignition_start_lon2
-      real :: fire_ignition_start_lat2 
-      real :: fire_ignition_end_x2
-      real :: fire_ignition_end_y2 
-      real :: fire_ignition_end_lon2
-      real :: fire_ignition_end_lat2
-      real :: fire_ignition_ros2
-      real :: fire_ignition_start_time2
-      real :: fire_ignition_end_time2
-      real :: fire_ignition_radius2
+      real :: fire_ignition_start_x2 = 0.0
+      real :: fire_ignition_start_y2 = 0.0 
+      real :: fire_ignition_start_lon2 = 0.0
+      real :: fire_ignition_start_lat2 = 0.0 
+      real :: fire_ignition_end_x2 = 0.0
+      real :: fire_ignition_end_y2 = 0.0 
+      real :: fire_ignition_end_lon2 = 0.0
+      real :: fire_ignition_end_lat2 = 0.0
+      real :: fire_ignition_ros2 = 0.01
+      real :: fire_ignition_start_time2 = 0.0
+      real :: fire_ignition_end_time2 = 0.0
+      real :: fire_ignition_radius2 = 0.0
 
-      real :: fire_ignition_start_x3
-      real :: fire_ignition_start_y3
-      real :: fire_ignition_start_lon3
-      real :: fire_ignition_start_lat3
-      real :: fire_ignition_end_x3
-      real :: fire_ignition_end_y3
-      real :: fire_ignition_end_lon3
-      real :: fire_ignition_end_lat3
-      real :: fire_ignition_ros3
-      real :: fire_ignition_start_time3
-      real :: fire_ignition_end_time3
-      real :: fire_ignition_radius3
+      real :: fire_ignition_start_x3 = 0.0
+      real :: fire_ignition_start_y3 = 0.0
+      real :: fire_ignition_start_lon3 = 0.0
+      real :: fire_ignition_start_lat3 = 0.0
+      real :: fire_ignition_end_x3 = 0.0
+      real :: fire_ignition_end_y3 = 0.0
+      real :: fire_ignition_end_lon3 = 0.0
+      real :: fire_ignition_end_lat3 = 0.0
+      real :: fire_ignition_ros3 = 0.01
+      real :: fire_ignition_start_time3 = 0.0
+      real :: fire_ignition_end_time3 = 0.0
+      real :: fire_ignition_radius3 = 0.0
 
-      real :: fire_ignition_start_x4
-      real :: fire_ignition_start_y4
-      real :: fire_ignition_start_lon4
-      real :: fire_ignition_start_lat4
-      real :: fire_ignition_end_x4
-      real :: fire_ignition_end_y4
-      real :: fire_ignition_end_lon4
-      real :: fire_ignition_end_lat4
-      real :: fire_ignition_ros4
-      real :: fire_ignition_start_time4
-      real :: fire_ignition_end_time4
-      real :: fire_ignition_radius4
+      real :: fire_ignition_start_x4 = 0.0
+      real :: fire_ignition_start_y4 = 0.0
+      real :: fire_ignition_start_lon4 = 0.0
+      real :: fire_ignition_start_lat4 = 0.0
+      real :: fire_ignition_end_x4 = 0.0
+      real :: fire_ignition_end_y4 = 0.0
+      real :: fire_ignition_end_lon4 = 0.0
+      real :: fire_ignition_end_lat4 = 0.0
+      real :: fire_ignition_ros4 = 0.01
+      real :: fire_ignition_start_time4 = 0.0
+      real :: fire_ignition_end_time4 = 0.0
+      real :: fire_ignition_radius4 = 0.0
 
-      real :: fire_ignition_start_x5
-      real :: fire_ignition_start_y5
-      real :: fire_ignition_start_lon5
-      real :: fire_ignition_start_lat5
-      real :: fire_ignition_end_x5
-      real :: fire_ignition_end_y5
-      real :: fire_ignition_end_lon5
-      real :: fire_ignition_end_lat5
-      real :: fire_ignition_ros5
-      real :: fire_ignition_start_time5
-      real :: fire_ignition_end_time5
-      real :: fire_ignition_radius5
+      real :: fire_ignition_start_x5 = 0.0
+      real :: fire_ignition_start_y5 = 0.0
+      real :: fire_ignition_start_lon5 = 0.0
+      real :: fire_ignition_start_lat5 = 0.0
+      real :: fire_ignition_end_x5 = 0.0
+      real :: fire_ignition_end_y5 = 0.0
+      real :: fire_ignition_end_lon5 = 0.0
+      real :: fire_ignition_end_lat5 = 0.0
+      real :: fire_ignition_ros5 = 0.01
+      real :: fire_ignition_start_time5 = 0.0
+      real :: fire_ignition_end_time5 = 0.0
+      real :: fire_ignition_radius5 = 0.0
     contains
-      procedure, public :: Set_default => Set_default_config_flags
       procedure, public :: Print => Print_config_flags
     end type grid_config_rec_type
 
   contains
 
-    subroutine Get_ijk_from_grid (grid ,                   &
-                          ids, ide, jds, jde, kds, kde,    &
-                          ims, ime, jms, jme, kms, kme,    &
-                          ips, ipe, jps, jpe, kps, kpe )
+    function Domain_const (ids, ide, kds, kde, jds, jde, sr_x, sr_y) result (return_value)
 
       implicit none
 
-      type (domain), intent (in) :: grid
-      integer, intent(out) ::                                 &
-                             ids, ide, jds, jde, kds, kde,    &
-                             ims, ime, jms, jme, kms, kme,    &
-                             ips, ipe, jps, jpe, kps, kpe
+      integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
+      type (domain) :: return_value
 
+      call Domain_init (return_value, ids, ide, kds, kde, jds, jde, sr_x, sr_y)
 
-      print *, 'Subroutine get_ijk_from_grid underconstruction'
-      stop
-
-!      data_ordering : SELECT CASE ( model_data_order )
-!         CASE  ( DATA_ORDER_XYZ )
-!             ids = grid%sd31 ; ide = grid%ed31 ; jds = grid%sd32 ; jde = grid%ed32 ; kds = grid%sd33 ; kde = grid%ed33 ;
-!             ims = grid%sm31 ; ime = grid%em31 ; jms = grid%sm32 ; jme = grid%em32 ; kms = grid%sm33 ; kme = grid%em33 ;
-!             ips = grid%sp31 ; ipe = grid%ep31 ; jps = grid%sp32 ; jpe = grid%ep32 ; kps = grid%sp33 ; kpe = grid%ep33 ;
-!         CASE  ( DATA_ORDER_YXZ )
-!             ids = grid%sd32  ; ide = grid%ed32  ; jds = grid%sd31  ; jde = grid%ed31  ; kds = grid%sd33  ; kde = grid%ed33  ;
-!             ims = grid%sm32  ; ime = grid%em32  ; jms = grid%sm31  ; jme = grid%em31  ; kms = grid%sm33  ; kme = grid%em33  ;
-!             ips = grid%sp32  ; ipe = grid%ep32  ; jps = grid%sp31  ; jpe = grid%ep31  ; kps = grid%sp33  ; kpe = grid%ep33  ;
-!         CASE  ( DATA_ORDER_ZXY )
-!             ids = grid%sd32  ; ide = grid%ed32  ; jds = grid%sd33  ; jde = grid%ed33  ; kds = grid%sd31  ; kde = grid%ed31  ;
-!             ims = grid%sm32  ; ime = grid%em32  ; jms = grid%sm33  ; jme = grid%em33  ; kms = grid%sm31  ; kme = grid%em31  ;
-!             ips = grid%sp32  ; ipe = grid%ep32  ; jps = grid%sp33  ; jpe = grid%ep33  ; kps = grid%sp31  ; kpe = grid%ep31  ;
-!         CASE  ( DATA_ORDER_ZYX )
-!             ids = grid%sd33  ; ide = grid%ed33  ; jds = grid%sd32  ; jde = grid%ed32  ; kds = grid%sd31  ; kde = grid%ed31  ;
-!             ims = grid%sm33  ; ime = grid%em33  ; jms = grid%sm32  ; jme = grid%em32  ; kms = grid%sm31  ; kme = grid%em31  ;
-!             ips = grid%sp33  ; ipe = grid%ep33  ; jps = grid%sp32  ; jpe = grid%ep32  ; kps = grid%sp31  ; kpe = grid%ep31  ;
-!         CASE  ( DATA_ORDER_XZY )
-!             ids = grid%sd31  ; ide = grid%ed31  ; jds = grid%sd33  ; jde = grid%ed33  ; kds = grid%sd32  ; kde = grid%ed32  ;
-!             ims = grid%sm31  ; ime = grid%em31  ; jms = grid%sm33  ; jme = grid%em33  ; kms = grid%sm32  ; kme = grid%em32  ;
-!             ips = grid%sp31  ; ipe = grid%ep31  ; jps = grid%sp33  ; jpe = grid%ep33  ; kps = grid%sp32  ; kpe = grid%ep32  ;
-!         CASE  ( DATA_ORDER_YZX )
-!             ids = grid%sd33  ; ide = grid%ed33  ; jds = grid%sd31  ; jde = grid%ed31  ; kds = grid%sd32  ; kde = grid%ed32  ;
-!             ims = grid%sm33  ; ime = grid%em33  ; jms = grid%sm31  ; jme = grid%em31  ; kms = grid%sm32  ; kme = grid%em32  ;
-!             ips = grid%sp33  ; ipe = grid%ep33  ; jps = grid%sp31  ; jpe = grid%ep31  ; kps = grid%sp32  ; kpe = grid%ep32  ;
-!      END SELECT data_ordering
-
-    end subroutine Get_ijk_from_grid
+    end function Domain_const
 
     subroutine Get_ijk_from_subgrid (  grid ,                &
                            ids0, ide0, jds0, jde0, kds0, kde0,    &
@@ -326,30 +291,26 @@
                 ips, ipe, jps, jpe, kps, kpe
 
 
-      call Get_ijk_from_grid (grid ,                       &
-                             ids, ide, jds, jde, kds, kde, &
-                             ims, ime, jms, jme, kms, kme, &
-                             ips, ipe, jps, jpe, kps, kpe)
-      ids0 = ids
-      ide0 = ide * grid%sr_x
-      ims0 = (ims - 1)*grid%sr_x + 1
-      ime0 = ime * grid%sr_x
-      ips0 = (ips - 1)*grid%sr_x + 1
-      ipe0 = ipe * grid%sr_x
+      ids0 = grid%ids
+      ide0 = grid%ide * grid%sr_x
+      ims0 = (grid%ims - 1) * grid%sr_x + 1
+      ime0 = grid%ime * grid%sr_x
+      ips0 = (grid%ips - 1) * grid%sr_x + 1
+      ipe0 = grid%ipe * grid%sr_x
 
-      jds0 = jds
-      jde0 = jde * grid%sr_y
-      jms0 = (jms - 1) * grid%sr_y + 1
-      jme0 = jme * grid%sr_y
-      jps0 = (jps - 1) * grid%sr_y + 1
-      jpe0 = jpe * grid%sr_y
+      jds0 = grid%jds
+      jde0 = grid%jde * grid%sr_y
+      jms0 = (grid%jms - 1) * grid%sr_y + 1
+      jme0 = grid%jme * grid%sr_y
+      jps0 = (grid%jps - 1) * grid%sr_y + 1
+      jpe0 = grid%jpe * grid%sr_y
 
-      kds0 = kds
-      kde0 = kde
-      kms0 = kms
-      kme0 = kme
-      kps0 = kps
-      kpe0 = kpe
+      kds0 = grid%kds
+      kde0 = grid%kde
+      kms0 = grid%kms
+      kme0 = grid%kme
+      kps0 = grid%kps
+      kpe0 = grid%kpe
 
       return
 
@@ -373,33 +334,176 @@
       class (domain), intent(in out) :: this
 
 
+      write (OUTPUT_UNIT, *) ''
+      write (OUTPUT_UNIT, *) 'ids = ', this%ids
+      write (OUTPUT_UNIT, *) 'ide = ', this%ide
+      write (OUTPUT_UNIT, *) 'jds = ', this%jds
+      write (OUTPUT_UNIT, *) 'jde = ', this%jde
+      write (OUTPUT_UNIT, *) 'ims = ', this%ims
+      write (OUTPUT_UNIT, *) 'ime = ', this%ime
+      write (OUTPUT_UNIT, *) 'jms = ', this%jms
+      write (OUTPUT_UNIT, *) 'jme = ', this%jme
+      write (OUTPUT_UNIT, *) 'ips = ', this%ips
+      write (OUTPUT_UNIT, *) 'ipe = ', this%ipe
+      write (OUTPUT_UNIT, *) 'jps = ', this%jps
+      write (OUTPUT_UNIT, *) 'jpe = ', this%jpe
+
+      write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
       write (OUTPUT_UNIT, *) 'sr_y = ', this%sr_y
+      write (OUTPUT_UNIT, *) 'ifds = ', this%ifds
+      write (OUTPUT_UNIT, *) 'ifde = ', this%ifde
+      write (OUTPUT_UNIT, *) 'jfds = ', this%jfds
+      write (OUTPUT_UNIT, *) 'jfde = ', this%jfde
+
+      write (OUTPUT_UNIT, *) ''
+      write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)
+      write (OUTPUT_UNIT, *) 'shape phb = ', shape (this%phb)
+      write (OUTPUT_UNIT, *) 'shape u_2 = ', shape (this%u_2)
+      write (OUTPUT_UNIT, *) 'shape v_2 = ', shape (this%v_2)
+      write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
 
     end subroutine Print_domain
 
-    subroutine Set_default_config_flags (this)
-
-      implicit none
-
-      class (grid_config_rec_type), intent(in out) :: this
-
-
-      this%restart = .false.
-
-    end subroutine Set_default_config_flags
-
-    subroutine Set_default_domain (this)
+    subroutine Domain_init (this, ids, ide, kds, kde, jds, jde, sr_x, sr_y)
 
       implicit none
 
       class (domain), intent(in out) :: this
+      integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
 
 
-      this%sr_x = 2
-      this%sr_y = 2
+        ! Fill in atm dims including
+        ! domain decomposition
+      this%ids = ids
+      this%ide = ide
+      this%kds = kds
+      this%kde = kde
+      this%jds = jds
+      this%jde = jde
 
-    end subroutine Set_default_domain
+      this%ims = ids - N_POINTS_IN_HALO
+      this%ime = ide + N_POINTS_IN_HALO
+      this%kms = kds - N_POINTS_IN_HALO
+      this%kme = kde + N_POINTS_IN_HALO
+      this%jms = jds - N_POINTS_IN_HALO
+      this%jme = jde + N_POINTS_IN_HALO
+
+      this%ips = ids
+      this%ipe = ide
+      this%kps = kds
+      this%kpe = kde
+      this%jps = jds
+      this%jpe = jde
+
+      this%num_tiles = 1
+      allocate (this%i_start(this%num_tiles))
+      this%i_start = this%ids 
+      allocate (this%i_end(this%num_tiles))
+      this%i_end = this%ide
+      allocate (this%j_start(this%num_tiles))
+      this%j_start = this%jds 
+      allocate (this%j_end(this%num_tiles))
+      this%j_end = this%jde
+
+        ! Atmosphere vars
+      allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
+
+      allocate (this%ph_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%phb(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%u_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%v_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%rho(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%z_at_w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%dz8w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+
+      allocate (this%z0(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%xlat(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%xlong(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
+
+      allocate (this%c1h(this%kms:this%kme))
+      allocate (this%c2h(this%kms:this%kme))
+
+        ! Fire vars
+      allocate (this%rain_old(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%t2_old(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%q2_old(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%psfc_old(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%rh_fire(this%ims:this%ime, this%jms:this%jme))
+
+      allocate (this%avg_fuel_frac(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%grnhfx(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%grnqfx(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%canhfx(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%canqfx(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%grnhfx_fu(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%grnqfx_fu(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%uah(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%vah(this%ims:this%ime, this%jms:this%jme))
+
+      allocate (this%rthfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%rqvfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+
+      allocate (this%fmc_gc(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
+      allocate (this%fmc_equi(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
+      allocate (this%fmc_lag(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
+      allocate (this%fmep(this%ims:this%ime, NUM_FMEP, this%jms:this%jme))
+
+        ! Fire vars in the fire grid
+      this%sr_x = sr_x
+      this%sr_y = sr_y
+
+      call Get_ijk_from_subgrid (this, this%ifds, this%ifde, this%jfds, this%jfde, this%kfds, this%kfde, &
+          this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
+          this%jfpe, this%kfps, this%kfpe)
+
+      allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%bbb(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%betafl(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%phiwc(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%r_0(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fgip(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%ischap(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%iboros(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fmc_g(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_hist(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_0(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_1(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_2(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_s0(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_s1(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_s2(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%tign_g(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fuel_frac(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_area(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%burnt_area_dt(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fgrnhfx(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fgrnqfx(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fcanhfx(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fcanqfx(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%ros(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fxlong(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
+
+    end subroutine Domain_init
 
     subroutine Wrf_debug (level , str)
 
