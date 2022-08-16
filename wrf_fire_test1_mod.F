@@ -8,7 +8,8 @@
 
     private
 
-    public :: Set_wrf_fire_test1
+    public :: Set_wrf_fire_test1, n_steps
+    integer :: n_steps = 0
 
   contains
 
@@ -18,6 +19,11 @@
 
       type (domain), intent (in out) :: grid
       type (grid_config_rec_type), intent (in out) :: config_flags
+
+        ! Configuration
+      integer, parameter :: IDS = 1, IDE = 51, KDS = 1, KDE = 51, JDS = 1, JDE = 51
+      integer, parameter :: SR_X = 2, SR_Y = 2
+      integer, parameter :: N_TIME_STEPS = 0
 
       logical, parameter :: DEBUG = .true.
 
@@ -33,7 +39,7 @@
       end if
 
         ! Set grid
-      grid = domain (ids = 1, ide = 51, kds = 1, kde = 51, jds = 1, jde = 51, sr_x = 2, sr_y = 2)
+      grid = domain (ids = IDS, ide = IDE, kds = KDS, kde = KDE, jds = JDS, jde = JDE, sr_x = SR_X, sr_y = SR_Y)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of grid:'
@@ -41,6 +47,9 @@
       end if
 
       call Load_domain_test1 (grid)
+
+        ! Number of time steps
+      n_steps = N_TIME_STEPS
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
 
