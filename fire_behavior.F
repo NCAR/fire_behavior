@@ -11,8 +11,8 @@
     integer, parameter :: CASE_WRF_FIRE_TEST1 = 1
     type (domain) :: grid
     type (grid_config_rec_type) :: config_flags
-    integer :: case_to_run, n
-    logical, parameter :: DEBUG = .true.
+    integer :: case_to_run, n, j
+    logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
 
 
     write (OUTPUT_UNIT, *) 'Please, enter case to run:'
@@ -34,31 +34,57 @@
         stop
     end select select_case_to_run
 
-      ! initialize fire behavior
-    if (DEBUG) then
-      write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'Initialization of the fire...'
-    end if
-    call fire_driver_em_init (grid , config_flags                            & 
+    call Init_fire_behavior_model ()
+
+    call Run_fire_behavior_model ()
+
+  contains
+
+    subroutine Init_fire_behavior_model ()
+
+      implicit none
+
+
+      if (DEBUG) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) 'Initialization of the fire behavior model...'
+      end if
+
+      call fire_driver_em_init (grid , config_flags                          & 
                 ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
                 ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
                 ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
 
-        ! Run fire behavior
-    if (DEBUG) then
-      write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'Run the fire behavior model... '
-    end if
-    do n = 1, n_steps
-        ! Run one step
-      call fire_driver_em_step (grid , config_flags & 
-            ,grid%ids,grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
-            ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
-            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
-            ,grid%rho, grid%z_at_w, grid%dz8w)
+    end subroutine Init_fire_behavior_model
 
-        ! write output if necessary
-!      if (n == XXXX) write_something
-    end do
+    subroutine Run_fire_behavior_model ()
+
+      implicit none
+
+
+      if (DEBUG) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) 'Run the fire behavior model... '
+      end if
+
+      do n = 1, n_steps
+        grid%itimestep = n
+          ! Run one step
+        call fire_driver_em_step (grid , config_flags & 
+              ,grid%ids,grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
+              ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
+              ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
+              ,grid%rho, grid%z_at_w, grid%dz8w)
+
+          ! write output if necessary
+        if (DEBUG) write (OUTPUT_UNIT, *) 'Completed time step ', n
+        if (WRITE_OUTPUT) then
+          do j = grid%jfde - 150, grid%jfds + 150, -1
+            write (OUTPUT_UNIT, '(110(f3.1,1x))') grid%fire_area(150:200, j)
+          end do
+        end if
+      end do
+
+    end subroutine Run_fire_behavior_model
 
   end program fire_behavior

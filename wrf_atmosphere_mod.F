@@ -335,26 +335,35 @@
 
 
       write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'ids = ', this%ids
-      write (OUTPUT_UNIT, *) 'ide = ', this%ide
-      write (OUTPUT_UNIT, *) 'jds = ', this%jds
-      write (OUTPUT_UNIT, *) 'jde = ', this%jde
-      write (OUTPUT_UNIT, *) 'ims = ', this%ims
-      write (OUTPUT_UNIT, *) 'ime = ', this%ime
-      write (OUTPUT_UNIT, *) 'jms = ', this%jms
-      write (OUTPUT_UNIT, *) 'jme = ', this%jme
-      write (OUTPUT_UNIT, *) 'ips = ', this%ips
-      write (OUTPUT_UNIT, *) 'ipe = ', this%ipe
-      write (OUTPUT_UNIT, *) 'jps = ', this%jps
-      write (OUTPUT_UNIT, *) 'jpe = ', this%jpe
+      write (OUTPUT_UNIT, *) 'ids = ', this%ids, 'ide = ', this%ide
+      write (OUTPUT_UNIT, *) 'jds = ', this%jds, 'jde = ', this%jde
+      write (OUTPUT_UNIT, *) 'kds = ', this%kds, 'kde = ', this%kde
+
+      write (OUTPUT_UNIT, *) 'ims = ', this%ims, 'ime = ', this%ime
+      write (OUTPUT_UNIT, *) 'jms = ', this%jms, 'jme = ', this%jme
+      write (OUTPUT_UNIT, *) 'kms = ', this%kms, 'kme = ', this%kme
+
+      write (OUTPUT_UNIT, *) 'ips = ', this%ips, 'ipe = ', this%ipe
+      write (OUTPUT_UNIT, *) 'jps = ', this%jps, 'jpe = ', this%jpe
+      write (OUTPUT_UNIT, *) 'kps = ', this%kps, 'kpe = ', this%kpe
+
 
       write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
       write (OUTPUT_UNIT, *) 'sr_y = ', this%sr_y
-      write (OUTPUT_UNIT, *) 'ifds = ', this%ifds
-      write (OUTPUT_UNIT, *) 'ifde = ', this%ifde
-      write (OUTPUT_UNIT, *) 'jfds = ', this%jfds
-      write (OUTPUT_UNIT, *) 'jfde = ', this%jfde
+
+      write (OUTPUT_UNIT, *) ''
+      write (OUTPUT_UNIT, *) 'ifds = ', this%ifds, 'ifde = ', this%ifde
+      write (OUTPUT_UNIT, *) 'jfds = ', this%jfds, 'jfde = ', this%jfde
+      write (OUTPUT_UNIT, *) 'kfds = ', this%kfds, 'kfde = ', this%kfde
+
+      write (OUTPUT_UNIT, *) 'ifms = ', this%ifms, 'ifme = ', this%ifme
+      write (OUTPUT_UNIT, *) 'jfms = ', this%jfms, 'jfme = ', this%jfme
+      write (OUTPUT_UNIT, *) 'kfms = ', this%kfms, 'kfme = ', this%kfme
+
+      write (OUTPUT_UNIT, *) 'ifps = ', this%ifps, 'ifpe = ', this%ifpe
+      write (OUTPUT_UNIT, *) 'jfps = ', this%jfps, 'jfpe = ', this%jfpe
+      write (OUTPUT_UNIT, *) 'kfps = ', this%kfps, 'kfpe = ', this%kfpe
 
       write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)
@@ -384,8 +393,8 @@
 
       this%ims = ids - N_POINTS_IN_HALO
       this%ime = ide + N_POINTS_IN_HALO
-      this%kms = kds - N_POINTS_IN_HALO
-      this%kme = kde + N_POINTS_IN_HALO
+      this%kms = kds
+      this%kme = kde
       this%jms = jds - N_POINTS_IN_HALO
       this%jme = jde + N_POINTS_IN_HALO
 

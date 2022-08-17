@@ -23,14 +23,12 @@ fire_behavior.o: fire_behavior.F wrf_atmosphere_mod.o wrf_fire_test1_mod.o \
 	$(FC) $(FCFLAGS) -c fire_behavior.f90
 
   # Test cases
-wrf_fire_test1_mod.o: wrf_fire_test1_mod.F wrf_atmosphere_mod.o \
-	module_fr_fire_driver.o	module_fr_fire_driver_wrf.o  module_fr_fire_util.o \
-	module_fr_fire_atm.o module_fr_fire_model.o module_fr_fire_core.o module_fr_fire_phys.o
+wrf_fire_test1_mod.o: wrf_fire_test1_mod.F wrf_atmosphere_mod.o module_fr_fire_util.o
 	$(CPP) $(CPPFLAGS) $< > wrf_fire_test1_mod.f90
 	$(FC) $(FCFLAGS) -c wrf_fire_test1_mod.f90
 
 
-  # Fire modules
+  # WRF fire modules
 module_fr_fire_driver_wrf.o: module_fr_fire_driver_wrf.F module_fr_fire_driver.o module_fr_fire_atm.o module_fr_fire_util.o
 	$(CPP) $(CPPFLAGS) $< > module_fr_fire_driver_wrf.f90
 	$(FC) $(FCFLAGS) -c module_fr_fire_driver_wrf.f90
