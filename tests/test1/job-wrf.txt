@@ -1,0 +1,12 @@
+#!/bin/bash -l
+#PBS -N job_fire
+#PBS -A NWSA0002
+#PBS -l select=1:ncpus=1:mpiprocs=1
+########PBS -l select=2:ncpus=36:mpiprocs=36
+#PBS -l walltime=01:00:00
+#PBS -q premium
+#PBS -j oe
+
+mpiexec_mpt dplace -s 1 ./wrf.exe >&  wrf.log
+
+
