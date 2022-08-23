@@ -34,7 +34,13 @@ file_output=test1_output.txt
 
 rm -f ./$file_input ./$file_output
 echo '1' > ./$file_input
+if [ -f ${DIR_FIRE}/fire_behavior.exe ]
+then
 ${DIR_FIRE}/fire_behavior.exe > ./$file_output < ./$file_input
+else
+  echo 'Please compile the code first'
+  exit 1
+fi
 
 n_tests=0
 n_test_passed=0
@@ -63,7 +69,7 @@ then
     echo '  Test1.1 FAILS'
   fi
 
-  if [ $plot_results ]
+  if [ $plot_results -eq 1 ]
   then
     ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p1.ps
@@ -92,7 +98,7 @@ then
     echo '  Test1.2 FAILS'
   fi
 
-  if [ $plot_results ]
+  if [ $plot_results -eq 1 ]
   then
     ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p2.ps
@@ -121,7 +127,7 @@ then
     echo '  Test1.3 FAILS'
   fi
 
-  if [ $plot_results ]
+  if [ $plot_results -eq 1 ]
   then
     ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p3.ps
@@ -151,7 +157,7 @@ then
     echo '  Test1.4 FAILS'
   fi
 
-  if [ $plot_results ]
+  if [ $plot_results -eq 1 ]
   then
     ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p4.ps
@@ -180,7 +186,7 @@ then
     echo '  Test1.5 FAILS'
   fi
 
-  if [ $plot_results ]
+  if [ $plot_results -eq 1 ]
   then
     ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p5.ps
