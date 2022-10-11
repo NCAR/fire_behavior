@@ -9,8 +9,9 @@
 
     private
 
-    public :: Set_wrf_fire_test1, n_steps
-    integer :: n_steps = 0
+    public :: Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1
+    integer :: n_steps_test1 = 0
+    logical :: read_wrf_input_test1 = .false.
 
       ! Grid settins
     integer, parameter :: IDS = 1, IDE = 103, KDS = 1, KDE = 51, JDS = 1, JDE = 103
@@ -53,7 +54,7 @@
       call Load_domain_test1 (grid)
 
         ! Number of time steps
-      n_steps = N_TIME_STEPS
+      n_steps_test1 = N_TIME_STEPS
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
 

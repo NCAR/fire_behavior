@@ -3,20 +3,25 @@
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INPUT_UNIT
 
     use wrf_atmosphere_mod, only : domain, grid_config_rec_type
-    use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps
+    use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1
+    use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2
     use module_fr_fire_driver_wrf, only : fire_driver_em_init, fire_driver_em_step
 
     implicit none
 
-    integer, parameter :: CASE_WRF_FIRE_TEST1 = 1
+    integer, parameter :: CASE_WRF_FIRE_TEST1 = 1, CASE_WRF_FIRE_TEST2 = 2
     type (domain) :: grid
     type (grid_config_rec_type) :: config_flags
-    integer :: case_to_run, n, j
+    integer :: case_to_run, n, j, n_steps, wrf_input_unit
     logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
+    real :: check_val
+    logical :: read_wrf_input
+    character (len = 5) :: dir_test
 
 
     write (OUTPUT_UNIT, *) 'Please, enter case to run:'
-    write (OUTPUT_UNIT, *) '1. WRF-Fire test1'
+    write (OUTPUT_UNIT, *) '1. WRF-Fire test1 (laminar offline)'
+    write (OUTPUT_UNIT, *) '2. WRF-Fire test2 (laminar with WRF input)'
     read (INPUT_UNIT, *) case_to_run
 
     select_case_to_run: select case (case_to_run)
@@ -27,6 +32,20 @@
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test1'
         end if
         call Set_wrf_fire_test1 (grid, config_flags)
+        n_steps = n_steps_test1
+        read_wrf_input = read_wrf_input_test1
+        dir_test = 'test1'
+
+      case (CASE_WRF_FIRE_TEST2)
+          ! Loading test2
+        if (DEBUG) then
+          write (OUTPUT_UNIT, *) ''
+          write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test2'
+        end if
+        call Set_wrf_fire_test2 (grid, config_flags)
+        n_steps = n_steps_test2
+        read_wrf_input = read_wrf_input_test2
+        dir_test = 'test2'
 
       case default
         write (OUTPUT_UNIT, *) ''
@@ -67,9 +86,25 @@
         write (OUTPUT_UNIT, *) 'Run the fire behavior model... '
       end if
 
+      if (read_wrf_input) &
+          open (newunit = wrf_input_unit, file = dir_test//'/'//'wrf_input.dat')
       do n = 1, n_steps
         grid%itimestep = n
           ! Run one step
+        check_val = 0
+        if (read_wrf_input) then
+          read (wrf_input_unit, *) grid%u_2
+          read (wrf_input_unit, *) grid%v_2
+          read (wrf_input_unit, *) grid%ph_2
+          read (wrf_input_unit, *) grid%phb
+          read (wrf_input_unit, *) grid%rho
+          read (wrf_input_unit, *) grid%z_at_w
+          read (wrf_input_unit, *) grid%dz8w
+          read (wrf_input_unit, *) grid%z0
+          read (wrf_input_unit, *) grid%mut
+          read (wrf_input_unit, *) check_val
+        end if
+        print *, check_val
         call fire_driver_em_step (grid , config_flags & 
               ,grid%ids,grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
               ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
@@ -84,6 +119,7 @@
           end do
         end if
       end do
+      if (read_wrf_input) close (wrf_input_unit)
 
     end subroutine Run_fire_behavior_model
 

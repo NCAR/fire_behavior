@@ -1,0 +1,64 @@
+taskid: 0 hostname: r9i4n18
+Quilting with   1 groups of   0 I/O tasks.
+ Ntasks in X            1 , ntasks in Y            1
+  Domain # 1: dx =    50.000 m
+WRF V4.3.3 MODEL
+git commit f10d917d5c98473ea9b33e59f3ee29813454bd01 2 files changed, 137 insertions(+), 2 deletions(-)
+ *************************************
+ Parent domain
+ ids,ide,jds,jde            1          20           1          40
+ ims,ime,jms,jme           -4          25          -4          45
+ ips,ipe,jps,jpe            1          20           1          40
+ *************************************
+DYNAMICS OPTION: Eulerian Mass Coordinate
+   alloc_space_field: domain            1 ,              45336656  bytes allocated
+  med_initialdata_input: calling input_input
+   Input data is acceptable to use: wrfinput_d01
+ CURRENT DATE          = 0001-01-01_00:00:00
+ SIMULATION START DATE = 0001-01-01_00:00:00
+Timing for processing wrfinput file (stream 0) for domain        1:    0.09723 elapsed seconds
+Max map factor in domain 1 =  0.00. Scale the dt in the model accordingly.
+FIRE:fire_driver_em_init: FIRE initialization start
+FIRE:Using ideal ignition coordinates, m from the lower left domain corner
+FIRE:Reading file namelist.fire
+FIRE:Namelist fuel_moisture not found, using defaults
+Timing for Writing wrfout_d01_0001-01-01_00:00:00 for domain        1:    0.13845 elapsed seconds
+ Tile Strategy is not specified. Assuming 1D-Y
+WRF TILE   1 IS      1 IE     20 JS      1 JE     40
+WRF NUMBER OF TILES =   1
+FIRE:Time       0.500 s Average wind           0.102E+01 m/s
+FIRE:Time       0.500 s Maximum wind           0.102E+01 m/s
+FIRE:Time       0.500 s Fire area              0.000E+00 m^2
+FIRE:Time       0.500 s Heat output            0.000E+00 W
+FIRE:Time       0.500 s Max heat flux          0.000E+00 W/m^2
+FIRE:Time       0.500 s Latent heat output     0.000E+00 W
+FIRE:Time       0.500 s Max latent heat flux   0.000E+00 W/m^2
+d01 0001-01-01_00:00:00  ----------------------------------------
+d01 0001-01-01_00:00:00  W-DAMPING  BEGINS AT W-COURANT NUMBER =    1.00000000
+d01 0001-01-01_00:00:00  ----------------------------------------
+Timing for main: time 0001-01-01_00:00:00 on domain   1:    0.65697 elapsed seconds
+FIRE:Time       1.000 s Average wind           0.102E+01 m/s
+FIRE:Time       1.000 s Maximum wind           0.102E+01 m/s
+FIRE:Time       1.000 s Fire area              0.302E-01 m^2
+FIRE:Time       1.000 s Heat output            0.299E+03 W
+FIRE:Time       1.000 s Max heat flux          0.192E+01 W/m^2
+FIRE:Time       1.000 s Latent heat output     0.275E+02 W
+FIRE:Time       1.000 s Max latent heat flux   0.176E+00 W/m^2
+Timing for main: time 0001-01-01_00:00:01 on domain   1:    0.48500 elapsed seconds
+FIRE:Time       1.500 s Average wind           0.102E+01 m/s
+FIRE:Time       1.500 s Maximum wind           0.102E+01 m/s
+FIRE:Time       1.500 s Fire area              0.313E+00 m^2
+FIRE:Time       1.500 s Heat output           -0.299E+03 W
+FIRE:Time       1.500 s Max heat flux          0.000E+00 W/m^2
+FIRE:Time       1.500 s Latent heat output    -0.275E+02 W
+FIRE:Time       1.500 s Max latent heat flux   0.000E+00 W/m^2
+Timing for main: time 0001-01-01_00:00:01 on domain   1:    0.46153 elapsed seconds
+FIRE:Time       2.000 s Average wind           0.102E+01 m/s
+FIRE:Time       2.000 s Maximum wind           0.102E+01 m/s
+FIRE:Time       2.000 s Fire area              0.701E+00 m^2
+FIRE:Time       2.000 s Heat output            0.513E+05 W
+FIRE:Time       2.000 s Max heat flux          0.308E+03 W/m^2
+FIRE:Time       2.000 s Latent heat output     0.471E+04 W
+FIRE:Time       2.000 s Max latent heat flux   0.283E+02 W/m^2
+Timing for main: time 0001-01-01_00:00:02 on domain   1:    0.46639 elapsed seconds
+d01 0001-01-01_00:00:02 wrf: SUCCESS COMPLETE WRF
