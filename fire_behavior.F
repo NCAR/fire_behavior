@@ -3,30 +3,31 @@
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INPUT_UNIT
 
     use wrf_atmosphere_mod, only : domain, grid_config_rec_type
-    use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1
-    use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2
+    use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
+    use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2, check_tends_test2
+    use wrf_fire_test3_mod, only : Set_wrf_fire_test3, n_steps_test3, read_wrf_input_test3, check_tends_test3
     use module_fr_fire_driver_wrf, only : fire_driver_em_init, fire_driver_em_step
 
     implicit none
 
-    integer, parameter :: CASE_WRF_FIRE_TEST1 = 1, CASE_WRF_FIRE_TEST2 = 2
+    integer, parameter :: CASE_WRF_FIRE_TEST1 = 1, CASE_WRF_FIRE_TEST2 = 2, CASE_WRF_FIRE_TEST3 = 3
     type (domain) :: grid
     type (grid_config_rec_type) :: config_flags
     integer :: case_to_run, n, j, n_steps, wrf_input_unit
     logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
     real :: check_val
-    logical :: read_wrf_input
+    logical :: read_wrf_input, check_tends
     character (len = 5) :: dir_test
 
 
     write (OUTPUT_UNIT, *) 'Please, enter case to run:'
     write (OUTPUT_UNIT, *) '1. WRF-Fire test1 (laminar offline)'
     write (OUTPUT_UNIT, *) '2. WRF-Fire test2 (laminar with WRF input)'
+    write (OUTPUT_UNIT, *) '3. WRF-Fire test2 (coupled atm-fire with WRF input)'
     read (INPUT_UNIT, *) case_to_run
 
     select_case_to_run: select case (case_to_run)
       case (CASE_WRF_FIRE_TEST1)
-          ! Loading test1
         if (DEBUG) then
           write (OUTPUT_UNIT, *) ''
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test1'
@@ -35,9 +36,9 @@
         n_steps = n_steps_test1
         read_wrf_input = read_wrf_input_test1
         dir_test = 'test1'
+        check_tends = check_tends_test1
 
       case (CASE_WRF_FIRE_TEST2)
-          ! Loading test2
         if (DEBUG) then
           write (OUTPUT_UNIT, *) ''
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test2'
@@ -46,6 +47,18 @@
         n_steps = n_steps_test2
         read_wrf_input = read_wrf_input_test2
         dir_test = 'test2'
+        check_tends = check_tends_test2
+
+      case (CASE_WRF_FIRE_TEST3)
+        if (DEBUG) then
+          write (OUTPUT_UNIT, *) ''
+          write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test3'
+        end if
+        call Set_wrf_fire_test3 (grid, config_flags)
+        n_steps = n_steps_test3
+        read_wrf_input = read_wrf_input_test3
+        dir_test = 'test3'
+        check_tends = check_tends_test3
 
       case default
         write (OUTPUT_UNIT, *) ''
@@ -110,6 +123,7 @@
               ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
               ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
               ,grid%rho, grid%z_at_w, grid%dz8w)
+        if (check_tends) write (34, *) grid%rthfrten(13, 2, 20), grid%rqvfrten(13, 2, 20)
 
           ! write output if necessary
         if (DEBUG) write (OUTPUT_UNIT, *) 'Completed time step ', n

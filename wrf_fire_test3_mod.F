@@ -1,4 +1,4 @@
-  module wrf_fire_test1_mod
+  module wrf_fire_test3_mod
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -9,22 +9,22 @@
 
     private
 
-    public :: Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
-    integer :: n_steps_test1 = 0
-    logical :: read_wrf_input_test1 = .false.
-    logical :: check_tends_test1 = .false.
+    public :: Set_wrf_fire_test3, n_steps_test3, read_wrf_input_test3, check_tends_test3
+    integer :: n_steps_test3 = 0
+    logical :: read_wrf_input_test3 = .true.
+    logical :: check_tends_test3 = .true.
 
       ! Grid settins
-    integer, parameter :: IDS = 1, IDE = 103, KDS = 1, KDE = 51, JDS = 1, JDE = 103
+    integer, parameter :: IDS = 1, IDE = 20, KDS = 1, KDE = 51, JDS = 1, JDE = 40 
     integer, parameter :: SR_X = 4, SR_Y = 4
-    integer, parameter :: N_TIME_STEPS = 720
+    integer, parameter :: N_TIME_STEPS = 24
 
       ! Debuging
-    integer, parameter :: I_TO_PRINT = 50, J_TO_PRINT = 50
+    integer, parameter :: I_TO_PRINT = 15, J_TO_PRINT = 15
 
   contains
 
-    subroutine Set_wrf_fire_test1 (grid, config_flags)
+    subroutine Set_wrf_fire_test3 (grid, config_flags)
 
       implicit none
 
@@ -34,10 +34,10 @@
       logical, parameter :: DEBUG = .true.
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test3'
 
         ! Set config_flags
-      call Load_config_flags_test1 (config_flags)
+      call Load_config_flags_test3 (config_flags)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of config_flags:'
@@ -52,16 +52,16 @@
         call grid%Print ()
       end if
 
-      call Load_domain_test1 (grid)
+      call Load_domain_test3 (grid)
 
         ! Number of time steps
-      n_steps_test1 = N_TIME_STEPS
+      n_steps_test3 = N_TIME_STEPS
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test3'
 
-    end subroutine Set_wrf_fire_test1
+    end subroutine Set_wrf_fire_test3
 
-    subroutine Load_config_flags_test1 (config_flags)
+    subroutine Load_config_flags_test3 (config_flags)
 
       implicit none
 
@@ -70,7 +70,7 @@
       logical, parameter :: DEBUG = .true.
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_config_flags_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_config_flags_test3'
 
       config_flags%fire_print_msg = 1
 
@@ -79,30 +79,30 @@
 
       config_flags%fire_num_ignitions = 1
       config_flags%fire_ignition_ros1 = 0.05
-      config_flags%fire_ignition_start_x1 = 2000.0
-      config_flags%fire_ignition_start_y1 = 2000.0
-      config_flags%fire_ignition_end_x1 = 2000.0
-      config_flags%fire_ignition_end_y1 = 3000.0
+      config_flags%fire_ignition_start_x1 = 700.0
+      config_flags%fire_ignition_start_y1 = 500.0
+      config_flags%fire_ignition_end_x1 = 500.0
+      config_flags%fire_ignition_end_y1 = 1500.0
       config_flags%fire_ignition_radius1 = 80.0
-      config_flags%fire_ignition_start_time1 = 120.0
-      config_flags%fire_ignition_end_time1 = 145.0
+      config_flags%fire_ignition_start_time1 = 1.0
+      config_flags%fire_ignition_end_time1 = 15.0
 
       config_flags%fire_wind_height = 1.0
 
       config_flags%fire_fuel_left_irl = 2
       config_flags%fire_fuel_left_jrl = 2
-      config_flags%fire_atm_feedback = 0.0
+      config_flags%fire_atm_feedback = 1.0
       config_flags%fire_grows_only = 1
       config_flags%fire_viscosity = 0.4
       config_flags%fire_upwinding = 9
       config_flags%fire_fuel_left_method = 1
       config_flags%fire_lfn_ext_up = 1.0
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test3'
 
-    end subroutine Load_config_flags_test1
+    end subroutine Load_config_flags_test3
 
-    subroutine Load_domain_test1 (grid)
+    subroutine Load_domain_test3 (grid)
 
       implicit none
 
@@ -147,7 +147,7 @@
       integer :: k
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test3'
 
       grid%dx = DX
       grid%dy = DY
@@ -209,9 +209,9 @@
         write (OUTPUT_UNIT, *) grid%fxlong (I_TO_PRINT, J_TO_PRINT)
       end if
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test3'
 
-    end subroutine Load_domain_test1
+    end subroutine Load_domain_test3
 
-  end module wrf_fire_test1_mod
+  end module wrf_fire_test3_mod
 

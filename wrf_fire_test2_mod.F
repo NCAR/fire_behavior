@@ -9,9 +9,10 @@
 
     private
 
-    public :: Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2
+    public :: Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2, check_tends_test2
     integer :: n_steps_test2 = 0
     logical :: read_wrf_input_test2 = .true.
+    logical :: check_tends_test2 = .false.
 
       ! Grid settins
     integer, parameter :: IDS = 1, IDE = 20, KDS = 1, KDE = 51, JDS = 1, JDE = 40 
