@@ -17,7 +17,6 @@
     logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
     real :: check_val
     logical :: read_wrf_input, check_tends
-    character (len = 5) :: dir_test
 
 
     write (OUTPUT_UNIT, *) 'Please, enter case to run:'
@@ -35,7 +34,6 @@
         call Set_wrf_fire_test1 (grid, config_flags)
         n_steps = n_steps_test1
         read_wrf_input = read_wrf_input_test1
-        dir_test = 'test1'
         check_tends = check_tends_test1
 
       case (CASE_WRF_FIRE_TEST2)
@@ -46,7 +44,6 @@
         call Set_wrf_fire_test2 (grid, config_flags)
         n_steps = n_steps_test2
         read_wrf_input = read_wrf_input_test2
-        dir_test = 'test2'
         check_tends = check_tends_test2
 
       case (CASE_WRF_FIRE_TEST3)
@@ -57,7 +54,6 @@
         call Set_wrf_fire_test3 (grid, config_flags)
         n_steps = n_steps_test3
         read_wrf_input = read_wrf_input_test3
-        dir_test = 'test3'
         check_tends = check_tends_test3
 
       case default
@@ -93,20 +89,31 @@
 
       implicit none
 
+      integer :: io_stat
 
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Run the fire behavior model... '
       end if
 
-      if (read_wrf_input) &
-          open (newunit = wrf_input_unit, file = dir_test//'/'//'wrf_input.dat')
+      if (read_wrf_input) then
+        open (newunit = wrf_input_unit, file = 'wrf_input.dat', iostat = io_stat)
+        if (io_stat /= 0) then
+          write (OUTPUT_UNIT, *) 'Problems opening the wrf_input.dat file'
+          stop
+        end if
+      end if
       do n = 1, n_steps
         grid%itimestep = n
           ! Run one step
         check_val = 0
         if (read_wrf_input) then
-          read (wrf_input_unit, *) grid%u_2
+          read (wrf_input_unit, *, iostat = io_stat) grid%u_2
+          if (io_stat /= 0) then
+            write (OUTPUT_UNIT, *) 'Problems reading wrf_input.dat'
+            stop
+          end if
+
           read (wrf_input_unit, *) grid%v_2
           read (wrf_input_unit, *) grid%ph_2
           read (wrf_input_unit, *) grid%phb

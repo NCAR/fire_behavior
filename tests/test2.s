@@ -31,6 +31,8 @@ file_wrf=${DIR_FIRE}/tests/test2/rsl.out.0000
 file_input=input.txt
 file_output=test2_output.txt
 
+cp ./test2/wrf_input.dat .
+
 rm -f ./$file_input ./$file_output
 echo '2' > ./$file_input
 if [ -f ${DIR_FIRE}/fire_behavior.exe ]
@@ -162,7 +164,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./wrf_input.dat
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
