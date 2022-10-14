@@ -19,14 +19,7 @@ test2p5=1 # Check Max latent heat flux
 #################################################
 #
 
-if [ -z $DIR_FIRE ]
-then
-  echo 'Please define environmental variable $DIR_FIRE '
-  echo 'with the location of the stand alone fire behavior code '
-  exit 1
-fi
-
-file_wrf=${DIR_FIRE}/tests/test2/rsl.out.0000
+file_wrf=./test2/rsl.out.0000
 
 file_input=input.txt
 file_output=test2_output.txt
@@ -35,9 +28,9 @@ cp ./test2/wrf_input.dat .
 
 rm -f ./$file_input ./$file_output
 echo '2' > ./$file_input
-if [ -f ${DIR_FIRE}/fire_behavior.exe ]
+if [ -f ./fire_behavior.exe ]
 then
-${DIR_FIRE}/fire_behavior.exe > ./$file_output < ./$file_input
+  ./fire_behavior.exe > ./$file_output < ./$file_input
 else
   echo 'Please compile the code first'
   exit 1

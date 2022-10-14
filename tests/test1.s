@@ -20,23 +20,16 @@ test1p5=0 # Check Max latent heat flux
 #################################################
 #
 
-if [ -z $DIR_FIRE ]
-then
-  echo 'Please define environmental variable $DIR_FIRE '
-  echo 'with the location of the stand alone fire behavior code '
-  exit 1
-fi
-
-file_wrf=${DIR_FIRE}/tests/test1/rsl.out.0000
+file_wrf=./test1/rsl.out.0000
 
 file_input=input.txt
 file_output=test1_output.txt
 
 rm -f ./$file_input ./$file_output
 echo '1' > ./$file_input
-if [ -f ${DIR_FIRE}/fire_behavior.exe ]
+if [ -f ./fire_behavior.exe ]
 then
-${DIR_FIRE}/fire_behavior.exe > ./$file_output < ./$file_input
+ ./fire_behavior.exe > ./$file_output < ./$file_input
 else
   echo 'Please compile the code first'
   exit 1
@@ -71,7 +64,7 @@ then
 
   if [ $plot_results -eq 1 ]
   then
-    ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
+    ./test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p1.ps
   fi
 fi
@@ -100,7 +93,7 @@ then
 
   if [ $plot_results -eq 1 ]
   then
-    ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
+    ./test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p2.ps
   fi 
 fi
@@ -129,7 +122,7 @@ then
 
   if [ $plot_results -eq 1 ]
   then
-    ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
+    ./test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p3.ps
   fi 
 fi
@@ -159,7 +152,7 @@ then
 
   if [ $plot_results -eq 1 ]
   then
-    ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
+    ./test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p4.ps
   fi 
 fi
@@ -188,7 +181,7 @@ then
 
   if [ $plot_results -eq 1 ]
   then
-    ${DIR_FIRE}/tests/test1/gn_dos.s file1.dat file2.dat
+    ./test1/gn_dos.s file1.dat file2.dat
     mv ./plot.ps ./test1p5.ps
   fi 
 fi
