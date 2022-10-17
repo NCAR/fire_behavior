@@ -8,7 +8,7 @@ target: $(objects)
 	$(FC) $(FCFLAGS) -c $*.f90
 
 clean:
-	rm -f ./*.o ./*.exe ./*.mod  ./*.f90
+	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
 module_fr_fire_driver_wrf.o: module_fr_fire_driver.o module_fr_fire_atm.o module_fr_fire_util.o

@@ -7,5 +7,5 @@ target: $(objects)
 	$(FC) $(FCFLAGS) -c $*.f90
 
 clean:
-	rm -f ./*.o ./*.exe ./*.mod  ./*.f90
+	rm -f ./*.o ./*.mod  ./*.f90
 
