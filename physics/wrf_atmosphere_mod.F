@@ -259,14 +259,18 @@
 
   contains
 
-    function Domain_const (ids, ide, kds, kde, jds, jde, sr_x, sr_y) result (return_value)
+    function Domain_const (ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+        xlat, xlong, dx, dy) result (return_value)
 
       implicit none
 
       integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
+      real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
+      real, intent (in), optional :: dx, dy
       type (domain) :: return_value
 
-      call Domain_init (return_value, ids, ide, kds, kde, jds, jde, sr_x, sr_y)
+      call Domain_init (return_value, ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+          xlat, xlong, dx, dy)
 
     end function Domain_const
 
@@ -374,12 +378,17 @@
 
     end subroutine Print_domain
 
-    subroutine Domain_init (this, ids, ide, kds, kde, jds, jde, sr_x, sr_y)
+    subroutine Domain_init (this, ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+        xlat, xlong, dx, dy)
 
       implicit none
 
       class (domain), intent(in out) :: this
       integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
+      real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
+      real, intent (in), optional :: dx, dy
+
+      integer :: n1, n2
 
 
         ! Fill in atm dims including
@@ -428,8 +437,6 @@
 
       allocate (this%z0(this%ims:this%ime, this%jms:this%jme))
       allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%xlat(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%xlong(this%ims:this%ime, this%jms:this%jme))
       allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
       allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
       allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
@@ -475,9 +482,6 @@
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%bbb(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%betafl(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%phiwc(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -509,8 +513,78 @@
       allocate (this%fxlong(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
+
+        ! optional variables in the atmospheric grid
+      allocate (this%xlat(this%ims:this%ime, this%jms:this%jme))
+      if (present (xlat)) then
+        n1 = size (xlat, dim = 1)
+        n2 = size (xlat, dim = 2)
+        if (n1 == this%ide .and. n2 == this%jde) then
+          this%xlat(this%ids:this%ide, this%jds:this%jde) = xlat
+        else
+          stop 'input xlat array does not have atm grid dims'
+        end if
+      end if
+
+      allocate (this%xlong(this%ims:this%ime, this%jms:this%jme))
+      if (present (xlong)) then
+        n1 = size (xlong, dim = 1)
+        n2 = size (xlong, dim = 2)
+        if (n1 == this%ide .and. n2 == this%jde) then
+          this%xlong(this%ids:this%ide, this%jds:this%jde) = xlong
+        else
+          stop 'input xlong array does not have atm grid dims'
+        end if
+      end if
+
+      if (present (dx)) this%dx = dx
+      if (present (dy)) this%dy = dy
+
+        ! optional variables in the fire grid
+      allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
+      if (present (zsf)) then
+        n1 = size (zsf, dim = 1)
+        n2 = size (zsf, dim = 2)
+        if (n1 == this%ifde .and. n2 == this%jfde) then
+          this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = zsf
+        else
+          stop 'input zsf array does not have fire grid dims'
+        end if
+      end if
+
+      allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
+      if (present (dzdxf)) then
+        n1 = size (dzdxf, dim = 1)
+        n2 = size (dzdxf, dim = 2)
+        if (n1 == this%ifde .and. n2 == this%jfde) then
+          this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = dzdxf
+        else
+          stop 'input dzdxf array does not have fire grid dims'
+        end if
+      end if
+
+      allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
+      if (present (dzdyf)) then
+        n1 = size (dzdyf, dim = 1)
+        n2 = size (dzdyf, dim = 2)
+        if (n1 == this%ifde .and. n2 == this%jfde) then
+          this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = dzdyf
+        else
+          stop 'input dzdyf array does not have fire grid dims'
+        end if
+      end if
+
+      allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
+      if (present (nfuel_cat)) then
+        n1 = size (nfuel_cat, dim = 1)
+        n2 = size (nfuel_cat, dim = 2)
+        if (n1 == this%ifde .and. n2 == this%jfde) then
+          this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = nfuel_cat
+        else
+          stop 'input nfuel_cat array does not have fire grid dims'
+        end if
+      end if
 
     end subroutine Domain_init
 

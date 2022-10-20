@@ -1,5 +1,5 @@
 
-objects = grid_mod.o
+objects = state_mod.o
 
 target: $(objects)
 %.o: %.F90
