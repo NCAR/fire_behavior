@@ -17,8 +17,8 @@
     logical :: check_tends_test4 = .false.
 
       ! Grid settins
-    integer, parameter :: IDS = 1, KDS = 1, KDE = 51, JDS = 1
-    integer, parameter :: N_TIME_STEPS = 24
+    integer, parameter :: IDS = 1, KDS = 1, KDE = 45, JDS = 1
+    integer, parameter :: N_TIME_STEPS = 2
 
   contains
 
@@ -37,8 +37,11 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test4'
 
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Reading Geogrid output'
+      call Init_grid_from_geogrid ('geo_em.d01.nc', state, xlat, xlong, sr_x, sr_y)
+
         ! Set config_flags
-      call Load_config_flags_test4 (config_flags)
+      call Load_config_flags_test4 (config_flags, state%cen_lat, state%cen_lon)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of config_flags:'
@@ -46,16 +49,17 @@
       end if
 
         ! Set grid
-      call Init_grid_from_geogrid ('geo_em.d01.nc', state, xlat, xlong, sr_x, sr_y)
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
       grid = domain (ids = IDS, ide = state%ide, kds = KDS, kde = KDE, jds = JDS, jde = state%jde, sr_x = sr_x, sr_y = sr_y, &
-          zsf = state%elevations, dzdxf = state%dz_dxs, dzdyf = state%dz_dys, nfuel_cat = state%fuel_cats) 
+          zsf = state%elevations, dzdxf = state%dz_dxs, dzdyf = state%dz_dys, nfuel_cat = state%fuel_cats, dx = state%dx, &
+          dy = state%dy)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of grid:'
         call grid%Print ()
       end if
 
-      call Load_domain_test4 (grid)
+      call Load_domain_test4 (grid, xlat, xlong)
 
         ! Number of time steps
       n_steps_test4 = N_TIME_STEPS
@@ -64,11 +68,12 @@
 
     end subroutine Set_wrf_fire_test4
 
-    subroutine Load_config_flags_test4 (config_flags)
+    subroutine Load_config_flags_test4 (config_flags, cen_lat, cen_lon)
 
       implicit none
 
       type (grid_config_rec_type), intent (in out) :: config_flags
+      real, intent (in) :: cen_lat, cen_lon
 
       logical, parameter :: DEBUG = .true.
 
@@ -77,18 +82,17 @@
 
       config_flags%fire_print_msg = 1
 
-      config_flags%fire_fuel_read = 0 ! change
-      config_flags%fire_fuel_cat = 1  ! change
+      config_flags%fire_fuel_read = -1
 
       config_flags%fire_num_ignitions = 1
-      config_flags%fire_ignition_ros1 = 0.05
-      config_flags%fire_ignition_start_x1 = 700.0 ! change
-      config_flags%fire_ignition_start_y1 = 500.0 ! change
-      config_flags%fire_ignition_end_x1 = 500.0   ! change
-      config_flags%fire_ignition_end_y1 = 1500.0  ! change
-      config_flags%fire_ignition_radius1 = 80.0
-      config_flags%fire_ignition_start_time1 = 1.0
-      config_flags%fire_ignition_end_time1 = 15.0
+      config_flags%fire_ignition_ros1 = 12.55
+      config_flags%fire_ignition_start_lat1 = 39.685
+      config_flags%fire_ignition_start_lon1 = -103.585
+      config_flags%fire_ignition_end_lat1 = 39.674
+      config_flags%fire_ignition_end_lon1 = -103.575
+      config_flags%fire_ignition_radius1 = 1000.0
+      config_flags%fire_ignition_start_time1 = 0.0
+      config_flags%fire_ignition_end_time1 = 300.0
 
       config_flags%fire_wind_height = 1.0
 
@@ -101,27 +105,28 @@
       config_flags%fire_fuel_left_method = 1
       config_flags%fire_lfn_ext_up = 1.0
 
+      config_flags%cen_lat = cen_lat
+      config_flags%cen_lon = cen_lon
+
+
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test4'
 
     end subroutine Load_config_flags_test4
 
-    subroutine Load_domain_test4 (grid)
+    subroutine Load_domain_test4 (grid, xlat, xlong)
 
       implicit none
 
       type (domain), intent (in out) :: grid
+      real, dimension (:, :), intent (in) :: xlat, xlong
 
       logical, parameter  :: DEBUG = .true.
       real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0, DX = 50.0, DY = 50.0, DT = 0.5
-
-      real :: fdx, fdy
+          DT = 0.5
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test4'
 
-      grid%dx = DX
-      grid%dy = DY
       grid%dt = DT
 
         ! 2D arrays
@@ -132,29 +137,17 @@
       grid%rainc = RAINC
       grid%rainnc = RAINNC
 
-      grid%zsf = ZSF
-      grid%dzdxf = DZDXF
-      grid%dzdyf = DZDYF
-
         ! 1D arrays
       grid%c1h(:) = 1.0
       grid%c2h(:) = 0.0
 
-        ! Ideal coordinates
-      call set_ideal_coord( grid%dx,grid%dy, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, &
-                  grid%ims, grid%ime, grid%jms, grid%jme, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, & ! originaly tile dims. domain dim are the same here
-                  grid%xlong,grid%xlat)
+        ! lat lon
+      grid%xlat = 0.0
+      grid%xlat (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlat
+      grid%xlong = 0.0
+      grid%xlong (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlong
 
-      fdx = grid%dx / grid%sr_x
-      fdy = grid%dy / grid%sr_y
-
-      call set_ideal_coord (fdx, fdy, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-          grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! originaly tile dims. domain dim are the same here
-          grid%fxlong,grid%fxlat)
+      grid%itimestep = 0
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test4'
 

@@ -18,7 +18,7 @@ fire_behavior.exe: fire_behavior.o wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf
 	../io/geogrid_mod.o ../io/netcdf_mod.o ../state/state_mod.o \
 	../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o \
 	../physics/module_fr_fire_atm.o ../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
-	$(FC) -Wl,-rpath,$(DIR_NETCDF)/lib -L$(DIR_NETCDF)/lib -lnetcdf -lnetcdff $^ -o $@
+	$(FC) -lnetcdf -lnetcdff $^ -o $@
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90

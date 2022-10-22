@@ -55,6 +55,12 @@
       call Get_netcdf_att (trim (file_name), 'global', 'DY', att_real32)
       state%dy = att_real32
 
+      call Get_netcdf_att (trim (file_name), 'global', 'CEN_LAT', att_real32)
+      state%cen_lat = att_real32
+
+      call Get_netcdf_att (trim (file_name), 'global', 'CEN_LON', att_real32)
+      state%cen_lon = att_real32
+
 
         ! Other vars for WRF-Fire init
       call Get_netcdf_var (trim (file_name), 'XLAT_M', var_real32)
