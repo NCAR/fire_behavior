@@ -2,7 +2,7 @@
 STATE_DIR = ../state
 STATE_INCLUDE="-I$(STATE_DIR)"
 
-objects = netcdf_mod.o geogrid_mod.o
+objects = netcdf_mod.o geogrid_mod.o namelist_mod.o
 
 target: $(objects)
 
