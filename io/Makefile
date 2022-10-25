@@ -14,4 +14,4 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
-geogrid_mod.o: netcdf_mod.o ../state/state_mod.o
+geogrid_mod.o: netcdf_mod.o

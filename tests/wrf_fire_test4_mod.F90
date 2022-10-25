@@ -4,8 +4,7 @@
 
     use wrf_atmosphere_mod, only : domain, grid_config_rec_type
     use module_fr_fire_util, only : set_ideal_coord
-    use geogrid_mod, only : Init_grid_from_geogrid
-    use state_mod, only : state_t
+    use geogrid_mod, only : geogrid_t
 
     implicit none
 
@@ -29,19 +28,17 @@
       type (domain), intent (in out) :: grid
       type (grid_config_rec_type), intent (in out) :: config_flags
 
-      type (state_t) :: state
-      real, dimension(:, :), allocatable :: xlat, xlong
-      integer :: sr_x, sr_y
+      type (geogrid_t) :: geogrid
       logical, parameter :: DEBUG = .true.
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test4'
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Reading Geogrid output'
-      call Init_grid_from_geogrid ('geo_em.d01.nc', state, xlat, xlong, sr_x, sr_y)
+      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
 
         ! Set config_flags
-      call Load_config_flags_test4 (config_flags, state%cen_lat, state%cen_lon)
+      call Load_config_flags_test4 (config_flags, geogrid%cen_lat, geogrid%cen_lon)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of config_flags:'
@@ -50,16 +47,16 @@
 
         ! Set grid
       if (DEBUG) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
-      grid = domain (ids = IDS, ide = state%ide, kds = KDS, kde = KDE, jds = JDS, jde = state%jde, sr_x = sr_x, sr_y = sr_y, &
-          zsf = state%elevations, dzdxf = state%dz_dxs, dzdyf = state%dz_dys, nfuel_cat = state%fuel_cats, dx = state%dx, &
-          dy = state%dy)
+      grid = domain (ids = geogrid%ids, ide = geogrid%ide, kds = KDS, kde = KDE, jds = geogrid%jds, jde = geogrid%jde, &
+          sr_x = geogrid%sr_x, sr_y = geogrid%sr_y, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
+          nfuel_cat = geogrid%fuel_cats, dx = geogrid%dx, dy = geogrid%dy)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of grid:'
         call grid%Print ()
       end if
 
-      call Load_domain_test4 (grid, xlat, xlong)
+      call Load_domain_test4 (grid, geogrid%xlat, geogrid%xlong)
 
         ! Number of time steps
       n_steps_test4 = N_TIME_STEPS
