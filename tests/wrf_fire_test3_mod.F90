@@ -2,7 +2,8 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
-    use wrf_atmosphere_mod, only : domain, grid_config_rec_type
+    use wrf_atmosphere_mod, only : domain
+    use namelist_wrf_mod, only : grid_config_rec_type
     use module_fr_fire_util, only : set_ideal_coord
 
     implicit none
@@ -41,7 +42,7 @@
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of config_flags:'
-        call config_flags%Print ()
+!        call config_flags%Print ()
       end if
 
         ! Set grid

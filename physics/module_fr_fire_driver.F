@@ -25,7 +25,7 @@ use module_fr_fire_core, only: ignition_line_type
 use module_fr_fire_atm, only: add_fire_tracer_emissions 
 
 USE wrf_atmosphere_mod, only: domain
-USE wrf_atmosphere_mod, only: grid_config_rec_type
+USE namelist_wrf_mod, only: grid_config_rec_type
 use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
                                   g,           & ! gravitation acceleration
                                   pi2            ! 2*pi
@@ -1046,7 +1046,7 @@ end subroutine fire_driver_phys
 
 subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
     ignition_line,fire_num_ignitions,unit_fxlong,unit_fxlat)
-    USE wrf_atmosphere_mod, only : grid_config_rec_type
+    USE namelist_wrf_mod, only : grid_config_rec_type
     implicit none
 ! create ignition arrays from scalar flags
 !*** arguments

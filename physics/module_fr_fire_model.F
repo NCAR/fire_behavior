@@ -84,7 +84,7 @@ USE wrf_atmosphere_mod, only: domain
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_sub
 #endif
-USE wrf_atmosphere_mod, only: grid_config_rec_type
+USE namelist_wrf_mod, only: grid_config_rec_type
 
 implicit none
 

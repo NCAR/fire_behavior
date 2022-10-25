@@ -15,7 +15,7 @@ objects = fire_behavior.o wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_tes
 objects_io = ../io/geogrid_mod.o ../io/netcdf_mod.o
 
 fire_behavior.exe: fire_behavior.o wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_test3_mod.o wrf_fire_test4_mod.o \
-	../io/geogrid_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o \
+	../io/geogrid_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o ../io/namelist_wrf_mod.o\
 	../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o \
 	../physics/module_fr_fire_atm.o ../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
 	$(FC) -lnetcdf -lnetcdff $^ -o $@
@@ -29,13 +29,13 @@ clean:
 
   # Dependencies
 fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o \
-	wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_test3_mod.o wrf_fire_test4_mod.o
+	wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_test3_mod.o wrf_fire_test4_mod.o ../io/namelist_wrf_mod.o
 
-wrf_fire_test1_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o
+wrf_fire_test1_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
 
-wrf_fire_test2_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o
+wrf_fire_test2_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
 
-wrf_fire_test3_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o
+wrf_fire_test3_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
 
-wrf_fire_test4_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/geogrid_mod.o ../state/state_mod.o ../io/namelist_mod.o
+wrf_fire_test4_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/geogrid_mod.o ../state/state_mod.o ../io/namelist_mod.o
 

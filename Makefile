@@ -25,3 +25,5 @@ clean:
 tests: physics io state
 
 state: physics io
+
+physics: io

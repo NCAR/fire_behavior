@@ -2,7 +2,8 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INPUT_UNIT
 
-    use wrf_atmosphere_mod, only : domain, grid_config_rec_type
+    use wrf_atmosphere_mod, only : domain
+    use namelist_wrf_mod, only : grid_config_rec_type
     use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
     use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2, check_tends_test2
     use wrf_fire_test3_mod, only : Set_wrf_fire_test3, n_steps_test3, read_wrf_input_test3, check_tends_test3
