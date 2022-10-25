@@ -25,7 +25,7 @@ use module_fr_fire_core, only: ignition_line_type
 use module_fr_fire_atm, only: add_fire_tracer_emissions 
 
 USE wrf_atmosphere_mod, only: domain
-USE namelist_wrf_mod, only: grid_config_rec_type
+USE namelist_mod, only: namelist_t
 use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
                                   g,           & ! gravitation acceleration
                                   pi2            ! 2*pi
@@ -68,7 +68,7 @@ halo_fire_mag_sub
     implicit none
 !*** arguments
     TYPE(domain) , TARGET :: grid                             ! state 
-    TYPE (grid_config_rec_type) , INTENT(IN)  :: config_flags ! namelist
+    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
     integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
     integer, intent(in):: &
              ids,ide, kds,kde, jds,jde,                              &
@@ -127,7 +127,7 @@ halo_fire_mag_sub
     ir=grid%sr_x ! refinement ratio
     jr=grid%sr_y
     itimestep=grid%itimestep
-    restart=config_flags%restart
+    restart=config_flags%wrf%restart
 
     ! time - assume dt does not change
     dt = grid%dt
@@ -461,7 +461,7 @@ integer, intent(in)::ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, &
                      ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
                      ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu   
 
-type (grid_config_rec_type), intent(in)          :: config_flags 
+type (namelist_t), intent(in)          :: config_flags
 
 logical, intent(in)::restart
     
@@ -1046,11 +1046,11 @@ end subroutine fire_driver_phys
 
 subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
     ignition_line,fire_num_ignitions,unit_fxlong,unit_fxlat)
-    USE namelist_wrf_mod, only : grid_config_rec_type
+    USE namelist_mod, only : namelist_t
     implicit none
 ! create ignition arrays from scalar flags
 !*** arguments
-    TYPE (grid_config_rec_type) , INTENT(IN)          :: config_flags
+    TYPE (namelist_t) , INTENT(IN)          :: config_flags
     integer, intent(in)::fire_max_ignitions
     TYPE (ignition_line_type), DIMENSION(fire_max_ignitions), intent(out):: ignition_line ! any values from input discarded 
     integer, intent(out)::fire_num_ignitions,fire_ignition_longlat
@@ -1159,8 +1159,8 @@ subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_
        ! will set fire mesh coordinates to uniform mesh below
     else
        ! real
-       lat_ctr=config_flags%cen_lat
-       lon_ctr=config_flags%cen_lon
+       lat_ctr=config_flags%wrf%cen_lat
+       lon_ctr=config_flags%wrf%cen_lon
        ! 1 degree in m (approximate OK)
        unit_fxlat=pi2/(360.*reradius)  ! earth circumference in m / 360 degrees
        unit_fxlong=cos(lat_ctr*pi2/360.)*unit_fxlat  ! latitude
@@ -1633,7 +1633,7 @@ end subroutine check_fmesh
 !
 subroutine set_flags(config_flags)
 implicit none
-TYPE (grid_config_rec_type) , INTENT(IN)          :: config_flags
+TYPE (namelist_t) , INTENT(IN)          :: config_flags
 ! copy flags from wrf to module_fr_fire_util
 ! for instructions how to add a flag see the top of module_fr_fire_util.F
 

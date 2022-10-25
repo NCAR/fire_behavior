@@ -53,7 +53,7 @@
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutinte Initialize_state'
 
-        call nl%Read_namelist ()
+      nl = namelist_t (file_name = 'namelist.input')
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutinte Initialize_state'
 

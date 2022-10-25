@@ -12,3 +12,5 @@ clean:
 
   # Dependencies
 geogrid_mod.o: netcdf_mod.o
+
+namelist_mod.o: namelist_wrf_mod.o

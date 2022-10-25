@@ -29,13 +29,13 @@ clean:
 
   # Dependencies
 fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o \
-	wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_test3_mod.o wrf_fire_test4_mod.o ../io/namelist_wrf_mod.o
+	wrf_fire_test1_mod.o wrf_fire_test2_mod.o wrf_fire_test3_mod.o wrf_fire_test4_mod.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-wrf_fire_test1_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
+wrf_fire_test1_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-wrf_fire_test2_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
+wrf_fire_test2_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-wrf_fire_test3_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o
+wrf_fire_test3_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-wrf_fire_test4_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/geogrid_mod.o ../state/state_mod.o ../io/namelist_mod.o
+wrf_fire_test4_mod.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/geogrid_mod.o ../state/state_mod.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 

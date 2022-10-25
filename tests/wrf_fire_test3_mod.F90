@@ -3,7 +3,7 @@
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
     use wrf_atmosphere_mod, only : domain
-    use namelist_wrf_mod, only : grid_config_rec_type
+    use namelist_mod, only : namelist_t
     use module_fr_fire_util, only : set_ideal_coord
 
     implicit none
@@ -30,7 +30,7 @@
       implicit none
 
       type (domain), intent (in out) :: grid
-      type (grid_config_rec_type), intent (in out) :: config_flags
+      type (namelist_t), intent (in out) :: config_flags
 
       logical, parameter :: DEBUG = .true.
 
@@ -66,7 +66,7 @@
 
       implicit none
 
-      type (grid_config_rec_type), intent (in out) :: config_flags
+      type (namelist_t), intent (in out) :: config_flags
 
       logical, parameter :: DEBUG = .true.
 

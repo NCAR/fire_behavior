@@ -199,17 +199,6 @@
 
     end subroutine Get_ijk_from_subgrid
 
-!    subroutine Print_config_flags (this)
-!
-!      implicit none
-!
-!      class (grid_config_rec_type), intent(in out) :: this
-!
-!
-!      write (OUTPUT_UNIT, *) 'restart = ', this%restart
-!
-!    end subroutine Print_config_flags
-
     subroutine Print_domain (this)
 
       implicit none

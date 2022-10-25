@@ -1528,7 +1528,7 @@ subroutine reinit_ls_rk3(id,                       &
     USE module_comm_dm , ONLY : halo_fire_lfn_s1_sub,halo_fire_lfn_s2_sub,halo_fire_lfn_s3_sub
 #endif
 USE wrf_atmosphere_mod, only: domain
-USE namelist_wrf_mod, only: grid_config_rec_type
+USE namelist_mod, only: namelist_t
 
 implicit none
 

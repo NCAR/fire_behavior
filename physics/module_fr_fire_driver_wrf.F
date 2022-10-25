@@ -20,11 +20,11 @@ subroutine fire_driver_em_init (grid , config_flags               &
     ! stub to call fire_driver_em with irun=0 and omit last 3 args
 
     USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
-    USE namelist_wrf_mod, only : grid_config_rec_type
+    USE namelist_mod, only : namelist_t
     implicit none
 
     TYPE(domain) , TARGET          :: grid   ! data
-    TYPE (grid_config_rec_type) , INTENT(IN)          :: config_flags
+    TYPE (namelist_t) , INTENT(IN)          :: config_flags
     integer, intent(in):: &
              ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &
@@ -74,12 +74,12 @@ subroutine fire_driver_em_step (grid , config_flags               &
     ! stub to call fire_driver_em 
 
     USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
-    USE namelist_wrf_mod , only : grid_config_rec_type
+    USE namelist_mod , only : namelist_t
     USE module_fr_fire_util, only : fire_test_steps
     implicit none
 
     TYPE(domain) , TARGET          :: grid   ! data
-    TYPE (grid_config_rec_type) , INTENT(IN)          :: config_flags
+    TYPE (namelist_t) , INTENT(IN)          :: config_flags
     integer, intent(in):: &
              ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &

@@ -14,15 +14,15 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
-module_fr_fire_driver_wrf.o: module_fr_fire_driver.o module_fr_fire_atm.o module_fr_fire_util.o ../io/namelist_wrf_mod.o
+module_fr_fire_driver_wrf.o: module_fr_fire_driver.o module_fr_fire_atm.o module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-module_fr_fire_driver.o: wrf_atmosphere_mod.o module_fr_fire_util.o module_fr_fire_phys.o ../io/namelist_wrf_mod.o
+module_fr_fire_driver.o: wrf_atmosphere_mod.o module_fr_fire_util.o module_fr_fire_phys.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
 module_fr_fire_atm.o: wrf_atmosphere_mod.o module_fr_fire_util.o
 
-module_fr_fire_model.o: wrf_atmosphere_mod.o module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o ../io/namelist_wrf_mod.o
+module_fr_fire_model.o: wrf_atmosphere_mod.o module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
-module_fr_fire_core.o: wrf_atmosphere_mod.o module_fr_fire_phys.o module_fr_fire_util.o ../io/namelist_wrf_mod.o
+module_fr_fire_core.o: wrf_atmosphere_mod.o module_fr_fire_phys.o module_fr_fire_util.o ../io/namelist_wrf_mod.o ../io/namelist_mod.o
 
 module_fr_fire_phys.o: wrf_atmosphere_mod.o module_fr_fire_util.o
 

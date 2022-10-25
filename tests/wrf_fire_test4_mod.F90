@@ -3,7 +3,7 @@
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
     use wrf_atmosphere_mod, only : domain
-    use namelist_wrf_mod, only : grid_config_rec_type
+    use namelist_mod, only : namelist_t
     use module_fr_fire_util, only : set_ideal_coord
     use geogrid_mod, only : geogrid_t
 
@@ -27,7 +27,7 @@
       implicit none
 
       type (domain), intent (in out) :: grid
-      type (grid_config_rec_type), intent (in out) :: config_flags
+      type (namelist_t), intent (in out) :: config_flags
 
       type (geogrid_t) :: geogrid
       logical, parameter :: DEBUG = .true.
@@ -70,7 +70,7 @@
 
       implicit none
 
-      type (grid_config_rec_type), intent (in out) :: config_flags
+      type (namelist_t), intent (in out) :: config_flags
       real, intent (in) :: cen_lat, cen_lon
 
       logical, parameter :: DEBUG = .true.
@@ -103,8 +103,8 @@
       config_flags%fire_fuel_left_method = 1
       config_flags%fire_lfn_ext_up = 1.0
 
-      config_flags%cen_lat = cen_lat
-      config_flags%cen_lon = cen_lon
+      config_flags%wrf%cen_lat = cen_lat
+      config_flags%wrf%cen_lon = cen_lon
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test4'
