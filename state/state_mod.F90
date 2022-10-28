@@ -13,82 +13,20 @@
 
     type :: state_t
       real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
-      real :: dx = 200.0 , dy = 200.0, cen_lat, cen_lon
-!      integer :: ids, ide, jds, jde
-!      type (domain) :: wrf_domain
-    contains
-      private
-      procedure, public :: Initialize_state => Initialize_state
-      procedure, public :: Advance_state => Advance_state
-    end type state_t
+      real :: dx = 200.0 , dy = 200.0
+      real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
+      integer :: itimestep
 
-    type, extends (state_t) :: domain
-      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe
-      integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
-                 ifps, ifpe, jfps, jfpe, kfps, kfpe
-        ! Atmosphere
-        ! 4D
-      real, dimension(:, :, :, :), allocatable :: tracer
-        ! 3D
-      real, dimension(:, :, :), allocatable :: ph_2   ! "perturbation geopotential"  "m2 s-2"
-      real, dimension(:, :, :), allocatable :: phb    ! "base-state geopotential"  "m2 s-2"
-      real, dimension(:, :, :), allocatable :: u_2    ! "x-wind component"   "m s-1"
-      real, dimension(:, :, :), allocatable :: v_2    ! "x-wind component"   "m s-1"
-      real, dimension(:, :, :), allocatable :: rho    ! "DENSITY"         "Kg m-3"
-      real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
-      real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
-        ! 2D
-      real, dimension(:, :), allocatable :: z0       ! "Background ROUGHNESS LENGTH" "m"
-      real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
-      real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
-      real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
-      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
-      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
-      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
-      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
-      real, dimension(:, :), allocatable :: mut
-        ! 1D
-      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
-      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
-
-        ! Fire vars in the atm grid
-        ! 1) Atm vars
-      real, dimension(:, :), allocatable :: rain_old ! "previous value of accumulated rain" "mm"
-      real, dimension(:, :), allocatable :: t2_old   ! "previous value of air temperature at 2m" "K"
-      real, dimension(:, :), allocatable :: q2_old   ! "previous value of 2m specific humidity" "kg/kg"
-      real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
-      real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
-        ! 2) Fire diag vars
-      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
-      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
-        ! 3) Output vars with feedback to the atmospheric model
-      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
-      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
-        ! 4) 3D vars for FMC model
-      real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
-      real, dimension(:, :, :), allocatable :: fmep  ! "fuel moisture extended model parameters" "1"
-      real, dimension(:, :, :), allocatable :: fmc_equi ! "fuel moisture contents by class equilibrium (diagnostics only)" "1"
-      real, dimension(:, :, :), allocatable :: fmc_lag ! "fuel moisture contents by class time lag (diagnostics only)" "h"
-
-        ! Fire vars in fire grid
-        ! 2D
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: zsf    ! terrain height
       real, dimension(:, :), allocatable :: dzdxf  ! terrain grad
       real, dimension(:, :), allocatable :: dzdyf  ! terrain grad
       real, dimension(:, :), allocatable :: bbb    ! ta rate of spread formula coeff
-      real, dimension(:, :), allocatable :: betafl ! a rate of spread formula variable 
-      real, dimension(:, :), allocatable :: phiwc  ! a rate of spread formula coeff 
+      real, dimension(:, :), allocatable :: betafl ! a rate of spread formula variable
+      real, dimension(:, :), allocatable :: phiwc  ! a rate of spread formula coeff
       real, dimension(:, :), allocatable :: r_0    ! a rate of spread formula variable
-      real, dimension(:, :), allocatable :: fgip   ! a rate of spread formula coeff 
+      real, dimension(:, :), allocatable :: fgip   ! a rate of spread formula coeff
       real, dimension(:, :), allocatable :: ischap ! a rate of spread formula switch
       real, dimension(:, :), allocatable :: iboros ! Ib divided by ROS
       real, dimension(:, :), allocatable :: fmc_g  ! fuel moisture, ground
@@ -117,18 +55,74 @@
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
-  
-      integer :: itimestep
-      integer :: num_tiles
-      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
-      real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
-!      real :: dx = 200.0            ! "X HORIZONTAL RESOLUTION"   "METERS"
-!      real :: dy = 200.0            ! "Y HORIZONTAL RESOLUTION"   "METERS"
-      integer :: sr_x = 0, sr_y = 0 ! Refinement ratios
+      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
+      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
+
+        ! FMC model
+      real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
+      real, dimension(:, :, :), allocatable :: fmep  ! "fuel moisture extended model parameters" "1"
+      real, dimension(:, :, :), allocatable :: fmc_equi ! "fuel moisture contents by class equilibrium (diagnostics only)" "1"
+      real, dimension(:, :, :), allocatable :: fmc_lag ! "fuel moisture contents by class time lag (diagnostics only)" "h"
+
       real :: fmoist_lasttime       ! "last time the moisture model was run" "s"
       real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
+    contains
+      private
+      procedure, public :: Initialize_state => Initialize_state
+      procedure, public :: Advance_state => Advance_state
+    end type state_t
+
+    type, extends (state_t) :: domain
+      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe
+      integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
+                 ifps, ifpe, jfps, jfpe, kfps, kfpe
+      integer :: sr_x = 0, sr_y = 0
+      real :: cen_lat, cen_lon
+      integer :: num_tiles
+      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
+        ! Atmosphere
+        ! 4D
+      real, dimension(:, :, :, :), allocatable :: tracer
+        ! 3D
+      real, dimension(:, :, :), allocatable :: ph_2   ! "perturbation geopotential"  "m2 s-2"
+      real, dimension(:, :, :), allocatable :: phb    ! "base-state geopotential"  "m2 s-2"
+      real, dimension(:, :, :), allocatable :: u_2    ! "x-wind component"   "m s-1"
+      real, dimension(:, :, :), allocatable :: v_2    ! "x-wind component"   "m s-1"
+      real, dimension(:, :, :), allocatable :: rho    ! "DENSITY"         "Kg m-3"
+      real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
+      real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
+        ! 2D
+      real, dimension(:, :), allocatable :: z0       ! "Background ROUGHNESS LENGTH" "m"
+      real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
+      real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
+      real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
+      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
+      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
+      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
+      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
+      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
+      real, dimension(:, :), allocatable :: mut
+        ! 1D
+      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
+      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
+        ! feedback to atm
+      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
+      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
+
+        ! Fire vars in the atm grid
+      real, dimension(:, :), allocatable :: rain_old ! "previous value of accumulated rain" "mm"
+      real, dimension(:, :), allocatable :: t2_old   ! "previous value of air temperature at 2m" "K"
+      real, dimension(:, :), allocatable :: q2_old   ! "previous value of 2m specific humidity" "kg/kg"
+      real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
+      real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
     contains
       procedure, public :: Print => Print_domain
     end type domain

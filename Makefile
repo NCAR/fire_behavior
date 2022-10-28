@@ -7,7 +7,7 @@ CPPFLAGS=-nostdinc -C -P -w
 
 export FC FCFLAGS CPP CPPFLAGS
 
-SUBDIRS = physics tests state io
+SUBDIRS = physics tests state io driver
      
 .PHONY: clean subdirs $(SUBDIRS)
      
@@ -22,8 +22,10 @@ clean:
 	done
 
   # Dependencies
-tests: physics io state
+tests: io state physics driver
 
 state: io
 
 physics: io state
+
+driver: io state physics
