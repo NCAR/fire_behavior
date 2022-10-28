@@ -2,6 +2,7 @@
  
     use state_mod, only : domain
     use namelist_mod, only : namelist_t
+    use geogrid_mod, only : geogrid_t
     use module_fr_fire_driver_wrf, only : fire_driver_em_init
 
     private
@@ -19,12 +20,23 @@
         type (domain), intent (in out) :: grid
         type (namelist_t), intent (in out) :: config_flags
 
+        type (geogrid_t) :: geogrid
         logical, parameter :: DEBUG_LOCAL = .true.
 
 
         if (DEBUG_LOCAL) then
           write (OUTPUT_UNIT, *) ''
-          write (OUTPUT_UNIT, *) '  Entering subroutine Init_fire_behavior_model'
+          write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
+        end if
+
+        print *, config_flags%fire_ignition_radius1
+        call config_flags%Initialization (file_name = 'namelist.input')
+        print *, config_flags%fire_ignition_radius1
+
+        if (config_flags%fire_fuel_read == -1) then
+          geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+          config_flags%cen_lat = geogrid%cen_lat
+          config_flags%cen_lon = geogrid%cen_lon
         end if
 
         call fire_driver_em_init (grid , config_flags                        &
@@ -34,7 +46,7 @@
 
         if (DEBUG_LOCAL) then
           write (OUTPUT_UNIT, *) ''
-          write (OUTPUT_UNIT, *) '  Leaving subroutine Init_fire_behavior_model'
+          write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
         end if
 
     end subroutine Init_state

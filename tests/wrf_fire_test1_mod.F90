@@ -37,14 +37,6 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test1'
 
-        ! Set config_flags
-      call Load_config_flags_test1 (config_flags)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of config_flags:'
-!        call config_flags%Print ()
-      end if
-
         ! Set grid
       grid = domain (ids = IDS, ide = IDE, kds = KDS, kde = KDE, jds = JDS, jde = JDE, sr_x = SR_X, sr_y = SR_Y)
       if (DEBUG) then
@@ -61,47 +53,6 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
 
     end subroutine Set_wrf_fire_test1
-
-    subroutine Load_config_flags_test1 (config_flags)
-
-      implicit none
-
-      type (namelist_t), intent (in out) :: config_flags
-
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_config_flags_test1'
-
-      config_flags%fire_print_msg = 1
-
-      config_flags%fire_fuel_read = 0
-      config_flags%fire_fuel_cat = 1
-
-      config_flags%fire_num_ignitions = 1
-      config_flags%fire_ignition_ros1 = 0.05
-      config_flags%fire_ignition_start_x1 = 2000.0
-      config_flags%fire_ignition_start_y1 = 2000.0
-      config_flags%fire_ignition_end_x1 = 2000.0
-      config_flags%fire_ignition_end_y1 = 3000.0
-      config_flags%fire_ignition_radius1 = 80.0
-      config_flags%fire_ignition_start_time1 = 120.0
-      config_flags%fire_ignition_end_time1 = 145.0
-
-      config_flags%fire_wind_height = 1.0
-
-      config_flags%fire_fuel_left_irl = 2
-      config_flags%fire_fuel_left_jrl = 2
-      config_flags%fire_atm_feedback = 0.0
-      config_flags%fire_grows_only = 1
-      config_flags%fire_viscosity = 0.4
-      config_flags%fire_upwinding = 9
-      config_flags%fire_fuel_left_method = 1
-      config_flags%fire_lfn_ext_up = 1.0
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test1'
-
-    end subroutine Load_config_flags_test1
 
     subroutine Load_domain_test1 (grid)
 

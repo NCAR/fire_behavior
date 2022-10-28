@@ -17,7 +17,7 @@
     logical :: check_tends_test4 = .false.
 
       ! Grid settins
-    integer, parameter :: IDS = 1, KDS = 1, KDE = 45, JDS = 1
+    integer, parameter :: KDS = 1, KDE = 45
     integer, parameter :: N_TIME_STEPS = 2
 
   contains
@@ -35,18 +35,8 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test4'
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Reading Geogrid output'
-      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-
-        ! Set config_flags
-      call Load_config_flags_test4 (config_flags, geogrid%cen_lat, geogrid%cen_lon)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of config_flags:'
-!        call config_flags%Print ()
-      end if
-
         ! Set grid
+      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
       if (DEBUG) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
       grid = domain (ids = geogrid%ids, ide = geogrid%ide, kds = KDS, kde = KDE, jds = geogrid%jds, jde = geogrid%jde, &
           sr_x = geogrid%sr_x, sr_y = geogrid%sr_y, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
@@ -65,51 +55,6 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test4'
 
     end subroutine Set_wrf_fire_test4
-
-    subroutine Load_config_flags_test4 (config_flags, cen_lat, cen_lon)
-
-      implicit none
-
-      type (namelist_t), intent (in out) :: config_flags
-      real, intent (in) :: cen_lat, cen_lon
-
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_config_flags_test4'
-
-      config_flags%fire_print_msg = 1
-
-      config_flags%fire_fuel_read = -1
-
-      config_flags%fire_num_ignitions = 1
-      config_flags%fire_ignition_ros1 = 12.55
-      config_flags%fire_ignition_start_lat1 = 39.685
-      config_flags%fire_ignition_start_lon1 = -103.585
-      config_flags%fire_ignition_end_lat1 = 39.674
-      config_flags%fire_ignition_end_lon1 = -103.575
-      config_flags%fire_ignition_radius1 = 1000.0
-      config_flags%fire_ignition_start_time1 = 0.0
-      config_flags%fire_ignition_end_time1 = 300.0
-
-      config_flags%fire_wind_height = 1.0
-
-      config_flags%fire_fuel_left_irl = 2
-      config_flags%fire_fuel_left_jrl = 2
-      config_flags%fire_atm_feedback = 1.0
-      config_flags%fire_grows_only = 1
-      config_flags%fire_viscosity = 0.4
-      config_flags%fire_upwinding = 9
-      config_flags%fire_fuel_left_method = 1
-      config_flags%fire_lfn_ext_up = 1.0
-
-      config_flags%cen_lat = cen_lat
-      config_flags%cen_lon = cen_lon
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test4'
-
-    end subroutine Load_config_flags_test4
 
     subroutine Load_domain_test4 (grid, xlat, xlong)
 

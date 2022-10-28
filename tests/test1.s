@@ -25,6 +25,8 @@ file_wrf=./test1/rsl.out.0000
 file_input=input.txt
 file_output=test1_output.txt
 
+cp ./test1/namelist.input .
+
 rm -f ./$file_input ./$file_output
 echo '1' > ./$file_input
 if [ -f ./fire_behavior.exe ]
@@ -191,7 +193,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./plot.1
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./plot.1 ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

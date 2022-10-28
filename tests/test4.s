@@ -25,6 +25,7 @@ file_input=input.txt
 file_output=test4_output.txt
 
 cp ./test4/wrf_input.dat .
+cp ./test4/namelist.input .
 cp ./test4/geo_em.d01.nc .
 
 rm -f ./$file_input ./$file_output
@@ -158,7 +159,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./fort.34 ./wrf_input.dat ./geo_em.d01.nc
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./fort.34 ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

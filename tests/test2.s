@@ -25,6 +25,7 @@ file_input=input.txt
 file_output=test2_output.txt
 
 cp ./test2/wrf_input.dat .
+cp ./test2/namelist.input .
 
 rm -f ./$file_input ./$file_output
 echo '2' > ./$file_input
@@ -157,7 +158,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./wrf_input.dat
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./wrf_input.dat ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
