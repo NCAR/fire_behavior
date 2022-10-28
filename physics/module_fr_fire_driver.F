@@ -24,7 +24,7 @@ use module_fr_fire_util
 use module_fr_fire_core, only: ignition_line_type
 use module_fr_fire_atm, only: add_fire_tracer_emissions 
 
-USE wrf_atmosphere_mod, only: domain
+USE state_mod, only: domain
 USE namelist_mod, only: namelist_t
 use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
                                   g,           & ! gravitation acceleration
@@ -431,7 +431,7 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
 #ifdef DM_PARALLEL
 USE module_dm, only:wrf_dm_maxval
 #endif
-USE wrf_atmosphere_mod, only: domain
+USE state_mod, only: domain
 
 implicit none
 

@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INPUT_UNIT
 
-    use wrf_atmosphere_mod, only : domain
+    use state_mod, only : domain
     use namelist_mod, only : namelist_t
     use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
     use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2, check_tends_test2

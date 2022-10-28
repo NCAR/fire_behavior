@@ -24,6 +24,6 @@ clean:
   # Dependencies
 tests: physics io state
 
-state: physics io
+state: io
 
-physics: io
+physics: io state

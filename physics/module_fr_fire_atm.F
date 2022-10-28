@@ -6,8 +6,8 @@ module module_fr_fire_atm
 
 use wrf_atmosphere_mod, only: CP, XLV
 use module_fr_fire_util
-use wrf_atmosphere_mod, only: num_tracer 
-use wrf_atmosphere_mod, only: P_FIRE_SMOKE
+use state_mod, only: num_tracer 
+use state_mod, only: P_FIRE_SMOKE
 
 contains
 

@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
-    use wrf_atmosphere_mod, only : domain
+    use state_mod, only : domain
     use namelist_mod, only : namelist_t
     use module_fr_fire_util, only : set_ideal_coord
 

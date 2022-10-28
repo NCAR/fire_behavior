@@ -19,7 +19,8 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     ! stub to call fire_driver_em with irun=0 and omit last 3 args
 
-    USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
+    USE wrf_atmosphere_mod, only: get_ijk_from_subgrid
+    USE state_mod, only: domain
     USE namelist_mod, only : namelist_t
     implicit none
 
@@ -73,7 +74,8 @@ subroutine fire_driver_em_step (grid , config_flags               &
 
     ! stub to call fire_driver_em 
 
-    USE wrf_atmosphere_mod, only: domain, get_ijk_from_subgrid
+    USE wrf_atmosphere_mod, only: get_ijk_from_subgrid
+    USE state_mod, only: domain
     USE namelist_mod , only : namelist_t
     USE module_fr_fire_util, only : fire_test_steps
     implicit none
