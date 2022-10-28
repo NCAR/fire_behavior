@@ -20,9 +20,6 @@
     integer, parameter :: SR_X = 4, SR_Y = 4
     integer, parameter :: N_TIME_STEPS = 720
 
-      ! Debuging
-    integer, parameter :: I_TO_PRINT = 50, J_TO_PRINT = 50
-
   contains
 
     subroutine Set_wrf_fire_test1 (grid, config_flags)
@@ -149,17 +146,6 @@
           grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
           grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! originaly tile dims. domain dim are the same here
           grid%fxlong,grid%fxlat)
-
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) 'xlat: i, j =', I_TO_PRINT, J_TO_PRINT
-        write (OUTPUT_UNIT, *) grid%xlat (I_TO_PRINT, J_TO_PRINT)
-        write (OUTPUT_UNIT, *) 'xlong: i, j =', I_TO_PRINT, J_TO_PRINT
-        write (OUTPUT_UNIT, *) grid%xlong (I_TO_PRINT, J_TO_PRINT)
-        write (OUTPUT_UNIT, *) 'fxlat: i, j =', I_TO_PRINT, J_TO_PRINT
-        write (OUTPUT_UNIT, *) grid%fxlat (I_TO_PRINT, J_TO_PRINT)
-        write (OUTPUT_UNIT, *) 'fxlong: i, j =', I_TO_PRINT, J_TO_PRINT
-        write (OUTPUT_UNIT, *) grid%fxlong (I_TO_PRINT, J_TO_PRINT)
-      end if
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test1'
 

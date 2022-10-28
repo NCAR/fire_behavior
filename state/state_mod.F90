@@ -74,10 +74,6 @@
       real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
-    contains
-      private
-      procedure, public :: Initialize_state => Initialize_state
-      procedure, public :: Advance_state => Advance_state
     end type state_t
 
     type, extends (state_t) :: domain
@@ -452,42 +448,5 @@
       write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
 
     end subroutine Print_domain
-
-    subroutine Advance_state (this)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      class (state_t), intent (inout) :: this
-
-      logical, parameter :: DEBUG_LOCAL = .true.
-
-
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutinte Advance_state'
-
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutinte Advance_state'
-
-    end subroutine Advance_state
-
-    subroutine Initialize_state (this)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      class (state_t), intent (inout) :: this
-
-      type (namelist_t) :: nl
-      logical, parameter :: DEBUG_LOCAL = .true.
-
-
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutinte Initialize_state'
-
-      call nl%Initialization (file_name = 'namelist.input')
-
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutinte Initialize_state'
-
-    end subroutine Initialize_state
 
   end module state_mod

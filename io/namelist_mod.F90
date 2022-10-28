@@ -9,6 +9,10 @@
     integer, parameter :: NUM_FMC = 5
 
     type :: namelist_fire_t
+      real :: dx = 200.0, dy = 200.0, dt = 2.0
+      integer ::  n_steps = 1
+      logical :: read_wrf_input = .false.
+      logical ::  check_tends = .false.
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -123,12 +127,14 @@
       real :: fire_ignition_start_time5 = 0.0
       real :: fire_ignition_end_time5 = 0.0
       real :: fire_ignition_radius5 = 0.0
+
     contains
-      procedure, public :: Initialization => Namelist_init
+      procedure, public :: Initialization => Init_namelist
     end type namelist_fire_t
 
     type, extends (namelist_fire_t) :: namelist_t
         ! Atmosphere
+      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
       logical :: restart = .false.
       real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
@@ -136,7 +142,7 @@
 
   contains
 
-    subroutine Namelist_init (this, file_name)
+    subroutine Init_namelist (this, file_name)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
@@ -147,6 +153,11 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
 
+      real :: dx = 200.0, dy = 200.0, dt = 2.0
+      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
+      integer ::  n_steps = 1
+      logical :: read_wrf_input = .false.
+      logical ::  check_tends = .false.
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -231,7 +242,8 @@
       logical :: restart = .false.
       real :: cen_lat = 0.0, cen_lon = 0.0
 
-      namelist /control/ restart, cen_lat, cen_lon
+      namelist /control/ restart, cen_lat, cen_lon, dx, dy, dt, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
+          ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_test_steps, fire_advection, fire_lsm_reinit, &
@@ -276,6 +288,14 @@
 
       read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
+
+      this%dx = dx
+      this%dy = dy
+      this%dt = dt
+
+      this%n_steps = n_steps
+      this%read_wrf_input = read_wrf_input
+      this%check_tends = check_tends
 
       this%fire_print_msg = fire_print_msg
       this%fire_print_file = fire_print_file
@@ -398,6 +418,16 @@
           this%cen_lat = cen_lat
           this%cen_lon = cen_lon
 
+          this%ids = ids
+          this%jds = jds
+          this%kds = kds
+          this%ide = ide
+          this%jde = jde
+          this%kde = kde
+
+          this%sr_x = sr_x
+          this%sr_y = sr_y
+
         class default
           write (ERROR_UNIT, *) 'Unknown type for namelist_fire_t'
           stop
@@ -405,6 +435,6 @@
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Read_namelist'
 
-    end subroutine Namelist_init
+    end subroutine Init_namelist
 
   end module namelist_mod

@@ -1,4 +1,15 @@
  &control
+ ide = 103
+ jde = 103
+ kde = 51
+ sr_x = 4
+ sr_y = 4
+ dx = 50.0
+ dy = 50.0
+ dt = 0.5
+ n_steps = 720
+ read_wrf_input = .false.
+ check_tends = .false.
  /
 
  &fire
