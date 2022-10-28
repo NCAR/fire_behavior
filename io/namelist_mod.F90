@@ -123,6 +123,8 @@
       real :: fire_ignition_start_time5 = 0.0
       real :: fire_ignition_end_time5 = 0.0
       real :: fire_ignition_radius5 = 0.0
+    contains
+      procedure, public :: Initialization => Namelist_init
     end type namelist_fire_t
 
     type, extends (namelist_fire_t) :: namelist_t
@@ -132,20 +134,16 @@
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
     end type namelist_t
 
-    interface namelist_t
-      module procedure Namelist_t_const
-    end interface namelist_t
-
   contains
 
-    function Namelist_t_const (file_name) result (return_value)
+    subroutine Namelist_init (this, file_name)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
       implicit none
 
+      class (namelist_fire_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
-      type (namelist_t) :: return_value
 
       logical, parameter :: DEBUG_LOCAL = .true.
 
@@ -230,6 +228,10 @@
           fire_ignition_end_lat5 = 0.0, fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, &
           fire_ignition_radius5 = 0.0
 
+      logical :: restart = .false.
+      real :: cen_lat = 0.0, cen_lon = 0.0
+
+      namelist /control/ restart, cen_lat, cen_lon
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_test_steps, fire_advection, fire_lsm_reinit, &
@@ -267,125 +269,142 @@
 
       integer :: unit_nml
 
+
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
+
+      read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
 
-      return_value%fire_print_msg = fire_print_msg
-      return_value%fire_print_file = fire_print_file
-      return_value%fire_fuel_left_method = fire_fuel_left_method
-      return_value%fire_fuel_left_irl = fire_fuel_left_irl
-      return_value%fire_fuel_left_jrl = fire_fuel_left_jrl
-      return_value%fire_const_time = fire_const_time
-      return_value%fire_const_grnhfx = fire_const_grnhfx
-      return_value%fire_const_grnqfx = fire_const_grnqfx
-      return_value%fire_atm_feedback = fire_atm_feedback
-      return_value%fire_boundary_guard = fire_boundary_guard
-      return_value%fire_grows_only = fire_grows_only
-      return_value%fire_upwinding = fire_upwinding
-      return_value%fire_upwind_split = fire_upwind_split
-      return_value%fire_viscosity = fire_viscosity
-      return_value%fire_lfn_ext_up = fire_lfn_ext_up
-      return_value%fire_test_steps = fire_test_steps
-      return_value%fire_advection = fire_advection
-      return_value%fire_lsm_reinit = fire_lsm_reinit
-      return_value%fire_lsm_reinit_iter = fire_lsm_reinit_iter
-      return_value%fire_upwinding_reinit = fire_upwinding_reinit
-      return_value%fire_lsm_band_ngp = fire_lsm_band_ngp
-      return_value%fire_lsm_zcoupling = fire_lsm_zcoupling
-      return_value%fire_lsm_zcoupling_ref = fire_lsm_zcoupling_ref
-      return_value%fire_viscosity_bg = fire_viscosity_bg
-      return_value%fire_viscosity_band = fire_viscosity_band
-      return_value%fire_viscosity_ngp = fire_viscosity_ngp
-      return_value%fire_slope_factor = fire_slope_factor
-      return_value%fire_fmc_read = fire_fmc_read
-      return_value%fmoist_run = fmoist_run
-      return_value%fmoist_interp = fmoist_interp
-      return_value%fmoist_only = fmoist_only
-      return_value%fmoist_freq = fmoist_freq
-      return_value%fmoist_dt = fmoist_dt
-      return_value%fire_fuel_read = fire_fuel_read
-      return_value%fire_fuel_cat = fire_fuel_cat
-      return_value%fire_ext_grnd = fire_ext_grnd
-      return_value%fire_ext_crwn = fire_ext_crwn
-      return_value%fire_crwn_hgt = fire_crwn_hgt
-      return_value%fire_wind_height = fire_wind_height
-      return_value%fire_is_real_perim = fire_is_real_perim
-      return_value%nfmc = nfmc
-      return_value%fmep_decay_tlag = fmep_decay_tlag
-      return_value%tracer_opt = tracer_opt
-      return_value%fire_tracer_smoke = fire_tracer_smoke
+      this%fire_print_msg = fire_print_msg
+      this%fire_print_file = fire_print_file
+      this%fire_fuel_left_method = fire_fuel_left_method
+      this%fire_fuel_left_irl = fire_fuel_left_irl
+      this%fire_fuel_left_jrl = fire_fuel_left_jrl
+      this%fire_const_time = fire_const_time
+      this%fire_const_grnhfx = fire_const_grnhfx
+      this%fire_const_grnqfx = fire_const_grnqfx
+      this%fire_atm_feedback = fire_atm_feedback
+      this%fire_boundary_guard = fire_boundary_guard
+      this%fire_grows_only = fire_grows_only
+      this%fire_upwinding = fire_upwinding
+      this%fire_upwind_split = fire_upwind_split
+      this%fire_viscosity = fire_viscosity
+      this%fire_lfn_ext_up = fire_lfn_ext_up
+      this%fire_test_steps = fire_test_steps
+      this%fire_advection = fire_advection
+      this%fire_lsm_reinit = fire_lsm_reinit
+      this%fire_lsm_reinit_iter = fire_lsm_reinit_iter
+      this%fire_upwinding_reinit = fire_upwinding_reinit
+      this%fire_lsm_band_ngp = fire_lsm_band_ngp
+      this%fire_lsm_zcoupling = fire_lsm_zcoupling
+      this%fire_lsm_zcoupling_ref = fire_lsm_zcoupling_ref
+      this%fire_viscosity_bg = fire_viscosity_bg
+      this%fire_viscosity_band = fire_viscosity_band
+      this%fire_viscosity_ngp = fire_viscosity_ngp
+      this%fire_slope_factor = fire_slope_factor
+      this%fire_fmc_read = fire_fmc_read
+      this%fmoist_run = fmoist_run
+      this%fmoist_interp = fmoist_interp
+      this%fmoist_only = fmoist_only
+      this%fmoist_freq = fmoist_freq
+      this%fmoist_dt = fmoist_dt
+      this%fire_fuel_read = fire_fuel_read
+      this%fire_fuel_cat = fire_fuel_cat
+      this%fire_ext_grnd = fire_ext_grnd
+      this%fire_ext_crwn = fire_ext_crwn
+      this%fire_crwn_hgt = fire_crwn_hgt
+      this%fire_wind_height = fire_wind_height
+      this%fire_is_real_perim = fire_is_real_perim
+      this%nfmc = nfmc
+      this%fmep_decay_tlag = fmep_decay_tlag
+      this%tracer_opt = tracer_opt
+      this%fire_tracer_smoke = fire_tracer_smoke
 
-      return_value%fire_num_ignitions = fire_num_ignitions
+      this%fire_num_ignitions = fire_num_ignitions
 
-      return_value%fire_ignition_start_x1 = fire_ignition_start_x1
-      return_value%fire_ignition_start_y1 = fire_ignition_start_y1
-      return_value%fire_ignition_start_lon1 = fire_ignition_start_lon1
-      return_value%fire_ignition_start_lat1 = fire_ignition_start_lat1
-      return_value%fire_ignition_end_x1 = fire_ignition_end_x1
-      return_value%fire_ignition_end_y1 = fire_ignition_end_y1
-      return_value%fire_ignition_end_lon1 = fire_ignition_end_lon1
-      return_value%fire_ignition_end_lat1 = fire_ignition_end_lat1
-      return_value%fire_ignition_ros1 = fire_ignition_ros1
-      return_value%fire_ignition_start_time1 = fire_ignition_start_time1
-      return_value%fire_ignition_end_time1 = fire_ignition_end_time1
-      return_value%fire_ignition_radius1 = fire_ignition_radius1
+      this%fire_ignition_start_x1 = fire_ignition_start_x1
+      this%fire_ignition_start_y1 = fire_ignition_start_y1
+      this%fire_ignition_start_lon1 = fire_ignition_start_lon1
+      this%fire_ignition_start_lat1 = fire_ignition_start_lat1
+      this%fire_ignition_end_x1 = fire_ignition_end_x1
+      this%fire_ignition_end_y1 = fire_ignition_end_y1
+      this%fire_ignition_end_lon1 = fire_ignition_end_lon1
+      this%fire_ignition_end_lat1 = fire_ignition_end_lat1
+      this%fire_ignition_ros1 = fire_ignition_ros1
+      this%fire_ignition_start_time1 = fire_ignition_start_time1
+      this%fire_ignition_end_time1 = fire_ignition_end_time1
+      this%fire_ignition_radius1 = fire_ignition_radius1
 
-      return_value%fire_ignition_start_x2 = fire_ignition_start_x2
-      return_value%fire_ignition_start_y2 = fire_ignition_start_y2
-      return_value%fire_ignition_start_lon2 = fire_ignition_start_lon2
-      return_value%fire_ignition_start_lat2 = fire_ignition_start_lat2
-      return_value%fire_ignition_end_x2 = fire_ignition_end_x2
-      return_value%fire_ignition_end_y2 = fire_ignition_end_y2
-      return_value%fire_ignition_end_lon2 = fire_ignition_end_lon2
-      return_value%fire_ignition_end_lat2 = fire_ignition_end_lat2
-      return_value%fire_ignition_ros2 = fire_ignition_ros2
-      return_value%fire_ignition_start_time2 = fire_ignition_start_time2
-      return_value%fire_ignition_end_time2 = fire_ignition_end_time2
-      return_value%fire_ignition_radius2 = fire_ignition_radius2
+      this%fire_ignition_start_x2 = fire_ignition_start_x2
+      this%fire_ignition_start_y2 = fire_ignition_start_y2
+      this%fire_ignition_start_lon2 = fire_ignition_start_lon2
+      this%fire_ignition_start_lat2 = fire_ignition_start_lat2
+      this%fire_ignition_end_x2 = fire_ignition_end_x2
+      this%fire_ignition_end_y2 = fire_ignition_end_y2
+      this%fire_ignition_end_lon2 = fire_ignition_end_lon2
+      this%fire_ignition_end_lat2 = fire_ignition_end_lat2
+      this%fire_ignition_ros2 = fire_ignition_ros2
+      this%fire_ignition_start_time2 = fire_ignition_start_time2
+      this%fire_ignition_end_time2 = fire_ignition_end_time2
+      this%fire_ignition_radius2 = fire_ignition_radius2
 
-      return_value%fire_ignition_start_x3 = fire_ignition_start_x3
-      return_value%fire_ignition_start_y3 = fire_ignition_start_y3
-      return_value%fire_ignition_start_lon3 = fire_ignition_start_lon3
-      return_value%fire_ignition_start_lat3 = fire_ignition_start_lat3
-      return_value%fire_ignition_end_x3 = fire_ignition_end_x3
-      return_value%fire_ignition_end_y3 = fire_ignition_end_y3
-      return_value%fire_ignition_end_lon3 = fire_ignition_end_lon3
-      return_value%fire_ignition_end_lat3 = fire_ignition_end_lat3
-      return_value%fire_ignition_ros3 = fire_ignition_ros3
-      return_value%fire_ignition_start_time3 = fire_ignition_start_time3
-      return_value%fire_ignition_end_time3 = fire_ignition_end_time3
-      return_value%fire_ignition_radius3 = fire_ignition_radius3
+      this%fire_ignition_start_x3 = fire_ignition_start_x3
+      this%fire_ignition_start_y3 = fire_ignition_start_y3
+      this%fire_ignition_start_lon3 = fire_ignition_start_lon3
+      this%fire_ignition_start_lat3 = fire_ignition_start_lat3
+      this%fire_ignition_end_x3 = fire_ignition_end_x3
+      this%fire_ignition_end_y3 = fire_ignition_end_y3
+      this%fire_ignition_end_lon3 = fire_ignition_end_lon3
+      this%fire_ignition_end_lat3 = fire_ignition_end_lat3
+      this%fire_ignition_ros3 = fire_ignition_ros3
+      this%fire_ignition_start_time3 = fire_ignition_start_time3
+      this%fire_ignition_end_time3 = fire_ignition_end_time3
+      this%fire_ignition_radius3 = fire_ignition_radius3
 
-      return_value%fire_ignition_start_x4 = fire_ignition_start_x4
-      return_value%fire_ignition_start_y4 = fire_ignition_start_y4
-      return_value%fire_ignition_start_lon4 = fire_ignition_start_lon4
-      return_value%fire_ignition_start_lat4 = fire_ignition_start_lat4
-      return_value%fire_ignition_end_x4 = fire_ignition_end_x4
-      return_value%fire_ignition_end_y4 = fire_ignition_end_y4
-      return_value%fire_ignition_end_lon4 = fire_ignition_end_lon4
-      return_value%fire_ignition_end_lat4 = fire_ignition_end_lat4
-      return_value%fire_ignition_ros4 = fire_ignition_ros4
-      return_value%fire_ignition_start_time4 = fire_ignition_start_time4
-      return_value%fire_ignition_end_time4 = fire_ignition_end_time4
-      return_value%fire_ignition_radius4 = fire_ignition_radius4
+      this%fire_ignition_start_x4 = fire_ignition_start_x4
+      this%fire_ignition_start_y4 = fire_ignition_start_y4
+      this%fire_ignition_start_lon4 = fire_ignition_start_lon4
+      this%fire_ignition_start_lat4 = fire_ignition_start_lat4
+      this%fire_ignition_end_x4 = fire_ignition_end_x4
+      this%fire_ignition_end_y4 = fire_ignition_end_y4
+      this%fire_ignition_end_lon4 = fire_ignition_end_lon4
+      this%fire_ignition_end_lat4 = fire_ignition_end_lat4
+      this%fire_ignition_ros4 = fire_ignition_ros4
+      this%fire_ignition_start_time4 = fire_ignition_start_time4
+      this%fire_ignition_end_time4 = fire_ignition_end_time4
+      this%fire_ignition_radius4 = fire_ignition_radius4
 
-      return_value%fire_ignition_start_x5 = fire_ignition_start_x5
-      return_value%fire_ignition_start_y5 = fire_ignition_start_y5
-      return_value%fire_ignition_start_lon5 = fire_ignition_start_lon5
-      return_value%fire_ignition_start_lat5 = fire_ignition_start_lat5
-      return_value%fire_ignition_end_x5 = fire_ignition_end_x5
-      return_value%fire_ignition_end_y5 = fire_ignition_end_y5
-      return_value%fire_ignition_end_lon5 = fire_ignition_end_lon5
-      return_value%fire_ignition_end_lat5 = fire_ignition_end_lat5
-      return_value%fire_ignition_ros5 = fire_ignition_ros5
-      return_value%fire_ignition_start_time5 = fire_ignition_start_time5
-      return_value%fire_ignition_end_time5 = fire_ignition_end_time5
-      return_value%fire_ignition_radius5 = fire_ignition_radius5
+      this%fire_ignition_start_x5 = fire_ignition_start_x5
+      this%fire_ignition_start_y5 = fire_ignition_start_y5
+      this%fire_ignition_start_lon5 = fire_ignition_start_lon5
+      this%fire_ignition_start_lat5 = fire_ignition_start_lat5
+      this%fire_ignition_end_x5 = fire_ignition_end_x5
+      this%fire_ignition_end_y5 = fire_ignition_end_y5
+      this%fire_ignition_end_lon5 = fire_ignition_end_lon5
+      this%fire_ignition_end_lat5 = fire_ignition_end_lat5
+      this%fire_ignition_ros5 = fire_ignition_ros5
+      this%fire_ignition_start_time5 = fire_ignition_start_time5
+      this%fire_ignition_end_time5 = fire_ignition_end_time5
+      this%fire_ignition_radius5 = fire_ignition_radius5
+
+      select type (this)
+        type is (namelist_fire_t)
+          ! we are good 
+
+        class is (namelist_t)
+          this%restart = restart
+          this%cen_lat = cen_lat
+          this%cen_lon = cen_lon
+
+        class default
+          write (ERROR_UNIT, *) 'Unknown type for namelist_fire_t'
+          stop
+      end select
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Read_namelist'
 
-    end function Namelist_t_const
+    end subroutine Namelist_init
 
   end module namelist_mod
