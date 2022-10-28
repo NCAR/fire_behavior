@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
-    use namelist_wrf_mod, only : NUM_FMC
+    use namelist_mod, only : NUM_FMC
 
     implicit none
 

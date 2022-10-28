@@ -127,7 +127,7 @@ halo_fire_mag_sub
     ir=grid%sr_x ! refinement ratio
     jr=grid%sr_y
     itimestep=grid%itimestep
-    restart=config_flags%wrf%restart
+    restart=config_flags%restart
 
     ! time - assume dt does not change
     dt = grid%dt
@@ -1159,8 +1159,8 @@ subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_
        ! will set fire mesh coordinates to uniform mesh below
     else
        ! real
-       lat_ctr=config_flags%wrf%cen_lat
-       lon_ctr=config_flags%wrf%cen_lon
+       lat_ctr=config_flags%cen_lat
+       lon_ctr=config_flags%cen_lon
        ! 1 degree in m (approximate OK)
        unit_fxlat=pi2/(360.*reradius)  ! earth circumference in m / 360 degrees
        unit_fxlong=cos(lat_ctr*pi2/360.)*unit_fxlat  ! latitude

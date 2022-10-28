@@ -103,8 +103,8 @@
       config_flags%fire_fuel_left_method = 1
       config_flags%fire_lfn_ext_up = 1.0
 
-      config_flags%wrf%cen_lat = cen_lat
-      config_flags%wrf%cen_lon = cen_lon
+      config_flags%cen_lat = cen_lat
+      config_flags%cen_lon = cen_lon
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_config_flags_test4'

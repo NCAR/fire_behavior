@@ -1,5 +1,5 @@
 
-objects = netcdf_mod.o geogrid_mod.o namelist_mod.o namelist_wrf_mod.o
+objects = netcdf_mod.o geogrid_mod.o namelist_mod.o
 
 target: $(objects)
 
@@ -12,5 +12,3 @@ clean:
 
   # Dependencies
 geogrid_mod.o: netcdf_mod.o
-
-namelist_mod.o: namelist_wrf_mod.o

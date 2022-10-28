@@ -1,17 +1,14 @@
   module namelist_mod
 
-    use namelist_wrf_mod, only : grid_config_rec_type, NUM_FMC
-
     implicit none
 
     private
 
-    public :: namelist_t
+    public :: namelist_t, NUM_FMC
 
-    type :: namelist_t
-        ! WRF namelist
-      type (grid_config_rec_type) :: wrf
-        ! Fire
+    integer, parameter :: NUM_FMC = 5
+
+    type :: namelist_fire_t
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -23,7 +20,8 @@
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
       integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_grows_only = 1          ! "if >0 level set function cannot increase = fire can only grow" "1"
-      integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
+      integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order,
+                                              ! 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       integer :: fire_upwind_split = 0        ! "1=upwind advection separately from normal direction spread" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
       real :: fire_lfn_ext_up = 1.0           ! "0.=extend level set function at boundary by reflection, 1.=always up" "1"
@@ -32,7 +30,8 @@
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
-      integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere), for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
+      integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
+                                              ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
       real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
       real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
@@ -124,6 +123,13 @@
       real :: fire_ignition_start_time5 = 0.0
       real :: fire_ignition_end_time5 = 0.0
       real :: fire_ignition_radius5 = 0.0
+    end type namelist_fire_t
+
+    type, extends (namelist_fire_t) :: namelist_t
+        ! Atmosphere
+      logical :: restart = .false.
+      real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
+      real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
     end type namelist_t
 
     interface namelist_t
