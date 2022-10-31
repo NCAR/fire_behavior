@@ -20,16 +20,16 @@ test2p5=1 # Check Max latent heat flux
 #
 
 file_wrf=./test2/rsl.out.0000
-
+file_exe=../driver/fire_behavior.exe
 file_output=test2_output.txt
 
 cp ./test2/wrf_input.dat .
 cp ./test2/namelist.input .
 
 rm -f ./$file_output
-if [ -f ./fire_behavior.exe ]
+if [ -f $file_exe ]
 then
-  ./fire_behavior.exe > ./$file_output
+  $file_exe > ./$file_output
 else
   echo 'Please compile the code first'
   exit 1

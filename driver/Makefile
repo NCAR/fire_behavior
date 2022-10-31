@@ -10,7 +10,13 @@ IO_INCLUDE="-I$(IO_DIR)"
 
 objects = initialize_mod.o advance_mod.o
 
-target: $(objects)
+target: fire_behavior.exe
+
+fire_behavior.exe: fire_behavior.o \
+	../io/geogrid_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o \
+	../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o \
+	../physics/module_fr_fire_atm.o ../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
+	$(FC) -lnetcdf -lnetcdff $^ -o $@
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90
@@ -18,6 +24,9 @@ target: $(objects)
 
 clean:
 	rm -f ./*.o ./*.mod  ./*.f90
+
+  # Dependencies
+fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o ../driver/initialize_mod.o ../driver/advance_mod.o
 
 initialize_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o
 

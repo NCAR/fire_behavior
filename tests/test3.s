@@ -21,18 +21,15 @@ test3p6=1 # Check tendencies
 #
 
 file_wrf=./test3/rsl.out.0000
-
-file_input=input.txt
+file_exe=../driver/fire_behavior.exe
 file_output=test3_output.txt
 
-cp ./test3/wrf_input.dat .
 cp ./test3/namelist.input .
 
-rm -f ./$file_input ./$file_output
-echo '3' > ./$file_input
-if [ -f ./fire_behavior.exe ]
+rm -f ./$file_output
+if [ -f $file_exe ]
 then
-  ./fire_behavior.exe > ./$file_output < ./$file_input
+  $file_exe > ./$file_output
 else
   echo 'Please compile the code first'
   exit 1
@@ -176,7 +173,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./fort.34 ./wrf_input.dat ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./fort.34 ./wrf_input.dat ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
