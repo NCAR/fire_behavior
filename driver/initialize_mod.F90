@@ -1,5 +1,4 @@
   module initialize_mod
- 
 
     use state_mod, only : domain
     use namelist_mod, only : namelist_t
@@ -43,16 +42,30 @@
 
       select case (config_flags%n_case)
         case (1)
-          call Set_wrf_fire_test1 (grid, config_flags)
+          grid = domain (config_flags)
+          call Load_domain_test1 (grid, config_flags)
 
         case (2)
-          call Set_wrf_fire_test2 (grid, config_flags)
+          grid = domain (config_flags)
+          call Load_domain_test2 (grid)
 
         case (3)
-          call Set_wrf_fire_test3 (grid, config_flags)
+          grid = domain (config_flags)
+          call Load_domain_test3 (grid)
 
         case (4)
-          call Set_wrf_fire_test4 (grid, config_flags)
+          geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+          if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
+          config_flags%ids = geogrid%ids
+          config_flags%ide = geogrid%ide
+          config_flags%jds = geogrid%jds
+          config_flags%jde = geogrid%jde
+          config_flags%sr_x = geogrid%sr_x
+          config_flags%sr_y = geogrid%sr_y
+          grid = domain (config_flags, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
+              nfuel_cat = geogrid%fuel_cats, dx = geogrid%dx, dy = geogrid%dy)
+ 
+          call Load_domain_test4 (grid, geogrid%xlat, geogrid%xlong)
 
         case default
           write (ERROR_UNIT, *) '  Unable to initialize this test case'
@@ -70,34 +83,6 @@
         end if
 
     end subroutine Init_state
-
-    subroutine Set_wrf_fire_test1 (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-      type (namelist_t), intent (in out) :: config_flags
-
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test1'
-
-        ! Set grid
-      grid = domain (config_flags)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of grid:'
-        call grid%Print ()
-      end if
-
-      call Load_domain_test1 (grid, config_flags)
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
-
-    end subroutine Set_wrf_fire_test1
 
     subroutine Load_domain_test1 (grid, config_flags)
 
@@ -207,34 +192,6 @@
 
     end subroutine Load_domain_test1
 
-    subroutine Set_wrf_fire_test2 (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-      type (namelist_t), intent (in out) :: config_flags
-
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test2'
-
-        ! Set grid
-      grid = domain (config_flags)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of grid:'
-        call grid%Print ()
-      end if
-
-      call Load_domain_test2 (grid)
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test2'
-
-    end subroutine Set_wrf_fire_test2
-
     subroutine Load_domain_test2 (grid)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -292,34 +249,6 @@
 
     end subroutine Load_domain_test2
 
-    subroutine Set_wrf_fire_test3 (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-      type (namelist_t), intent (in out) :: config_flags
-
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test3'
-
-        ! Set grid
-      grid = domain (config_flags)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of grid:'
-        call grid%Print ()
-      end if
-
-      call Load_domain_test3 (grid)
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test3'
-
-    end subroutine Set_wrf_fire_test3
-
     subroutine Load_domain_test3 (grid)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -376,44 +305,6 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test3'
 
     end subroutine Load_domain_test3
-
-    subroutine Set_wrf_fire_test4 (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-      type (namelist_t), intent (in out) :: config_flags
-
-      type (geogrid_t) :: geogrid
-      logical, parameter :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test4'
-
-        ! Set grid
-      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
-      config_flags%ids = geogrid%ids
-      config_flags%ide = geogrid%ide
-      config_flags%jds = geogrid%jds
-      config_flags%jde = geogrid%jde
-      config_flags%sr_x = geogrid%sr_x
-      config_flags%sr_y = geogrid%sr_y
-      grid = domain (config_flags, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
-          nfuel_cat = geogrid%fuel_cats, dx = geogrid%dx, dy = geogrid%dy)
-      if (DEBUG) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) 'Contents of grid:'
-        call grid%Print ()
-      end if
-
-      call Load_domain_test4 (grid, geogrid%xlat, geogrid%xlong)
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test4'
-
-    end subroutine Set_wrf_fire_test4
 
     subroutine Load_domain_test4 (grid, xlat, xlong)
 
