@@ -129,28 +129,28 @@
 
   contains
 
-    function Domain_const (ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+    function Domain_const (config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
         xlat, xlong, dx, dy) result (return_value)
 
       implicit none
 
-      integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
+      type (namelist_t), intent (in) :: config_flags
       real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
       real, intent (in), optional :: dx, dy
       type (domain) :: return_value
 
-      call Domain_init (return_value, ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+      call Domain_init (return_value, config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
           xlat, xlong, dx, dy)
 
     end function Domain_const
 
-    subroutine Domain_init (this, ids, ide, kds, kde, jds, jde, sr_x, sr_y, zsf, dzdxf, dzdyf, nfuel_cat, &
+    subroutine Domain_init (this, config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
         xlat, xlong, dx, dy)
 
       implicit none
 
       class (domain), intent(in out) :: this
-      integer, intent (in) :: ids, ide, kds, kde, jds, jde, sr_x, sr_y
+      type (namelist_t), intent (in) :: config_flags
       real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
       real, intent (in), optional :: dx, dy
 
@@ -159,26 +159,26 @@
 
         ! Fill in atm dims including
         ! domain decomposition
-      this%ids = ids
-      this%ide = ide
-      this%kds = kds
-      this%kde = kde
-      this%jds = jds
-      this%jde = jde
+      this%ids = config_flags%ids
+      this%ide = config_flags%ide
+      this%kds = config_flags%kds
+      this%kde = config_flags%kde
+      this%jds = config_flags%jds
+      this%jde = config_flags%jde
 
-      this%ims = ids - N_POINTS_IN_HALO
-      this%ime = ide + N_POINTS_IN_HALO
-      this%kms = kds
-      this%kme = kde
-      this%jms = jds - N_POINTS_IN_HALO
-      this%jme = jde + N_POINTS_IN_HALO
+      this%ims = config_flags%ids - N_POINTS_IN_HALO
+      this%ime = config_flags%ide + N_POINTS_IN_HALO
+      this%kms = config_flags%kds
+      this%kme = config_flags%kde
+      this%jms = config_flags%jds - N_POINTS_IN_HALO
+      this%jme = config_flags%jde + N_POINTS_IN_HALO
 
-      this%ips = ids
-      this%ipe = ide
-      this%kps = kds
-      this%kpe = kde
-      this%jps = jds
-      this%jpe = jde
+      this%ips = config_flags%ids
+      this%ipe = config_flags%ide
+      this%kps = config_flags%kds
+      this%kpe = config_flags%kde
+      this%jps = config_flags%jds
+      this%jpe = config_flags%jde
 
       this%num_tiles = 1
       allocate (this%i_start(this%num_tiles))
@@ -239,8 +239,8 @@
       allocate (this%fmep(this%ims:this%ime, NUM_FMEP, this%jms:this%jme))
 
         ! Fire vars in the fire grid
-      this%sr_x = sr_x
-      this%sr_y = sr_y
+      this%sr_x = config_flags%sr_x
+      this%sr_y = config_flags%sr_y
 
       call Get_ijk_from_subgrid (this, this%ifds, this%ifde, this%jfds, this%jfde, this%kfds, this%kfde, &
           this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &

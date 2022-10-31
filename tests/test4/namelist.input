@@ -1,3 +1,7 @@
+ &test
+ n_case = 4
+/
+
  &control
  ide = 20
  jde = 20

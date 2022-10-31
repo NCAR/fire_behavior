@@ -138,6 +138,8 @@
       logical :: restart = .false.
       real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
+        ! Test
+      integer :: n_case = 0
     end type namelist_t
 
   contains
@@ -241,9 +243,13 @@
 
       logical :: restart = .false.
       real :: cen_lat = 0.0, cen_lon = 0.0
+      integer :: n_case = 0
+
+      namelist /test/ n_case
 
       namelist /control/ restart, cen_lat, cen_lon, dx, dy, dt, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
           ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
+
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_test_steps, fire_advection, fire_lsm_reinit, &
@@ -286,6 +292,7 @@
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
 
+      read (unit_nml, nml = test)
       read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
 
@@ -414,6 +421,8 @@
           ! we are good 
 
         class is (namelist_t)
+          this%n_case = n_case
+
           this%restart = restart
           this%cen_lat = cen_lat
           this%cen_lon = cen_lon

@@ -21,18 +21,16 @@ test4p5=1 # Check Max latent heat flux
 
 file_wrf=./test4/rsl.out.0000
 
-file_input=input.txt
 file_output=test4_output.txt
 
 cp ./test4/wrf_input.dat .
 cp ./test4/namelist.input .
 cp ./test4/geo_em.d01.nc .
 
-rm -f ./$file_input ./$file_output
-echo '4' > ./$file_input
+rm -f  ./$file_output
 if [ -f ./fire_behavior.exe ]
 then
-  ./fire_behavior.exe > ./$file_output < ./$file_input
+  ./fire_behavior.exe > ./$file_output
 else
   echo 'Please compile the code first'
   exit 1
@@ -159,7 +157,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./$file_input ./fort.34 ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./fort.34 ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

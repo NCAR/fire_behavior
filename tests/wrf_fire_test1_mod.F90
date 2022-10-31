@@ -31,7 +31,8 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_wrf_fire_test1'
 
         ! Set grid
-      grid = domain (ids = IDS, ide = IDE, kds = KDS, kde = KDE, jds = JDS, jde = JDE, sr_x = SR_X, sr_y = SR_Y)
+!      grid = domain (ids = IDS, ide = IDE, kds = KDS, kde = KDE, jds = JDS, jde = JDE, sr_x = SR_X, sr_y = SR_Y)
+      grid = domain (config_flags)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) 'Contents of grid:'

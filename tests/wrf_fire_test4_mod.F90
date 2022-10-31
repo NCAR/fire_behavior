@@ -34,8 +34,13 @@
         ! Set grid
       geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
       if (DEBUG) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
-      grid = domain (ids = geogrid%ids, ide = geogrid%ide, kds = KDS, kde = KDE, jds = geogrid%jds, jde = geogrid%jde, &
-          sr_x = geogrid%sr_x, sr_y = geogrid%sr_y, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
+      config_flags%ids = geogrid%ids
+      config_flags%ide = geogrid%ide
+      config_flags%jds = geogrid%jds
+      config_flags%jde = geogrid%jde
+      config_flags%sr_x = geogrid%sr_x
+      config_flags%sr_y = geogrid%sr_y
+      grid = domain (config_flags, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
           nfuel_cat = geogrid%fuel_cats, dx = geogrid%dx, dy = geogrid%dy)
       if (DEBUG) then
         write (OUTPUT_UNIT, *) ''
