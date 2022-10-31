@@ -1,7 +1,4 @@
 
-PHYSICS_DIR = ../physics
-PHYSICS_INCLUDE="-I$(PHYSICS_DIR)"
-
 IO_DIR = ../io
 IO_INCLUDE="-I$(IO_DIR)"
 
@@ -11,8 +8,10 @@ target: $(objects)
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90
-	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(IO_INCLUDE) -c $*.f90
+	$(FC) $(FCFLAGS) $(IO_INCLUDE) -c $*.f90
 
 clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
+  # Dependencies
+state_mod.o: ../io/namelist_mod.o
