@@ -35,5 +35,5 @@ module_fr_fire_phys.o: wrf_atmosphere_mod.o module_fr_fire_util.o
 
 module_fr_fire_util.o: wrf_atmosphere_mod.o
 
-wrf_atmosphere_mod.o: ../io/namelist_mod.o ../state/state_mod.o
+wrf_atmosphere_mod.o: ../state/state_mod.o
 
