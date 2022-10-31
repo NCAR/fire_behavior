@@ -23,7 +23,7 @@ fire_behavior.exe: fire_behavior.o \
 	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(STATE_INCLUDE) $(IO_INCLUDE) -c $*.f90
 
 clean:
-	rm -f ./*.o ./*.mod  ./*.f90
+	rm -f ./*.o ./*.mod  ./*.f90 ./*.exe
 
   # Dependencies
 fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o ../driver/initialize_mod.o ../driver/advance_mod.o
