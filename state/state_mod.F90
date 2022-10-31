@@ -15,7 +15,7 @@
       real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
-      integer :: itimestep
+      integer :: itimestep = 0
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module

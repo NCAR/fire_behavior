@@ -148,7 +148,7 @@
 
       implicit none
 
-      class (namelist_fire_t), intent (in out) :: this
+      class (namelist_fire_t), intent (out) :: this
       character (len = *), intent (in) :: file_name
 
       logical, parameter :: DEBUG_LOCAL = .true.

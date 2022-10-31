@@ -4,10 +4,10 @@
 
     use state_mod, only : domain
     use namelist_mod, only : namelist_t
-    use wrf_fire_test1_mod, only : Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
-    use wrf_fire_test2_mod, only : Set_wrf_fire_test2, n_steps_test2, read_wrf_input_test2, check_tends_test2
-    use wrf_fire_test3_mod, only : Set_wrf_fire_test3, n_steps_test3, read_wrf_input_test3, check_tends_test3
-    use wrf_fire_test4_mod, only : Set_wrf_fire_test4, n_steps_test4, read_wrf_input_test4, check_tends_test4
+    use wrf_fire_test1_mod, only : Set_wrf_fire_test1
+    use wrf_fire_test2_mod, only : Set_wrf_fire_test2
+    use wrf_fire_test3_mod, only : Set_wrf_fire_test3
+    use wrf_fire_test4_mod, only : Set_wrf_fire_test4
     use initialize_mod, only : Init_state
     use advance_mod, only : Advance_state
 
@@ -35,9 +35,6 @@
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test1'
         end if
         call Set_wrf_fire_test1 (grid, config_flags)
-        n_steps = n_steps_test1
-        read_wrf_input = read_wrf_input_test1
-        check_tends = check_tends_test1
 
       case (CASE_WRF_FIRE_TEST2)
         if (DEBUG) then
@@ -45,9 +42,6 @@
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test2'
         end if
         call Set_wrf_fire_test2 (grid, config_flags)
-        n_steps = n_steps_test2
-        read_wrf_input = read_wrf_input_test2
-        check_tends = check_tends_test2
 
       case (CASE_WRF_FIRE_TEST3)
         if (DEBUG) then
@@ -55,9 +49,6 @@
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test3'
         end if
         call Set_wrf_fire_test3 (grid, config_flags)
-        n_steps = n_steps_test3
-        read_wrf_input = read_wrf_input_test3
-        check_tends = check_tends_test3
 
       case (CASE_WRF_FIRE_TEST4)
         if (DEBUG) then
@@ -65,9 +56,6 @@
           write (OUTPUT_UNIT, *) 'Loading grid/config for WRF-Fire test4'
         end if
         call Set_wrf_fire_test4 (grid, config_flags)
-        n_steps = n_steps_test4
-        read_wrf_input = read_wrf_input_test4
-        check_tends = check_tends_test4
 
       case default
         write (OUTPUT_UNIT, *) ''
@@ -77,8 +65,8 @@
 
     call Init_state (grid, config_flags)
 
-    do n = 1, n_steps
-      call Advance_state (grid, config_flags, read_wrf_input, check_tends)
+    do n = 1, config_flags%n_steps
+      call Advance_state (grid, config_flags)
     end do
 
   end program fire_behavior

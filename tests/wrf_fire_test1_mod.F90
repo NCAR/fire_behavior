@@ -10,15 +10,11 @@
 
     private
 
-    public :: Set_wrf_fire_test1, n_steps_test1, read_wrf_input_test1, check_tends_test1
-    integer :: n_steps_test1 = 0
-    logical :: read_wrf_input_test1 = .false.
-    logical :: check_tends_test1 = .false.
+    public :: Set_wrf_fire_test1
 
       ! Grid settins
     integer, parameter :: IDS = 1, IDE = 103, KDS = 1, KDE = 51, JDS = 1, JDE = 103
     integer, parameter :: SR_X = 4, SR_Y = 4
-    integer, parameter :: N_TIME_STEPS = 720
 
   contains
 
@@ -43,9 +39,6 @@
       end if
 
       call Load_domain_test1 (grid)
-
-        ! Number of time steps
-      n_steps_test1 = N_TIME_STEPS
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_wrf_fire_test1'
 
