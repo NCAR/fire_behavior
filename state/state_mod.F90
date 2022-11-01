@@ -155,7 +155,7 @@
       real, intent (in), optional :: dx, dy
 
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
-          DEFAULT_DZDYF = 0.0
+          DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
@@ -226,9 +226,10 @@
       allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
       this%psfc = DEFAULT_PSFC
 
-
       allocate (this%c1h(this%kms:this%kme))
+      this%c1h = DEFAULT_C1H
       allocate (this%c2h(this%kms:this%kme))
+      this%c2h = DEFAULT_C2H
 
       allocate (this%rthfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
       allocate (this%rqvfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))

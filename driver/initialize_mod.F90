@@ -153,10 +153,6 @@
       grid%z0 = Z0
       grid%mut = MUT
 
-        ! 1D arrays
-      grid%c1h(:) = 1.0
-      grid%c2h(:) = 0.0
-
         ! Ideal coordinates
       call set_ideal_coord( grid%dx,grid%dy, &
                   grid%ids, grid%ide, grid%jds, grid%jde, &
@@ -192,10 +188,6 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test2'
 
-        ! 1D arrays
-      grid%c1h(:) = 1.0
-      grid%c2h(:) = 0.0
-
         ! Ideal coordinates
       call set_ideal_coord( grid%dx,grid%dy, &
                   grid%ids, grid%ide, grid%jds, grid%jde, &
@@ -230,12 +222,6 @@
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test3'
 
-        ! 2D arrays
-
-        ! 1D arrays
-      grid%c1h(:) = 1.0
-      grid%c2h(:) = 0.0
-
         ! Ideal coordinates
       call set_ideal_coord( grid%dx,grid%dy, &
                   grid%ids, grid%ide, grid%jds, grid%jde, &
@@ -269,10 +255,6 @@
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test4'
-
-        ! 1D arrays
-      grid%c1h(:) = 1.0
-      grid%c2h(:) = 0.0
 
         ! lat lon
       grid%xlat = 0.0
