@@ -154,6 +154,11 @@
       real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
       real, intent (in), optional :: dx, dy
 
+      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
+          DEFAULT_DZDYF = 0.0
+        ! Atm vars needed by the fuel moisture model
+      real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
+          DEFAULT_RAINNC = 0.0
       integer :: n1, n2
 
 
@@ -206,16 +211,27 @@
       allocate (this%dz8w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
 
       allocate (this%z0(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
+      this%z0 = DEFAULT_Z0
       allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
+      allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
+      this%ht = DEFAULT_HT
+      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
+      this%rainc = DEFAULT_RAINC
+      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
+      this%rainnc = DEFAULT_RAINNC
+      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
+      this%t2 = DEFAULT_T2
+      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
+      this%q2 = DEFAULT_Q2
+      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
+      this%psfc = DEFAULT_PSFC
+
 
       allocate (this%c1h(this%kms:this%kme))
       allocate (this%c2h(this%kms:this%kme))
+
+      allocate (this%rthfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
+      allocate (this%rqvfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
 
         ! Fire vars
       allocate (this%rain_old(this%ims:this%ime, this%jms:this%jme))
@@ -233,9 +249,6 @@
       allocate (this%grnqfx_fu(this%ims:this%ime, this%jms:this%jme))
       allocate (this%uah(this%ims:this%ime, this%jms:this%jme))
       allocate (this%vah(this%ims:this%ime, this%jms:this%jme))
-
-      allocate (this%rthfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%rqvfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
 
       allocate (this%fmc_gc(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
       allocate (this%fmc_equi(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
@@ -313,6 +326,7 @@
 
         ! optional variables in the fire grid
       allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%zsf = DEFAULT_ZSF
       if (present (zsf)) then
         n1 = size (zsf, dim = 1)
         n2 = size (zsf, dim = 2)
@@ -324,6 +338,7 @@
       end if
 
       allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%dzdxf = DEFAULT_DZDXF
       if (present (dzdxf)) then
         n1 = size (dzdxf, dim = 1)
         n2 = size (dzdxf, dim = 2)
@@ -335,6 +350,7 @@
       end if
 
       allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%dzdyf = DEFAULT_DZDYF
       if (present (dzdyf)) then
         n1 = size (dzdyf, dim = 1)
         n2 = size (dzdyf, dim = 2)

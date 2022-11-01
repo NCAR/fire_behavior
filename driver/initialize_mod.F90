@@ -130,8 +130,7 @@
           65.5112305, 62.7126465, 60.0178223, 57.4240723, 54.9282227, 52.5280762, 50.2216797, 48.0051270, 45.8762207, 43.8242188, &
           41.8564453, 39.9692383, 38.1613770, 36.4289551, 34.7692871, 33.1804199, 31.6596680, 30.2038574, 28.8120117, 27.4802246, &
           26.2070312, 24.9892578, 23.8264160, 22.7143555, 0.00000000 ]
-      real, parameter :: HT = 0.0, Z0 = 0.1, MUT = 38739.3828, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
+      real, parameter :: Z0 = 0.1, MUT = 38739.3828
 
       real :: fdx, fdy
       integer :: k
@@ -151,18 +150,8 @@
       grid%v_2 = 0.0
 
         ! 2D arrays
-      grid%ht = HT
       grid%z0 = Z0
       grid%mut = MUT
-      grid%t2 = T2
-      grid%q2 = Q2
-      grid%psfc = PSFC
-      grid%rainc = RAINC
-      grid%rainnc = RAINNC
-
-      grid%zsf = ZSF
-      grid%dzdxf = DZDXF
-      grid%dzdyf = DZDYF
 
         ! 1D arrays
       grid%c1h(:) = 1.0
@@ -197,25 +186,11 @@
       type (domain), intent (in out) :: grid
 
       logical, parameter  :: DEBUG = .true.
-      real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
 
       real :: fdx, fdy
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test2'
-
-        ! 2D arrays
-      grid%ht = HT
-      grid%t2 = T2
-      grid%q2 = Q2
-      grid%psfc = PSFC
-      grid%rainc = RAINC
-      grid%rainnc = RAINNC
-
-      grid%zsf = ZSF
-      grid%dzdxf = DZDXF
-      grid%dzdyf = DZDYF
 
         ! 1D arrays
       grid%c1h(:) = 1.0
@@ -250,25 +225,12 @@
       type (domain), intent (in out) :: grid
 
       logical, parameter  :: DEBUG = .true.
-      real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
-
       real :: fdx, fdy
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test3'
 
         ! 2D arrays
-      grid%ht = HT
-      grid%t2 = T2
-      grid%q2 = Q2
-      grid%psfc = PSFC
-      grid%rainc = RAINC
-      grid%rainnc = RAINNC
-
-      grid%zsf = ZSF
-      grid%dzdxf = DZDXF
-      grid%dzdyf = DZDYF
 
         ! 1D arrays
       grid%c1h(:) = 1.0
@@ -304,21 +266,9 @@
       real, dimension (:, :), intent (in) :: xlat, xlong
 
       logical, parameter  :: DEBUG = .true.
-      real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          DT = 0.5
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test4'
-
-      grid%dt = DT
-
-        ! 2D arrays
-      grid%ht = HT
-      grid%t2 = T2
-      grid%q2 = Q2
-      grid%psfc = PSFC
-      grid%rainc = RAINC
-      grid%rainnc = RAINNC
 
         ! 1D arrays
       grid%c1h(:) = 1.0
@@ -329,8 +279,6 @@
       grid%xlat (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlat
       grid%xlong = 0.0
       grid%xlong (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlong
-
-      grid%itimestep = 0
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test4'
 
