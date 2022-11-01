@@ -28,7 +28,7 @@ clean:
   # Dependencies
 fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o ../driver/initialize_mod.o ../driver/advance_mod.o
 
-initialize_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o
+initialize_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../physics/module_fr_fire_driver_wrf.o
 
 advance_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../physics/module_fr_fire_driver_wrf.o
 
