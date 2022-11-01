@@ -44,14 +44,15 @@
         case (1)
           grid = domain (config_flags)
           call Load_domain_test1 (grid, config_flags)
+          call Set_ideal_latlons (grid)
 
         case (2)
           grid = domain (config_flags)
-          call Load_domain_test2 (grid)
+          call Set_ideal_latlons (grid)
 
         case (3)
           grid = domain (config_flags)
-          call Load_domain_test3 (grid)
+          call Set_ideal_latlons (grid)
 
         case (4)
           geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
@@ -72,15 +73,16 @@
           stop
       end select
 
-        call fire_driver_em_init (grid , config_flags                        &
-                ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
-                ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
-                ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
 
-        if (DEBUG_LOCAL) then
-          write (OUTPUT_UNIT, *) ''
-          write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
-        end if
+      call fire_driver_em_init (grid , config_flags                        &
+              ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
+              ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
+              ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
+
+      if (DEBUG_LOCAL) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
+      end if
 
     end subroutine Init_state
 
@@ -153,27 +155,11 @@
       grid%z0 = Z0
       grid%mut = MUT
 
-        ! Ideal coordinates
-      call set_ideal_coord( grid%dx,grid%dy, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, &
-                  grid%ims, grid%ime, grid%jms, grid%jme, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, & ! originaly tile dims. domain dim are the same here
-                  grid%xlong,grid%xlat)
-
-      fdx = grid%dx / grid%sr_x
-      fdy = grid%dy / grid%sr_y
-
-      call set_ideal_coord (fdx, fdy, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-          grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! originaly tile dims. domain dim are the same here
-          grid%fxlong,grid%fxlat)
-
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test1'
 
     end subroutine Load_domain_test1
 
-    subroutine Load_domain_test2 (grid)
+    subroutine Set_ideal_latlons (grid)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -182,11 +168,10 @@
       type (domain), intent (in out) :: grid
 
       logical, parameter  :: DEBUG = .true.
-
       real :: fdx, fdy
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test2'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Set_ideal_latlons'
 
         ! Ideal coordinates
       call set_ideal_coord( grid%dx,grid%dy, &
@@ -204,43 +189,9 @@
           grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! originaly tile dims. domain dim are the same here
           grid%fxlong,grid%fxlat)
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test2'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Set_ideal_latlons'
 
-    end subroutine Load_domain_test2
-
-    subroutine Load_domain_test3 (grid)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-
-      logical, parameter  :: DEBUG = .true.
-      real :: fdx, fdy
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test3'
-
-        ! Ideal coordinates
-      call set_ideal_coord( grid%dx,grid%dy, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, &
-                  grid%ims, grid%ime, grid%jms, grid%jme, &
-                  grid%ids, grid%ide, grid%jds, grid%jde, & ! originaly tile dims. domain dim are the same here
-                  grid%xlong,grid%xlat)
-
-      fdx = grid%dx / grid%sr_x
-      fdy = grid%dy / grid%sr_y
-
-      call set_ideal_coord (fdx, fdy, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-          grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-          grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! originaly tile dims. domain dim are the same here
-          grid%fxlong,grid%fxlat)
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test3'
-
-    end subroutine Load_domain_test3
+    end subroutine Set_ideal_latlons
 
     subroutine Load_domain_test4 (grid, xlat, xlong)
 
