@@ -131,17 +131,13 @@
           41.8564453, 39.9692383, 38.1613770, 36.4289551, 34.7692871, 33.1804199, 31.6596680, 30.2038574, 28.8120117, 27.4802246, &
           26.2070312, 24.9892578, 23.8264160, 22.7143555, 0.00000000 ]
       real, parameter :: HT = 0.0, Z0 = 0.1, MUT = 38739.3828, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0, DX = 50.0, DY = 50.0, DT = 0.5
+          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
 
       real :: fdx, fdy
       integer :: k
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test1'
-
-      grid%dx = DX
-      grid%dy = DY
-      grid%dt = DT
 
         ! 3D arrays
       do k = 1, config_flags%kde
@@ -202,16 +198,12 @@
 
       logical, parameter  :: DEBUG = .true.
       real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0, DX = 50.0, DY = 50.0, DT = 0.5
+          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
 
       real :: fdx, fdy
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test2'
-
-      grid%dx = DX
-      grid%dy = DY
-      grid%dt = DT
 
         ! 2D arrays
       grid%ht = HT
@@ -259,16 +251,12 @@
 
       logical, parameter  :: DEBUG = .true.
       real, parameter :: HT = 0.0, T2 = 0.0, Q2 = 0.0, PSFC = 0.0, RAINC = 0.0, RAINNC = 0.0, &
-          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0, DX = 50.0, DY = 50.0, DT = 0.5
+          ZSF = 0.0, DZDXF = 0.0, DZDYF = 0.0
 
       real :: fdx, fdy
 
 
       if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test3'
-
-      grid%dx = DX
-      grid%dy = DY
-      grid%dt = DT
 
         ! 2D arrays
       grid%ht = HT

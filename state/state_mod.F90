@@ -190,6 +190,10 @@
       allocate (this%j_end(this%num_tiles))
       this%j_end = this%jde
 
+      this%dx = config_flags%dx
+      this%dy = config_flags%dy
+      this%dt = config_flags%dt
+
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
 
