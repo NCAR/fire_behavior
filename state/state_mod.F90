@@ -1,6 +1,7 @@
   module state_mod
 
     use namelist_mod, only : namelist_t, NUM_FMC
+    use geogrid_mod, only : geogrid_t
 
     implicit none
 
@@ -129,47 +130,80 @@
 
   contains
 
-    function Domain_const (config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
-        xlat, xlong, dx, dy) result (return_value)
+    function Domain_const (config_flags, geogrid) result (return_value)
 
       implicit none
 
       type (namelist_t), intent (in) :: config_flags
-      real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
-      real, intent (in), optional :: dx, dy
+      type (geogrid_t), intent (in), optional :: geogrid
       type (domain) :: return_value
 
-      call Domain_init (return_value, config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
-          xlat, xlong, dx, dy)
+      call Domain_init (return_value, config_flags, geogrid)
 
     end function Domain_const
 
-    subroutine Domain_init (this, config_flags, zsf, dzdxf, dzdyf, nfuel_cat, &
-        xlat, xlong, dx, dy)
+    subroutine Domain_init (this, config_flags, geogrid)
 
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
 
       class (domain), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
-      real, dimension(:, :), intent (in), optional :: zsf, dzdxf, dzdyf, nfuel_cat, xlat, xlong
-      real, intent (in), optional :: dx, dy
+      type (geogrid_t), intent (in), optional :: geogrid
 
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
-      integer :: n1, n2
+      logical :: use_geogrid
 
+
+      if (present (geogrid)) then
+        use_geogrid = .true.
+      else
+        use_geogrid = .false.
+      end if
 
         ! Fill in atm dims including
         ! domain decomposition
-      this%ids = config_flags%ids
-      this%ide = config_flags%ide
+!        config_flags%ids = geogrid%ids
+!        config_flags%ide = geogrid%ide
+!        config_flags%jds = geogrid%jds
+!        config_flags%jde = geogrid%jde
+      if (use_geogrid) then
+        if (geogrid%ids == config_flags%ids) then
+          this%ids = config_flags%ids
+        else
+          write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%ide == config_flags%ide) then
+          this%ide = config_flags%ide
+        else
+          write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%jds == config_flags%jds) then
+          this%jds = config_flags%jds
+        else
+          write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%jde == config_flags%jde) then
+          this%jde = config_flags%jde
+        else
+          write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
+          stop
+        end if
+      else
+        this%ids = config_flags%ids
+        this%ide = config_flags%ide
+        this%jds = config_flags%jds
+        this%jde = config_flags%jde
+      end if
       this%kds = config_flags%kds
       this%kde = config_flags%kde
-      this%jds = config_flags%jds
-      this%jde = config_flags%jde
 
       this%ims = config_flags%ids - N_POINTS_IN_HALO
       this%ime = config_flags%ide + N_POINTS_IN_HALO
@@ -195,9 +229,6 @@
       allocate (this%j_end(this%num_tiles))
       this%j_end = this%jde
 
-      this%dx = config_flags%dx
-      this%dy = config_flags%dy
-      this%dt = config_flags%dt
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
@@ -256,10 +287,41 @@
       allocate (this%fmc_lag(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
       allocate (this%fmep(this%ims:this%ime, NUM_FMEP, this%jms:this%jme))
 
-        ! Fire vars in the fire grid
-      this%sr_x = config_flags%sr_x
-      this%sr_y = config_flags%sr_y
+        ! Grid dimensions
+      if_geogrid: if (use_geogrid) then
+        if (geogrid%dx == config_flags%dx) then
+          this%dx = geogrid%dx
+        else
+          write (ERROR_UNIT, *) 'dx in namelist and in geogrid differ'
+          stop
+        end if
+        if (geogrid%dy == config_flags%dy) then
+          this%dy = geogrid%dy
+        else
+          write (ERROR_UNIT, *) 'dy in namelist and in geogrid differ'
+          stop
+        end if
+        if (geogrid%sr_x == config_flags%sr_x) then
+          this%sr_x = geogrid%sr_x
+        else
+          write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
+          stop
+        end if
+        if (geogrid%sr_y == config_flags%sr_y) then
+          this%sr_y = geogrid%sr_y
+        else
+          write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
+          stop
+        end if
+      else
+        this%dx = config_flags%dx
+        this%dy = config_flags%dy
+        this%dt = config_flags%dt
+        this%sr_x = config_flags%sr_x
+        this%sr_y = config_flags%sr_y
+      end if if_geogrid
 
+        ! Fire grid
       call Get_ijk_from_subgrid (this, this%ifds, this%ifde, this%jfds, this%jfde, this%kfds, this%kfde, &
           this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
           this%jfpe, this%kfps, this%kfpe)
@@ -299,79 +361,29 @@
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
 
-        ! optional variables in the atmospheric grid
+      this%dt = config_flags%dt
+
       allocate (this%xlat(this%ims:this%ime, this%jms:this%jme))
-      if (present (xlat)) then
-        n1 = size (xlat, dim = 1)
-        n2 = size (xlat, dim = 2)
-        if (n1 == this%ide .and. n2 == this%jde) then
-          this%xlat(this%ids:this%ide, this%jds:this%jde) = xlat
-        else
-          stop 'input xlat array does not have atm grid dims'
-        end if
-      end if
-
       allocate (this%xlong(this%ims:this%ime, this%jms:this%jme))
-      if (present (xlong)) then
-        n1 = size (xlong, dim = 1)
-        n2 = size (xlong, dim = 2)
-        if (n1 == this%ide .and. n2 == this%jde) then
-          this%xlong(this%ids:this%ide, this%jds:this%jde) = xlong
-        else
-          stop 'input xlong array does not have atm grid dims'
-        end if
-      end if
-
-      if (present (dx)) this%dx = dx
-      if (present (dy)) this%dy = dy
-
-        ! optional variables in the fire grid
       allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%zsf = DEFAULT_ZSF
-      if (present (zsf)) then
-        n1 = size (zsf, dim = 1)
-        n2 = size (zsf, dim = 2)
-        if (n1 == this%ifde .and. n2 == this%jfde) then
-          this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = zsf
-        else
-          stop 'input zsf array does not have fire grid dims'
-        end if
-      end if
-
       allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%dzdxf = DEFAULT_DZDXF
-      if (present (dzdxf)) then
-        n1 = size (dzdxf, dim = 1)
-        n2 = size (dzdxf, dim = 2)
-        if (n1 == this%ifde .and. n2 == this%jfde) then
-          this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = dzdxf
-        else
-          stop 'input dzdxf array does not have fire grid dims'
-        end if
-      end if
-
       allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%dzdyf = DEFAULT_DZDYF
-      if (present (dzdyf)) then
-        n1 = size (dzdyf, dim = 1)
-        n2 = size (dzdyf, dim = 2)
-        if (n1 == this%ifde .and. n2 == this%jfde) then
-          this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = dzdyf
-        else
-          stop 'input dzdyf array does not have fire grid dims'
-        end if
-      end if
-
       allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
-      if (present (nfuel_cat)) then
-        n1 = size (nfuel_cat, dim = 1)
-        n2 = size (nfuel_cat, dim = 2)
-        if (n1 == this%ifde .and. n2 == this%jfde) then
-          this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = nfuel_cat
-        else
-          stop 'input nfuel_cat array does not have fire grid dims'
-        end if
-      end if
+
+      if_geogrid2d: if (use_geogrid) then
+        this%xlat = 0.0
+        this%xlat(this%ids:this%ide - 1, this%jds:this%jde - 1) = geogrid%xlat
+        this%xlong = 0.0
+        this%xlong(this%ids:this%ide - 1, this%jds:this%jde - 1) = geogrid%xlong
+        this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
+        this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
+        this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
+        this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
+      else
+        this%zsf = DEFAULT_ZSF
+        this%dzdxf = DEFAULT_DZDXF
+        this%dzdyf = DEFAULT_DZDYF
+      end if if_geogrid2d
 
     end subroutine Domain_init
 

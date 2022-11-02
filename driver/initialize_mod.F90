@@ -35,37 +35,14 @@
         geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
         config_flags%cen_lat = geogrid%cen_lat
         config_flags%cen_lon = geogrid%cen_lon
+
+        geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+        grid = domain (config_flags, geogrid)
+      else
+          grid = domain (config_flags)
       end if
 
-      select case (config_flags%n_case)
-        case (1)
-          grid = domain (config_flags)
-          call Load_atmosphere_test1 (grid, config_flags)
-
-        case (2)
-          grid = domain (config_flags)
-
-        case (3)
-          grid = domain (config_flags)
-
-        case (4)
-          geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-          if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Init WRF grid derived type'
-          config_flags%ids = geogrid%ids
-          config_flags%ide = geogrid%ide
-          config_flags%jds = geogrid%jds
-          config_flags%jde = geogrid%jde
-          config_flags%sr_x = geogrid%sr_x
-          config_flags%sr_y = geogrid%sr_y
-          grid = domain (config_flags, zsf = geogrid%elevations, dzdxf = geogrid%dz_dxs, dzdyf = geogrid%dz_dys, &
-              nfuel_cat = geogrid%fuel_cats, dx = geogrid%dx, dy = geogrid%dy)
- 
-          call Load_domain_test4 (grid, geogrid%xlat, geogrid%xlong)
-
-        case default
-          write (ERROR_UNIT, *) '  Unable to initialize this test case'
-          stop
-      end select
+      if (config_flags%n_case == 1) call Load_atmosphere_test1 (grid, config_flags)
 
       call fire_driver_em_init (grid , config_flags                        &
             ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
@@ -151,28 +128,5 @@
 
     end subroutine Load_atmosphere_test1
 
-    subroutine Load_domain_test4 (grid, xlat, xlong)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      type (domain), intent (in out) :: grid
-      real, dimension (:, :), intent (in) :: xlat, xlong
-
-      logical, parameter  :: DEBUG = .true.
-
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test4'
-
-        ! lat lon
-      grid%xlat = 0.0
-      grid%xlat (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlat
-      grid%xlong = 0.0
-      grid%xlong (grid%ids:grid%ide - 1, grid%jds:grid%jde - 1) = xlong
-
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test4'
-
-    end subroutine Load_domain_test4
-
   end module initialize_mod
+

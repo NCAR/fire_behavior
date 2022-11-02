@@ -11,7 +11,7 @@
     type :: geogrid_t
       real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx, dy, cen_lat, cen_lon
-      integer :: ids = 1, jds =1, ide, jde, sr_x, sr_y
+      integer :: ids = 1, jds = 1, ide, jde, sr_x, sr_y
         ! Atm vars
       real, dimension(:, :), allocatable :: xlat, xlong
     end type geogrid_t
