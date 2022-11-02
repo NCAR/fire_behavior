@@ -10,22 +10,22 @@ purge_output=1 # 0) No, 1) yes
 #
 #################################################
 #
-test4p1=1 # Check fire area
-test4p2=1 # Check heat output
-test4p3=1 # Check latent heat output
-test4p4=1 # Check Max heat flux
-test4p5=1 # Check Max latent heat flux
+test3p1=1 # Check fire area
+test3p2=1 # Check heat output
+test3p3=1 # Check latent heat output
+test3p4=1 # Check Max heat flux
+test3p5=1 # Check Max latent heat flux
 #
 #################################################
 #
 
-file_wrf=./test4/rsl.out.0000
+file_wrf=./test3/rsl.out.0000
 file_exe=../driver/fire_behavior.exe
-file_output=test4_output.txt
+file_output=test3_output.txt
 
-cp ./test4/wrf_input.dat .
-cp ./test4/namelist.input .
-cp ./test4/geo_em.d01.nc .
+cp ./test3/wrf_input.dat .
+cp ./test3/namelist.input .
+cp ./test3/geo_em.d01.nc .
 
 rm -f  ./$file_output
 if [ -f $file_exe ]
@@ -43,9 +43,9 @@ n_test_passed=0
 # ----------------------------------------
 #
 
-echo "TEST 4:"
+echo "TEST 3:"
 
-if [ $test4p1 -eq 1 ]
+if [ $test3p1 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -56,10 +56,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test4.1 PASSED'
+    echo '  Test3.1 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test4.1 FAILS'
+    echo '  Test3.1 FAILS'
   fi
 
 fi
@@ -68,7 +68,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test4p2 -eq 1 ]
+if [ $test3p2 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -79,10 +79,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test4.2 PASSED'
+    echo '  Test3.2 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test4.2 FAILS'
+    echo '  Test3.2 FAILS'
   fi
 fi
 
@@ -90,7 +90,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test4p3 -eq 1 ]
+if [ $test3p3 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -101,10 +101,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test4.3 PASSED'
+    echo '  Test3.3 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test4.3 FAILS'
+    echo '  Test3.3 FAILS'
   fi
 fi
 
@@ -112,7 +112,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test4p4 -eq 1 ]
+if [ $test3p4 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -123,10 +123,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test4.4 PASSED'
+    echo '  Test3.4 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test4.4 FAILS'
+    echo '  Test3.4 FAILS'
   fi
 fi
 
@@ -134,7 +134,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test4p5 -eq 1 ]
+if [ $test3p5 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -145,10 +145,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test4.5 PASSED'
+    echo '  Test3.5 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test4.5 FAILS'
+    echo '  Test3.5 FAILS'
   fi
 fi
 
@@ -163,7 +163,7 @@ then
   rm -rf ./$file_output
 fi
 
-  # Print summary of Test 4
+  # Print summary of Test 3
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
