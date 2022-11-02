@@ -9,40 +9,38 @@
 
     public :: Init_state
 
-    contains
+  contains
 
-      subroutine Init_state (grid, config_flags)
+    subroutine Init_state (grid, config_flags)
 
-        use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
-        implicit none
+      implicit none
 
-        type (domain), intent (in out) :: grid
-        type (namelist_t), intent (in out) :: config_flags
+      type (domain), intent (in out) :: grid
+      type (namelist_t), intent (in out) :: config_flags
 
-        type (geogrid_t) :: geogrid
-        logical, parameter :: DEBUG_LOCAL = .true.
+      type (geogrid_t) :: geogrid
+      logical, parameter :: DEBUG_LOCAL = .true.
 
 
-        if (DEBUG_LOCAL) then
-          write (OUTPUT_UNIT, *) ''
-          write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
-        end if
+      if (DEBUG_LOCAL) then
+        write (OUTPUT_UNIT, *) ''
+        write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
+      end if
 
-        print *, config_flags%fire_ignition_radius1
-        call config_flags%Initialization (file_name = 'namelist.input')
-        print *, config_flags%fire_ignition_radius1
+      call config_flags%Initialization (file_name = 'namelist.input')
 
-        if (config_flags%fire_fuel_read == -1) then
-          geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-          config_flags%cen_lat = geogrid%cen_lat
-          config_flags%cen_lon = geogrid%cen_lon
-        end if
+      if (config_flags%fire_fuel_read == -1) then
+        geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+        config_flags%cen_lat = geogrid%cen_lat
+        config_flags%cen_lon = geogrid%cen_lon
+      end if
 
       select case (config_flags%n_case)
         case (1)
           grid = domain (config_flags)
-          call Load_domain_test1 (grid, config_flags)
+          call Load_atmosphere_test1 (grid, config_flags)
 
         case (2)
           grid = domain (config_flags)
@@ -69,11 +67,10 @@
           stop
       end select
 
-
       call fire_driver_em_init (grid , config_flags                        &
-              ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
-              ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
-              ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
+            ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
+            ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
+            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
 
       if (DEBUG_LOCAL) then
         write (OUTPUT_UNIT, *) ''
@@ -82,7 +79,7 @@
 
     end subroutine Init_state
 
-    subroutine Load_domain_test1 (grid, config_flags)
+    subroutine Load_atmosphere_test1 (grid, config_flags)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -133,7 +130,7 @@
       integer :: k
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_domain_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_atmosphere_test1'
 
         ! 3D arrays
       do k = 1, config_flags%kde
@@ -150,9 +147,9 @@
       grid%z0 = Z0
       grid%mut = MUT
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_domain_test1'
+      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_atmosphere_test1'
 
-    end subroutine Load_domain_test1
+    end subroutine Load_atmosphere_test1
 
     subroutine Load_domain_test4 (grid, xlat, xlong)
 
