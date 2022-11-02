@@ -37,9 +37,9 @@
         config_flags%cen_lon = geogrid%cen_lon
 
         geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-        grid = domain (config_flags, geogrid)
+        call grid%Initialization (config_flags, geogrid)
       else
-          grid = domain (config_flags)
+        call grid%Initialization (config_flags)
       end if
 
       if (config_flags%n_case == 1) call Load_atmosphere_test1 (grid, config_flags)

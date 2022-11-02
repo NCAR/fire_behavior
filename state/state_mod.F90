@@ -12,8 +12,8 @@
     integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, P_FIRE_SMOKE = 1
     integer, parameter :: N_POINTS_IN_HALO = 5
 
-    type :: state_t
-      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
+    type :: state_fire_t
+!      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
@@ -75,9 +75,9 @@
       real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
-    end type state_t
+    end type state_fire_t
 
-    type, extends (state_t) :: domain
+    type, extends (state_fire_t) :: domain
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
                  ifps, ifpe, jfps, jfpe, kfps, kfpe
@@ -107,10 +107,9 @@
       real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
       real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
       real, dimension(:, :), allocatable :: mut
-        ! 1D
+        ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
       real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
-        ! feedback to atm
       real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
       real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
 
@@ -121,28 +120,13 @@
       real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
       real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
     contains
+      procedure, public :: Initialization => Init_domain
       procedure, public :: Print => Print_domain
     end type domain
 
-    interface domain
-      module procedure Domain_const
-    end interface domain
-
   contains
 
-    function Domain_const (config_flags, geogrid) result (return_value)
-
-      implicit none
-
-      type (namelist_t), intent (in) :: config_flags
-      type (geogrid_t), intent (in), optional :: geogrid
-      type (domain) :: return_value
-
-      call Domain_init (return_value, config_flags, geogrid)
-
-    end function Domain_const
-
-    subroutine Domain_init (this, config_flags, geogrid)
+    subroutine Init_domain (this, config_flags, geogrid)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
@@ -165,12 +149,7 @@
         use_geogrid = .false.
       end if
 
-        ! Fill in atm dims including
-        ! domain decomposition
-!        config_flags%ids = geogrid%ids
-!        config_flags%ide = geogrid%ide
-!        config_flags%jds = geogrid%jds
-!        config_flags%jde = geogrid%jde
+        ! Domain dimensions
       if (use_geogrid) then
         if (geogrid%ids == config_flags%ids) then
           this%ids = config_flags%ids
@@ -385,7 +364,7 @@
         this%dzdyf = DEFAULT_DZDYF
       end if if_geogrid2d
 
-    end subroutine Domain_init
+    end subroutine Init_domain
 
     subroutine Get_ijk_from_subgrid (  grid ,                &
                            ids0, ide0, jds0, jde0, kds0, kde0,    &
