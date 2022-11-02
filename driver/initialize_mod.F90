@@ -29,6 +29,7 @@
         write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
       end if
 
+        ! Namelist and state init
       call config_flags%Initialization (file_name = 'namelist.input')
 
       if (config_flags%fire_fuel_read == -1) then
@@ -42,8 +43,11 @@
         call grid%Initialization (config_flags)
       end if
 
+        ! Atmosphere init
+      if (config_flags%read_wrf_input) Call Read_wrf_input (grid)
       if (config_flags%n_case == 1) call Load_atmosphere_test1 (grid, config_flags)
 
+        ! Fire init
       call fire_driver_em_init (grid , config_flags                        &
             ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
             ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
@@ -127,6 +131,47 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_atmosphere_test1'
 
     end subroutine Load_atmosphere_test1
+
+    subroutine Read_wrf_input (grid)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      type (domain), intent (in out) :: grid
+
+      real :: check_val
+      integer :: io_stat, wrf_input_unit
+
+
+      open (newunit = wrf_input_unit, file = 'wrf_input.dat', iostat = io_stat)
+      if (io_stat /= 0) then
+        write (OUTPUT_UNIT, *) 'Problems opening the wrf_input.dat file'
+        stop
+      end if
+
+      check_val = 0
+      read (wrf_input_unit, *, iostat = io_stat) grid%u_2
+      if (io_stat /= 0) then
+        write (OUTPUT_UNIT, *) 'Problems reading wrf_input.dat'
+        stop
+      end if
+
+      read (wrf_input_unit, *) grid%v_2
+      read (wrf_input_unit, *) grid%ph_2
+      read (wrf_input_unit, *) grid%phb
+      read (wrf_input_unit, *) grid%rho
+      read (wrf_input_unit, *) grid%z_at_w
+      read (wrf_input_unit, *) grid%dz8w
+      read (wrf_input_unit, *) grid%z0
+      read (wrf_input_unit, *) grid%mut
+      read (wrf_input_unit, *) check_val
+
+      write (OUTPUT_UNIT, *) check_val
+
+      close (wrf_input_unit)
+
+    end subroutine Read_wrf_input
 
   end module initialize_mod
 
