@@ -157,7 +157,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./fort.34 ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

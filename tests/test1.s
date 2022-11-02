@@ -180,7 +180,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./namelist.input ./fort.34
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
