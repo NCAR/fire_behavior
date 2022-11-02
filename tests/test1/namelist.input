@@ -11,28 +11,28 @@
  dx = 50.0
  dy = 50.0
  dt = 0.5
- n_steps = 720
+ n_steps = 20
  read_wrf_input = .false.
- check_tends = .false.
+ check_tends = .true.
  /
 
  &fire
  fire_fuel_read = 0,               ! integer, -1: from WPS, 0= use fire_fuel_cat, 1= by altitude
  fire_fuel_cat = 1,                ! integer, if specified which fuel category?
  fire_num_ignitions = 1,           ! integer, only the first fire_num_ignition used, up to 5 allowed
- fire_ignition_ros1 =   0.05,      ! rate of spread during ignition, m/s  
+ fire_ignition_ros1 =   0.55,      ! rate of spread during ignition, m/s  
  fire_ignition_start_x1 = 2000.0,  ! start points of ignition lines, in m from lower left corner
  fire_ignition_start_y1 = 2000.0,  ! start points of ignition lines, in m from lower left corner
- fire_ignition_end_x1 = 2000.0,    ! end points of ignition lines, in m from lower left corner
+ fire_ignition_end_x1 = 3000.0,    ! end points of ignition lines, in m from lower left corner
  fire_ignition_end_y1 = 3000.0,    ! end points of ignition lines, in m from lower left corner
- fire_ignition_radius1 = 80.0,     ! all within this radius will ignite, > fire mesh step
- fire_ignition_start_time1 = 120.0,  ! sec for ignition from the start
- fire_ignition_end_time1 = 145.0,   ! sec for ignition from the start
+ fire_ignition_radius1 = 800.0,     ! all within this radius will ignite, > fire mesh step
+ fire_ignition_start_time1 = 0.0,  ! sec for ignition from the start
+ fire_ignition_end_time1 = 15.0,   ! sec for ignition from the start
  fire_wind_height = 1.0,           ! height to interpolate winds to for calculating fire spread rate 
  fire_print_msg = 1,               ! 1 print fire debugging messages
  fire_fuel_left_irl = 2,           ! refinement to integrate fuel_left, must be even
  fire_fuel_left_jrl = 2,           ! refinement to integrate fuel_left, must be even
- fire_atm_feedback = 0.0,          ! real, multiplier for heat fluxes, 1.=normal, 0.=turn off two-way coupling 
+ fire_atm_feedback = 1.0,          ! real, multiplier for heat fluxes, 1.=normal, 0.=turn off two-way coupling 
  fire_grows_only = 1,              ! if >0 level set function cannot increase = fire can only grow
  fire_viscosity = 0.4,             ! artificial viscosity in level set method (max 1, needed with fire_upwinding=0)
  fire_upwinding = 9,               ! 0=none, 1=standard, 2=godunov, 3=eno, 4=sethian

@@ -37,7 +37,7 @@
             ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
             ,grid%rho, grid%z_at_w, grid%dz8w)
 
-      if (config_flags%check_tends) write (34, *) grid%rthfrten(13, 2, 20), grid%rqvfrten(13, 2, 20)
+      if (config_flags%check_tends) write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
 
       if (DEBUG_LOCAL) then
         write (OUTPUT_UNIT, *) ''

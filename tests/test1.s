@@ -2,11 +2,10 @@
 #
 #################################################
 #
-# Purpose: Check stand-alone code reproduces the initial evolution of a laminar case with no fire/atm feedbacks
+# Purpose: Check stand-alone code reproduces the initial evolution idealize case
 #
 #################################################
 #
-plot_results=0 # 0) No, 1) Yes
 purge_output=1 # 0) No, 1) yes
 #
 #################################################
@@ -14,8 +13,9 @@ purge_output=1 # 0) No, 1) yes
 test1p1=1 # Check fire area
 test1p2=1 # Check heat output
 test1p3=1 # Check latent heat output
-test1p4=0 # Check Max heat flux
-test1p5=0 # Check Max latent heat flux
+test1p4=1 # Check Max heat flux
+test1p5=1 # Check Max latent heat flux
+test1p6=1 # Check tendency t,qv first time step
 #
 #################################################
 #
@@ -61,12 +61,6 @@ then
   else
     echo '  Test1.1 FAILS'
   fi
-
-  if [ $plot_results -eq 1 ]
-  then
-    ./test1/gn_dos.s file1.dat file2.dat
-    mv ./plot.ps ./test1p1.ps
-  fi
 fi
 
 #
@@ -90,12 +84,6 @@ then
   else
     echo '  Test1.2 FAILS'
   fi
-
-  if [ $plot_results -eq 1 ]
-  then
-    ./test1/gn_dos.s file1.dat file2.dat
-    mv ./plot.ps ./test1p2.ps
-  fi 
 fi
 
 #
@@ -119,12 +107,6 @@ then
   else
     echo '  Test1.3 FAILS'
   fi
-
-  if [ $plot_results -eq 1 ]
-  then
-    ./test1/gn_dos.s file1.dat file2.dat
-    mv ./plot.ps ./test1p3.ps
-  fi 
 fi
 
 #
@@ -149,12 +131,6 @@ then
   else
     echo '  Test1.4 FAILS'
   fi
-
-  if [ $plot_results -eq 1 ]
-  then
-    ./test1/gn_dos.s file1.dat file2.dat
-    mv ./plot.ps ./test1p4.ps
-  fi 
 fi
 
 #
@@ -178,20 +154,33 @@ then
   else
     echo '  Test1.5 FAILS'
   fi
-
-  if [ $plot_results -eq 1 ]
-  then
-    ./test1/gn_dos.s file1.dat file2.dat
-    mv ./plot.ps ./test1p5.ps
-  fi 
 fi
 
 #
 # ----------------------------------------
 #
+if [ $test1p6 -eq 1 ]
+then
+  n_tests=$(expr $n_tests + 1)
+
+  head -n 1 ./fort.34 > ./offline.dat
+  head -n 1 ./test1/th_qv_tend.dat > ./online.dat
+  test=$(diff ./offline.dat ./online.dat | wc -l)
+  rm -f ./offline.dat ./online.dat
+  if [ $test -eq 0 ]
+  then
+    echo '  Test1.6 PASSED (tendencies)'
+    n_test_passed=$(expr $n_test_passed + 1)
+  else
+    echo '  Test1.6 FAILS'
+  fi
+fi
+#
+# ----------------------------------------
+#
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./plot.1 ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./namelist.input
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
