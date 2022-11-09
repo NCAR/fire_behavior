@@ -45,10 +45,10 @@ list(APPEND _driver_files driver/advance_mod.F90
                           driver/initialize_mod.F90)
 
 # Tests 
-list(APPEND _test_files tests/wrf_fire_test4_mod.F90
-			tests/wrf_fire_test3_mod.F90
-                        tests/wrf_fire_test2_mod.F90
-			tests/wrf_fire_test1_mod.F90)
+# list(APPEND _test_files tests/wrf_fire_test4_mod.F90
+# 			tests/wrf_fire_test3_mod.F90
+#                         tests/wrf_fire_test2_mod.F90
+# 			tests/wrf_fire_test1_mod.F90)
 
 
 #------------------------------------------------------------------------------
@@ -71,20 +71,20 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 #------------------------------------------------------------------------------
 
 # configure fire behavior library
-add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files} ${_test_files})
+add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 
 # configure fire behavior nuopc cap library
-# add_library(fire_behavior_nuopc cap_driver.F90)
-# add_dependencies(fire_behavior_nuopc firelib)
-# target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
-# target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
+add_library(fire_behavior_nuopc cap_driver.F90)
+add_dependencies(fire_behavior_nuopc firelib)
+target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
+target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
 
 # configure fire behavior executable
-add_executable(fire_behavior_standalone tests/fire_behavior.F90)
+add_executable(fire_behavior_standalone driver/fire_behavior.F90)
 add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
 
 # install
-#install(TARGETS firelib fire_behavior_nuopc DESTINATION lib)
+install(TARGETS firelib fire_behavior_nuopc DESTINATION lib)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
