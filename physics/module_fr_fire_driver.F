@@ -83,12 +83,11 @@ halo_fire_mag_sub
     INTEGER:: fire_num_ignitions
     integer, parameter::fire_max_ignitions=5
     TYPE(ignition_line_type), DIMENSION(fire_max_ignitions):: ignition_line
-    integer::fire_ifun,ir,jr,fire_ignition_longlat,istep,itimestep
+    integer::fire_ifun,ir,jr,istep,itimestep
     logical::need_lfn_update,restart
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
-    real:: unit_fxlong ,unit_fxlat
     type(fire_params)::fp
     real:: time_start, dt
     real:: moisture_time
@@ -117,8 +116,8 @@ halo_fire_mag_sub
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
             
     ! get ignition data 
-    call fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
-        ignition_line,fire_num_ignitions,unit_fxlong,unit_fxlat)
+    call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
+        ignition_line,fire_num_ignitions)
 
     ! copy configuration flags to fire internal structures
     call set_flags(config_flags)
@@ -276,11 +275,11 @@ halo_fire_mag_sub
             itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
             grid%dt,grid%dx,grid%dy,                    &
             grid%u_frame,grid%v_frame,                  &
-            unit_fxlong,unit_fxlat,                           & ! coordinates of grid center
+            grid%unit_fxlong,grid%unit_fxlat,                           & ! coordinates of grid center
             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
             config_flags%fire_wind_height,              &  ! height of wind input to fire spread formula
             fire_num_ignitions,                                & 
-            fire_ignition_longlat,      &
+            grid%fire_ignition_longlat,      &
             ignition_line,              &
             grid%u_2,grid%v_2,           &          ! atm arrays in
             grid%ph_2,grid%phb,               & ! geopotential
@@ -1045,7 +1044,7 @@ end subroutine fire_driver_phys
 !
 
 subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
-    ignition_line,fire_num_ignitions,unit_fxlong,unit_fxlat)
+    ignition_line,fire_num_ignitions)
     USE namelist_mod, only : namelist_t
     implicit none
 ! create ignition arrays from scalar flags
@@ -1053,26 +1052,16 @@ subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_
     TYPE (namelist_t) , INTENT(IN)          :: config_flags
     integer, intent(in)::fire_max_ignitions
     TYPE (ignition_line_type), DIMENSION(fire_max_ignitions), intent(out):: ignition_line ! any values from input discarded 
-    integer, intent(out)::fire_num_ignitions,fire_ignition_longlat
-    real, intent(out)::unit_fxlong,unit_fxlat
+    integer, intent(out)::fire_num_ignitions
+    integer, intent(in)::fire_ignition_longlat
 !*** local
     integer::i
-    logical:: real,ideal
-    real::lat_ctr,lon_ctr
 !*** executable
     ! this is only until I figure out how to input arrays through the namelist...
     if(fire_max_ignitions.lt.5)call crash('fire_max_ignitions too small')
-    ! figure out which kind of coordinates from the first given
-    ideal=config_flags%fire_ignition_start_x1 .ne.0. .or. config_flags%fire_ignition_start_y1 .ne. 0.
-    real=config_flags%fire_ignition_start_lon1 .ne. 0. .or. config_flags%fire_ignition_start_lat1 .ne. 0.
-    if(ideal)call message('Using ideal ignition coordinates, m from the lower left domain corner')
-    if(real)call message('Using real ignition coordinates, longitude and latitude')
-    if(ideal.and.real)call crash('Only one of the ideal or real coordinates may be given')
 
-    fire_ignition_longlat=0  ! default, if no ignition
-    if(ideal)then
+    if(fire_ignition_longlat .eq. 0)then
        ! use values from _x and _y variables
-       fire_ignition_longlat=0
        ignition_line(1)%start_x=config_flags%fire_ignition_start_x1
        ignition_line(1)%start_y=config_flags%fire_ignition_start_y1
        ignition_line(1)%end_x=config_flags%fire_ignition_end_x1
@@ -1094,9 +1083,8 @@ subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_
        ignition_line(5)%end_x=config_flags%fire_ignition_end_x5
        ignition_line(5)%end_y=config_flags%fire_ignition_end_y5
     endif
-    if(real)then
+    if(fire_ignition_longlat .eq. 1)then
         ! use values from _long and _lat
-       fire_ignition_longlat=1
        ignition_line(1)%start_x=config_flags%fire_ignition_start_lon1
        ignition_line(1)%start_y=config_flags%fire_ignition_start_lat1
        ignition_line(1)%end_x=config_flags%fire_ignition_end_lon1
@@ -1150,21 +1138,6 @@ subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_
             if(ignition_line(i)%end_y.eq.0.)ignition_line(i)%end_y=ignition_line(i)%start_y
             if(ignition_line(i)%end_time.eq.0.)ignition_line(i)%end_time=ignition_line(i)%start_time
         enddo
-
-    if(fire_ignition_longlat .eq. 0)then
-       ! ideal
-       !  ignition is in m
-       unit_fxlong=1.  
-       unit_fxlat=1.
-       ! will set fire mesh coordinates to uniform mesh below
-    else
-       ! real
-       lat_ctr=config_flags%cen_lat
-       lon_ctr=config_flags%cen_lon
-       ! 1 degree in m (approximate OK)
-       unit_fxlat=pi2/(360.*reradius)  ! earth circumference in m / 360 degrees
-       unit_fxlong=cos(lat_ctr*pi2/360.)*unit_fxlat  ! latitude
-    endif
 
 end subroutine fire_ignition_convert
 

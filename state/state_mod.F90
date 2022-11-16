@@ -75,6 +75,8 @@
       real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
+      real :: unit_fxlong, unit_fxlat
+      integer :: fire_ignition_longlat
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
