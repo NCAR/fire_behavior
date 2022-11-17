@@ -731,17 +731,6 @@ do ij=1,num_tiles
 !        endif
 
         if(ignition_longlat .eq.0)then
-            call interpolate_z2fire(id,             & 
-                ids,ide,jds,jde,                    &
-                ims,ime,jms,jme,                    &
-                ips,ipe,jps,jpe,                    &
-                its,ite,jts,jte,                    &
-                ifds,ifde,jfds,jfde,                &
-                ifms,ifme,jfms,jfme,                &
-                ifts,ifte,jfts,jfte,                &
-                ir,jr,                              &
-                z0,                                 &
-                fz0,1)
             !call set_ideal_coord( dx,dy, &
             !    ids,ide,jds,jde,  &
             !    ims,ime,jms,jme,  &
@@ -755,18 +744,6 @@ do ij=1,num_tiles
          call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlat,'xlat',id)
          call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlong,'xlong',id)
 #endif
-
-        call interpolate_z2fire(id,                       & 
-            ids,ide,  jds,jde,                            &
-            ims,ime,  jms,jme,                            &
-            ips,ipe,jps,jpe,                              &
-            its,ite,jts,jte,                              &
-            ifds, ifde, jfds, jfde,                       &
-            ifms, ifme, jfms, jfme,                       &
-            ifts,ifte,jfts,jfte,                          &
-            ir,jr,                                        &
-            z0,                                           &
-            fz0,1)
 
         endif
 
