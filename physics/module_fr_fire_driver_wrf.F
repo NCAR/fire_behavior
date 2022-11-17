@@ -17,7 +17,8 @@ contains
 subroutine fire_driver_em_init (grid , config_flags               & 
             ,ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe)
+            ,ips,ipe, kps,kpe, jps,jpe                              &
+            ,its,ite, kts,kte, jts,jte)
 
     ! stub to call fire_driver_em with irun=0 and omit last 3 args
 
@@ -31,13 +32,15 @@ subroutine fire_driver_em_init (grid , config_flags               &
     integer, intent(in):: &
              ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe
+            ,ips,ipe, kps,kpe, jps,jpe                              &
+            ,its,ite, kts,kte, jts,jte
 
     ! local
     integer :: &  ! fire mesh sizes
              ifds,ifde, kfds,kfde, jfds,jfde,                              &
              ifms,ifme, kfms,kfme, jfms,jfme,                              &
-             ifps,ifpe, kfps,kfpe, jfps,jfpe                              
+             ifps,ifpe, kfps,kfpe, jfps,jfpe,                              &
+             ifts,ifte, kfts,kfte, jfts,jfte
     ! dummies
 
     real,dimension(1,1,1)::rho,z_at_w,dz8w
@@ -48,9 +51,12 @@ subroutine fire_driver_em_init (grid , config_flags               &
     CALL get_ijk_from_subgrid (  grid ,                   &
                             ifds,ifde, jfds,jfde,kfds,kfde,                        &
                             ifms,ifme, jfms,jfme,kfms,kfme,                        &
-                            ifps,ifpe, jfps,jfpe,kfps,kfpe) 
+                            ifps,ifpe, jfps,jfpe,kfps,kfpe,                        &
+                            ifts,ifte, jfts,jfte,kfts,kfte)
 
     call calc_unit_fxlat_fxlong (grid, config_flags)
+
+    call calc_fxlat_fxlong (grid, config_flags)
 
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
@@ -96,7 +102,8 @@ subroutine fire_driver_em_step (grid , config_flags               &
     integer :: &  ! fire mesh sizes
              ifds,ifde, kfds,kfde, jfds,jfde,                              &
              ifms,ifme, kfms,kfme, jfms,jfme,                              &
-             ifps,ifpe, kfps,kfpe, jfps,jfpe                              
+             ifps,ifpe, kfps,kfpe, jfps,jfpe,                              &
+             ifts,ifte, kfts,kfte, jfts,jfte
     integer :: its,ite,jts,jte,kts,kte            ! atm tile
     integer:: ij 
 
@@ -106,7 +113,8 @@ subroutine fire_driver_em_step (grid , config_flags               &
     CALL get_ijk_from_subgrid (  grid ,                   &
                             ifds,ifde, jfds,jfde,kfds,kfde,                        &
                             ifms,ifme, jfms,jfme,kfms,kfme,                        &
-                            ifps,ifpe, jfps,jfpe,kfps,kfpe) 
+                            ifps,ifpe, jfps,jfpe,kfps,kfpe,                        &
+                            ifts,ifte, jfts,jfte,kfts,kfte)
 
     call fire_driver_em ( grid , config_flags               & 
             ,3,6,fire_test_steps                                &
@@ -185,6 +193,76 @@ subroutine calc_unit_fxlat_fxlong (grid, config_flags)
     endif
 
 end subroutine calc_unit_fxlat_fxlong
+
+subroutine calc_fxlat_fxlong (grid, config_flags)
+
+    USE state_mod, only: domain
+    USE namelist_mod , only : namelist_t
+    implicit none
+!*** arguments
+    TYPE(domain) , TARGET :: grid                   ! state
+    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
+
+!*** local
+    logical :: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
+    integer :: pid, id
+
+    if(config_flags%restart)then
+
+          call message('restart - topo initialization skipped')
+
+    else
+
+        if(grid%fire_ignition_longlat .eq.0)then
+            ! set ideal fire mesh coordinates - used for ignition only
+            ! do not forget to set unit_fxlong, unit_fxlat outside of parallel loop
+
+            ! DME: Next call added to fixe a bug when
+            ! initializing a nested domain (before, fxlong & fxlat where not
+            ! assigned, they were supposed to be set by a mod in WPS
+            ! but here we use standard WPS therefore were zero and fire does not ignite)
+            call set_ideal_coord( grid%dxf,grid%dyf, &
+                grid%ifds,grid%ifde,grid%jfds,grid%jfde,  &
+                grid%ifms,grid%ifme,grid%jfms,grid%jfme,  &
+                grid%ifts,grid%ifte,grid%jfts,grid%jfte,  &
+                grid%fxlong,grid%fxlat          )
+
+        elseif(use_atm_vars)then
+            ! assume halo xlong xlat
+            ! interpolate nodal coordinates
+
+        pid = 1
+        id = ifval(pid.ne.0,pid+1*10000,0) ! for print
+
+        call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
+            grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+            grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+            grid%its,grid%ite,grid%jts,grid%jte,                              &
+            grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+            grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+            grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+            grid%xlat,                                       & ! atm grid arrays in
+            grid%fxlat,0)                                      ! fire grid arrays out
+
+        call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
+            grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+            grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+            grid%its,grid%ite,grid%jts,grid%jte,                              &
+            grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+            grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+            grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+            grid%xlong,                                       & ! atm grid arrays in
+            grid%fxlong,0)                                      ! fire grid arrays out
+
+        end if
+
+    end if
+
+end subroutine calc_fxlat_fxlong
 
 end module module_fr_fire_driver_wrf
 

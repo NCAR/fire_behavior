@@ -80,10 +80,12 @@
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
-      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe
+      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
+                 its, ite, jts, jte, kts, kte
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
-                 ifps, ifpe, jfps, jfpe, kfps, kfpe
+                 ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
+      real :: dxf, dyf
       real :: cen_lat, cen_lon
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
@@ -200,6 +202,13 @@
       this%jps = config_flags%jds
       this%jpe = config_flags%jde
 
+      this%its = config_flags%ids
+      this%ite = config_flags%ide
+      this%kts = config_flags%kds
+      this%kte = config_flags%kde
+      this%jts = config_flags%jds
+      this%jte = config_flags%jde
+
       this%num_tiles = 1
       allocate (this%i_start(this%num_tiles))
       this%i_start = this%ids 
@@ -284,12 +293,14 @@
         end if
         if (geogrid%sr_x == config_flags%sr_x) then
           this%sr_x = geogrid%sr_x
+          this%dxf = config_flags%dx / this%sr_x
         else
           write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
           stop
         end if
         if (geogrid%sr_y == config_flags%sr_y) then
           this%sr_y = geogrid%sr_y
+          this%dyf = config_flags%dy / this%sr_y
         else
           write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
           stop
@@ -300,12 +311,14 @@
         this%dt = config_flags%dt
         this%sr_x = config_flags%sr_x
         this%sr_y = config_flags%sr_y
+        this%dxf = config_flags%dx / this%sr_x
+        this%dyf = config_flags%dy / this%sr_y
       end if if_geogrid
 
         ! Fire grid
       call Get_ijk_from_subgrid (this, this%ifds, this%ifde, this%jfds, this%jfde, this%kfds, this%kfde, &
           this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
-          this%jfpe, this%kfps, this%kfpe)
+          this%jfpe, this%kfps, this%kfpe, this%ifts, this%ifte, this%jfts, this%jfte, this%kfts, this%kfte)
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -371,7 +384,8 @@
     subroutine Get_ijk_from_subgrid (  grid ,                &
                            ids0, ide0, jds0, jde0, kds0, kde0,    &
                            ims0, ime0, jms0, jme0, kms0, kme0,    &
-                           ips0, ipe0, jps0, jpe0, kps0, kpe0    )
+                           ips0, ipe0, jps0, jpe0, kps0, kpe0,    &
+                           its0, ite0, jts0, jte0, kts0, kte0     )
 
     ! return the values for subgrid whose refinement is in grid%sr
     ! note when using this routine, it does not affect K. For K 
@@ -381,12 +395,14 @@
       integer, intent(out) ::                                 &
                        ids0, ide0, jds0, jde0, kds0, kde0,    &
                        ims0, ime0, jms0, jme0, kms0, kme0,    &
-                       ips0, ipe0, jps0, jpe0, kps0, kpe0
+                       ips0, ipe0, jps0, jpe0, kps0, kpe0,    &
+                       its0, ite0, jts0, jte0, kts0, kte0
         ! Local
       integer ::                              &
                 ids, ide, jds, jde, kds, kde, &
                 ims, ime, jms, jme, kms, kme, &
-                ips, ipe, jps, jpe, kps, kpe
+                ips, ipe, jps, jpe, kps, kpe, &
+                its, ite, jts, jte, kts, kte
 
 
       ids0 = grid%ids
@@ -395,6 +411,8 @@
       ime0 = grid%ime * grid%sr_x
       ips0 = (grid%ips - 1) * grid%sr_x + 1
       ipe0 = grid%ipe * grid%sr_x
+      its0 = (grid%its - 1) * grid%sr_x + 1
+      ite0 = (grid%ite - grid%ids + 1) * grid%sr_x + ids0 - 1
 
       jds0 = grid%jds
       jde0 = grid%jde * grid%sr_y
@@ -402,6 +420,8 @@
       jme0 = grid%jme * grid%sr_y
       jps0 = (grid%jps - 1) * grid%sr_y + 1
       jpe0 = grid%jpe * grid%sr_y
+      jts0 = (grid%jts - 1) * grid%sr_y + 1
+      jte0 = (grid%jte - grid%jds + 1) * grid%sr_y + jds0 - 1
 
       kds0 = grid%kds
       kde0 = grid%kde
@@ -409,6 +429,8 @@
       kme0 = grid%kme
       kps0 = grid%kps
       kpe0 = grid%kpe
+      kts0 = grid%kts
+      kte0 = grid%kte
 
       return
 
@@ -436,6 +458,10 @@
       write (OUTPUT_UNIT, *) 'jps = ', this%jps, 'jpe = ', this%jpe
       write (OUTPUT_UNIT, *) 'kps = ', this%kps, 'kpe = ', this%kpe
 
+      write (OUTPUT_UNIT, *) 'its = ', this%its, 'ite = ', this%ite
+      write (OUTPUT_UNIT, *) 'jts = ', this%jts, 'jte = ', this%jte
+      write (OUTPUT_UNIT, *) 'kts = ', this%kts, 'kte = ', this%kte
+
 
       write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
@@ -453,6 +479,10 @@
       write (OUTPUT_UNIT, *) 'ifps = ', this%ifps, 'ifpe = ', this%ifpe
       write (OUTPUT_UNIT, *) 'jfps = ', this%jfps, 'jfpe = ', this%jfpe
       write (OUTPUT_UNIT, *) 'kfps = ', this%kfps, 'kfpe = ', this%kfpe
+
+      write (OUTPUT_UNIT, *) 'ifts = ', this%ifts, 'ifte = ', this%ifte
+      write (OUTPUT_UNIT, *) 'jfts = ', this%jfts, 'jfte = ', this%jfte
+      write (OUTPUT_UNIT, *) 'kfts = ', this%kfts, 'kfte = ', this%kfte
 
       write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)

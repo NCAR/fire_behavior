@@ -493,7 +493,7 @@ real,intent(out),dimension(ims:ime,jms:jme)::&
     uah,                                           & ! atm wind at fire_wind_height, diagnostics
     vah                                              ! atm wind at fire_wind_height, diagnostics
 
-real, dimension(ims:ime, jms:jme), intent(inout)::xlong, xlat ! inout because of extension at bdry
+real, dimension(ims:ime, jms:jme), intent(in)::xlong, xlat ! in because computed in driver_wrf
     
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
     nfuel_cat                                       ! fuel data; can be also set inside (cell based, fire grid)
@@ -544,7 +544,8 @@ real, intent(inout), dimension(ifms:ifme,jfms:jfme):: fmc_g
 
 !  ***** data (constant in time) *****
 
-real, dimension(ifms:ifme, jfms:jfme), intent(inout)::fxlong,fxlat,fz0 ! fire mesh coordinates
+real, dimension(ifms:ifme, jfms:jfme), intent(in)::fxlong,fxlat ! fire mesh coordinates
+real, dimension(ifms:ifme, jfms:jfme), intent(inout)::fz0 ! fire mesh coordinates
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
 
 type(fire_params),intent(inout)::fp
@@ -730,18 +731,6 @@ do ij=1,num_tiles
 !        endif
 
         if(ignition_longlat .eq.0)then
-            ! set ideal fire mesh coordinates - used for ignition only
-            ! do not forget to set unit_fxlong, unit_fxlat outside of parallel loop
-
-            ! DME: Next call added to fixe a bug when
-            ! initializing a nested domain (before, fxlong & fxlat where not
-            ! assigned, they were supposed to be set by a mod in WPS 
-            ! but here we use standard WPS therefore were zero and fire does not ignite)
-            call set_ideal_coord( dxf,dyf, &
-                ifds,ifde,jfds,jfde,  &
-                ifms,ifme,jfms,jfme,  &
-                ifts,ifte,jfts,jfte,  &
-                fxlong,fxlat          )
             call interpolate_z2fire(id,             & 
                 ids,ide,jds,jde,                    &
                 ims,ime,jms,jme,                    &
@@ -766,29 +755,6 @@ do ij=1,num_tiles
          call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlat,'xlat',id)
          call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlong,'xlong',id)
 #endif
-        call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
-            ids,ide,  jds,jde,                    & ! atm grid dimensions
-            ims,ime,  jms,jme,                    &
-            ips,ipe,jps,jpe,                              &
-            its,ite,jts,jte,                              &
-            ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
-            ifms, ifme, jfms, jfme,                       &
-            ifts,ifte,jfts,jfte,                          &
-            ir,jr,                                        & ! atm/fire grid ratio
-            xlat,                                       & ! atm grid arrays in
-            fxlat,0)                                      ! fire grid arrays out
-
-        call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
-            ids,ide,  jds,jde,                    & ! atm grid dimensions
-            ims,ime,  jms,jme,                    &
-            ips,ipe,jps,jpe,                              &
-            its,ite,jts,jte,                              &
-            ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
-            ifms, ifme, jfms, jfme,                       &
-            ifts,ifte,jfts,jfte,                          &
-            ir,jr,                                        & ! atm/fire grid ratio
-            xlong,                                       & ! atm grid arrays in
-            fxlong,0)                                      ! fire grid arrays out
 
         call interpolate_z2fire(id,                       & 
             ids,ide,  jds,jde,                            &
