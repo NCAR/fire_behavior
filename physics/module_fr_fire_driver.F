@@ -26,9 +26,7 @@ use module_fr_fire_atm, only: add_fire_tracer_emissions
 
 USE state_mod, only: domain
 USE namelist_mod, only: namelist_t
-use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
-                                  g,           & ! gravitation acceleration
-                                  pi2            ! 2*pi
+use wrf_atmosphere_mod, only: g ! gravitation acceleration
 
 implicit none
 
