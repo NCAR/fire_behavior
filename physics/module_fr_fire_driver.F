@@ -542,8 +542,7 @@ real, intent(inout), dimension(ifms:ifme,jfms:jfme):: fmc_g
 
 !  ***** data (constant in time) *****
 
-real, dimension(ifms:ifme, jfms:jfme), intent(in)::fxlong,fxlat ! fire mesh coordinates
-real, dimension(ifms:ifme, jfms:jfme), intent(inout)::fz0 ! fire mesh coordinates
+real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
 
 type(fire_params),intent(inout)::fp
