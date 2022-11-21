@@ -7,7 +7,6 @@ project(
 
 # add user defined cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_Fortran_COMPILER mpif90)
 
 # add ESMF targets
 if (NOT TARGET ESMF)
@@ -52,7 +51,11 @@ list(APPEND _driver_files driver/advance_mod.F90
 
 
 #------------------------------------------------------------------------------
+# set(CMAKE_Fortran_COMPILER         "${ESMF_F90COMPILER}")
+# set(CMAKE_Fortran_FLAGS            "${ESMF_F90COMPILEOPTS}")
+# set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 
+set(CMAKE_Fortran_COMPILER mpif90)
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   set(CMAKE_Fortran_FLAGS_OPT "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -fno-inline -no-ip -traceback")
@@ -85,6 +88,18 @@ add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
 
 # install
-install(TARGETS firelib fire_behavior_nuopc DESTINATION lib)
+# install(TARGETS firelib fire_behavior_nuopc DESTINATION lib)
+install(TARGETS firelib DESTINATION lib)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
+install(
+  TARGETS fire_behavior_nuopc 
+  EXPORT ufs_fire_behavior
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  INCLUDES DESTINATION mod)
+
+install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+install(EXPORT ufs_fire_behavior
+  DESTINATION cmake)

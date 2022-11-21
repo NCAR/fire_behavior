@@ -130,9 +130,29 @@ if [ "${VERBOSE}" = true ]; then
 fi
 
 # build the code
-cd ${BUILD_DIR}
-cmake ${FIRE_DIR} ${CMAKE_SETTINGS}
-make -j ${BUILD_JOBS:-4} ${MAKE_SETTINGS}
-make install
+# cd ${BUILD_DIR}
+# cmake ${FIRE_DIR} ${CMAKE_SETTINGS}
+# make -j ${BUILD_JOBS:-4} ${MAKE_SETTINGS}
+# make install
+
+#------------------------------------------------------------------------------
+
+# build and install MyModel
+MODEL="ufs_fire_behavior"
+
+cmake -S${MODEL} -Bbuild_${MODEL} \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+  -DCMAKE_MODULE_PATH="${FIRE_DIR}/cmake"
+cmake --build build_${MODEL} -v
+cmake --install build_${MODEL}
+# patch mymodel.cmake for esmx_driver
+# to be moved to ESMX build system
+echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/ufs_fire_behavior.cmake
+
+# build and install application
+cmake -S${ESMF_ESMXDIR} -Bbuild \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
+cmake --build build -v
+cmake --install build
 
 exit 0
