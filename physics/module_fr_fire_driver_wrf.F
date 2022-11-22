@@ -6,11 +6,20 @@
 module module_fr_fire_driver_wrf
 ! wrf-specific driver
 
-use module_fr_fire_driver
-use module_fr_fire_atm
+use module_fr_fire_driver, only : fire_driver_em
+use module_fr_fire_atm, only : fire_tendency
+use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, print_3d_stats
 use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
-                                  pi2        ! 2*pi
+                                  pi2, &     ! 2*pi
+                                  get_ijk_from_subgrid
+  use state_mod, only: domain
+  use namelist_mod , only : namelist_t
+
 implicit none
+
+  private
+
+  public :: fire_driver_em_init, fire_driver_em_step
 
 contains
 
@@ -22,9 +31,7 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     ! stub to call fire_driver_em with irun=0 and omit last 3 args
 
-    USE wrf_atmosphere_mod, only: get_ijk_from_subgrid
-    USE state_mod, only: domain
-    USE namelist_mod, only : namelist_t
+
     implicit none
 
     TYPE(domain) , TARGET          :: grid   ! data
@@ -86,10 +93,8 @@ subroutine fire_driver_em_step (grid , config_flags               &
 
     ! stub to call fire_driver_em 
 
-    USE wrf_atmosphere_mod, only: get_ijk_from_subgrid
-    USE state_mod, only: domain
-    USE namelist_mod , only : namelist_t
     USE module_fr_fire_util, only : fire_test_steps
+
     implicit none
 
     TYPE(domain) , TARGET          :: grid   ! data
@@ -162,8 +167,6 @@ end subroutine fire_driver_em_step
 
 subroutine calc_unit_fxlat_fxlong (grid, config_flags)
 
-    USE state_mod, only: domain
-    USE namelist_mod , only : namelist_t
     implicit none
 !*** arguments
     TYPE(domain) , TARGET :: grid                   ! state
@@ -198,8 +201,6 @@ end subroutine calc_unit_fxlat_fxlong
 
 subroutine calc_fxlat_fxlong (grid, config_flags)
 
-    USE state_mod, only: domain
-    USE namelist_mod , only : namelist_t
     implicit none
 !*** arguments
     TYPE(domain) , TARGET :: grid                   ! state
@@ -268,8 +269,6 @@ end subroutine calc_fxlat_fxlong
 
 subroutine calc_fz0 (grid, config_flags)
 
-    USE state_mod, only: domain
-    USE namelist_mod , only : namelist_t
     implicit none
 !*** arguments
     TYPE(domain) , TARGET :: grid                   ! state
