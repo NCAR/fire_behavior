@@ -74,7 +74,7 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 
 # configure fire behavior nuopc cap library
-add_library(fire_behavior_nuopc cap_driver.F90)
+add_library(fire_behavior_nuopc nuopc/cap_driver.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
