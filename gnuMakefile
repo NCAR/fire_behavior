@@ -14,11 +14,11 @@ SUBDIRS = physics state io driver
 subdirs: $(SUBDIRS)
      
 $(SUBDIRS):
-	$(MAKE) -C $@
+	$(MAKE) -f gnuMakefile -C $@
 
 clean:
 	@ for dir in $(SUBDIRS); do \
-	  $(MAKE) -C $$dir -f Makefile $@; \
+	  $(MAKE) -C $$dir -f gnuMakefile $@; \
 	done
 
   # Dependencies
