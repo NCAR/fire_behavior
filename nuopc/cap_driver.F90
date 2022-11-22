@@ -1,3 +1,5 @@
+#include "Fire_behavior_NUOPC_Macros.h"
+
 module cap_driver
 
   !-----------------------------------------------------------------------------
@@ -164,6 +166,8 @@ module cap_driver
     type(ESMF_State)        :: importState, exportState
     ! type(ESMF_TimeInterval) :: stabilityTimeStep
     ! type(ESMF_Field)        :: field
+    type(ESMF_DistGrid)     :: fire_distgrid
+    type(ESMF_Grid)         :: fire_grid
     ! type(ESMF_Grid)         :: gridIn, gridOut
     ! type(ESMF_Mesh)         :: meshIn, meshOut
     ! type(ESMF_LocStream)    :: locsIn, locsOut
@@ -175,6 +179,12 @@ module cap_driver
     ! integer                         :: clb(1), cub(1), i
     ! type(ESMF_VM)                   :: vm
 
+    ! working local variables
+    integer                        :: lbnd(2),ubnd(2)
+    real(ESMF_KIND_COORD), pointer :: coordXcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcenter(:,:)
+    integer                        :: i, j
+
     rc = ESMF_SUCCESS
 
     ! query for importState and exportState
@@ -184,6 +194,40 @@ module cap_driver
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! Create distgrid based on the state grid
+    fire_distgrid = ESMF_DistGridCreate( &
+      minIndex=(/grid%ifds,grid%jfds/), maxIndex=(/grid%ifde,grid%jfde/), &
+      rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return
+
+    fire_grid = ESMF_GridCreate(name='FIRE_BEHAVIOR', & 
+      distgrid=fire_distgrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
+!      coordTypeKind=ESMF_TYPEKIND_COORD, & ?
+!      gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), &
+      rc = rc)
+    if(ESMF_STDERRORCHECK(rc)) return
+
+!    ! CENTERS
+
+    ! Add Center Coordinates to Grid
+    call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, &
+      computationalLBound=lbnd, computationalUBound=ubnd, &
+      farrayPtr=coordXcenter, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordYcenter, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    do j = lbnd(2),ubnd(2)
+    do i = lbnd(1),ubnd(1)
+      coordXcenter(i,j) = grid%fxlong(i,j)
+      coordYcenter(i,j) = grid%fxlat(i,j)
+    enddo
+    enddo
+
 
 !     ! create Grid objects for Fields
 !     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/100, 20/), &
