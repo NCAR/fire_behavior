@@ -1,0 +1,6 @@
+
+
+components:
+
+  fire_behavior_nuopc:
+    cmake_config: install/cmake/fire_behavior_nuopc.cmake

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash 
 
 # usage instructions
 usage () {
@@ -44,15 +44,19 @@ find_system () {
     echo "$sysname"
 }
 
+#------------------------------------------------------------------------------
+
 # default settings
 FIRE_DIR=$(cd "$(dirname "$(readlink -f -n "${BASH_SOURCE[0]}" )" )" && pwd -P)
 SYSTEM=""
 MODULE_DIR="${FIRE_DIR}/modules"
 MODULE_FILE=""
-BUILD_DIR="${FIRE_DIR}/build"
+BUILD_DIR="${FIRE_DIR}/ufs_fire_build"
 BUILD_TYPE="release"
 INSTALL_DIR="${FIRE_DIR}/install"
 VERBOSE=false
+
+#------------------------------------------------------------------------------
 
 # required arguments
 if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
@@ -92,6 +96,7 @@ while :; do
 done
 
 set -eu
+#------------------------------------------------------------------------------
 
 # automatically determine system
 if [ -z "${SYSTEM}" ] ; then
@@ -116,12 +121,24 @@ if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
 fi
 module use ${MODULE_DIR}
 module load ${MODULE_FILE}
+module list
 
+#------------------------------------------------------------------------------
+# set ESMF_ESMXDIR using ESMFMKFILE
+if [ ! -f "${ESMFMKFILE}" ]; then
+  echo "ERROR: ESMFMKFILE does not exists."
+  exit 1
+fi
+ESMF_ESMXDIR=`grep "ESMF_ESMXDIR" ${ESMFMKFILE}`
+export ESMF_ESMXDIR=${ESMF_ESMXDIR#*=}
+
+#------------------------------------------------------------------------------
 mkdir -p ${BUILD_DIR}
+mkdir -p ${FIRE_DIR}/build
 
 # cmake settings
 CMAKE_SETTINGS="-DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
-CMAKE_SETTINGS="${CMAKE_SETTINGS} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}"
+#CMAKE_SETTINGS="${CMAKE_SETTINGS} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}"
 
 # make settings
 MAKE_SETTINGS=""
@@ -136,23 +153,32 @@ fi
 # make install
 
 #------------------------------------------------------------------------------
+echo "Using python: $(which python)"
 
 # build and install MyModel
-MODEL="ufs_fire_behavior"
+cmake -S${FIRE_DIR} -B${BUILD_DIR} \
+  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
+  -DCMAKE_MODULE_PATH="${ESMF_ESMXDIR}/Driver/cmake" 
+cmake --build ${BUILD_DIR} -v
+cmake --install ${BUILD_DIR}
 
-cmake -S${MODEL} -Bbuild_${MODEL} \
-  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
-  -DCMAKE_MODULE_PATH="${FIRE_DIR}/cmake"
-cmake --build build_${MODEL} -v
-cmake --install build_${MODEL}
+echo "working on patch..."
 # patch mymodel.cmake for esmx_driver
 # to be moved to ESMX build system
-echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/ufs_fire_behavior.cmake
+echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/fire_behavior_nuopc.cmake
 
 # build and install application
 cmake -S${ESMF_ESMXDIR} -Bbuild \
-  -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}"
-cmake --build build -v
-cmake --install build
+  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
+  -DCMAKE_PREFIX_PATH=${INSTALL_DIR} 
 
-exit 0
+cmake --build ./build -v
+cmake --install ./build
+
+if [[ $? -ne 0 ]]
+then
+    echo "Error"
+    exit 1
+else 
+    ln -sf build/esmx .
+fi
