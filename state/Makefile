@@ -2,7 +2,7 @@
 IO_DIR = ../io
 IO_INCLUDE="-I$(IO_DIR)"
 
-objects = state_mod.o
+objects = state_mod.o proj_lc_mod.o
 
 target: $(objects)
 
@@ -14,4 +14,4 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
-state_mod.o: ../io/namelist_mod.o ../io/geogrid_mod.o
+state_mod.o: ../io/namelist_mod.o ../io/geogrid_mod.o proj_lc_mod.o

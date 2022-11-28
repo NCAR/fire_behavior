@@ -2,6 +2,7 @@
 
     use namelist_mod, only : namelist_t, NUM_FMC
     use geogrid_mod, only : geogrid_t
+    use proj_lc_mod, only : proj_lc_t
 
     implicit none
 
@@ -125,6 +126,7 @@
       real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
     contains
       procedure, public :: Initialization => Init_domain
+      procedure, public :: Init_latlons_fire => Init_latlons_fire
       procedure, public :: Print => Print_domain
     end type domain
 
@@ -320,6 +322,10 @@
           this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
           this%jfpe, this%kfps, this%kfpe, this%ifts, this%ifte, this%jfts, this%jfte, this%kfts, this%kfte)
 
+      if (use_geogrid) then
+        call this%Init_latlons_fire ()
+      end if
+
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%bbb(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -380,6 +386,30 @@
       end if if_geogrid2d
 
     end subroutine Init_domain
+
+    subroutine Init_latlons_fire (this)
+
+      implicit none
+
+      class (domain), intent (in out) :: this
+
+      type (proj_lc_t) :: proj
+
+      real :: lat_test, lon_test
+
+
+      proj = proj_lc_t (cen_lat = 39.68 , cen_lon = -103.58, dx = this%dx, dy = this%dy, &
+          standard_lon = -103.58 , true_lat_1 = 39.68 , true_lat_2 = 39.68 , &
+          nx = this%ide - 1, ny = this%jde - 1)
+
+      call proj%Calc_latlon (i = 1.0, j = 1.0, lat = lat_test, lon = lon_test)
+      print *, 'lat(1, 1) = ', lat_test, 'should be 39.67191'
+      print *, 'lon(1, 1) = ', lon_test, 'should be -103.5905'
+      call proj%Calc_latlon (i = real (this%ide - 1), j = real (this%jde - 1), lat = lat_test, lon = lon_test)
+      print *, 'lat(ide -1 , jde - 1) = ', lat_test, 'should be 39.6881'
+      print *, 'lon(ide -1 , jde - 1) = ', lon_test, 'should be -103.5695'
+
+    end subroutine Init_latlons_fire
 
     subroutine Get_ijk_from_subgrid (  grid ,                &
                            ids0, ide0, jds0, jde0, kds0, kde0,    &
