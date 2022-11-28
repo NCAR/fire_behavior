@@ -1,5 +1,7 @@
   module geogrid_mod
 
+    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
 
     implicit none
@@ -9,15 +11,15 @@
     public :: geogrid_t
 
     type :: geogrid_t
-      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
-      real :: dx, dy, cen_lat, cen_lon
-      integer :: ids = 1, jds = 1, ide, jde, sr_x, sr_y
-        ! Atm vars
-      real, dimension(:, :), allocatable :: xlat, xlong
+      real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong
+      real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, truelat1 = 0.0, truelat2 = 0.0, stand_lon = 0.0
+      integer :: ids = 1, jds = 1, ide, jde = 0, sr_x = 0, sr_y = 0, map_proj = 0
+    contains
+      procedure, public :: Print => Print_geogrid
     end type geogrid_t
 
     interface geogrid_t
-      module procedure geogrid_t_const
+      module procedure Geogrid_t_const
     end interface geogrid_t
 
   contains
@@ -37,7 +39,6 @@
       integer (kind = INT32) :: att_int32
 
 
-        ! State vars
       call Get_netcdf_var (trim (file_name), 'ZSF', var_real32)
       return_value%elevations = var_real32(:, :, 1)
       deallocate (var_real32)
@@ -66,12 +67,23 @@
       call Get_netcdf_att (trim (file_name), 'global', 'DY', att_real32)
       return_value%dy = att_real32
 
-        ! Other vars
       call Get_netcdf_att (trim (file_name), 'global', 'CEN_LAT', att_real32)
       return_value%cen_lat = att_real32
 
       call Get_netcdf_att (trim (file_name), 'global', 'CEN_LON', att_real32)
       return_value%cen_lon = att_real32
+
+      call Get_netcdf_att (trim (file_name), 'global', 'MAP_PROJ', att_int32)
+      return_value%map_proj = att_int32
+
+      call Get_netcdf_att (trim (file_name), 'global', 'TRUELAT1', att_real32)
+      return_value%truelat1 = att_real32
+
+      call Get_netcdf_att (trim (file_name), 'global', 'TRUELAT2', att_real32)
+      return_value%truelat2 = att_real32
+
+      call Get_netcdf_att (trim (file_name), 'global', 'STAND_LON', att_real32)
+      return_value%stand_lon = att_real32
 
       call Get_netcdf_var (trim (file_name), 'XLAT_M', var_real32)
       return_value%xlat = var_real32(:, :, 1)
@@ -87,7 +99,49 @@
       call Get_netcdf_att (trim (file_name), 'global', 'sr_y', att_int32)
       return_value%sr_y = att_int32
 
-    end function geogrid_t_const
+    end function Geogrid_t_const
+
+    subroutine Print_geogrid (this)
+
+      implicit none
+
+      class (geogrid_t), intent (in) :: this
+
+
+      write (OUTPUT_UNIT, *)
+      write (OUTPUT_UNIT, *) 'Contents of geogrid_t object:'
+      if (allocated (this%elevations)) &
+          write (OUTPUT_UNIT, *) 'Shape (elevations) = ', shape (this%elevations)
+      if (allocated (this%dz_dxs)) &
+          write (OUTPUT_UNIT, *) 'Shape (dz_dxs) = ', shape (this%dz_dxs)
+      if (allocated (this%dz_dys)) &
+          write (OUTPUT_UNIT, *) 'Shape (dz_dys) = ', shape (this%dz_dys)
+      if (allocated (this%fuel_cats)) &
+          write (OUTPUT_UNIT, *) 'Shape (fuel_cats) = ', shape (this%fuel_cats)
+      if (allocated (this%xlat)) &
+          write (OUTPUT_UNIT, *) 'Shape (xlat) = ', shape (this%xlat)
+      if (allocated (this%xlong)) &
+          write (OUTPUT_UNIT, *) 'Shape (xlong) = ', shape (this%xlong)
+
+      write (OUTPUT_UNIT, *) 'ids = ', this%ids
+      write (OUTPUT_UNIT, *) 'ide = ', this%ide
+      write (OUTPUT_UNIT, *) 'jds = ', this%jds
+      write (OUTPUT_UNIT, *) 'jde = ', this%jde
+
+      write (OUTPUT_UNIT, *) 'dx = ', this%dx
+      write (OUTPUT_UNIT, *) 'dy = ', this%dy
+      write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
+      write (OUTPUT_UNIT, *) 'sr_y = ', this%sr_y
+
+      write (OUTPUT_UNIT, *) 'map_proj = ', this%map_proj
+      write (OUTPUT_UNIT, *) 'cen_lat = ', this%cen_lat
+      write (OUTPUT_UNIT, *) 'cen_lon = ', this%cen_lon
+      write (OUTPUT_UNIT, *) 'truelat1 = ', this%truelat1
+      write (OUTPUT_UNIT, *) 'truelat2 = ', this%truelat2
+      write (OUTPUT_UNIT, *) 'stand_lon = ', this%stand_lon
+      write (OUTPUT_UNIT, *)
+
+    end subroutine Print_geogrid
 
   end module geogrid_mod
 
