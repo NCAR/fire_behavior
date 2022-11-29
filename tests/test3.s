@@ -7,7 +7,7 @@
 #################################################
 #
 purge_output=1 # 0) No, 1) yes
-plot=1 # 0) No, 1) yes
+plot=0 # 0) No, 1) yes
 #
 #################################################
 #
@@ -172,7 +172,6 @@ then
 else
   echo "FAILED: $n_test_passed PASSED of $n_tests"
   echo ''
-  exit 1
 fi
 
   # plots
