@@ -154,7 +154,7 @@ fi
 
 #------------------------------------------------------------------------------
 # remove link
-[[ -l "${FIRE_DIR}/esmx" ]] && rm ${FIRE_DIR}/esmx
+[[ -L "${FIRE_DIR}/esmx" ]] && rm ${FIRE_DIR}/esmx
 
 echo "Using python: $(which python)"
 
