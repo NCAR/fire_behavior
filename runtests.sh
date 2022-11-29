@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MAIN_DIR="$PWD"
-TEST_DIR='tests'
+TEST_DIR="${MAIN_DIR}/tests"
 TEST1="${TEST_DIR}/test1" 
 TEST2="${TEST_DIR}/test2" 
 TEST3="${TEST_DIR}/test3" 
@@ -29,12 +29,18 @@ do
     echo "------------------------------------------------------------------------------" 
     echo "Running ${mytest}"
     cd ${mytest}
-    [[ -f "PET0.ESMF_LogFile" ]] && rm PET0.ESMF_LogFile
+
+    for oldfile in PET*.ESMF_LogFile 
+    do
+	[[ -f "${oldfile}" ]] && rm ${oldfile}
+    done
+
     ln -sf ${MAIN_DIR}/build/esmx .
-    ln -sf ${MAIN_DIR}/esmxRun.config .
+    ln -sf ${TEST_DIR}/esmxRun.config .
     qcmd -- mpirun -np 2 ./esmx 
     cat PET0.ESMF_LogFile
     cd ${MAIN_DIR}
+
 done    
 
 exit 0

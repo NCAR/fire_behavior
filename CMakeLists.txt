@@ -77,7 +77,7 @@ target_link_libraries(fire_behavior_standalone PUBLIC firelib)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
 # configure fire behavior nuopc cap library
-add_library(fire_behavior_nuopc fire_behavior_nuopc.F90)
+add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
