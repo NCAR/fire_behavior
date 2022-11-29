@@ -333,7 +333,8 @@
       this%ny = this%jfde
 
       if (use_geogrid) then
-        call this%Init_latlons_fire ()
+        call Init_latlons_fire (this, geogrid%cen_lat, geogrid%cen_lon, geogrid%stand_lon, &
+                           geogrid%true_lat_1, geogrid%true_lat_2)
         ! what if it is not geogrid
       end if
 
@@ -398,12 +399,15 @@
 
     end subroutine Init_domain
 
-    subroutine Init_latlons_fire (this)
+    subroutine Init_latlons_fire (this, cen_lat, cen_lon, standard_lon, & 
+                           true_lat_1, true_lat_2)
 
       implicit none
 
       class (domain), intent (in out) :: this
-
+      real, intent(in) :: cen_lat, cen_lon, standard_lon, &
+                          true_lat_1, true_lat_2 
+        ! Local
       type (proj_lc_t) :: proj
       integer :: i, j
 
@@ -413,8 +417,8 @@
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      proj = proj_lc_t (cen_lat = 39.68 , cen_lon = -103.58, dx = this%dxf, dy = this%dyf, &
-          standard_lon = -103.58 , true_lat_1 = 39.68 , true_lat_2 = 39.68 , &
+      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = this%dxf, dy = this%dyf, &
+          standard_lon = standard_lon , true_lat_1 = true_lat_1 , true_lat_2 = true_lat_2 , &
           nx = this%nx, ny = this%ny)
 
       do j = 1, this%ny

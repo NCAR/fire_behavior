@@ -12,7 +12,7 @@
 
     type :: geogrid_t
       real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong
-      real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, truelat1 = 0.0, truelat2 = 0.0, stand_lon = 0.0
+      real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, true_lat_1 = 0.0, true_lat_2 = 0.0, stand_lon = 0.0
       integer :: ids = 1, jds = 1, ide, jde = 0, sr_x = 0, sr_y = 0, map_proj = 0
     contains
       procedure, public :: Print => Print_geogrid
@@ -77,10 +77,10 @@
       return_value%map_proj = att_int32
 
       call Get_netcdf_att (trim (file_name), 'global', 'TRUELAT1', att_real32)
-      return_value%truelat1 = att_real32
+      return_value%true_lat_1 = att_real32
 
       call Get_netcdf_att (trim (file_name), 'global', 'TRUELAT2', att_real32)
-      return_value%truelat2 = att_real32
+      return_value%true_lat_2 = att_real32
 
       call Get_netcdf_att (trim (file_name), 'global', 'STAND_LON', att_real32)
       return_value%stand_lon = att_real32
@@ -136,8 +136,8 @@
       write (OUTPUT_UNIT, *) 'map_proj = ', this%map_proj
       write (OUTPUT_UNIT, *) 'cen_lat = ', this%cen_lat
       write (OUTPUT_UNIT, *) 'cen_lon = ', this%cen_lon
-      write (OUTPUT_UNIT, *) 'truelat1 = ', this%truelat1
-      write (OUTPUT_UNIT, *) 'truelat2 = ', this%truelat2
+      write (OUTPUT_UNIT, *) 'truelat1 = ', this%true_lat_1
+      write (OUTPUT_UNIT, *) 'truelat2 = ', this%true_lat_2
       write (OUTPUT_UNIT, *) 'stand_lon = ', this%stand_lon
       write (OUTPUT_UNIT, *)
 
