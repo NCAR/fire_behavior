@@ -52,6 +52,10 @@
       real, dimension(:, :), allocatable :: fcanhfx ! "heat flux from crown fire" "W/m^2"
       real, dimension(:, :), allocatable :: fcanqfx ! "moisture flux from crown fire" "W/m^2"
       real, dimension(:, :), allocatable :: ros ! "rate of spread" "m/s"
+      real, dimension(:, :), allocatable :: lats   ! "latitude of midpoints of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: lons   ! "longitude of midpoints of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fxlong ! "longitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fxlat ! "latitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
@@ -78,6 +82,8 @@
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
       real :: unit_fxlong, unit_fxlat
       integer :: fire_ignition_longlat
+      integer :: nx ! "number of longitudinal grid points" "1" 
+      integer :: ny ! "number of latitudinal grid points" "1"
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
@@ -211,6 +217,9 @@
       this%jts = config_flags%jds
       this%jte = config_flags%jde
 
+      this%nx = this%ite
+      this%ny = this%jte
+
       this%num_tiles = 1
       allocate (this%i_start(this%num_tiles))
       this%i_start = this%ids 
@@ -264,6 +273,10 @@
       allocate (this%psfc_old(this%ims:this%ime, this%jms:this%jme))
       allocate (this%rh_fire(this%ims:this%ime, this%jms:this%jme))
 
+      allocate (this%lons(this%its:this%ite, this%jts:this%jte))
+      allocate (this%lats(this%its:this%ite, this%jts:this%jte))
+      allocate (this%lons_c(this%its:this%ite, this%jts:this%jte))
+      allocate (this%lats_c(this%its:this%ite, this%jts:this%jte))
       allocate (this%avg_fuel_frac(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnhfx(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnqfx(this%ims:this%ime, this%jms:this%jme))
@@ -308,6 +321,7 @@
           stop
         end if
       else
+        ! we need to initialize nx, ny here
         this%dx = config_flags%dx
         this%dy = config_flags%dy
         this%dt = config_flags%dt
@@ -324,6 +338,12 @@
 
       if (use_geogrid) then
         call this%Init_latlons_fire ()
+
+          print *, 'lat(',10,', ',10,') = ', this%lats(10,10), 'should be', geogrid%xlat(10,10)
+          print *, 'lon(',10,', ',10,') = ', this%lons(10,10), 'should be', geogrid%xlong(10,10)
+          print *, 'lats_c(10, 10:11)', this%lats_c(10,10:11), 'mean', sum(this%lats_c(10,10:11))/2.0
+          print *, 'lons_c(10, 10:11)', this%lons_c(10,10:11), 'mean', sum(this%lons_c(10,10:11))/2.0
+        ! what if it is not geogrid
       end if
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -396,11 +416,37 @@
       type (proj_lc_t) :: proj
 
       real :: lat_test, lon_test
+      integer :: nx, ny, i, j
 
+      nx = this%nx
+      ny = this%ny
 
       proj = proj_lc_t (cen_lat = 39.68 , cen_lon = -103.58, dx = this%dx, dy = this%dy, &
           standard_lon = -103.58 , true_lat_1 = 39.68 , true_lat_2 = 39.68 , &
           nx = this%ide - 1, ny = this%jde - 1)
+
+      do j = 1,ny - 1
+      do i = 1,nx - 1
+        call proj%Calc_latlon (i = real(i), j = real(j), lat = lat_test, lon = lon_test)
+        this%lons(i,j) = lon_test
+        this%lats(i,j) = lat_test
+        call proj%Calc_latlon (i = real(i) - 0.5, j = real(j) - 0.5, lat = lat_test, lon = lon_test)
+        this%lons_c(i,j) = lon_test
+        this%lats_c(i,j) = lat_test
+      enddo
+      enddo
+
+      do j = 1,ny
+        call proj%Calc_latlon (i = real(nx) - 0.5, j = real(j) - 0.5, lat = lat_test, lon = lon_test)
+        this%lons_c(nx,j) = lon_test
+        this%lats_c(nx,j) = lat_test
+      enddo
+
+      do i = 1,nx
+        call proj%Calc_latlon (i = real(i) - 0.5, j = real(ny) - 0.5, lat = lat_test, lon = lon_test)
+        this%lons_c(i,ny) = lon_test
+        this%lats_c(i,ny) = lat_test
+      enddo
 
       call proj%Calc_latlon (i = 1.0, j = 1.0, lat = lat_test, lon = lon_test)
       print *, 'lat(1, 1) = ', lat_test, 'should be 39.67191'
