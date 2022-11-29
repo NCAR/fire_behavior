@@ -7,6 +7,7 @@
 #################################################
 #
 purge_output=1 # 0) No, 1) yes
+plot=1 # 0) No, 1) yes
 #
 #################################################
 #
@@ -173,4 +174,20 @@ else
   echo ''
   exit 1
 fi
+
+  # plots
+if [ $plot -eq 1 ]
+then
+  if [ -f ./latlons.dat -a -f ./latlons_c.dat -a -f ./wrf_latlons_atm.dat ]
+  then
+    ./test3/gn_latlons.s latlons.dat latlons_c.dat wrf_latlons_atm.dat
+  fi
+
+  if [ -f ./wrf_latlons_fire.dat -a -f ./latlons.dat -a -f ./wrf_latlons_atm.dat ]
+  then
+    ./test3/gn_latlons2.s wrf_latlons_fire.dat latlons.dat wrf_latlons_atm.dat
+  fi
+fi
+
+rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat ]
 

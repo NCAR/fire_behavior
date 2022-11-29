@@ -217,9 +217,6 @@
       this%jts = config_flags%jds
       this%jte = config_flags%jde
 
-      this%nx = this%ite
-      this%ny = this%jte
-
       this%num_tiles = 1
       allocate (this%i_start(this%num_tiles))
       this%i_start = this%ids 
@@ -273,10 +270,6 @@
       allocate (this%psfc_old(this%ims:this%ime, this%jms:this%jme))
       allocate (this%rh_fire(this%ims:this%ime, this%jms:this%jme))
 
-      allocate (this%lons(this%its:this%ite, this%jts:this%jte))
-      allocate (this%lats(this%its:this%ite, this%jts:this%jte))
-      allocate (this%lons_c(this%its:this%ite, this%jts:this%jte))
-      allocate (this%lats_c(this%its:this%ite, this%jts:this%jte))
       allocate (this%avg_fuel_frac(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnhfx(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnqfx(this%ims:this%ime, this%jms:this%jme))
@@ -336,13 +329,11 @@
           this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
           this%jfpe, this%kfps, this%kfpe, this%ifts, this%ifte, this%jfts, this%jfte, this%kfts, this%kfte)
 
+      this%nx = this%ifde
+      this%ny = this%jfde
+
       if (use_geogrid) then
         call this%Init_latlons_fire ()
-
-          print *, 'lat(',10,', ',10,') = ', this%lats(10,10), 'should be', geogrid%xlat(10,10)
-          print *, 'lon(',10,', ',10,') = ', this%lons(10,10), 'should be', geogrid%xlong(10,10)
-          print *, 'lats_c(10, 10:11)', this%lats_c(10,10:11), 'mean', sum(this%lats_c(10,10:11))/2.0
-          print *, 'lons_c(10, 10:11)', this%lons_c(10,10:11), 'mean', sum(this%lons_c(10,10:11))/2.0
         ! what if it is not geogrid
       end if
 
@@ -414,46 +405,37 @@
       class (domain), intent (in out) :: this
 
       type (proj_lc_t) :: proj
+      integer :: i, j
 
-      real :: lat_test, lon_test
-      integer :: nx, ny, i, j
 
-      nx = this%nx
-      ny = this%ny
+      allocate (this%lons(this%nx, this%ny))
+      allocate (this%lats(this%nx, this%ny))
+      allocate (this%lons_c(this%nx + 1, this%ny + 1))
+      allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      proj = proj_lc_t (cen_lat = 39.68 , cen_lon = -103.58, dx = this%dx, dy = this%dy, &
+      proj = proj_lc_t (cen_lat = 39.68 , cen_lon = -103.58, dx = this%dxf, dy = this%dyf, &
           standard_lon = -103.58 , true_lat_1 = 39.68 , true_lat_2 = 39.68 , &
-          nx = this%ide - 1, ny = this%jde - 1)
+          nx = this%nx, ny = this%ny)
 
-      do j = 1,ny - 1
-      do i = 1,nx - 1
-        call proj%Calc_latlon (i = real(i), j = real(j), lat = lat_test, lon = lon_test)
-        this%lons(i,j) = lon_test
-        this%lats(i,j) = lat_test
-        call proj%Calc_latlon (i = real(i) - 0.5, j = real(j) - 0.5, lat = lat_test, lon = lon_test)
-        this%lons_c(i,j) = lon_test
-        this%lats_c(i,j) = lat_test
-      enddo
-      enddo
+      do j = 1, this%ny
+        do i = 1, this%nx
+          call proj%Calc_latlon (i = real (i), j = real (j), lat = this%lats(i, j), lon = this%lons(i, j))
+          call proj%Calc_latlon (i = real (i) - 0.5, j = real (j) - 0.5, lat = this%lats_c(i, j), lon = this%lons_c(i, j))
+        end do
+      end do
 
-      do j = 1,ny
-        call proj%Calc_latlon (i = real(nx) - 0.5, j = real(j) - 0.5, lat = lat_test, lon = lon_test)
-        this%lons_c(nx,j) = lon_test
-        this%lats_c(nx,j) = lat_test
-      enddo
+      do j = 1, this%ny
+        call proj%Calc_latlon (i = real (this%nx) + 0.5, j = real (j) - 0.5, lat = this%lats_c(this%nx + 1, j), &
+            lon = this%lons_c(this%nx + 1, j))
+      end do
 
-      do i = 1,nx
-        call proj%Calc_latlon (i = real(i) - 0.5, j = real(ny) - 0.5, lat = lat_test, lon = lon_test)
-        this%lons_c(i,ny) = lon_test
-        this%lats_c(i,ny) = lat_test
-      enddo
+      do i = 1, this%nx
+        call proj%Calc_latlon (i = real (i) - 0.5, j = real (this%ny) + 0.5, lat = this%lats_c(i, this%ny + 1), &
+            lon = this%lons_c(i, this%ny + 1))
+      end do
 
-      call proj%Calc_latlon (i = 1.0, j = 1.0, lat = lat_test, lon = lon_test)
-      print *, 'lat(1, 1) = ', lat_test, 'should be 39.67191'
-      print *, 'lon(1, 1) = ', lon_test, 'should be -103.5905'
-      call proj%Calc_latlon (i = real (this%ide - 1), j = real (this%jde - 1), lat = lat_test, lon = lon_test)
-      print *, 'lat(ide -1 , jde - 1) = ', lat_test, 'should be 39.6881'
-      print *, 'lon(ide -1 , jde - 1) = ', lon_test, 'should be -103.5695'
+      call proj%Calc_latlon (i = real (this%nx) + 0.5, j = real (this%ny) + 0.5, lat = this%lats_c(this%nx + 1, this%ny + 1), &
+          lon = this%lons_c(this%nx + 1, this%ny + 1))
 
     end subroutine Init_latlons_fire
 

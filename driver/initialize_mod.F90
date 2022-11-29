@@ -22,6 +22,7 @@
 
       type (geogrid_t) :: geogrid
       logical, parameter :: DEBUG_LOCAL = .true.
+      integer :: i, j, unit_out, unit_out2
 
 
       if (DEBUG_LOCAL) then
@@ -53,6 +54,36 @@
             ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
             ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe  &
             ,grid%its, grid%ite, grid%kts, grid%kte, grid%jts, grid%jte)
+
+      if (DEBUG_LOCAL .and. config_flags%n_case == 3) then
+          ! print lat/lons
+        open (newunit = unit_out, file = 'latlons_c.dat')
+        open (newunit = unit_out2, file = 'latlons.dat')
+        do j = 1, grid%ny + 1
+          do i = 1, grid%nx + 1
+            write (unit_out, *) grid%lons_c(i, j), grid%lats_c(i, j)
+            if (i /= grid%nx + 1 .and. j /= grid%ny + 1) write (unit_out2, *) grid%lons(i, j), grid%lats(i, j)
+          end do
+        end do
+        close (unit_out)
+        close (unit_out2)
+
+        open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
+        do j = 1, grid%jde - 1
+          do i = 1, grid%ide - 1
+            write (unit_out, *) grid%xlong(i, j), grid%xlat(i, j)
+          end do
+        end do
+        close (unit_out)
+
+        open (newunit = unit_out, file = 'wrf_latlons_fire.dat')
+        do j = 1, grid%jfde
+          do i = 1, grid%ifde
+            write (unit_out, *) grid%fxlong(i, j), grid%fxlat(i, j)
+          end do
+        end do
+        close (unit_out)
+      end if
 
       if (DEBUG_LOCAL) then
         write (OUTPUT_UNIT, *) ''
