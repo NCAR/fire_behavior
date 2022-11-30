@@ -156,7 +156,12 @@ fi
 # remove link
 [[ -L "${FIRE_DIR}/esmx" ]] && rm ${FIRE_DIR}/esmx
 
-echo "Using python: $(which python)"
+echo "Using python: $(which python3)"
+python3 --version
+echo $(python3 -c "import yaml")
+
+echo "-------------------------------------------------------"
+
 
 # build and install MyModel
 cmake -S${FIRE_DIR} -B${BUILD_DIR} \
