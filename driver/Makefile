@@ -17,11 +17,11 @@ fire_behavior.exe: fire_behavior.o \
 	../driver/initialize_mod.o ../driver/advance_mod.o ../state/datetime_mod.o \
 	../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o \
 	../physics/module_fr_fire_atm.o ../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
-	$(FC) -lnetcdf -lnetcdff $^ -o $@
+	$(FC) $^ -o $@ $(NETCDF_LIBS)
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90
-	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(STATE_INCLUDE) $(IO_INCLUDE) $(DRIVER_INCLUDE) -c $*.f90
+	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(STATE_INCLUDE) $(IO_INCLUDE) $(NETCDF_INCLUDE) -c $*.f90
 
 clean:
 	rm -f ./*.o ./*.mod  ./*.f90 ./*.exe
