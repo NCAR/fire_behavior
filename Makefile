@@ -6,9 +6,9 @@ CPP=cpp
 CPPFLAGS=-nostdinc -C -P -w
 
 DIR_FIRE_BEHAVIOR = $(PWD)
-ESMF_INCLUDE = -I$(DIR_FIRE_BEHAVIOR)/vendors/esmf/DEFAULTINSTALLDIR/mod/modO/Linux.gfortran.64.mpiuni.default
+ESMFMKFILE = $(DIR_FIRE_BEHAVIOR)/vendors/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpiuni.default/esmf.mk
 
-export FC FCFLAGS CPP CPPFLAGS ESMF_INCLUDE
+export FC FCFLAGS CPP CPPFLAGS ESMFMKFILE
 
 SUBDIRS = physics state io driver nuopc
      
