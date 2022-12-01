@@ -34,6 +34,13 @@ usage () {
   printf "\n"
 }
 
+# find system name
+find_system () {
+    local sysname=`hostname`
+    sysname="${sysname//[[:digit:]]/}"
+    echo "$sysname"
+}
+
 # -----------------------------------------------
 
 testp1to5 () {
@@ -174,6 +181,33 @@ then
 	exit 1
     fi
 fi
+
+#################################################
+# Handle System Modules
+
+SYSTEM=""
+MODULE_DIR="../modules"
+MODULE_FILE=""
+
+# automatically determine system
+if [ -z "${SYSTEM}" ] ; then
+  SYSTEM=$(find_system)
+fi
+
+# automatically determine module file
+if [ -z "${MODULE_FILE}" ] ; then
+  MODULE_FILE="${SYSTEM}"
+fi
+
+# load environment using modulefile
+if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
+  printf "ERROR: ${MODULE_FILE} does not exist in ${MODULE_DIR}.\n"
+  printf "\n"
+  exit 1
+fi
+module use ${MODULE_DIR}
+module load ${MODULE_FILE}
+module list
 
 #################################################
 # defaults

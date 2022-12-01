@@ -121,6 +121,8 @@ if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
 fi
 module use ${MODULE_DIR}
 module load ${MODULE_FILE}
+#module load conda
+#conda activate npl-2022b
 module list
 
 #------------------------------------------------------------------------------
