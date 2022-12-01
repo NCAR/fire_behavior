@@ -2,5 +2,6 @@ esmf/
 hdf5/
 netcdf-c/
 netcdf-fortran/
-netcdf/
+netcdf-gnu/
+netcdf-intel/
 zlib/

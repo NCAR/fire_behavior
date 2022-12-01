@@ -3,7 +3,7 @@
 ########################################################
 #
 url_esmf="https://github.com/esmf-org/esmf"
-tag_esmf="v8.3.0"
+tag_esmf="v8.4.0"
 
 url_zlib="https://github.com/madler/zlib"
 tag_zlib="v1.2.9"
@@ -17,13 +17,14 @@ tag_netcdf_c="v4.9.0"
 url_netcdf_fortran="https://github.com/Unidata/netcdf-fortran"
 tag_netcdf_fortran="v4.6.0"
 
+vendor=gnu
 static=1
 enable_netcdf4=1
 #
 ########################################################
 #
-step1=1 # Install ESMF lib
-step2=1 # Install NetCDF libs
+step1=0 # Install ESMF lib
+step2=0 # Install NetCDF libs
 #
 ########################################################
 #
@@ -49,7 +50,7 @@ fi
 if [ $step2 -eq 1 ]
 then
 
-  netcdf_install_dir=${PWD}/netcdf
+  netcdf_install_dir=${PWD}/netcdf-${vendor}
   rm -rf $netcdf_install_dir
 
     # zlib

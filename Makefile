@@ -5,10 +5,16 @@ FCFLAGS=-std=f2008 -ffree-form -fbacktrace -fcheck=all -finit-real=nan -fall-int
 CPP=cpp
 CPPFLAGS=-nostdinc -C -P -w
 
+#FC=ifort
+#FCFLAGS_UNFORM= -O2 -stand f08
+#FCFLAGS=$(FCFLAGS_UNFORM) -FR
+#CC=icc
+
 DIR_FIRE_BEHAVIOR = $(PWD)
 ESMFMKFILE = $(DIR_FIRE_BEHAVIOR)/vendors/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpiuni.default/esmf.mk
 
-NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf
+NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf-gnu
+#NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf-intel
 NETCDF_LIBS=-L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lm -lz -ldl -lbz2 -lxml2 -lcurl
 NETCDF_INCLUDE="-I$(NETCDF_DIR)/include"
 
