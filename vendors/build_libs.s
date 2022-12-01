@@ -38,6 +38,8 @@ then
   time gmake -j 8
 
   gmake install
+
+  cd ..
 fi
 
 #
