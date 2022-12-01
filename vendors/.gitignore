@@ -1,0 +1,6 @@
+esmf/
+hdf5/
+netcdf-c/
+netcdf-fortran/
+netcdf/
+zlib/
