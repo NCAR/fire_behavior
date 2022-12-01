@@ -2,7 +2,7 @@
 #
 #################################################
 #
-# Purpose: Check code reproduces results of test cases
+# Purpose: Check code reproduces results of any test case
 #
 #################################################
 
@@ -10,11 +10,37 @@
 #################################################
 # Functions
 
+# usage instructions
+usage () {
+  printf "Usage: $0 --test=[NUMBER] [OPTIONS]...\n"
+  printf "\n"
+  printf "OPTIONS\n"
+  printf "  --esmx\n"
+  printf "      run tests with ESMX instead of standalone executable\n"
+  printf "  --no-purge\n"
+  printf "      turn off purging of test file\n"
+  printf "  -p1=0\n"
+  printf "      turn off check of fire area\n"
+  printf "  -p2=0\n"
+  printf "      turn off check of heat output\n"
+  printf "  -p3=0\n"
+  printf "      turn off check of latent heat output\n"
+  printf "  -p4=0\n"
+  printf "      turn off check of max heat flux\n"
+  printf "  -p5=0\n"
+  printf "      turn off check of max latent heat flux\n"
+  printf "  -p6=0\n"
+  printf "      turn off check of (only in test1)\n"
+  printf "\n"
+}
+
+# -----------------------------------------------
+
 testp1to5 () {
     myvar=$1
     mycol=$2
     
-    echo "Testing with Arg1=${myvar} Arg2=${mycol}"
+    echo "Testing for var=${myvar} col=${mycol}"
 
     n_tests=$(expr $n_tests + 1)
     [[ -f file1.dat ]] && rm file1.dat
@@ -34,6 +60,31 @@ testp1to5 () {
 
 }
 
+# -----------------------------------------------
+
+testp6 () {
+    
+    echo "Testing p6 "
+
+    n_tests=$(expr $n_tests + 1)
+
+    [[ -f file1.dat ]] && rm file1.dat
+    [[ -f file2.dat ]] && rm file2.dat
+
+    head -n 1 ./fort.34 > ./file1.dat # offline
+    head -n 1 ./th_qv_tend.dat > ./file2.dat # online
+
+    test=$(diff ./file1.dat ./file2.dat | wc -l)
+    if [ $test -eq 0 ]
+    then
+	echo "  Test p6 PASSED"
+	n_test_passed=$(expr $n_test_passed + 1)
+    else
+	echo "  Test p6 FAILS"
+    fi
+
+}
+
 #################################################
 # Main Code
 #################################################
@@ -48,6 +99,7 @@ do
     key="${1}"
 
     case "${key}" in
+	--help|-h) usage; exit 0 ;;
 
 	# -----------------------------------------------
 	# Read test number
@@ -56,11 +108,6 @@ do
 	    echo "TestAny: running test ${thistest}"
 	    shift ## shift past key and value
 	    ;;
-	-t|--test)
-	    thistest="${2}"
-	    echo "TestAny: running test ${thistest}"
-	    shift 2 ## shift past key and value
-	    ;;
 
 	# Optional Arguments:
 
@@ -68,7 +115,14 @@ do
 	# Test using esmx (default is 0, i.e. use standalone)
 	--esmx)
 	    useesmx=1
-	    echo "Using esmx ${useesmx}"
+	    echo "Using esmx"
+	    shift ## shift past key and value
+	    ;;
+
+	# -----------------------------------------------
+	--no-purge)
+	    purge_output=0
+	    echo "Purge test files is off"
 	    shift ## shift past key and value
 	    ;;
 
@@ -100,11 +154,8 @@ do
 	    shift ## shift past key and value
 	    ;;
 	# -----------------------------------------------
-	-purge=*)
-	    purge_output="${key#*=}"
-	    echo "Purge test output files: ${purge_output}"
-	    shift ## shift past key and value
-	    ;;
+
+	-?*) printf "ERROR: Unknown option $1\n"; usage; exit 1 ;;
 
 	*)
     esac
@@ -134,34 +185,35 @@ testp2=${testp2:=1} # Check heat output
 testp3=${testp3:=1} # Check latent heat output
 testp4=${testp4:=1} # Check Max heat flux
 testp5=${testp5:=1} # Check Max latent heat flux
+testp6=${testp6:=1} # Check tendency t,qv first time step, test1 only
 
 #################################################
 
 
-file_wrf=${thistest}/rsl.out.0000
-file_exe=../install/bin/fire_behavior_standalone
+file_wrf=rsl.out.0000
 file_output=${thistest}_output.txt
 
-# clean up old links/files
-[[ -L "wrf_input.dat" ]] && rm wrf_input.dat
-[[ -L "namelist.input" ]] && rm namelist.input
-[[ -f "${file_output}" ]] && rm -f $file_output
+TEST_DIR="$PWD"
+cd ${thistest}
 
-# link files for test
-ln -sf ${thistest}/wrf_input.dat .
-ln -sf ${thistest}/namelist.input .
+# clean up and link files for this test
+[[ -f "${file_output}" ]] && rm -f ${file_output}
 
 #################################################
 # Run standalone executable
 
 if [[ ${useesmx} -eq 0 ]]
 then
+    file_exe=../../install/bin/fire_behavior_standalone
+    [[ -L "fire_behavior_standalone" ]] && rm fire_behavior_standalone
+    
     if [[ -f ${file_exe} ]]
     then
 	echo "Running standalone code"
-	$file_exe > ./$file_output
+	ln -sf ${file_exe} ./fire_behavior_standalone
+	./fire_behavior_standalone > ${file_output}
     else
-	echo 'Please compile the code first'
+	echo 'Please compile ${file_exe}'
 	exit 1
     fi
 
@@ -171,12 +223,31 @@ then
 elif  [[ ${useesmx} -eq 1 ]]
 then
 
-    if [[ -L esmx ]]
+    # clean old esmx log files
+    for oldfile in PET*.ESMF_LogFile 
+    do
+	[[ -f "${oldfile}" ]] && rm ${oldfile}
+    done
+
+    # clean old links
+    [[ -L "esmx" ]] && rm esmx
+    [[ -L "esmxRun.config" ]] && rm esmxRun.config
+
+    # check executable is present
+    if [[ ! -f "../../build/esmx" ]] 
+    then
+	echo "Executable build/esmx is not present. Is it compiled?"
+	exit 1
+    fi 
+    ln -sf ../../build/esmx .
+    ln -sf ${TEST_DIR}/esmxRun.config .
+
+    if [[ -L esmx && -L esmxRun.config ]]
     then
 	echo "Running ESMX code"
-	qcmd -- mpirun -np 1 ./esmx 
+	qcmd -- mpirun -np 1 ./esmx > ${file_output}
     else
-	echo "esmx is not linked."
+	echo "esmx or esmxRun.config are not linked."
 	exit 1
     fi
 fi
@@ -196,22 +267,31 @@ echo "Results for ${thistest}:"
 [[ ${testp3} -eq 1 ]] && var="Latent heat output"   && col=7 && testp1to5 "${var}" "${col}" 
 [[ ${testp4} -eq 1 ]] && var="Max heat flux"        && col=7 && testp1to5 "${var}" "${col}"	      
 [[ ${testp5} -eq 1 ]] && var="Max latent heat flux" && col=8 && testp1to5 "${var}" "${col}"
-
-#[[ ${thistest} == test1  && ${testp6} -eq 1 ]] && 
-
+[[ ${thistest} == test1  && ${testp6} -eq 1 ]] && testp6 
 
 #################################################
 # Purge
 
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./namelist.input
-# don't purge the executable here
-# if [[ $purge_output -eq 1 ]]
-# then
-#   rm -rf ./$file_output
-# fi
+if [[ $purge_output -eq 1 ]]
+then
+
+    # remove files
+    for myfile in ${file_output} fort.34 file1.dat file2.dat namelist.fire.output
+    do
+	[[ -f ${myfile} ]] && rm ${myfile}
+    done
+    # remove links
+    for mylink in fire_behavior_standalone esmxRun.config esmx
+    do
+	[[ -L ${mylink} ]] && rm ${mylink}
+    done
+
+fi
+
+cd ${TEST_DIR}
 
 #################################################
-# Print summary of Test 2
+# Print summary of Test
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
@@ -221,4 +301,5 @@ else
   echo ''
   exit 1
 fi
+
 
