@@ -22,7 +22,8 @@ endif (NOT TARGET ESMF)
 # Add source files
 
 # State
-list(APPEND _state_files state/state_mod.F90)
+list(APPEND _state_files state/state_mod.F90
+                         state/proj_lc_mod.F90)
 
 # IO
 list(APPEND _io_files io/namelist_mod.F90
