@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18)
 
 project(
   ufs_fire_behavior 
@@ -7,7 +7,6 @@ project(
 
 # add user defined cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
-set(CMAKE_Fortran_COMPILER mpif90)
 
 # add ESMF targets
 if (NOT TARGET ESMF)
@@ -44,14 +43,12 @@ list(APPEND _wrffire_physics physics/module_fr_fire_atm.F
 list(APPEND _driver_files driver/advance_mod.F90
                           driver/initialize_mod.F90)
 
-# Tests 
-# list(APPEND _test_files tests/wrf_fire_test4_mod.F90
-# 			tests/wrf_fire_test3_mod.F90
-#                         tests/wrf_fire_test2_mod.F90
-# 			tests/wrf_fire_test1_mod.F90)
-
-
 #------------------------------------------------------------------------------
+
+set(CMAKE_Fortran_COMPILER mpif90)
+# set(CMAKE_Fortran_COMPILER         "${ESMF_F90COMPILER}")
+# set(CMAKE_Fortran_FLAGS            "${ESMF_F90COMPILEOPTS}")
+set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   set(CMAKE_Fortran_FLAGS_OPT "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
@@ -73,18 +70,24 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 
-# configure fire behavior nuopc cap library
-add_library(fire_behavior_nuopc nuopc/cap_driver.F90)
-add_dependencies(fire_behavior_nuopc firelib)
-target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
-target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
-
 # configure fire behavior executable
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
 add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
-
-# install
-install(TARGETS firelib fire_behavior_nuopc DESTINATION lib)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
+# configure fire behavior nuopc cap library
+add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
+add_dependencies(fire_behavior_nuopc firelib)
+target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
+target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
+
+# install
+install(TARGETS firelib fire_behavior_nuopc 
+        EXPORT fire_behavior_nuopc 
+	LIBRARY DESTINATION lib
+	ARCHIVE DESTINATION lib
+	INCLUDES DESTINATION mod)
+
+install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(EXPORT fire_behavior_nuopc DESTINATION cmake)

@@ -14,15 +14,15 @@ This module loads the environment for cheyenne.
 ]])
 
 -- load modules
+unload("netcdf")
 load("ncarenv/1.3")
 load("intel/19.1.1")
 load("ncarcompilers/0.5.0")
 load("mpt/2.25")
-load("python/3.7.9")
 prepend_path("MODULEPATH","/glade/p/cesmdata/cseg/PROGS/modulefiles/esmfpkgs/intel/19.1.1/")
 load("esmf-8.4.0b14-ncdfio-mpt-g")
 load("netcdf-mpi/4.8.1")
 load("pnetcdf/1.12.2")
 load("pio/2.5.8")
 load("cmake/3.18.2")
-
+--load("python/3.7.9")
