@@ -185,6 +185,8 @@ module fire_behavior_nuopc
     integer                        :: lbnd(2),ubnd(2)
     real(ESMF_KIND_COORD), pointer :: coordXcenter(:,:)
     real(ESMF_KIND_COORD), pointer :: coordYcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordXcorner(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
     integer                        :: i, j
 
     rc = ESMF_SUCCESS
@@ -199,7 +201,7 @@ module fire_behavior_nuopc
 
     ! Create distgrid based on the state grid
     fire_distgrid = ESMF_DistGridCreate( &
-      minIndex=(/grid%ifds,grid%jfds/), maxIndex=(/grid%ifde,grid%jfde/), &
+      minIndex=(/1,1/), maxIndex=(/grid%nx,grid%ny/), &
       rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return
 
@@ -210,25 +212,48 @@ module fire_behavior_nuopc
       rc = rc)
     if(ESMF_STDERRORCHECK(rc)) return
 
-!    ! CENTERS
+    if (allocated(grid%lats) .and. allocated (grid%lons)) then
 
-    ! Add Center Coordinates to Grid
-    call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
-    if(ESMF_STDERRORCHECK(rc)) return
-    call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
-      staggerloc=ESMF_STAGGERLOC_CENTER, &
-      computationalLBound=lbnd, computationalUBound=ubnd, &
-      farrayPtr=coordXcenter, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-    call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
-      staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordYcenter, rc=rc)
-    if (ESMF_STDERRORCHECK(rc)) return
-    do j = lbnd(2),ubnd(2)
-    do i = lbnd(1),ubnd(1)
-      coordXcenter(i,j) = grid%fxlong(i,j)
-      coordYcenter(i,j) = grid%fxlat(i,j)
-    enddo
-    enddo
+      ! CENTERS
+
+      ! Add Center Coordinates to Grid
+      call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
+      if(ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CENTER, &
+        computationalLBound=lbnd, computationalUBound=ubnd, &
+        farrayPtr=coordXcenter, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordYcenter, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+      do j = lbnd(2),ubnd(2)
+      do i = lbnd(1),ubnd(1)
+        coordXcenter(i,j) = grid%lons(i,j)
+        coordYcenter(i,j) = grid%lats(i,j)
+      enddo
+      enddo
+
+      ! CORNERS
+
+      ! Add Corner Coordinates to Grid
+      call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
+      if(ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CORNER, &
+        computationalLBound=lbnd, computationalUBound=ubnd, &
+        farrayPtr=coordXcorner, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+      call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
+        staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=coordYcorner, rc=rc)
+      if (ESMF_STDERRORCHECK(rc)) return
+      do j = lbnd(2),ubnd(2)
+      do i = lbnd(1),ubnd(1)
+        coordXcorner(i,j) = grid%lons_c(i,j)
+        coordYcorner(i,j) = grid%lats_c(i,j)
+      enddo
+      enddo
+    end if
 
 
 !     ! create Grid objects for Fields
