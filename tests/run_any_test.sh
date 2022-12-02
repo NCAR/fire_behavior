@@ -34,6 +34,8 @@ usage () {
   printf "\n"
 }
 
+# -----------------------------------------------
+
 # find system name
 find_system () {
     local sysname=`hostname`
@@ -99,7 +101,7 @@ testp6 () {
 # -----------------------------------------------
 # Read command line arguments
 
-((!$#)) && echo 'No arguments supplied!' && exit 1
+((!$#)) && echo 'No arguments supplied!' && usage && exit 1
 
 while [ $# -gt 0 ] 
 do
@@ -168,6 +170,9 @@ do
     esac
 done
 
+# -----------------------------------------------
+# Identify test to run
+
 thistest="${thistest:?Invalid test argument. Provide arg for test: -t=test1 or -t=1}"
 
 if [[ ${thistest} != test* ]]
@@ -207,7 +212,7 @@ if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
 fi
 module use ${MODULE_DIR}
 module load ${MODULE_FILE}
-module list
+echo "$(module list)"
 
 #################################################
 # defaults
@@ -221,8 +226,11 @@ testp4=${testp4:=1} # Check Max heat flux
 testp5=${testp5:=1} # Check Max latent heat flux
 testp6=${testp6:=1} # Check tendency t,qv first time step, test1 only
 
-#################################################
+esmx_exe="../../build/esmx"
+standalone_exe="../../install/bin/fire_behavior_standalone"
 
+#################################################
+# Tasks for standalone and esmx
 
 file_wrf=rsl.out.0000
 file_output=${thistest}_output.txt
@@ -238,16 +246,19 @@ cd ${thistest}
 
 if [[ ${useesmx} -eq 0 ]]
 then
-    file_exe=../../install/bin/fire_behavior_standalone
+    # -----------------------------------------------
+    # clean old links
     [[ -L "fire_behavior_standalone" ]] && rm fire_behavior_standalone
     
-    if [[ -f ${file_exe} ]]
+    # -----------------------------------------------
+    # check executable is present, link it, run it
+    if [[ -f ${standalone_exe} ]]
     then
 	echo "Running standalone code"
-	ln -sf ${file_exe} ./fire_behavior_standalone
+	ln -sf ${standalone_exe} ./fire_behavior_standalone
 	./fire_behavior_standalone > ${file_output}
     else
-	echo 'Please compile ${file_exe}'
+	echo 'Please compile ${standalone_exe}'
 	exit 1
     fi
 
@@ -257,29 +268,51 @@ then
 elif  [[ ${useesmx} -eq 1 ]]
 then
 
+    # -----------------------------------------------
+    # Check for PBS_ACCOUNT
+    if [[ $(env | grep PBS_ACCOUNT=) != PBS_ACCOUNT* ]] 
+    then
+	echo "Set a PBS account in your shell environment: export PBS_ACCOUNT=XYZ000K"
+	exit 1
+    # else
+    # 	echo "Using $(env | grep PBS_ACCOUNT=)"
+    fi
+
+    # -----------------------------------------------
     # clean old esmx log files
     for oldfile in PET*.ESMF_LogFile 
     do
 	[[ -f "${oldfile}" ]] && rm ${oldfile}
     done
 
+    # -----------------------------------------------
     # clean old links
     [[ -L "esmx" ]] && rm esmx
     [[ -L "esmxRun.config" ]] && rm esmxRun.config
 
-    # check executable is present
-    if [[ ! -f "../../build/esmx" ]] 
+    # -----------------------------------------------
+    # check executable is present & link it
+    if [[ ! -f "${esmx_exe}" ]] 
     then
 	echo "Executable build/esmx is not present. Is it compiled?"
 	exit 1
     fi 
-    ln -sf ../../build/esmx .
+    ln -sf ${esmx_exe} .
     ln -sf ${TEST_DIR}/esmxRun.config .
 
+    # -----------------------------------------------
+    # Submit job with qcmd
     if [[ -L esmx && -L esmxRun.config ]]
     then
 	echo "Running ESMX code"
-	qcmd -- mpirun -np 1 ./esmx > ${file_output}
+
+	cmd="./esmx > ${file_output}"
+	qcmd -- mpirun -np 1 ${cmd}
+	if [[ $? -ne 0 ]]
+	then
+	    echo "error running test with qcmd"
+	    exit 1
+	fi
     else
 	echo "esmx or esmxRun.config are not linked."
 	exit 1
@@ -315,10 +348,10 @@ then
 	[[ -f ${myfile} ]] && rm ${myfile}
     done
     # remove links
-    for mylink in fire_behavior_standalone esmxRun.config esmx
-    do
-	[[ -L ${mylink} ]] && rm ${mylink}
-    done
+    # for mylink in fire_behavior_standalone esmxRun.config esmx
+    # do
+    # 	[[ -L ${mylink} ]] && rm ${mylink}
+    # done
 
 fi
 
@@ -326,6 +359,7 @@ cd ${TEST_DIR}
 
 #################################################
 # Print summary of Test
+
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
