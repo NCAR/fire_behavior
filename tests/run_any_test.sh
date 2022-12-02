@@ -191,8 +191,8 @@ fi
 # Handle System Modules
 
 SYSTEM=""
-MODULE_DIR="../modules"
-MODULE_FILE=""
+ENV_DIR="../env"
+ENV_FILE=""
 
 # automatically determine system
 if [ -z "${SYSTEM}" ] ; then
@@ -200,19 +200,21 @@ if [ -z "${SYSTEM}" ] ; then
 fi
 
 # automatically determine module file
-if [ -z "${MODULE_FILE}" ] ; then
-  MODULE_FILE="${SYSTEM}"
+if [ -z "${ENV_FILE}" ] ; then
+    if [ "${SYSTEM}" == "cheyenne" ] ; then
+	ENV_FILE="${SYSTEM}/19.1.1"
+    else
+	ENV_FILE="unknown"
+    fi
 fi
 
-# load environment using modulefile
-if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
-  printf "ERROR: ${MODULE_FILE} does not exist in ${MODULE_DIR}.\n"
+# load environment 
+if [ ! -f "${ENV_DIR}/${ENV_FILE}" ]; then
+  printf "ERROR: ${ENV_FILE} does not exist in ${ENV_DIR}.\n"
   printf "\n"
   exit 1
 fi
-module use ${MODULE_DIR}
-module load ${MODULE_FILE}
-echo "$(module list)"
+source ${ENV_DIR}/${ENV_FILE}
 
 #################################################
 # defaults

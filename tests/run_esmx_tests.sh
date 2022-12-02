@@ -10,18 +10,18 @@ TEST3="test3"
 echo "Test dir: ${TEST_DIR}"
 echo "Main dir: ${MAIN_DIR}"
 
-module use ${MAIN_DIR}/modules
-module load cheyenne
-#module list
+# module use ${MAIN_DIR}/modules
+# module load cheyenne
+# #module list
 
-#------------------------------------------------------------------------------
-# set ESMF_ESMXDIR using ESMFMKFILE
-if [ ! -f "${ESMFMKFILE}" ]; then
-  echo "ERROR: ESMFMKFILE does not exists."
-  exit 1
-fi
-ESMF_ESMXDIR=`grep "ESMF_ESMXDIR" ${ESMFMKFILE}`
-export ESMF_ESMXDIR=${ESMF_ESMXDIR#*=}
+# #------------------------------------------------------------------------------
+# # set ESMF_ESMXDIR using ESMFMKFILE
+# if [ ! -f "${ESMFMKFILE}" ]; then
+#   echo "ERROR: ESMFMKFILE does not exists."
+#   exit 1
+# fi
+# ESMF_ESMXDIR=`grep "ESMF_ESMXDIR" ${ESMFMKFILE}`
+# export ESMF_ESMXDIR=${ESMF_ESMXDIR#*=}
 #------------------------------------------------------------------------------
 
 echo "Starting tests..."
@@ -31,8 +31,7 @@ do
     echo "------------------------------------------------------------------------------" 
     echo "Running ${mytest}"
     
-    # qcmd -- mpirun -np 1 ./esmx 
-    ./testany.sh -t=${mytest} --esmx
+    ./run_any_test.sh -t=${mytest} --esmx
     # cat ${mytest}/PET0.ESMF_LogFile
     # what needs to be checked here?
 
