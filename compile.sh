@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 # usage instructions
 usage () {
@@ -7,10 +7,10 @@ usage () {
   printf "OPTIONS\n"
   printf "  --system=SYSTEM\n"
   printf "      name of machine (e.g. 'cheyenne')\n"
-  printf "  --module-dir=MODULE_DIR\n"
-  printf "      path to modulefiles\n"
-  printf "  --module-file=MODULE_FILE\n"
-  printf "      module file\n"
+  printf "  --env-dir=ENV_DIR\n"
+  printf "      path to environment files\n"
+  printf "  --env-file=ENV_FILE\n"
+  printf "      environment file\n"
   printf "  --build-dir=BUILD_DIR\n"
   printf "      build directory\n"
   printf "  --build-type=BUILD_TYPE\n"
@@ -28,8 +28,8 @@ settings () {
   printf "Settings:\n"
   printf "\n"
   printf "  SYSTEM=${SYSTEM}\n"
-  printf "  MODULE_DIR=${MODULE_DIR}\n"
-  printf "  MODULE_FILE=${MODULE_FILE}\n"
+  printf "  ENV_DIR=${ENV_DIR}\n"
+  printf "  ENV_FILE=${ENV_FILE}\n"
   printf "  BUILD_DIR=${BUILD_DIR}\n"
   printf "  BUILD_TYPE=${BUILD_TYPE}\n"
   printf "  INSTALL_DIR=${INSTALL_DIR}\n"
@@ -49,8 +49,8 @@ find_system () {
 # default settings
 FIRE_DIR=$(cd "$(dirname "$(readlink -f -n "${BASH_SOURCE[0]}" )" )" && pwd -P)
 SYSTEM=""
-MODULE_DIR="${FIRE_DIR}/modules"
-MODULE_FILE=""
+ENV_DIR="${FIRE_DIR}/env"
+ENV_FILE=""
 BUILD_DIR="${FIRE_DIR}/ufs_fire_build"
 BUILD_TYPE="release"
 INSTALL_DIR="${FIRE_DIR}/install"
@@ -71,12 +71,12 @@ while :; do
     --system=?*) SYSTEM=${1#*=} ;;
     --system) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --system=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --module-dir=?*) MODULE_DIR=${1#*=} ;;
-    --module-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --module-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --module-file=?*) MODULE_FILE=${1#*=} ;;
-    --module-file) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --module-file=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --env-dir=?*) ENV_DIR=${1#*=} ;;
+    --env-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --env-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --env-file=?*) ENV_FILE=${1#*=} ;;
+    --env-file) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --env-file=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --build-dir=?*) BUILD_DIR=${1#*=} ;;
     --build-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --build-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
@@ -95,7 +95,7 @@ while :; do
   shift
 done
 
-set -eu
+set -e
 #------------------------------------------------------------------------------
 
 # automatically determine system
@@ -103,9 +103,13 @@ if [ -z "${SYSTEM}" ] ; then
   SYSTEM=$(find_system)
 fi
 
-# automatically determine module file
-if [ -z "${MODULE_FILE}" ] ; then
-  MODULE_FILE="${SYSTEM}"
+# automatically determine environment file
+if [ -z "${ENV_FILE}" ] ; then
+  if [ "${SYSTEM}" == "cheyenne" ] ; then
+    ENV_FILE="${SYSTEM}/19.1.1"
+  else
+    ENV_FILE="unknown"
+  fi
 fi
 
 # print settings
@@ -113,17 +117,15 @@ if [ "${VERBOSE}" = true ] ; then
   settings
 fi
 
-# load environment using modulefile
-if [ ! -d "${MODULE_DIR}/${MODULE_FILE}" ]; then
-  printf "ERROR: ${MODULE_FILE} does not exist in ${MODULE_DIR}.\n"
+# load environment
+if [ ! -f "${ENV_DIR}/${ENV_FILE}" ]; then
+  printf "ERROR: ${ENV_FILE} does not exist in ${ENV_DIR}.\n"
   printf "\n"
   exit 1
 fi
-module use ${MODULE_DIR}
-module load ${MODULE_FILE}
-#module load conda
-#conda activate npl-2022b
-module list
+source ${ENV_DIR}/${ENV_FILE}
+
+set -u
 
 #------------------------------------------------------------------------------
 # set ESMF_ESMXDIR using ESMFMKFILE
