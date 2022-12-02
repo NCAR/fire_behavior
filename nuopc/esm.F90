@@ -21,7 +21,7 @@ module ESM
 
 !  use ATM, only: atmSS => SetServices
 !  use OCN, only: ocnSS => SetServices
-  use cap_driver, only: modelSS => SetServices
+  use fire_behavior_nuopc, only: modelSS => SetServices
 
   use NUOPC_Connector, only: cplSS => SetServices
 
