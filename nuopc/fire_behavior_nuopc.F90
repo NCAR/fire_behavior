@@ -101,28 +101,68 @@ module fire_behavior_nuopc
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
     ! will result in a model component that does not advertise any importable
     ! Fields. Use this if you want to drive the model independently.
-#define WITHIMPORTFIELDS_disable
+#define WITHIMPORTFIELDS
 #ifdef WITHIMPORTFIELDS
 
-    ! importable field: air_pressure_at_sea_level
+    ! importable field: inst_zonal_wind_levels
     call NUOPC_Advertise(importState, &
-      StandardName="air_pressure_at_sea_level", name="pmsl", rc=rc)
+      StandardName="inst_zonal_wind_levels", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: surface_net_downward_shortwave_flux
+    ! importable field: inst_merid_wind_levels
     call NUOPC_Advertise(importState, &
-      StandardName="surface_net_downward_shortwave_flux", name="rsns", rc=rc)
+      StandardName="inst_merid_wind_levels", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: precipitation_flux
+    ! importable field: inst_geop_levels
     call NUOPC_Advertise(importState, &
-      StandardName="precipitation_flux", name="precip", rc=rc)
+      StandardName="inst_geop_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_geop_interface
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_geop_interface", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_pres_interface
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_pres_interface", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_pres_levels
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_pres_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_temp_levels
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_temp_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: sphum
+    call NUOPC_Advertise(importState, &
+      StandardName="sphum", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
