@@ -2,6 +2,21 @@
  n_case = 3
 /
 
+ &time
+ start_year = 0
+ start_month = 0
+ start_day = 0
+ start_hour = 0
+ start_minute = 0
+ start_second = 0
+ end_year = 0
+ end_month = 0
+ end_day = 0
+ end_hour = 0
+ end_minute = 0
+ end_second = 0
+/
+
  &control
  ide = 20
  jde = 20

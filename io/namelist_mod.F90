@@ -9,6 +9,8 @@
     integer, parameter :: NUM_FMC = 5
 
     type :: namelist_fire_t
+      integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
+          end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1
       real :: dx = 200.0, dy = 200.0, dt = 2.0
       integer ::  n_steps = 1
       logical :: read_wrf_input = .false.
@@ -155,6 +157,9 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
 
+      integer :: start_year = 0, start_month = 0, start_day = 0, start_hour = 0, start_minute = 0, start_second = 0, &
+          end_year = 0, end_month = 0, end_day = 0, end_hour = 0, end_minute = 0, end_second = 0
+
       real :: dx = 200.0, dy = 200.0, dt = 2.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
       integer ::  n_steps = 1
@@ -247,6 +252,9 @@
 
       namelist /test/ n_case
 
+      namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          end_year, end_month, end_day, end_hour, end_minute, end_second
+
       namelist /control/ restart, cen_lat, cen_lon, dx, dy, dt, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
           ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
 
@@ -293,12 +301,26 @@
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
 
       read (unit_nml, nml = test)
+      read (unit_nml, nml = time)
       read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
 
       this%dx = dx
       this%dy = dy
       this%dt = dt
+
+      this%start_year = start_year
+      this%start_month = start_month
+      this%start_day = start_day
+      this%start_hour = start_hour
+      this%start_minute = start_minute
+      this%start_second = start_second
+      this%end_year = end_year
+      this%end_month = end_month
+      this%end_day = end_day
+      this%end_hour = end_hour
+      this%end_minute = end_minute
+      this%end_second = end_second
 
       this%n_steps = n_steps
       this%read_wrf_input = read_wrf_input
