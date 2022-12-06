@@ -3,6 +3,7 @@
     use namelist_mod, only : namelist_t, NUM_FMC
     use geogrid_mod, only : geogrid_t
     use proj_lc_mod, only : proj_lc_t
+    use datetime_mod, only : datetime_t
 
     implicit none
 
@@ -18,6 +19,7 @@
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
+      type (datetime_t) :: datetime_start, datetime_end, datetime_now
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
@@ -227,6 +229,13 @@
       allocate (this%j_end(this%num_tiles))
       this%j_end = this%jde
 
+        ! Datetimes
+      this%datetime_start = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+      this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
+          config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
+      this%datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))

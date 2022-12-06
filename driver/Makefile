@@ -1,4 +1,7 @@
 
+DRIVER_DIR = ../driver
+DRIVER_INCLUDE="-I$(DRIVER_DIR)"
+
 PHYSICS_DIR = ../physics
 PHYSICS_INCLUDE="-I$(PHYSICS_DIR)"
 
@@ -14,20 +17,20 @@ target: fire_behavior.exe
 
 fire_behavior.exe: fire_behavior.o \
 	../io/geogrid_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o ../state/proj_lc_mod.o \
-	../driver/initialize_mod.o ../driver/advance_mod.o \
+	../driver/initialize_mod.o ../driver/advance_mod.o ../state/datetime_mod.o \
 	../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver.o ../physics/module_fr_fire_driver_wrf.o ../physics/module_fr_fire_util.o \
 	../physics/module_fr_fire_atm.o ../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
 	$(FC) -lnetcdf -lnetcdff $^ -o $@
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90
-	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(STATE_INCLUDE) $(IO_INCLUDE) -c $*.f90
+	$(FC) $(FCFLAGS) $(PHYSICS_INCLUDE) $(STATE_INCLUDE) $(IO_INCLUDE) $(DRIVER_INCLUDE) -c $*.f90
 
 clean:
 	rm -f ./*.o ./*.mod  ./*.f90 ./*.exe
 
   # Dependencies
-fire_behavior.o: ../physics/wrf_atmosphere_mod.o ../physics/module_fr_fire_driver_wrf.o ../driver/initialize_mod.o ../driver/advance_mod.o
+fire_behavior.o: ../state/state_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o
 
 initialize_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../physics/module_fr_fire_driver_wrf.o
 
