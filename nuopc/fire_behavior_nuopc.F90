@@ -101,7 +101,7 @@ module fire_behavior_nuopc
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
     ! will result in a model component that does not advertise any importable
     ! Fields. Use this if you want to drive the model independently.
-#define WITHIMPORTFIELDS
+#define WITHIMPORTFIELDS_disable
 #ifdef WITHIMPORTFIELDS
 
     ! importable field: inst_zonal_wind_levels
