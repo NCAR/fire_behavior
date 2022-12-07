@@ -11,9 +11,11 @@ CPPFLAGS=-nostdinc -C -P -w
 #CC=icc
 
 DIR_FIRE_BEHAVIOR = $(PWD)
-ESMFMKFILE = $(DIR_FIRE_BEHAVIOR)/vendors/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpiuni.default/esmf.mk
+#ESMFMKFILE = $(DIR_FIRE_BEHAVIOR)/vendors/esmf/DEFAULTINSTALLDIR/lib/libO/Linux.gfortran.64.mpiuni.default/esmf.mk
+ESMFMKFILE = /glade/u/apps/ch/opt/esmf/8.2.0/gnu/10.1.0/lib/libO/Linux.gfortran.64.mpiuni.default/esmf.mk
 
-NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf-gnu
+NETCDF_DIR := /glade/u/apps/ch/opt/netcdf/4.8.1/gnu/10.1.0/bin/ncdump
+#NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf-gnu
 #NETCDF_DIR := $(DIR_FIRE_BEHAVIOR)/vendors/netcdf-intel
 NETCDF_LIBS=-L$(NETCDF_DIR)/lib -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lm -lz -ldl -lbz2 -lxml2 -lcurl
 NETCDF_INCLUDE="-I$(NETCDF_DIR)/include"
