@@ -16,19 +16,40 @@ program esmApp
 
   use ESMF
   use ESM, only: esmSS => SetServices
+  use NUOPC, only : NUOPC_FieldDictionarySetup
+
 
   implicit none
 
   integer                 :: rc, urc
   type(ESMF_GridComp)     :: esmComp
+  type (ESMF_Config)      :: config
+  character (len = 240)   :: fieldDictionary
 
   ! Initialize ESMF
-  call ESMF_Initialize(logkindflag=ESMF_LOGKIND_MULTI, &
+  call ESMF_Initialize(configFileName="esmfRun.config", config=config,&
+    logkindflag=ESMF_LOGKIND_MULTI, &
     defaultCalkind=ESMF_CALKIND_GREGORIAN, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
     line=__LINE__, &
     file=__FILE__)) &
     call ESMF_Finalize(endflag=ESMF_END_ABORT)
+
+  call ESMF_ConfigGetAttribute(config, fieldDictionary, &
+    label="ESMX_field_dictionary:", default="<no-set>", rc=rc)
+  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    line=__LINE__, &
+    file=__FILE__)) &
+    call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  if (trim(fieldDictionary)/="<no-set>") then
+    ! Read custom dictionary from YAML file
+    call NUOPC_FieldDictionarySetup(fileName=trim(fieldDictionary), rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, &
+      msg="Unable to read Field Dictionary file: "//trim(fieldDictionary), &
+      line=__LINE__, &
+      file=__FILE__)) &
+      call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  endif
 
   call ESMF_LogWrite("esmApp STARTING", ESMF_LOGMSG_INFO, rc=rc)
   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
