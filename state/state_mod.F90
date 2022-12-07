@@ -234,8 +234,10 @@
           config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
       this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
           config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
-      this%datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
-          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+!      this%datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+!          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+
+      this%datetime_now = this%datetime_start
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))

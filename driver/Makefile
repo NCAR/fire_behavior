@@ -1,7 +1,4 @@
 
-DRIVER_DIR = ../driver
-DRIVER_INCLUDE="-I$(DRIVER_DIR)"
-
 PHYSICS_DIR = ../physics
 PHYSICS_INCLUDE="-I$(PHYSICS_DIR)"
 
@@ -30,7 +27,7 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90 ./*.exe
 
   # Dependencies
-fire_behavior.o: ../state/state_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o
+fire_behavior.o: ../state/state_mod.o ../io/namelist_mod.o initialize_mod.o advance_mod.o
 
 initialize_mod.o: ../state/state_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../physics/module_fr_fire_driver_wrf.o
 

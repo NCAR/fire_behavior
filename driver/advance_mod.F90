@@ -39,6 +39,10 @@
 
       if (config_flags%check_tends) write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
 
+      grid%datetime_now = grid%datetime_start
+      call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
+      call grid%datetime_now%Print_datetime ()
+
       if (DEBUG_LOCAL) then
         write (OUTPUT_UNIT, *) ''
         write (OUTPUT_UNIT, *) '  Leaving Advance_state... '

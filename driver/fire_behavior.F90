@@ -11,14 +11,13 @@
 
     type (domain) :: grid
     type (namelist_t) :: config_flags
-    integer :: n
-!    logical, parameter :: DEBUG = .true.
 
 
     call Init_state (grid, config_flags)
 
-    do n = 1, config_flags%n_steps
+    do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
     end do
+!    call grid%datetime_now%Print_datetime ()
 
   end program fire_behavior

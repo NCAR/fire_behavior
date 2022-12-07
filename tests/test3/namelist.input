@@ -3,18 +3,18 @@
 /
 
  &time
- start_year = 0
- start_month = 0
- start_day = 0
- start_hour = 0
+ start_year = 2012
+ start_month = 6
+ start_day = 25
+ start_hour = 18
  start_minute = 0
  start_second = 0
- end_year = 0
- end_month = 0
- end_day = 0
- end_hour = 0
+ end_year = 2012
+ end_month = 6
+ end_day = 25
+ end_hour = 18
  end_minute = 0
- end_second = 0
+ end_second = 1
 /
 
  &control

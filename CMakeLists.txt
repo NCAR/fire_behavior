@@ -23,7 +23,8 @@ endif (NOT TARGET ESMF)
 
 # State
 list(APPEND _state_files state/state_mod.F90
-                         state/proj_lc_mod.F90)
+                         state/proj_lc_mod.F90
+                         state/datetime_mod.F90)
 
 # IO
 list(APPEND _io_files io/namelist_mod.F90
