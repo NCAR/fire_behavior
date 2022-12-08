@@ -698,60 +698,7 @@ do ij=1,num_tiles
         
     if(fire_run)then
 
-     if(ifun.eq.1)then   ! set terrain
-
-      if(restart)then
-          
-          call message('restart - topo initialization skipped')
-
-      else
-!
-!        call print_2d_stats(ips,ipe,jps,jpe,ims,ime,jms,jme,zs,'driver:zs')
-!    
-!        ! interpolate terrain height
-!        if(fire_topo_from_atm.eq.1)then
-!            call interpolate_z2fire(id,1,                 & ! for debug output, <= 0 no output
-!                ids,ide,  jds,jde,                    & ! atm grid dimensions
-!                ims,ime,  jms,jme,                    &
-!                ips,ipe,jps,jpe,                              &
-!                its,ite,jts,jte,                              &
-!                ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
-!                ifms, ifme, jfms, jfme,                       &
-!                ifts,ifte,jfts,jfte,                          &
-!                ir,jr,                                        & ! atm/fire grid ratio
-!                zs,                                       & ! atm grid arrays in
-!                fp%zsf)                                      ! fire grid arrays out
-!        else
-!!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-!           write(msg,'(a,i3,a)')'fire_topo_from_atm=',fire_topo_from_atm,' assuming ZSF set, interpolation skipped'
-!!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-!        endif
-
-        if(ignition_longlat .eq.0)then
-            !call set_ideal_coord( dx,dy, &
-            !    ids,ide,jds,jde,  &
-            !    ims,ime,jms,jme,  &
-            !    its,ite,jts,jte,  &
-            !    xlong,xlat          )
-        elseif(use_atm_vars)then
-            ! assume halo xlong xlat
-            ! interpolate nodal coordinates
-
-#ifdef DEBUG_OUT
-         call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlat,'xlat',id)
-         call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,xlong,'xlong',id)
-#endif
-
-        endif
-
-     endif
-
-    elseif(ifun.eq.2)then  
-               
-        ! after the loop where zsf created exited and all synced
-        call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%zsf,'driver_phys:zsf')        
-
-    elseif(ifun.eq.4)then
+    if(ifun.eq.4)then
 
       ! interpolate and compute weighted average to get the fuel moisture
       !! print *,'ifun=4, run_fuel_moisture=',run_fuel_moisture
