@@ -10,6 +10,8 @@ module load ncarcompilers/0.5.0
 module load netcdf/4.8.1
 module load esmf_libs/8.2.0
 
+UFS variables availabe to import:
+https://github.com/NOAA-EMC/fv3atm/blob/develop/cpl/module_cplfields.F90#L32
 
 Preloaded dictionary:
 https://earthsystemmodeling.org/docs/release/latest/NUOPC_refdoc/node3.html#SECTION00032200000000000000
@@ -41,3 +43,10 @@ https://github.com/NCAR/wrf_hydro_nwm_public/blob/master/src/CPL/NUOPC_cpl/WRFHy
 
 example of a "fake" model to check connectors:
 https://github.com/esmf-org/parflow/blob/feature/NUOPC/ESMFAPP-6/pfnuopc/test/src/pf_nuopc_test_lnd.F90
+
+Other coupling software:
+https://escomp.github.io/CDEPS/html/index.html
+
+WRF-Hydro:
+https://github.com/esmf-org/wrf_hydro_nwm_public/tree/feature/nuopc-add-wtrflx/ESMFAPP-4/trunk/NDHMS/CPL/NUOPC_cpl
+
