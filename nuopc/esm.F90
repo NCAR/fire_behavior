@@ -19,9 +19,8 @@ module ESM
   use NUOPC_Driver, &
     driverSS             => SetServices
 
-!  use ATM, only: atmSS => SetServices
-!  use OCN, only: ocnSS => SetServices
-  use fire_behavior_nuopc, only: modelSS => SetServices
+  use fire_behavior_nuopc, only: fireSS => SetServices
+  use wrf_nuopc, only: wrfSS => SetServices
 
   use NUOPC_Connector, only: cplSS => SetServices
 
@@ -83,8 +82,8 @@ module ESM
 
     rc = ESMF_SUCCESS
 
-    ! SetServices for ATM
-    call NUOPC_DriverAddComp(driver, "FIRE", modelSS, comp=child, rc=rc)
+    ! SetServices for FIRE
+    call NUOPC_DriverAddComp(driver, "FIRE", fireSS, comp=child, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -95,17 +94,17 @@ module ESM
       file=__FILE__)) &
       return  ! bail out
 
-    ! SetServices for OCN
-!    call NUOPC_DriverAddComp(driver, "OCN", ocnSS, comp=child, rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-!    call NUOPC_CompAttributeSet(child, name="Verbosity", value="high", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
+    ! SetServices for WRF
+    call NUOPC_DriverAddComp(driver, "WRF", wrfSS, comp=child, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_CompAttributeSet(child, name="Verbosity", value="high", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! Disabling the following macro, e.g. renaming to WITHCONNECTORS_disable,
     ! will result in a driver that does not call connectors between the model
