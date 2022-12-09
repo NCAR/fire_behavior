@@ -10,7 +10,7 @@ use module_fr_fire_driver, only : fire_driver_em
 use module_fr_fire_atm, only : fire_tendency
 use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
                                 print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
-                                continue_at_boundary, interpolate_2d, print_2d_stats_vec
+                                continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
 use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
                                   pi2, &     ! 2*pi
                                   g,   &     ! gravity
@@ -139,6 +139,7 @@ subroutine fire_driver_em_step (grid , config_flags               &
             ,rho,z_at_w,dz8w                                        &
             )
  
+    call sum_2d_fire_vars (grid, config_flags)
 
     ! --- add heat and moisture fluxes to tendency variables by postulated decay
     do ij=1,grid%num_tiles
@@ -803,6 +804,67 @@ call print_2d_stats_vec(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,uf,vf,'fire wind
 return
 
 end subroutine interpolate_atm2fire
+
+subroutine sum_2d_fire_vars (grid, config_flags)
+
+    implicit none
+!*** arguments
+    TYPE(domain) , TARGET :: grid                   ! state
+    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
+
+!*** local
+    character(len=256)::msg
+    logical :: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
+    real :: s
+    integer :: i, j
+
+    ! sum the fluxes over atm cells
+    if(use_atm_vars)then
+      call sum_2d_cells(        &
+        grid%ifms,grid%ifme,grid%jfms,grid%jfme,  &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,  &
+        grid%fuel_frac,              &
+        grid%ims, grid%ime, grid%jms, grid%jme,   &
+        grid%its,grid%ite,grid%jts,grid%jte,      &
+        grid%avg_fuel_frac)
+      call sum_2d_cells(        &
+        grid%ifms,grid%ifme,grid%jfms,grid%jfme,  &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,  &
+        grid%fgrnhfx,              &
+        grid%ims, grid%ime, grid%jms, grid%jme,   &
+        grid%its,grid%ite,grid%jts,grid%jte,      &
+        grid%grnhfx)
+!comment out the next call to get results as before commit 55fd92051196b796891b60cb7ec1c4bdb8800078
+      call sum_2d_cells(        &
+        grid%ifms,grid%ifme,grid%jfms,grid%jfme,  &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,  &
+        grid%fgrnqfx,              &
+        grid%ims, grid%ime, grid%jms, grid%jme,   &
+        grid%its,grid%ite,grid%jts,grid%jte,      &
+        grid%grnqfx)
+
+!$OMP CRITICAL(FIRE_DRIVER_CRIT)
+      write(msg,'(a,f6.3)')'fire-atmosphere feedback scaling ',config_flags%fire_atm_feedback
+!$OMP end CRITICAL(FIRE_DRIVER_CRIT)
+      call message(msg)
+      s = 1./(grid%sr_x*grid%sr_y)
+      do j=grid%jts,grid%jte
+        do i=grid%its,grid%ite
+            ! DME heat fluxes contribution for the case wiythout feedback
+            grid%grnhfx_fu(i,j)=grid%grnhfx(i,j)*s
+            grid%grnqfx_fu(i,j)=grid%grnqfx(i,j)*s
+            ! scale surface fluxes to get the averages
+            grid%avg_fuel_frac(i,j)=grid%avg_fuel_frac(i,j)*s
+            grid%grnhfx(i,j)=config_flags%fire_atm_feedback*grid%grnhfx(i,j)*s
+            grid%grnqfx(i,j)=config_flags%fire_atm_feedback*grid%grnqfx(i,j)*s
+            ! we do not have canopy fluxes yet...
+            grid%canhfx(i,j)=0
+            grid%canqfx(i,j)=0
+        enddo
+      enddo
+   endif
+
+end subroutine sum_2d_fire_vars
 
 end module module_fr_fire_driver_wrf
 

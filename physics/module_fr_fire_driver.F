@@ -760,61 +760,6 @@ do ij=1,num_tiles
         ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu  &
     )
 
-    if(ifun.eq.6)then ! heat fluxes into the atmosphere    
-    
-        call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnhfx,'fire_driver:fgrnhfx')
-        call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnqfx,'fire_driver:fgrnqfx')
-    
-        ! sum the fluxes over atm cells
-        if(use_atm_vars)then                                  
-          call sum_2d_cells(        &
-            ifms,ifme,jfms,jfme,  &
-            ifts,ifte,jfts,jfte,  &
-            fuel_frac,              &
-            ims, ime, jms, jme,   &
-            its,ite,jts,jte,      &
-            avg_fuel_frac)
-          call sum_2d_cells(        &
-            ifms,ifme,jfms,jfme,  &
-            ifts,ifte,jfts,jfte,  &
-            fgrnhfx,              &
-            ims, ime, jms, jme,   &
-            its,ite,jts,jte,      &
-            grnhfx)
-!comment out the next call to get results as before commit 55fd92051196b796891b60cb7ec1c4bdb8800078
-          call sum_2d_cells(        &
-            ifms,ifme,jfms,jfme,  &
-            ifts,ifte,jfts,jfte,  &
-            fgrnqfx,              &
-            ims, ime, jms, jme,   &
-            its,ite,jts,jte,      &
-            grnqfx)
-
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-          write(msg,'(a,f6.3)')'fire-atmosphere feedback scaling ',fire_atm_feedback
-!$OMP end CRITICAL(FIRE_DRIVER_CRIT)
-	  call message(msg)
-          s = 1./(ir*jr)
-          do j=jts,jte
-            do i=its,ite
-                ! DME heat fluxes contribution for the case wiythout feedback
-                grnhfx_fu(i,j)=grnhfx(i,j)*s
-                grnqfx_fu(i,j)=grnqfx(i,j)*s
-                ! scale surface fluxes to get the averages
-                avg_fuel_frac(i,j)=avg_fuel_frac(i,j)*s
-                grnhfx(i,j)=fire_atm_feedback*grnhfx(i,j)*s
-                grnqfx(i,j)=fire_atm_feedback*grnqfx(i,j)*s
-                ! we do not have canopy fluxes yet...
-                canhfx(i,j)=0
-                canqfx(i,j)=0
-            enddo
-          enddo
-
-          call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme,grnhfx,'fire_driver:grnhfx')
-          call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme,grnqfx,'fire_driver:grnqfx')
-       endif
-
-    endif ! ifun=6
   endif ! fire_run
 enddo ! tiles
 !$OMP END PARALLEL DO
