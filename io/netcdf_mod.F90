@@ -7,13 +7,14 @@
     public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
 
     interface Get_netcdf_var
-      module procedure Get_netcdf_var_real32_3d
+      module procedure Get_netcdf_var_char_1d
       module procedure Get_netcdf_var_int32_3d
+      module procedure Get_netcdf_var_real32_3d
     end interface Get_netcdf_var
 
     interface Get_netcdf_att
-      module procedure Get_netcdf_att_real32
       module procedure Get_netcdf_att_int32
+      module procedure Get_netcdf_att_real32
     end interface Get_netcdf_att
 
   contains
@@ -70,45 +71,6 @@
 
     end subroutine Get_netcdf_att_int32
 
-    subroutine Get_netcdf_dim (file_name, dim_name, dim_value)
-
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    !                                                         !
-    !  Purpose: Get the value of a dimension                  !
-    !                                                         !
-    !  Author: Pedro A. Jimenez                               !
-    !                                                         !
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      use netcdf
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      character (len = *), intent(in) :: file_name, dim_name
-      integer, intent(out) :: dim_value
-
-      integer :: status, ncid, dimid
-
-
-        ! Opens file
-      status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
-      call Check_status (status)
-
-        ! Get dim ID
-      status = nf90_inq_dimid (ncid, dim_name, dimid)
-      call Check_status (status)
-
-        ! Get dim len
-      status = nf90_inquire_dimension (ncid, dimid, len = dim_value)
-      call Check_status (status)
-
-        ! Closing file
-      status = nf90_close (ncid)
-      call Check_status (status)
-
-    end subroutine Get_netcdf_dim
-
     subroutine Get_netcdf_att_real32 (file_name, var_name, att_name, att_value)
 
       use netcdf
@@ -144,6 +106,96 @@
       call Check_status (status)
 
     end subroutine Get_netcdf_att_real32
+
+    subroutine Get_netcdf_dim (file_name, dim_name, dim_value)
+
+      use netcdf
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, dim_name
+      integer, intent(out) :: dim_value
+
+      integer :: status, ncid, dimid
+
+
+        ! Opens file
+      status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
+      call Check_status (status)
+
+        ! Get dim ID
+      status = nf90_inq_dimid (ncid, dim_name, dimid)
+      call Check_status (status)
+
+        ! Get dim len
+      status = nf90_inquire_dimension (ncid, dimid, len = dim_value)
+      call Check_status (status)
+
+        ! Closing file
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Get_netcdf_dim
+
+    subroutine Get_netcdf_var_char_1d (file_name, name_var, var1d)
+
+      use netcdf
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, name_var
+      character (len = :), dimension (:), allocatable, intent (out) :: var1d
+
+      integer :: status, ncid, ivar, io_stat, nf_type, nvdims, i, n1, n2
+      integer, dimension (NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: io_errmsg
+
+
+      status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
+      call Check_status (status)
+
+      status = nf90_inq_varid (ncid, name_var, ivar)
+      call Check_status (status)
+
+      status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
+      call Check_status (status)
+
+      if (nf_type == NF90_CHAR) then
+        if (nvdims == 2) then
+          do i = 1, nvdims
+            status = nf90_inquire_dimension (ncid, dimids(i), len = idims(i))
+            call Check_status (status)
+          end do
+
+          n1 = idims(1)
+          n2 = idims(2)
+
+          allocate (character (len = n1) :: var1d(n2), stat = io_stat, errmsg = io_errmsg)
+          if (io_stat /= 0) then
+            write (ERROR_UNIT, *) 'Problems allocating char var (1D)'
+            write (ERROR_UNIT, *) io_errmsg
+            stop
+          end if
+
+          status = nf90_get_var (ncid, ivar, var1d)
+          call Check_status (status)
+        else
+          write (ERROR_UNIT, *)
+          write (ERROR_UNIT, *) 'FATAL ERROR: ', name_var, ' is not a 2D array'
+          stop
+        end if
+      else
+        write (ERROR_UNIT, *)
+        write (ERROR_UNIT, *) 'FATAL ERROR: ', name_var, ' is not a CHAR variable'
+        stop
+      end if
+
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Get_netcdf_var_char_1d
 
     subroutine Get_netcdf_var_int32_3d (file_name, var_name, output)
 

@@ -22,7 +22,7 @@ NETCDF_INCLUDE="-I$(NETCDF_DIR)/include"
 
 export FC FCFLAGS CPP CPPFLAGS ESMFMKFILE NETCDF_LIBS NETCDF_INCLUDE
 
-SUBDIRS = physics state io driver nuopc
+SUBDIRS = physics state io driver nuopc share
      
 .PHONY: clean subdirs $(SUBDIRS)
      
@@ -37,10 +37,12 @@ clean:
 	done
 
   # Dependencies
-state: io
+state: io share
 
 physics: io state
 
 driver: io state physics
 
 nuopc: io state driver
+
+io: share

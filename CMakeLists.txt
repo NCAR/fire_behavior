@@ -22,13 +22,15 @@ endif (NOT TARGET ESMF)
 # Add source files
 
 # State
-list(APPEND _state_files state/state_mod.F90
-                         state/proj_lc_mod.F90
-                         state/datetime_mod.F90)
+list(APPEND _state_files state/state_mod.F90)
+
+list(APPEND _share_files share/proj_lc_mod.F90
+                         share/datetime_mod.F90)
 
 # IO
 list(APPEND _io_files io/namelist_mod.F90
                       io/geogrid_mod.F90
+                      io/wrf_mod.F90
 		      io/netcdf_mod.F90)
 
 # WRF Physics
@@ -70,7 +72,7 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 #------------------------------------------------------------------------------
 
 # configure fire behavior library
-add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
+add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 
 # configure fire behavior executable
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)

@@ -343,7 +343,7 @@
 
       implicit none
 
-      class (datetime_t), intent (in out) :: this
+      class (datetime_t), intent (in) :: this
 
       write (OUTPUT_UNIT, *) this%datetime, this%fractional_seconds
 
