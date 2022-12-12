@@ -583,7 +583,6 @@ else
   logfwh = log(fire_wind_height)
   fire_wind_height_local = fire_wind_height
 endif
-print *, 'fire_wind_height_local = ', fire_wind_height_local
 
     ! interpolate u, staggered in X
 
@@ -591,21 +590,16 @@ print *, 'fire_wind_height_local = ', fire_wind_height_local
 !      do i = itsu,iteu        ! compute with halo 2
       do i = itsu,iteu
         zr = 0.5*(z0(i,j)+z0(i-1,j)) ! interpolated roughness length under this u point
-        print *, 'i, j, zr = ', i, j, zr
-        print *, 'z0i, z0i-1 = ', i, i-1, z0(i,j), z0(i-1,j)
         if(fire_wind_height_local > zr)then       !
           do k=kds,kdmax
             ht = hgtu(i,k,j)      ! height of this u point above the ground
             if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
               loght = log(ht)
-              print *, 'loght = ', loght
               if(k.eq.kds)then               ! first layer, log linear interpolation from 0 at zr
                 logz0 = log(zr)
-                print *, 'logz0 = ', logz0
                 ua(i,j)= u(i,k,j)*(logfwh-logz0)/(loght-logz0)
               else                           ! log linear interpolation
                 loglast=log(hgtu(i,k-1,j))
-                print *, 'loglast = ', loglast
                 ua(i,j)= u(i,k-1,j) + (u(i,k,j) - u(i,k-1,j)) * ( logfwh - loglast) / (loght - loglast)
               endif
               goto 10
