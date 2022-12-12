@@ -1,6 +1,6 @@
   module wrf_mod
 
-    use netcdf_mod, only : Get_netcdf_var
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att
     use datetime_mod, only : datetime_t
     use proj_lc_mod, only : proj_lc_t
 
@@ -17,6 +17,7 @@
       procedure, public :: Get_t2 => Get_temperature_2m
       procedure, public :: Get_datetime_index => Get_datetime_index
       procedure, public :: Get_latlons => Get_latlons
+      procedure, public :: Get_latcloncs => Get_latcloncs
     end type wrf_t
 
     interface wrf_t
@@ -96,13 +97,67 @@
 
       character (len = *), intent (in) :: file_name
       type (wrf_t) :: return_value
+      integer :: nx, ny, i, j
 
 
       return_value%file_name = trim (file_name)
+      ! Centers
       call return_value%Get_latlons ()
-      ! Initialize lats_c and lons_c
-
+      ! Corners
+      call return_value%Get_latcloncs ()
+      
     end function Wrf_t_const
+
+    subroutine Get_latcloncs (this)
+
+      use, intrinsic :: iso_fortran_env, only : REAL32
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (proj_lc_t) :: proj
+
+      real (kind = REAL32) :: att_real32
+      real :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
+      integer :: nx, ny, i, j
+ 
+      call Get_netcdf_att (trim (this%file_name), 'global', 'CEN_LAT', att_real32)
+      cen_lat = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'CEN_LON', att_real32)
+      cen_lon = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'TRUELAT1', att_real32)
+      truelat1 = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'TRUELAT2', att_real32)
+      truelat2 = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'STAND_LON', att_real32)
+      stand_lon = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'DX', att_real32)
+      dx = att_real32
+
+      call Get_netcdf_att (trim (this%file_name), 'global', 'DY', att_real32)
+      dy = att_real32
+
+      nx = size (this%lats, dim = 1) + 1
+      ny = size (this%lats, dim = 2) + 1
+
+      allocate (this%lats_c(nx, ny))
+      allocate (this%lons_c(nx, ny))
+
+      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = dx, dy = dy, &
+          standard_lon = stand_lon , true_lat_1 = truelat1 , true_lat_2 = truelat2 , &
+          nx = nx, ny = ny)
+
+      do j = 1, ny
+        do i = 1, nx
+          call proj%Calc_latlon (i = real (i), j = real (j), lat = this%lats_c(i, j), lon = this%lons_c(i, j))
+        end do
+      end do
+
+    end subroutine Get_latcloncs
 
   end module wrf_mod
 
