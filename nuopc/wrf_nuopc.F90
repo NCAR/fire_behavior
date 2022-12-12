@@ -1,4 +1,6 @@
 
+#include "Fire_behavior_NUOPC_Macros.h"
+
 module wrf_nuopc
 
   !-----------------------------------------------------------------------------
@@ -9,12 +11,15 @@ module wrf_nuopc
   use NUOPC
   use NUOPC_Model, &
     modelSS    => SetServices
+  use wrf_mod, only : wrf_t
 
   implicit none
 
   private
 
   public SetServices
+
+  type (wrf_t) :: state
 
   !-----------------------------------------------------------------------------
   contains
@@ -78,7 +83,7 @@ module wrf_nuopc
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
 
-!    call Init_fire_behavior_model()
+    state = wrf_t(file_name = 'wrf.nc')
 
     ! Import/ Export Variables -----------------------------------------------------
 
@@ -192,26 +197,20 @@ module wrf_nuopc
     type(ESMF_State)        :: importState, exportState
     ! type(ESMF_TimeInterval) :: stabilityTimeStep
     ! type(ESMF_Field)        :: field
-    type(ESMF_DistGrid)     :: fire_distgrid
-    type(ESMF_Grid)         :: fire_grid
-    ! type(ESMF_Grid)         :: gridIn, gridOut
-    ! type(ESMF_Mesh)         :: meshIn, meshOut
-    ! type(ESMF_LocStream)    :: locsIn, locsOut
+    type(ESMF_DistGrid)     :: distgrid
+    type(ESMF_Grid)         :: grid
 
-    ! integer, parameter              :: totalNumPoints=100
-    ! integer(ESMF_KIND_I4), pointer  :: mask(:)
-    ! real(ESMF_KIND_R8), pointer     :: lon(:), lat(:)
-    ! real(ESMF_KIND_R8), pointer     :: fptr(:)
+    real(ESMF_KIND_R8), pointer     :: fptr(:)
     ! integer                         :: clb(1), cub(1), i
     ! type(ESMF_VM)                   :: vm
 
     ! working local variables
     integer                        :: lbnd(2),ubnd(2)
-!    real(ESMF_KIND_COORD), pointer :: coordXcenter(:,:)
-!    real(ESMF_KIND_COORD), pointer :: coordYcenter(:,:)
-!    real(ESMF_KIND_COORD), pointer :: coordXcorner(:,:)
-!    real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
-    integer                        :: i, j
+    real(ESMF_KIND_COORD), pointer :: coordXcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcenter(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordXcorner(:,:)
+    real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
+    integer                        :: i, j, nx, ny
 
     rc = ESMF_SUCCESS
 
@@ -223,149 +222,57 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+    nx = size(state%lats, dim=1)
+    ny = size(state%lons, dim=2)
+
     ! Create distgrid based on the state grid
-!    fire_distgrid = ESMF_DistGridCreate( &
-!      minIndex=(/1,1/), maxIndex=(/grid%nx,grid%ny/), &
-!      rc=rc)
-!    if(ESMF_STDERRORCHECK(rc)) return
+    distgrid = ESMF_DistGridCreate( &
+      minIndex=(/1,1/), maxIndex=(/nx,ny/), &
+      rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return
 
-!    fire_grid = ESMF_GridCreate(name='FIRE_BEHAVIOR', & 
-!      distgrid=fire_distgrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
-!      rc = rc)
-!    if(ESMF_STDERRORCHECK(rc)) return
+    grid = ESMF_GridCreate(name='ATM', & 
+      distgrid=distgrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
+      rc = rc)
+    if(ESMF_STDERRORCHECK(rc)) return
 
-!    if (allocated(grid%lats) .and. allocated (grid%lons)) then
-!      ! Add Center Coordinates to Grid
-!      call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
-!      if(ESMF_STDERRORCHECK(rc)) return
-!      call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
-!        staggerloc=ESMF_STAGGERLOC_CENTER, &
-!        computationalLBound=lbnd, computationalUBound=ubnd, &
-!        farrayPtr=coordXcenter, rc=rc)
-!      if (ESMF_STDERRORCHECK(rc)) return
-!      call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
-!        staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordYcenter, rc=rc)
-!      if (ESMF_STDERRORCHECK(rc)) return
-!      do j = lbnd(2),ubnd(2)
-!      do i = lbnd(1),ubnd(1)
-!        coordXcenter(i,j) = grid%lons(i,j)
-!        coordYcenter(i,j) = grid%lats(i,j)
-!      enddo
-!      enddo
-!
-!      ! CORNERS
-!
-!      ! Add Corner Coordinates to Grid
-!      call ESMF_GridAddCoord(fire_grid, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
-!      if(ESMF_STDERRORCHECK(rc)) return
-!      call ESMF_GridGetCoord(fire_grid, coordDim=1, localDE=0, &
-!        staggerloc=ESMF_STAGGERLOC_CORNER, &
-!        computationalLBound=lbnd, computationalUBound=ubnd, &
-!        farrayPtr=coordXcorner, rc=rc)
-!      if (ESMF_STDERRORCHECK(rc)) return
-!      call ESMF_GridGetCoord(fire_grid, coordDim=2, localDE=0, &
-!        staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=coordYcorner, rc=rc)
-!      if (ESMF_STDERRORCHECK(rc)) return
-!      do j = lbnd(2),ubnd(2)
-!      do i = lbnd(1),ubnd(1)
-!        coordXcorner(i,j) = grid%lons_c(i,j)
-!        coordYcorner(i,j) = grid%lats_c(i,j)
-!      enddo
-!      enddo
-!    end if
+    ! Add Center Coordinates to Grid
+    call ESMF_GridAddCoord(grid, staggerLoc=ESMF_STAGGERLOC_CENTER, rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, &
+      computationalLBound=lbnd, computationalUBound=ubnd, &
+      farrayPtr=coordXcenter, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CENTER, farrayPtr=coordYcenter, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    do j = lbnd(2),ubnd(2)
+    do i = lbnd(1),ubnd(1)
+      coordXcenter(i,j) = state%lons(i,j)
+      coordYcenter(i,j) = state%lats(i,j)
+    enddo
+    enddo
 
+    ! CORNERS
 
-!     ! create Grid objects for Fields
-!     gridIn = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/100, 20/), &
-!       minCornerCoord=(/10._ESMF_KIND_R8, 20._ESMF_KIND_R8/), &
-!       maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
-!       coordSys=ESMF_COORDSYS_CART, &
-!       staggerLocList=(/ESMF_STAGGERLOC_CENTER, ESMF_STAGGERLOC_CORNER/), &
-!       rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     gridOut = gridIn ! for now out same as in
-
-!     ! create Mesh objects for Fields
-!     meshIn = ESMF_MeshCreate(grid=gridIn, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     meshOut = ESMF_MeshCreate(grid=gridOut, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-
-!     ! create LocStream objects for Fields
-!     locsIn=ESMF_LocStreamCreate(name="Equatorial Measurements", &
-!         maxIndex=totalNumPoints, coordSys=ESMF_COORDSYS_SPH_DEG, &
-!         indexFlag=ESMF_INDEX_GLOBAL, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     ! Add key data (internally allocating memory).
-!     call ESMF_LocStreamAddKey(locsIn,                 &
-!          keyName="ESMF:Lat",           &
-!          KeyTypeKind=ESMF_TYPEKIND_R8, &
-!          keyUnits="Degrees",           &
-!          keyLongName="Latitude", rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call ESMF_LocStreamAddKey(locsIn,                 &
-!          keyName="ESMF:Lon",           &
-!          KeyTypeKind=ESMF_TYPEKIND_R8, &
-!          keyUnits="Degrees",           &
-!          keyLongName="Longitude", rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call ESMF_LocStreamAddKey(locsIn,                 &
-!          keyName="ESMF:Mask",           &
-!          KeyTypeKind=ESMF_TYPEKIND_I4, &
-!          keyUnits="none",           &
-!          keyLongName="mask values", rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     ! Get coordinate memory
-!     call ESMF_LocStreamGetKey(locsIn,                 &
-!          localDE=0,                    &
-!          keyName="ESMF:Lat",           &
-!          farray=lat,                   &
-!          rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call ESMF_LocStreamGetKey(locsIn,                 &
-!          localDE=0,                    &
-!          keyName="ESMF:Lon",           &
-!          farray=lon,                   &
-!          rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     ! Get mask memory
-!     call ESMF_LocStreamGetKey(locsIn,                 &
-!          localDE=0,                    &
-!          keyName="ESMF:Mask",           &
-!          farray=mask,                   &
-!          rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     locsOut = locsIn ! for now out same as in
+    ! Add Corner Coordinates to Grid
+    call ESMF_GridAddCoord(grid, staggerLoc=ESMF_STAGGERLOC_CORNER, rc=rc)
+    if(ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(grid, coordDim=1, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CORNER, &
+      computationalLBound=lbnd, computationalUBound=ubnd, &
+      farrayPtr=coordXcorner, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    call ESMF_GridGetCoord(grid, coordDim=2, localDE=0, &
+      staggerloc=ESMF_STAGGERLOC_CORNER, farrayPtr=coordYcorner, rc=rc)
+    if (ESMF_STDERRORCHECK(rc)) return
+    do j = lbnd(2),ubnd(2)
+      do i = lbnd(1),ubnd(1)
+        coordXcorner(i,j) = state%lons_c(i,j)
+        coordYcorner(i,j) = state%lats_c(i,j)
+      enddo
+    enddo
 
 ! #ifdef WITHIMPORTFIELDS
 !     ! importable field on Grid: air_pressure_at_sea_level

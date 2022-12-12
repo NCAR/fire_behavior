@@ -97,8 +97,6 @@
 
       character (len = *), intent (in) :: file_name
       type (wrf_t) :: return_value
-      integer :: nx, ny, i, j
-
 
       return_value%file_name = trim (file_name)
       ! Centers
