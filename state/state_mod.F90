@@ -72,6 +72,7 @@
       real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
+      real, dimension(:, :), allocatable :: emis_smoke
 
         ! FMC model
       real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
@@ -237,9 +238,6 @@
           config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
       this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
           config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
-!      this%datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
-!          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
-
       this%datetime_now = this%datetime_start
 
         ! Atmosphere vars
@@ -395,6 +393,8 @@
       allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%emis_smoke(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%emis_smoke = 0.0
 
       if_geogrid2d: if (use_geogrid) then
         this%xlat = 0.0
@@ -587,6 +587,7 @@
 
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))
 
     end subroutine Save_state
 
