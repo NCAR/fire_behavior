@@ -16,8 +16,6 @@
       character (len = DATETIME_LEN) :: datetime
       real :: fractional_seconds
     contains
-!      procedure, public :: Add_seconds_int => Add_seconds_int
-!      procedure, public :: Add_seconds_real => Add_seconds_real
       procedure :: Add_seconds_int, Add_seconds_real
       generic, public :: Add_seconds => Add_seconds_int
       generic, public :: Add_seconds => Add_seconds_real
@@ -128,13 +126,9 @@
 
       integer :: mm
 
-
       mm = this%Get_mm ()
-      if (mm == 2 .and. this%Is_leap ()) then
-        return_value = 29
-      else
-        return_value = DAYS_IN_MONTHS(mm)
-      end if
+      return_value = DAYS_IN_MONTHS(mm)
+      if (mm == 2 .and. this%Is_leap ()) return_value = 29
 
     end function Calc_days_in_month
 
