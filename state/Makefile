@@ -17,4 +17,4 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
-state_mod.o: ../share/datetime_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../share/proj_lc_mod.o
+state_mod.o: ../share/datetime_mod.o ../io/namelist_mod.o ../io/geogrid_mod.o ../io/netcdf_mod.o ../share/proj_lc_mod.o

@@ -4,6 +4,7 @@
     use geogrid_mod, only : geogrid_t
     use proj_lc_mod, only : proj_lc_t
     use datetime_mod, only : datetime_t
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
 
     implicit none
 
@@ -86,6 +87,8 @@
       integer :: fire_ignition_longlat
       integer :: nx ! "number of longitudinal grid points" "1" 
       integer :: ny ! "number of latitudinal grid points" "1"
+    contains
+      procedure, public :: Save_state => Save_state
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
@@ -566,4 +569,26 @@
 
     end subroutine Print_domain
 
+    subroutine Save_state (this)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+
+      character (len = :), allocatable :: file_output
+
+
+      file_output='fire_output_'//this%datetime_now%datetime//'.nc'
+
+      call Create_netcdf_file (file_name = file_output)
+
+      call Add_netcdf_dim (file_output, 'nx', this%nx)
+      call Add_netcdf_dim (file_output, 'ny', this%ny)
+
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
+
+    end subroutine Save_state
+
   end module state_mod
+

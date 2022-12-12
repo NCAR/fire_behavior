@@ -18,6 +18,7 @@
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
     end do
+    call grid%Save_state ()
 !    call grid%datetime_now%Print_datetime ()
 
   end program fire_behavior

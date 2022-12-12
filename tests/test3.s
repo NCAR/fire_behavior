@@ -162,6 +162,7 @@ rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d0
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
+  rm -rf ./fire_output_2012-06-25_18:00:01.nc
 fi
 
   # Print summary of Test 3
