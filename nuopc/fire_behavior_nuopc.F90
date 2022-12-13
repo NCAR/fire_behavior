@@ -20,6 +20,7 @@ module fire_behavior_nuopc
   use initialize_mod, only : Init_state
   use advance_mod, only : Advance_state
 
+
   implicit none
 
   private
@@ -29,9 +30,10 @@ module fire_behavior_nuopc
   !integer, parameter :: CASE_WRF_FIRE_TEST1 = 1
   type (domain) :: grid
   type (namelist_t) :: config_flags
-  integer :: n, j
+  integer :: n
   !logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
-
+  real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
+  integer :: clb(2), cub(2)
   !-----------------------------------------------------------------------------
   contains
   !-----------------------------------------------------------------------------
@@ -102,107 +104,107 @@ module fire_behavior_nuopc
     ! will result in a model component that does not advertise any importable
     ! Fields. Use this if you want to drive the model independently.
 
-#define WITHIMPORTFIELDS_disable
+#define WITHIMPORTFIELDS
 #ifdef WITHIMPORTFIELDS
-    ! 3D fields
-
-    ! importable field: inst_zonal_wind_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_zonal_wind_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_merid_wind_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_merid_wind_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_geop_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_geop_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_geop_interface
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_geop_interface", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_pres_interface
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_interface", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_pres_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_temp_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_temp_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: sphum
-    call NUOPC_Advertise(importState, &
-      StandardName="sphum", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    !  2D fields
-
-    ! importable field: inst_surface_roughness
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_surface_roughness", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_rainfall_amount
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_rainfall_amount", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_spec_humid_height2m
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_spec_humid_height2m", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_pres_height_surface
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_height_surface", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+!    ! 3D fields
+!
+!    ! importable field: inst_zonal_wind_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_zonal_wind_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_merid_wind_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_merid_wind_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_geop_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_geop_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_geop_interface
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_geop_interface", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_pres_interface
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_pres_interface", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_pres_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_pres_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_temp_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_temp_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: sphum
+!    call NUOPC_Advertise(importState, &
+!      StandardName="sphum", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    !  2D fields
+!
+!    ! importable field: inst_surface_roughness
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_surface_roughness", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_rainfall_amount
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_rainfall_amount", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_spec_humid_height2m
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_spec_humid_height2m", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
+!
+!    ! importable field: inst_pres_height_surface
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_pres_height_surface", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
 
     ! importable field: inst_temp_height2m
     call NUOPC_Advertise(importState, &
@@ -261,8 +263,6 @@ module fire_behavior_nuopc
     ! integer, parameter              :: totalNumPoints=100
     ! integer(ESMF_KIND_I4), pointer  :: mask(:)
     ! real(ESMF_KIND_R8), pointer     :: lon(:), lat(:)
-    ! real(ESMF_KIND_R8), pointer     :: fptr(:)
-    ! integer                         :: clb(1), cub(1), i
     ! type(ESMF_VM)                   :: vm
 
     ! working local variables
@@ -436,179 +436,179 @@ module fire_behavior_nuopc
 #ifdef WITHIMPORTFIELDS
      !  3D fields
 
-     ! importable field on Grid: inst_zonal_wind_levels
-     field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_zonal_wind_levels
-     field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_geop_levels
-     field = ESMF_FieldCreate(name="inst_geop_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_geop_interface
-     field = ESMF_FieldCreate(name="inst_geop_interface", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_pres_interface
-     field = ESMF_FieldCreate(name="inst_pres_interface", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_pres_levels
-     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_temp_levels
-     field = ESMF_FieldCreate(name="inst_temp_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: sphum
-     field = ESMF_FieldCreate(name="sphum", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     !  2D fields
-
-     ! importable field on Grid: inst_surface_roughness
-     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_rainfall_amount
-     field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_spec_humid_height2m
-     field = ESMF_FieldCreate(name="inst_spec_humid_height2m", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
-     ! importable field on Grid: inst_pres_height_surface
-     field = ESMF_FieldCreate(name="inst_pres_height_surface", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
+!     ! importable field on Grid: inst_zonal_wind_levels
+!     field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_zonal_wind_levels
+!     field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_geop_levels
+!     field = ESMF_FieldCreate(name="inst_geop_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_geop_interface
+!     field = ESMF_FieldCreate(name="inst_geop_interface", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_pres_interface
+!     field = ESMF_FieldCreate(name="inst_pres_interface", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_pres_levels
+!     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_temp_levels
+!     field = ESMF_FieldCreate(name="inst_temp_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: sphum
+!     field = ESMF_FieldCreate(name="sphum", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kde/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     !  2D fields
+!
+!     ! importable field on Grid: inst_surface_roughness
+!     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=fire_grid, &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_rainfall_amount
+!     field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_spec_humid_height2m
+!     field = ESMF_FieldCreate(name="inst_spec_humid_height2m", grid=fire_grid, &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!
+!     ! importable field on Grid: inst_pres_height_surface
+!     field = ESMF_FieldCreate(name="inst_pres_height_surface", grid=fire_grid, &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
 
      ! importable field on Grid: inst_temp_height2m
      field = ESMF_FieldCreate(name="inst_temp_height2m", grid=fire_grid, &
@@ -622,6 +622,10 @@ module fire_behavior_nuopc
        line=__LINE__, &
        file=__FILE__)) &
        return  ! bail out
+
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, &
+       computationalLBound=clb, computationalUBound=cub, rc=rc) 
 #endif
 
 ! #ifdef WITHEXPORTFIELDS
@@ -734,7 +738,8 @@ module fire_behavior_nuopc
     ! type(ESMF_TimeInterval)     :: timeStep
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
-     character(len=160)          :: msgString
+    integer                     :: i, j 
+    character(len=160)          :: msgString
 
     rc = ESMF_SUCCESS
 
@@ -759,7 +764,10 @@ module fire_behavior_nuopc
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    
+#ifdef WITHIMPORTFIELDS
+    ! Update atmospheric fields
+    grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
+#endif
     call Run_fire_behavior_model ()
 
     call ESMF_ClockPrint(clock, options="currTime", &

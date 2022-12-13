@@ -13,6 +13,7 @@ module wrf_nuopc
     modelSS    => SetServices
   use wrf_mod, only : wrf_t
 
+
   implicit none
 
   private
@@ -20,6 +21,8 @@ module wrf_nuopc
   public SetServices
 
   type (wrf_t) :: state
+  real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
+  integer                         :: clb(2), cub(2)
 
   !-----------------------------------------------------------------------------
   contains
@@ -84,101 +87,19 @@ module wrf_nuopc
     ! your model's initialization routine(s).
 
     state = wrf_t(file_name = 'wrf.nc')
-
+    allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
+    state%t2 = 300.0
     ! Import/ Export Variables -----------------------------------------------------
 
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
     ! will result in a model component that does not advertise any importable
     ! Fields. Use this if you want to drive the model independently.
-#define WITHIMPORTFIELDS_disable
-#ifdef WITHIMPORTFIELDS
 
-    ! importable field: inst_zonal_wind_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_zonal_wind_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_merid_wind_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_merid_wind_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_geop_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_geop_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_geop_interface
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_geop_interface", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_pres_interface
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_interface", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_pres_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: inst_temp_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_temp_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! importable field: sphum
-    call NUOPC_Advertise(importState, &
-      StandardName="sphum", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-#endif
-
-#define WITHEXPORTFIELDS_disable
+#define WITHEXPORTFIELDS
 #ifdef WITHEXPORTFIELDS
-    ! exportable field: sea_surface_temperature
+    ! exportable field: inst_temp_height2m
     call NUOPC_Advertise(exportState, &
-      StandardName="sea_surface_temperature", name="sst", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! exportable field: sea_surface_salinity
-    call NUOPC_Advertise(exportState, &
-      StandardName="sea_surface_salinity", name="sss", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! exportable field: sea_surface_height_above_sea_level
-    call NUOPC_Advertise(exportState, &
-      StandardName="sea_surface_height_above_sea_level", name="ssh", rc=rc)
+      StandardName="inst_temp_height2m", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -196,12 +117,10 @@ module wrf_nuopc
     ! local variables
     type(ESMF_State)        :: importState, exportState
     ! type(ESMF_TimeInterval) :: stabilityTimeStep
-    ! type(ESMF_Field)        :: field
+    type(ESMF_Field)        :: field
     type(ESMF_DistGrid)     :: distgrid
     type(ESMF_Grid)         :: grid
 
-    real(ESMF_KIND_R8), pointer     :: fptr(:)
-    ! integer                         :: clb(1), cub(1), i
     ! type(ESMF_VM)                   :: vm
 
     ! working local variables
@@ -274,103 +193,25 @@ module wrf_nuopc
       enddo
     enddo
 
-! #ifdef WITHIMPORTFIELDS
-!     ! importable field on Grid: air_pressure_at_sea_level
-!     field = ESMF_FieldCreate(name="pmsl", grid=gridIn, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
+#ifdef WITHEXPORTFIELDS
+    ! exportable field on Grid: inst_temp_height2m
+    field = ESMF_FieldCreate(name="inst_temp_height2m", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
-!     ! importable field on Grid: surface_net_downward_shortwave_flux
-!     field = ESMF_FieldCreate(name="rsns", grid=gridIn, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
+    ! Get Field memory
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, &
+      computationalLBound=clb, computationalUBound=cub, rc=rc)
 
-!     ! importable field on Mesh: precipitation_flux
-!     field = ESMF_FieldCreate(name="precip", mesh=meshIn, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-! #endif
-
-! #ifdef WITHEXPORTFIELDS
-!     ! exportable field on Grid: sea_surface_temperature
-!     field = ESMF_FieldCreate(name="sst", grid=gridOut, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(exportState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-
-!     ! exportable field on Mesh: sea_surface_salinity
-!     field = ESMF_FieldCreate(name="sss", mesh=meshOut, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(exportState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-
-!     ! exportable field on LocStream: sea_surface_height_above_sea_level
-!     field = ESMF_FieldCreate(name="ssh", locstream=locsOut, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(exportState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     ! Get Field memory
-!     call ESMF_FieldGet(field, localDe=0, farrayPtr=fptr, &
-!       computationalLBound=clb, computationalUBound=cub, rc=rc)
-!     ! Set coordinate data and field data
-!     do i=clb(1),cub(1)
-!        lon(i)=(i-1)*360.0/REAL(totalNumPoints)
-!        lat(i)=0.0
-!        fptr(i)=lon(i)/360.0 ! Just set it to this for testing
-!        mask(i)=0
-!        ! Mask out range and make data bad
-!        ! (Same range as in atm.F90)
-!        if ((lon(i) > 10.0) .and. (lon(i) < 20.0)) then
-!           mask(i)=1
-!           fptr(i)=-10000.0 ! Bad value to check that mask works
-!        endif
-!     enddo
-! #endif
+#endif
 
 
   end subroutine
@@ -451,7 +292,11 @@ module wrf_nuopc
     !   return  ! bail out
 
     
-    ! call Run_fire_behavior_model ()
+    ! call Run_atmospheric_model ()
+
+    ! Set field data
+    ptr_t2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
+      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
 
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing Fire model from: ", unit=msgString, rc=rc)

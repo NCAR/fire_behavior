@@ -111,10 +111,10 @@ module ESM
     ! components. This mode can be used if all model components are driven
     ! as independent models. However, even for independent models the
     ! connectors can be set here, but will turn into no-ops.
-#define WITHCONNECTORS_disable
+#define WITHCONNECTORS
 #ifdef WITHCONNECTORS
-    ! SetServices for atm2ocn
-    call NUOPC_DriverAddComp(driver, srcCompLabel="ATM", dstCompLabel="OCN", &
+    ! SetServices for wrf2fire
+    call NUOPC_DriverAddComp(driver, srcCompLabel="WRF", dstCompLabel="FIRE", &
       compSetServicesRoutine=cplSS, comp=connector, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -126,8 +126,7 @@ module ESM
       file=__FILE__)) &
       return  ! bail out
 
-    ! SetServices for ocn2atm
-    call NUOPC_DriverAddComp(driver, srcCompLabel="OCN", dstCompLabel="ATM", &
+    call NUOPC_DriverAddComp(driver, srcCompLabel="FIRE", dstCompLabel="WRF", &
       compSetServicesRoutine=cplSS, comp=connector, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &

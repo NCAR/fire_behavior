@@ -121,6 +121,7 @@
       real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
       real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
       real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
+      real, dimension(:, :), allocatable :: fire_t2       ! "TEMP at 2 M"       "K"
       real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
       real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
       real, dimension(:, :), allocatable :: mut
@@ -384,6 +385,7 @@
       allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme))
 
       this%dt = config_flags%dt
 
