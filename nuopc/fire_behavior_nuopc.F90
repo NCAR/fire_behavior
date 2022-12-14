@@ -768,7 +768,8 @@ module fire_behavior_nuopc
     ! Update atmospheric fields
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
 #endif
-    call Run_fire_behavior_model ()
+!    call Run_fire_behavior_model ()
+    call Advance_state (grid, config_flags)
 
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing Fire model from: ", unit=msgString, rc=rc)

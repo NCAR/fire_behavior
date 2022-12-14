@@ -24,6 +24,8 @@ module ESM
 
   use NUOPC_Connector, only: cplSS => SetServices
 
+  use namelist_mod, only : namelist_t
+
   implicit none
 
   private
@@ -79,6 +81,12 @@ module ESM
     type(ESMF_Clock)              :: internalClock
     type(ESMF_GridComp)           :: child
     type(ESMF_CplComp)            :: connector
+
+    type (namelist_t) :: fire_namelist
+    integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
+        end_year, end_month, end_day, end_hour, end_minute, end_second
+    real :: dt
+
 
     rc = ESMF_SUCCESS
 
@@ -140,22 +148,26 @@ module ESM
 
 #endif
 
-    ! set the driver clock
-    call ESMF_TimeIntervalSet(timeStep, m=15, rc=rc) ! 15 minute steps
+      ! set the driver clock
+    call fire_namelist%Get_times ('namelist.input', start_year, start_month, start_day, start_hour, &
+        start_minute, start_second, end_year, end_month, end_day, end_hour, end_minute, end_second, dt)
+
+    !call ESMF_TimeIntervalSet(timeStep, s=1, rc=rc)
+    call ESMF_TimeIntervalSet(timeStep, s = int (dt), ms = nint (1000 * (dt - int(dt))), rc = rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
-    call ESMF_TimeSet(startTime, yy=2010, mm=6, dd=1, h=0, m=0, &
-      calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
+    call ESMF_TimeSet(startTime, yy = start_year, mm = start_month, dd = start_day, h = start_hour, &
+        m = start_minute, s = start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
-    call ESMF_TimeSet(stopTime, yy=2010, mm=6, dd=1, h=1, m=0, &
-      calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
+    call ESMF_TimeSet(stopTime, yy = end_year, mm = end_month, dd = end_day, h = end_hour, m = end_minute, &
+        s = end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &

@@ -15,6 +15,7 @@
  end_hour = 18
  end_minute = 0
  end_second = 1
+ dt = 0.5
 /
 
  &control
@@ -25,7 +26,6 @@
  sr_y = 4
  dx = 100.0
  dy = 100.0
- dt = 0.5
  n_steps = 2
  read_wrf_input = .true.
  check_tends = .false.

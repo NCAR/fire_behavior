@@ -132,6 +132,7 @@
 
     contains
       procedure, public :: Initialization => Init_namelist
+      procedure, public :: Get_times => Get_time_start_end
     end type namelist_fire_t
 
     type, extends (namelist_fire_t) :: namelist_t
@@ -145,6 +146,43 @@
     end type namelist_t
 
   contains
+
+    subroutine Get_time_start_end (this, file_name, start_year, start_month, start_day, start_hour, &
+        start_minute, start_second, end_year, end_month, end_day, end_hour, end_minute, end_second, dt)
+
+      implicit none
+
+      class (namelist_fire_t), intent (in) :: this
+      character (len = *), intent (in) :: file_name
+      integer, intent (out) :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          end_year, end_month, end_day, end_hour, end_minute, end_second
+      real :: dt
+
+      integer :: unit_nml
+
+      namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          end_year, end_month, end_day, end_hour, end_minute, end_second, dt
+
+
+      start_year = 0
+      start_month = 0
+      start_day = 0
+      start_hour = 0
+      start_minute = 0
+      start_second = 0
+      end_year = 0
+      end_month = 0
+      end_day = 0
+      end_hour = 0
+      end_minute = 0
+      end_second = 0
+      dt = 0.0
+
+      open (newunit = unit_nml, file = trim (file_name), action = 'read')
+      read (unit_nml, nml = time)
+      close (unit_nml)
+
+    end subroutine Get_time_start_end
 
     subroutine Init_namelist (this, file_name)
 
@@ -253,9 +291,9 @@
       namelist /test/ n_case
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second
+          end_year, end_month, end_day, end_hour, end_minute, end_second, dt
 
-      namelist /control/ restart, cen_lat, cen_lon, dx, dy, dt, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
+      namelist /control/ restart, cen_lat, cen_lon, dx, dy, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
           ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
 
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &

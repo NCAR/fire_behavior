@@ -33,5 +33,5 @@ wrf_nuopc.o: ../io/wrf_mod.o
 
 esmApp.o: esm.o
 
-esm.o: fire_behavior_nuopc.o wrf_nuopc.o
+esm.o: fire_behavior_nuopc.o wrf_nuopc.o ../io/namelist_mod.o
 
