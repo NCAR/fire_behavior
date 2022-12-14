@@ -36,6 +36,8 @@
       generic :: operator(/=) => Different
       procedure, public :: Lower_or_equal
       generic :: operator(<=) => Lower_or_equal
+      procedure, public :: Equal
+      generic :: operator(==) => Equal
       procedure, public :: Lower
       generic :: operator(<) => Lower
       procedure, pass(this) :: Copy
@@ -178,6 +180,22 @@
       end if
 
     end function Different
+
+    pure function Equal (lhs, rhs) result (return_value)
+
+      implicit none
+
+      class (datetime_t), intent (in) :: lhs, rhs
+      logical :: return_value
+
+
+      if (lhs%datetime == rhs%datetime .and. lhs%fractional_seconds == rhs%fractional_seconds) then
+        return_value = .true.
+      else
+        return_value = .false.
+      end if
+
+    end function Equal
 
     pure subroutine Get_datetime_as_ints (this, yyyy, mm, dd, hh, minutes, seconds)
 

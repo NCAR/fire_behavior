@@ -771,6 +771,8 @@ module fire_behavior_nuopc
 !    call Run_fire_behavior_model ()
     call Advance_state (grid, config_flags)
 
+    if (grid%datetime_now == grid%datetime_end) call grid%Save_state ()
+
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing Fire model from: ", unit=msgString, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &

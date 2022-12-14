@@ -73,6 +73,7 @@
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
       real, dimension(:, :), allocatable :: emis_smoke
+      real, dimension(:, :), allocatable :: fire_t2       ! "TEMP at 2 M"       "K"
 
         ! FMC model
       real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
@@ -121,7 +122,6 @@
       real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
       real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
       real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
-      real, dimension(:, :), allocatable :: fire_t2       ! "TEMP at 2 M"       "K"
       real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
       real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
       real, dimension(:, :), allocatable :: mut
@@ -590,6 +590,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_t2', this%fire_t2(1:this%nx, 1:this%ny))
 
     end subroutine Save_state
 
