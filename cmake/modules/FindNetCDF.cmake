@@ -1,0 +1,35 @@
+# - Try to find NetCDF
+
+# Create NetCDF C Lbirary
+find_library(NETCDF_LIBRARY_C NAMES netcdf
+  HINTS ENV NETCDF ENV NETCDF_DIR ENV NETCDF_ROOT
+  PATH_SUFFIXES lib lib64
+)
+find_path(NETCDF_INCLUDE_C NAMES netcdf.h
+  HINTS ENV NETCDF ENV NETCDF_DIR ENV NETCDF_ROOT
+  PATH_SUFFIXES include
+)
+add_library(netcdf UNKNOWN IMPORTED)
+set_target_properties(netcdf PROPERTIES
+  IMPORTED_LOCATION "${NETCDF_LIBRARY_C}"
+  INTERFACE_INCLUDE_DIRECTORIES "${NETCDF_INCLUDE_C}"
+)
+add_library(NetCDF::NetCDF_C ALIAS netcdf)
+
+# Create NetCDF Fortran Library
+find_library(NETCDF_LIBRARY_Fortran NAMES netcdff
+  HINTS ENV NETCDF ENV NETCDF_DIR ENV NETCDF_ROOT
+  PATH_SUFFIXES lib lib64
+)
+find_path(NETCDF_INCLUDE_Fortran NAMES netcdf.mod
+  HINTS ENV NETCDF ENV NETCDF_DIR ENV NETCDF_ROOT
+  PATH_SUFFIXES include
+)
+add_library(netcdff UNKNOWN IMPORTED)
+set_target_properties(netcdff PROPERTIES
+  IMPORTED_LOCATION "${NETCDF_LIBRARY_Fortran}"
+  INTERFACE_INCLUDE_DIRECTORIES "${NETCDF_INCLUDE_Fortran}"
+  INTERFACE_LINK_LIBRARIES netcdf
+)
+add_library(NetCDF ALIAS netcdff)
+add_library(NetCDF::NetCDF_Fortran ALIAS netcdff)
