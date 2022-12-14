@@ -16,7 +16,7 @@ if (NOT TARGET ESMF)
   endif (NOT ESMF_FOUND)
 endif (NOT TARGET ESMF)
 
-# find_package(NetCDF REQUIRED)
+find_package(NetCDF REQUIRED)
 
 #------------------------------------------------------------------------------
 # Add source files
@@ -55,11 +55,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   set(CMAKE_Fortran_FLAGS_OPT "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -fno-inline -no-ip -traceback")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
-# elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-#   set(CMAKE_Fortran_FLAGS_OPT "-std=f2008 -ffree-form -fbacktrace -fcheck=all -finit-real=nan -fall-intrinsics -Wall -g -Og")
-#   set(CMAKE_Fortran_FLAGS_DEBUG "")
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
-
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -Og -fcheck=all -finit-real=nan -Wall -fbacktrace")
+#  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
 else()
   message(WARNING "Fortran compiler with ID ${CMAKE_Fortran_COMPILER_ID} will be used with CMake default options")
 endif()
@@ -70,6 +69,7 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
+target_link_libraries(firelib PUBLIC NetCDF)
 
 # configure fire behavior executable
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
