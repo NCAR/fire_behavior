@@ -132,7 +132,7 @@
 
     contains
       procedure, public :: Initialization => Init_namelist
-      procedure, public :: Get_times => Get_time_start_end
+      procedure, public :: Init_time_block => Init_time_block
     end type namelist_fire_t
 
     type, extends (namelist_fire_t) :: namelist_t
@@ -147,14 +147,14 @@
 
   contains
 
-    subroutine Get_time_start_end (this, file_name, start_year, start_month, start_day, start_hour, &
-        start_minute, start_second, end_year, end_month, end_day, end_hour, end_minute, end_second, dt)
+    subroutine Init_time_block (this, file_name)
 
       implicit none
 
-      class (namelist_fire_t), intent (in) :: this
+      class (namelist_fire_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
-      integer, intent (out) :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
+
+      integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second
       real :: dt
 
@@ -176,13 +176,27 @@
       end_hour = 0
       end_minute = 0
       end_second = 0
-      dt = 0.0
+      dt = 2.0
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
       read (unit_nml, nml = time)
       close (unit_nml)
 
-    end subroutine Get_time_start_end
+      this%start_year = start_year
+      this%start_month = start_month
+      this%start_day = start_day
+      this%start_hour = start_hour
+      this%start_minute = start_minute
+      this%start_second = start_second
+      this%end_year = end_year
+      this%end_month = end_month
+      this%end_day = end_day
+      this%end_hour = end_hour
+      this%end_minute = end_minute
+      this%end_second = end_second
+      this%dt = dt
+
+    end subroutine Init_time_block
 
     subroutine Init_namelist (this, file_name)
 
@@ -195,10 +209,7 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
 
-      integer :: start_year = 0, start_month = 0, start_day = 0, start_hour = 0, start_minute = 0, start_second = 0, &
-          end_year = 0, end_month = 0, end_day = 0, end_hour = 0, end_minute = 0, end_second = 0
-
-      real :: dx = 200.0, dy = 200.0, dt = 2.0
+      real :: dx = 200.0, dy = 200.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
       integer ::  n_steps = 1
       logical :: read_wrf_input = .false.
@@ -290,9 +301,6 @@
 
       namelist /test/ n_case
 
-      namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, dt
-
       namelist /control/ restart, cen_lat, cen_lon, dx, dy, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
           ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
 
@@ -336,29 +344,16 @@
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
 
+      call this%Init_time_block (file_name = trim (file_name))
+
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
 
       read (unit_nml, nml = test)
-      read (unit_nml, nml = time)
       read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
 
       this%dx = dx
       this%dy = dy
-      this%dt = dt
-
-      this%start_year = start_year
-      this%start_month = start_month
-      this%start_day = start_day
-      this%start_hour = start_hour
-      this%start_minute = start_minute
-      this%start_second = start_second
-      this%end_year = end_year
-      this%end_month = end_month
-      this%end_day = end_day
-      this%end_hour = end_hour
-      this%end_minute = end_minute
-      this%end_second = end_second
 
       this%n_steps = n_steps
       this%read_wrf_input = read_wrf_input

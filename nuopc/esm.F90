@@ -82,7 +82,7 @@ module ESM
     type(ESMF_GridComp)           :: child
     type(ESMF_CplComp)            :: connector
 
-    type (namelist_t) :: fire_namelist
+    type (namelist_t) :: fire_nml
     integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
         end_year, end_month, end_day, end_hour, end_minute, end_second
     real :: dt
@@ -149,35 +149,28 @@ module ESM
 #endif
 
       ! set the driver clock
-    call fire_namelist%Get_times ('namelist.input', start_year, start_month, start_day, start_hour, &
-        start_minute, start_second, end_year, end_month, end_day, end_hour, end_minute, end_second, dt)
+    call fire_nml%Init_time_block ('namelist.input')
 
-    call ESMF_TimeIntervalSet(timeStep, s_r8 = real (dt, kind = ESMF_KIND_R8), rc = rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+    call ESMF_TimeIntervalSet (timeStep, s_r8 = real (fire_nml%dt, kind = ESMF_KIND_R8), rc = rc)
+    if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
 
-    call ESMF_TimeSet(startTime, yy = start_year, mm = start_month, dd = start_day, h = start_hour, &
-        m = start_minute, s = start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+    call ESMF_TimeSet (startTime, yy = fire_nml%start_year, mm = fire_nml%start_month, &
+        dd = fire_nml%start_day, h = fire_nml%start_hour, m = fire_nml%start_minute,  &
+        s = fire_nml%start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) &
+        return
 
-    call ESMF_TimeSet(stopTime, yy = end_year, mm = end_month, dd = end_day, h = end_hour, m = end_minute, &
-        s = end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+    call ESMF_TimeSet (stopTime, yy = fire_nml%end_year, mm = fire_nml%end_month, &
+        dd = fire_nml%end_day, h = fire_nml%end_hour, m = fire_nml%end_minute, &
+        s = fire_nml%end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
 
-    internalClock = ESMF_ClockCreate(name="Application Clock", &
-      timeStep=timeStep, startTime=startTime, stopTime=stopTime, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+    internalClock = ESMF_ClockCreate (name = "Application Clock", timeStep = timeStep, startTime = startTime, &
+        stopTime = stopTime, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line=__LINE__, file = __FILE__)) &
+        return
 
     call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
