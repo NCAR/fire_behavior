@@ -152,8 +152,7 @@ module ESM
     call fire_namelist%Get_times ('namelist.input', start_year, start_month, start_day, start_hour, &
         start_minute, start_second, end_year, end_month, end_day, end_hour, end_minute, end_second, dt)
 
-    !call ESMF_TimeIntervalSet(timeStep, s=1, rc=rc)
-    call ESMF_TimeIntervalSet(timeStep, s = int (dt), ms = nint (1000 * (dt - int(dt))), rc = rc)
+    call ESMF_TimeIntervalSet(timeStep, s_r8 = real (dt, kind = ESMF_KIND_R8), rc = rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
