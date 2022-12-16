@@ -6,7 +6,7 @@ project(
   LANGUAGES Fortran CXX)
 
 # add user defined cmake modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # add ESMF targets
 if (NOT TARGET ESMF)
@@ -69,7 +69,8 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
-target_link_libraries(firelib PUBLIC NetCDF)
+target_link_libraries(firelib ${NETCDF_LIBRARY_Fortran})
+target_include_directories(firelib PUBLIC "${NETCDF_INCLUDE_Fortran}")
 
 # configure fire behavior executable
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
