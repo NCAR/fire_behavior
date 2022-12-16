@@ -64,6 +64,11 @@ module fire_behavior_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    call NUOPC_CompSpecialize (model, specLabel = label_SetClock, specRoutine = SetClock, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
     call NUOPC_CompSpecialize(model, specLabel=label_Advance, &
       specRoutine=Advance, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -688,43 +693,46 @@ module fire_behavior_nuopc
 
   end subroutine
 
-  ! !-----------------------------------------------------------------------------
+  subroutine SetClock(model, rc)
 
-  ! subroutine SetClock(model, rc)
-  !   type(ESMF_GridComp)  :: model
-  !   integer, intent(out) :: rc
+    implicit none
 
-  !   ! local variables
-  !   type(ESMF_Clock)              :: clock
-  !   type(ESMF_TimeInterval)       :: stabilityTimeStep
+    type(ESMF_GridComp) :: model
+    integer, intent(out) :: rc
 
-  !   rc = ESMF_SUCCESS
+    type (ESMF_Clock) :: modelClock
+    type (ESMF_Time) :: startTime
+    type (ESMF_Time) :: stopTime
+    type (ESMF_TimeInterval) :: timeStep
 
-  !   ! query for clock
-  !   call NUOPC_ModelGet(model, modelClock=clock, rc=rc)
-  !   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-  !     line=__LINE__, &
-  !     file=__FILE__)) &
-  !     return  ! bail out
 
-  !   ! initialize internal clock
-  !   ! here: parent Clock and stability timeStep determine actual model timeStep
-  !   !TODO: stabilityTimeStep should be read in from configuation
-  !   !TODO: or computed from internal Grid information
-  !   call ESMF_TimeIntervalSet(stabilityTimeStep, m=5, rc=rc) ! 5 minute steps
-  !   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-  !     line=__LINE__, &
-  !     file=__FILE__)) &
-  !     return  ! bail out
-  !   call NUOPC_CompSetClock(model, clock, stabilityTimeStep, rc=rc)
-  !   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-  !     line=__LINE__, &
-  !     file=__FILE__)) &
-  !     return  ! bail out
+    rc = ESMF_SUCCESS
 
-  ! end subroutine
+    call ESMF_TimeIntervalSet (timeStep, s_r8 = real (config_flags%dt, kind = ESMF_KIND_R8), rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
 
-  !-----------------------------------------------------------------------------
+    call ESMF_TimeSet (startTime, yy = config_flags%start_year, mm = config_flags%start_month, &
+        dd = config_flags%start_day, h = config_flags%start_hour, m = config_flags%start_minute, &
+        s = config_flags%start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    call ESMF_TimeSet (stopTime, yy = config_flags%end_year, mm = config_flags%end_month, &
+        dd = config_flags%end_day, h = config_flags%end_hour, m = config_flags%end_minute, &
+        s = config_flags%end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    modelClock = ESMF_ClockCreate (name = "Fire Clock", timeStep = timeStep, startTime = startTime, stopTime = stopTime, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    call ESMF_GridCompSet (model, clock = modelClock, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+  end subroutine
 
   subroutine Advance(model, rc)
 
