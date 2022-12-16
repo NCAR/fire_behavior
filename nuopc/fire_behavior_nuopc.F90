@@ -3,23 +3,15 @@
 
 module fire_behavior_nuopc
 
-
-  !-----------------------------------------------------------------------------
-  ! Fire behavior component
-  !-----------------------------------------------------------------------------
-
   use ESMF
   use NUOPC
   use NUOPC_Model, &
     modelSS    => SetServices
 
-  !use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INPUT_UNIT
-
   use state_mod, only : domain
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_state
   use advance_mod, only : Advance_state
-
 
   implicit none
 
@@ -27,16 +19,12 @@ module fire_behavior_nuopc
 
   public SetVM, SetServices
 
-  !integer, parameter :: CASE_WRF_FIRE_TEST1 = 1
   type (domain) :: grid
   type (namelist_t) :: config_flags
-  integer :: n
-  !logical, parameter :: DEBUG = .true., WRITE_OUTPUT = .false.
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   integer :: clb(2), cub(2)
-  !-----------------------------------------------------------------------------
+
   contains
-  !-----------------------------------------------------------------------------
 
   subroutine SetServices(model, rc)
     type(ESMF_GridComp)  :: model
@@ -101,7 +89,7 @@ module fire_behavior_nuopc
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
 
-    call Init_fire_behavior_model()
+    call Init_state (grid, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------
 
@@ -252,6 +240,7 @@ module fire_behavior_nuopc
   !-----------------------------------------------------------------------------
 
   subroutine Realize(model, rc)
+
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
 
@@ -746,7 +735,6 @@ module fire_behavior_nuopc
     ! type(ESMF_TimeInterval)     :: timeStep
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
-    integer                     :: i, j 
     character(len=160)          :: msgString
 
     rc = ESMF_SUCCESS
@@ -776,7 +764,7 @@ module fire_behavior_nuopc
     ! Update atmospheric fields
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
 #endif
-!    call Run_fire_behavior_model ()
+
     call Advance_state (grid, config_flags)
 
     if (grid%datetime_now == grid%datetime_end) call grid%Save_state ()
@@ -807,26 +795,5 @@ module fire_behavior_nuopc
 
   end subroutine
 
-  !-----------------------------------------------------------------------------
-
-  subroutine Init_fire_behavior_model ()
-
-    implicit none
-    call Init_state (grid, config_flags)
-
-  end subroutine Init_fire_behavior_model
-
-  !-----------------------------------------------------------------------------
-
-  subroutine Run_fire_behavior_model ()
-
-    implicit none
-
-    do n = 1, config_flags%n_steps
-       call Advance_state (grid, config_flags)
-    end do
-  end subroutine Run_fire_behavior_model
-
-  !-----------------------------------------------------------------------------
-
 end module
+
