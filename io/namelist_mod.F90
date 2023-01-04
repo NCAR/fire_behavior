@@ -274,7 +274,6 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
 
-      real :: dx = 200.0, dy = 200.0
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -355,9 +354,6 @@
           fire_ignition_start_lat5 = 0.0, fire_ignition_end_x5 = 0.0, fire_ignition_end_y5 = 0.0, fire_ignition_end_lon5 = 0.0, &
           fire_ignition_end_lat5 = 0.0, fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, &
           fire_ignition_radius5 = 0.0
-
-      logical :: restart = .false.
-      real :: cen_lat = 0.0, cen_lon = 0.0
 
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
