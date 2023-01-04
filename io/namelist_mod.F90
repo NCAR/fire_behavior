@@ -129,6 +129,7 @@
       real :: fire_ignition_radius5 = 0.0
     contains
       procedure, public :: Initialization => Init_namelist
+      procedure, public :: Init_fire_block => Init_fire_block
       procedure, public :: Init_time_block => Init_time_block
     end type namelist_fire_t
 
@@ -199,80 +200,14 @@
 
     end subroutine Init_atm_block_legacy
 
-    subroutine Init_time_block (this, file_name)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
-      implicit none
-
-      class (namelist_fire_t), intent (in out) :: this
-      character (len = *), intent (in) :: file_name
-
-      integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output
-      real :: dt
-
-      integer :: unit_nml, io_stat
-
-      namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output
-
-
-      start_year = 0
-      start_month = 0
-      start_day = 0
-      start_hour = 0
-      start_minute = 0
-      start_second = 0
-      end_year = 0
-      end_month = 0
-      end_day = 0
-      end_hour = 0
-      end_minute = 0
-      end_second = 0
-      dt = 2.0
-      interval_output = 0
-
-      open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
-        stop
-      end if
-
-      read (unit_nml, nml = time, iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading namelist time block'
-        stop
-      end if
-      close (unit_nml)
-
-      this%start_year = start_year
-      this%start_month = start_month
-      this%start_day = start_day
-      this%start_hour = start_hour
-      this%start_minute = start_minute
-      this%start_second = start_second
-      this%end_year = end_year
-      this%end_month = end_month
-      this%end_day = end_day
-      this%end_hour = end_hour
-      this%end_minute = end_minute
-      this%end_second = end_second
-      this%dt = dt
-      this%interval_output = interval_output
-
-    end subroutine Init_time_block
-
-    subroutine Init_namelist (this, file_name)
+    subroutine Init_fire_block (this, file_name)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
       implicit none
 
-      class (namelist_fire_t), intent (out) :: this
+      class (namelist_fire_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
-
-      logical, parameter :: DEBUG_LOCAL = .true.
 
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
@@ -393,10 +328,6 @@
       integer :: unit_nml, io_stat
 
 
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
-
-      call this%Init_time_block (file_name = trim (file_name))
-
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
         write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
@@ -404,6 +335,10 @@
       end if
 
       read (unit_nml, nml = fire)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems reading namelist fire block'
+        stop
+      end if
 
       close (unit_nml)
 
@@ -518,6 +453,89 @@
       this%fire_ignition_start_time5 = fire_ignition_start_time5
       this%fire_ignition_end_time5 = fire_ignition_end_time5
       this%fire_ignition_radius5 = fire_ignition_radius5
+
+    end subroutine Init_fire_block
+
+    subroutine Init_time_block (this, file_name)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (namelist_fire_t), intent (in out) :: this
+      character (len = *), intent (in) :: file_name
+
+      integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output
+      real :: dt
+
+      integer :: unit_nml, io_stat
+
+      namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output
+
+
+      start_year = 0
+      start_month = 0
+      start_day = 0
+      start_hour = 0
+      start_minute = 0
+      start_second = 0
+      end_year = 0
+      end_month = 0
+      end_day = 0
+      end_hour = 0
+      end_minute = 0
+      end_second = 0
+      dt = 2.0
+      interval_output = 0
+
+      open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
+        stop
+      end if
+
+      read (unit_nml, nml = time, iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems reading namelist time block'
+        stop
+      end if
+      close (unit_nml)
+
+      this%start_year = start_year
+      this%start_month = start_month
+      this%start_day = start_day
+      this%start_hour = start_hour
+      this%start_minute = start_minute
+      this%start_second = start_second
+      this%end_year = end_year
+      this%end_month = end_month
+      this%end_day = end_day
+      this%end_hour = end_hour
+      this%end_minute = end_minute
+      this%end_second = end_second
+      this%dt = dt
+      this%interval_output = interval_output
+
+    end subroutine Init_time_block
+
+    subroutine Init_namelist (this, file_name)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
+
+      implicit none
+
+      class (namelist_fire_t), intent (out) :: this
+      character (len = *), intent (in) :: file_name
+
+      logical, parameter :: DEBUG_LOCAL = .true.
+
+
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
+
+      call this%Init_time_block (file_name = trim (file_name))
+      call this%Init_fire_block (file_name = trim (file_name))
 
       select type (this)
         type is (namelist_fire_t)
