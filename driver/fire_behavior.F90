@@ -1,7 +1,5 @@
   program fire_behavior
 
-!    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
     use state_mod, only : domain
     use namelist_mod, only : namelist_t
     use initialize_mod, only : Init_state
@@ -14,11 +12,11 @@
 
 
     call Init_state (grid, config_flags)
+    call grid%Save_state ()
 
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
+      call grid%Handle_output (config_flags)
     end do
-    call grid%Save_state ()
-!    call grid%datetime_now%Print_datetime ()
 
   end program fire_behavior

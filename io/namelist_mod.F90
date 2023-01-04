@@ -10,7 +10,7 @@
 
     type :: namelist_fire_t
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
-          end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1
+          end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1
       real :: dx = 200.0, dy = 200.0, dt = 2.0
       integer ::  n_steps = 1
       logical :: read_wrf_input = .false.
@@ -155,13 +155,13 @@
       character (len = *), intent (in) :: file_name
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second
+          end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output
       real :: dt
 
       integer :: unit_nml
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, dt
+          end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output
 
 
       start_year = 0
@@ -177,6 +177,7 @@
       end_minute = 0
       end_second = 0
       dt = 2.0
+      interval_output = 0
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read')
       read (unit_nml, nml = time)
@@ -195,6 +196,7 @@
       this%end_minute = end_minute
       this%end_second = end_second
       this%dt = dt
+      this%interval_output = interval_output
 
     end subroutine Init_time_block
 

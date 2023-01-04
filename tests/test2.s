@@ -160,7 +160,7 @@ rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./namelist.
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
-  rm -rf ./fire_output_2000-01-01_00:00:02.nc
+  rm -f ./fire_output_2000-01-01_00:00:0?.nc
 fi
 
   # Print summary of Test 2

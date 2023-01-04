@@ -184,7 +184,7 @@ rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./namelist.input ./fort.34
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
-  rm -f ./fire_output_2000-01-01_00:00:10.nc
+  rm -f ./fire_output_2000-01-01_00:00:??.nc
 fi
 
   # Print summary of Test 1

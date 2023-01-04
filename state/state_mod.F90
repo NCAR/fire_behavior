@@ -20,7 +20,7 @@
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
-      type (datetime_t) :: datetime_start, datetime_end, datetime_now
+      type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
@@ -90,6 +90,7 @@
       integer :: nx ! "number of longitudinal grid points" "1" 
       integer :: ny ! "number of latitudinal grid points" "1"
     contains
+      procedure, public :: Handle_output => Handle_output
       procedure, public :: Save_state => Save_state
     end type state_fire_t
 
@@ -144,6 +145,26 @@
     end type domain
 
   contains
+
+    subroutine Handle_output (this, config_flags)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      class (state_fire_t), intent(in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+      logical, parameter :: DEBUG_LOCAL = .true.
+
+
+      if (this%datetime_now == this%datetime_next_output) then
+        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Writing output...'
+        call this%Save_state ()
+        call this%datetime_next_output%Add_seconds (config_flags%interval_output)
+      end if
+
+    end subroutine Handle_output
 
     subroutine Init_domain (this, config_flags, geogrid)
 
@@ -240,6 +261,8 @@
       this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
           config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
       this%datetime_now = this%datetime_start
+      this%datetime_next_output = this%datetime_start
+      call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
