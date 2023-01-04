@@ -148,6 +148,8 @@
 
     subroutine Init_time_block (this, file_name)
 
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
       implicit none
 
       class (namelist_fire_t), intent (in out) :: this
@@ -157,7 +159,7 @@
           end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output
       real :: dt
 
-      integer :: unit_nml
+      integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output
@@ -178,8 +180,17 @@
       dt = 2.0
       interval_output = 0
 
-      open (newunit = unit_nml, file = trim (file_name), action = 'read')
-      read (unit_nml, nml = time)
+      open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
+        stop
+      end if
+
+      read (unit_nml, nml = time, iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems reading namelist time block'
+        stop
+      end if
       close (unit_nml)
 
       this%start_year = start_year
@@ -339,14 +350,18 @@
           fire_ignition_end_lat5, fire_ignition_ros5, fire_ignition_start_time5, fire_ignition_end_time5, &
           fire_ignition_radius5
 
-      integer :: unit_nml
+      integer :: unit_nml, io_stat
 
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
 
       call this%Init_time_block (file_name = trim (file_name))
 
-      open (newunit = unit_nml, file = trim (file_name), action = 'read')
+      open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
+        stop
+      end if
 
       read (unit_nml, nml = test)
       read (unit_nml, nml = control)
