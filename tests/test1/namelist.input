@@ -19,7 +19,7 @@
  interval_output = 1
 /
 
- &control
+ &atm
  ide = 103
  jde = 103
  kde = 51

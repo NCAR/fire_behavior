@@ -19,7 +19,8 @@
  interval_output = 1
 /
 
- &control
+ &atm
+! mode = 'wrfdata_legacy'
  ide = 20
  jde = 20
  kde = 45

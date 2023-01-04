@@ -11,9 +11,7 @@
     type :: namelist_fire_t
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1
-      real :: dx = 200.0, dy = 200.0, dt = 2.0
-      logical :: read_wrf_input = .false.
-      logical ::  check_tends = .false.
+      real :: dt = 2.0
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -128,7 +126,6 @@
       real :: fire_ignition_start_time5 = 0.0
       real :: fire_ignition_end_time5 = 0.0
       real :: fire_ignition_radius5 = 0.0
-
     contains
       procedure, public :: Initialization => Init_namelist
       procedure, public :: Init_time_block => Init_time_block
@@ -136,15 +133,75 @@
 
     type, extends (namelist_fire_t) :: namelist_t
         ! Atmosphere
+      real :: dx = 200.0, dy = 200.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
       logical :: restart = .false.
       real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
+      logical :: read_wrf_input = .false.
+      logical ::  check_tends = .false.
         ! Test
       integer :: n_case = 0
+    contains
+      procedure, public :: Init_atm_block_legacy => Init_atm_block_legacy
     end type namelist_t
 
   contains
+
+    subroutine Init_atm_block_legacy (this, file_name)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (namelist_t), intent (in out) :: this
+      character (len = *), intent (in) :: file_name
+
+      real :: dx, dy
+      integer :: ide, jde, kde, sr_x, sr_y
+      logical :: read_wrf_input, check_tends
+
+      integer :: unit_nml, io_stat
+
+      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, read_wrf_input, check_tends
+
+
+      dx = 200.1
+      dy = 200.1
+      ide = 2
+      jde = 2
+      kde = 2
+      sr_x = 1
+      sr_y = 1
+
+      read_wrf_input = .false.
+      check_tends = .false.
+
+      open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
+        stop
+      end if
+
+      read (unit_nml, nml = atm, iostat = io_stat)
+      if (io_stat /= 0) then
+        write (ERROR_UNIT, *) 'Problems reading namelist atm block'
+        stop
+      end if
+      close (unit_nml)
+
+      this%dx = dx
+      this%dy = dy
+      this%ide = ide
+      this%jde = jde
+      this%kde = kde
+      this%sr_x = sr_x
+      this%sr_y = sr_y
+
+      this%read_wrf_input = read_wrf_input
+      this%check_tends = check_tends
+
+    end subroutine Init_atm_block_legacy
 
     subroutine Init_time_block (this, file_name)
 
@@ -222,9 +279,6 @@
       logical, parameter :: DEBUG_LOCAL = .true.
 
       real :: dx = 200.0, dy = 200.0
-      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
-      logical :: read_wrf_input = .false.
-      logical ::  check_tends = .false.
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -312,9 +366,6 @@
 
       namelist /test/ n_case
 
-      namelist /control/ restart, cen_lat, cen_lon, dx, dy, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
-          ids, ide, jds, jde, kds, kde, sr_x, sr_y, read_wrf_input, check_tends
-
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_test_steps, fire_advection, fire_lsm_reinit, &
@@ -364,14 +415,9 @@
       end if
 
       read (unit_nml, nml = test)
-      read (unit_nml, nml = control)
       read (unit_nml, nml = fire)
 
-      this%dx = dx
-      this%dy = dy
-
-      this%read_wrf_input = read_wrf_input
-      this%check_tends = check_tends
+      close (unit_nml)
 
       this%fire_print_msg = fire_print_msg
       this%fire_print_file = fire_print_file
@@ -487,24 +533,12 @@
 
       select type (this)
         type is (namelist_fire_t)
-          ! we are good 
+         ! we are good
 
         class is (namelist_t)
           this%n_case = n_case
 
-          this%restart = restart
-          this%cen_lat = cen_lat
-          this%cen_lon = cen_lon
-
-          this%ids = ids
-          this%jds = jds
-          this%kds = kds
-          this%ide = ide
-          this%jde = jde
-          this%kde = kde
-
-          this%sr_x = sr_x
-          this%sr_y = sr_y
+          call this%Init_atm_block_legacy (file_name = trim (file_name))
 
         class default
           write (ERROR_UNIT, *) 'Unknown type for namelist_fire_t'
