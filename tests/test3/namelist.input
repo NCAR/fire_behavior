@@ -1,7 +1,3 @@
- &test
- n_case = 3
-/
-
  &time
  start_year = 2012
  start_month = 6

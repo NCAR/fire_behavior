@@ -47,11 +47,11 @@
 
         ! Atmosphere init
       select case ( config_flags%atm_model)
-        case ('wrfdata_legacy')
-          Call Read_wrf_input (grid)
-
         case ('test1')
            call Load_atmosphere_test1 (grid, config_flags)
+
+        case ('wrfdata_legacy')
+          Call Read_wrf_input (grid)
 
         case default
           write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
@@ -64,14 +64,14 @@
             ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe  &
             ,grid%its, grid%ite, grid%kts, grid%kte, grid%jts, grid%jte)
 
-!      if (config_flags%n_case == 3) then
+!      if (config_flags%fire_fuel_read == -1) then
 !        grid%fxlat = 0.0
 !        grid%fxlong = 0.0
 !        grid%fxlat(1:grid%ifde - 3, 1:grid%jfde - 3) = grid%lats(3:grid%ifde - 1, 3:grid%jfde - 1)
 !        grid%fxlong(1:grid%ifde - 3, 1:grid%jfde - 3) = grid%lons(3:grid%ifde - 1, 3:grid%jfde - 1)
 !      end if
 
-      if (DEBUG_LOCAL .and. config_flags%n_case == 3) then
+      if (DEBUG_LOCAL .and. config_flags%fire_fuel_read == -1) then
           ! print lat/lons
         open (newunit = unit_out, file = 'latlons_c.dat')
         open (newunit = unit_out2, file = 'latlons.dat')

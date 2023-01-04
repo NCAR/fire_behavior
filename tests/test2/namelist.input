@@ -1,7 +1,3 @@
- &test
- n_case = 2
-/
-
  &time
  start_year = 2000
  start_month = 1

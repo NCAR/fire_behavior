@@ -139,8 +139,6 @@
       logical :: restart = .false.
       real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
-        ! Test
-      integer :: n_case = 0
     contains
       procedure, public :: Init_atm_block => Init_atm_block_legacy
     end type namelist_t
@@ -360,9 +358,6 @@
 
       logical :: restart = .false.
       real :: cen_lat = 0.0, cen_lon = 0.0
-      integer :: n_case = 0
-
-      namelist /test/ n_case
 
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
@@ -412,7 +407,6 @@
         stop
       end if
 
-      read (unit_nml, nml = test)
       read (unit_nml, nml = fire)
 
       close (unit_nml)
@@ -534,8 +528,6 @@
          ! we are good
 
         class is (namelist_t)
-          this%n_case = n_case
-
           call this%Init_atm_block (file_name = trim (file_name))
 
         class default
