@@ -12,6 +12,7 @@
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1
       real :: dt = 2.0
+      character (len = :), allocatable :: atm_model
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_print_file = 0          ! "write fire output text files, 0 no writes, 1+ for more" ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -138,12 +139,10 @@
       logical :: restart = .false.
       real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
       real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
-      logical :: read_wrf_input = .false.
-      logical ::  check_tends = .false.
         ! Test
       integer :: n_case = 0
     contains
-      procedure, public :: Init_atm_block_legacy => Init_atm_block_legacy
+      procedure, public :: Init_atm_block => Init_atm_block_legacy
     end type namelist_t
 
   contains
@@ -159,13 +158,16 @@
 
       real :: dx, dy
       integer :: ide, jde, kde, sr_x, sr_y
-      logical :: read_wrf_input, check_tends
+      integer, parameter :: MAX_CHAR_LEN = 250
+      character (len = MAX_CHAR_LEN) :: atm_model
 
       integer :: unit_nml, io_stat
 
-      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, read_wrf_input, check_tends
+      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, atm_model
 
 
+      atm_model = 'Unknown'
+        ! The following vars are legacy vars
       dx = 200.1
       dy = 200.1
       ide = 2
@@ -173,9 +175,6 @@
       kde = 2
       sr_x = 1
       sr_y = 1
-
-      read_wrf_input = .false.
-      check_tends = .false.
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -190,6 +189,8 @@
       end if
       close (unit_nml)
 
+      this%atm_model = trim (atm_model)
+        ! Legacy vars
       this%dx = dx
       this%dy = dy
       this%ide = ide
@@ -197,9 +198,6 @@
       this%kde = kde
       this%sr_x = sr_x
       this%sr_y = sr_y
-
-      this%read_wrf_input = read_wrf_input
-      this%check_tends = check_tends
 
     end subroutine Init_atm_block_legacy
 
@@ -538,7 +536,7 @@
         class is (namelist_t)
           this%n_case = n_case
 
-          call this%Init_atm_block_legacy (file_name = trim (file_name))
+          call this%Init_atm_block (file_name = trim (file_name))
 
         class default
           write (ERROR_UNIT, *) 'Unknown type for namelist_fire_t'

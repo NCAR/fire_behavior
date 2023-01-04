@@ -20,6 +20,7 @@
 /
 
  &atm
+ atm_model = 'test1'
  ide = 103
  jde = 103
  kde = 51
@@ -27,8 +28,6 @@
  sr_y = 4
  dx = 50.0
  dy = 50.0
- read_wrf_input = .false.
- check_tends = .true.
  /
 
  &fire

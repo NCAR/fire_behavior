@@ -30,9 +30,10 @@
         write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
       end if
 
-        ! Namelist and state init
+        ! Read namelist
       call config_flags%Initialization (file_name = 'namelist.input')
 
+        ! Fire state initialization
       if (config_flags%fire_fuel_read == -1) then
         geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
         config_flags%cen_lat = geogrid%cen_lat
@@ -45,8 +46,16 @@
       end if
 
         ! Atmosphere init
-      if (config_flags%read_wrf_input) Call Read_wrf_input (grid)
-      if (config_flags%n_case == 1) call Load_atmosphere_test1 (grid, config_flags)
+      select case ( config_flags%atm_model)
+        case ('wrfdata_legacy')
+          Call Read_wrf_input (grid)
+
+        case ('test1')
+           call Load_atmosphere_test1 (grid, config_flags)
+
+        case default
+          write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
+      end select
 
         ! Fire init
       call fire_driver_em_init (grid , config_flags                        &
@@ -173,7 +182,7 @@
 
     subroutine Read_wrf_input (grid)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
       implicit none
 
@@ -185,14 +194,14 @@
 
       open (newunit = wrf_input_unit, file = 'wrf_input.dat', iostat = io_stat)
       if (io_stat /= 0) then
-        write (OUTPUT_UNIT, *) 'Problems opening the wrf_input.dat file'
+        write (ERROR_UNIT, *) 'Problems opening the wrf_input.dat file'
         stop
       end if
 
       check_val = 0
       read (wrf_input_unit, *, iostat = io_stat) grid%u_2
       if (io_stat /= 0) then
-        write (OUTPUT_UNIT, *) 'Problems reading wrf_input.dat'
+        write (ERROR_UNIT, *) 'Problems reading wrf_input.dat'
         stop
       end if
 

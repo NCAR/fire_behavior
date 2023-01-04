@@ -20,6 +20,7 @@
 /
 
  &atm
+ atm_model = 'wrfdata_legacy'
  ide = 20
  jde = 40
  kde = 51
@@ -27,8 +28,6 @@
  sr_y = 4
  dx = 50.0
  dy = 50.0
- read_wrf_input = .true.
- check_tends = .false.
  /
 
  &fire

@@ -37,7 +37,7 @@
             ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
             ,grid%rho, grid%z_at_w, grid%dz8w)
 
-      if (config_flags%check_tends) write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
+      if (config_flags%atm_model == 'test1') write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
 
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
