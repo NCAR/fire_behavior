@@ -27,7 +27,6 @@
  sr_y = 4
  dx = 50.0
  dy = 50.0
- n_steps = 20
  read_wrf_input = .false.
  check_tends = .true.
  /

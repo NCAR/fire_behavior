@@ -324,26 +324,4 @@ module wrf_nuopc
 
   end subroutine
 
-  !-----------------------------------------------------------------------------
-
-!  subroutine Init_fire_behavior_model ()
-!
-!    implicit none
-!    call Init_state (grid, config_flags)
-!
-!  end subroutine Init_fire_behavior_model
-
-  !-----------------------------------------------------------------------------
-
-!  subroutine Run_fire_behavior_model ()
-!
-!    implicit none
-!
-!    do n = 1, config_flags%n_steps
-!       call Advance_state (grid, config_flags)
-!    end do
-!  end subroutine Run_fire_behavior_model
-
-  !-----------------------------------------------------------------------------
-
 end module wrf_nuopc

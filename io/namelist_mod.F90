@@ -12,7 +12,6 @@
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1
       real :: dx = 200.0, dy = 200.0, dt = 2.0
-      integer ::  n_steps = 1
       logical :: read_wrf_input = .false.
       logical ::  check_tends = .false.
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
@@ -213,7 +212,6 @@
 
       real :: dx = 200.0, dy = 200.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
-      integer ::  n_steps = 1
       logical :: read_wrf_input = .false.
       logical ::  check_tends = .false.
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
@@ -304,7 +302,7 @@
       namelist /test/ n_case
 
       namelist /control/ restart, cen_lat, cen_lon, dx, dy, ids, ide, jds, jde, kds, kde, sr_x, sr_y, &
-          ids, ide, jds, jde, kds, kde, sr_x, sr_y, n_steps, read_wrf_input, check_tends
+          ids, ide, jds, jde, kds, kde, sr_x, sr_y, read_wrf_input, check_tends
 
       namelist /fire/  fire_print_msg, fire_print_file, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
@@ -357,7 +355,6 @@
       this%dx = dx
       this%dy = dy
 
-      this%n_steps = n_steps
       this%read_wrf_input = read_wrf_input
       this%check_tends = check_tends
 
