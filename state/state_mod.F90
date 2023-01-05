@@ -5,6 +5,7 @@
     use proj_lc_mod, only : proj_lc_t
     use datetime_mod, only : datetime_t
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
+    use wrf_mod, only : wrf_t
 
     implicit none
 
@@ -20,7 +21,7 @@
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
-      type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output
+      type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output, datetime_next_atm_update
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
@@ -139,6 +140,7 @@
       real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
       real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
     contains
+      procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_latlons_fire => Init_latlons_fire
       procedure, public :: Print => Print_domain
@@ -165,6 +167,126 @@
       end if
 
     end subroutine Handle_output
+
+    subroutine Handle_wrfdata_update (this, config_flags)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      class (domain), intent(in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+      type (wrf_t) :: wrf
+      logical, parameter :: DEBUG_LOCAL = .true.
+      integer :: i, j, k
+
+
+      if (this%datetime_now == this%datetime_next_atm_update) then
+        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
+        if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
+
+        wrf = wrf_t (file_name = 'wrf.nc')
+
+          ! Update t2
+        call wrf%Get_t2 (this%datetime_now)
+        this%t2(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%t2(:, :)
+        call wrf%Destroy_t2 ()
+
+          ! Update z0
+        call wrf%Get_z0 (this%datetime_now)
+        this%z0(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%z0(:, :)
+        call wrf%Destroy_z0 ()
+
+          ! Update MUT
+        call wrf%Get_mut (this%datetime_now)
+        this%mut(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%mut(:, :)
+        call wrf%Destroy_mut ()
+
+          ! Update U3D
+        call wrf%Get_u3d_stag (this%datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide
+              this%u_2(i, k, j) = wrf%u3d(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_u3d ()
+
+          ! Update V3D
+        call wrf%Get_v3d_stag (this%datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde
+            do i = this%ids, this%ide - 1
+              this%v_2(i, k, j) = wrf%v3d(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_v3d ()
+
+          ! PHB
+        call wrf%Get_phb_stag (this%datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%phb(i, k, j) = wrf%phb(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_phb ()
+
+          ! PH
+        call wrf%Get_ph_stag (this%datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%ph_2(i, k, j) = wrf%ph(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_phb ()
+
+          ! DZ8W
+        call wrf%Get_dz8w (this%datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%dz8w(i, k, j) = wrf%dz8w(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_dz8w ()
+
+          ! Z_AT_W
+        call wrf%Get_z_at_w (this%datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%z_at_w(i, k, j) = wrf%z_at_w(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_z_at_w ()
+
+          ! RHO
+        call wrf%Get_rho (this%datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%rho(i, k, j) = wrf%rho(i, j, k)
+            end do
+          end do
+        end do
+        call wrf%Destroy_rho ()
+
+        call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
+
+!print *, 'ABORTING in Handle_wrfdata_update until interpolation is implemented'
+!stop
+      end if
+
+    end subroutine Handle_wrfdata_update
 
     subroutine Init_domain (this, config_flags, geogrid)
 
@@ -261,8 +383,11 @@
       this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
           config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
       this%datetime_now = this%datetime_start
+
       this%datetime_next_output = this%datetime_start
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
+
+      this%datetime_next_atm_update = this%datetime_start
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))

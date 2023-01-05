@@ -12,6 +12,7 @@
 
 
     call Init_state (grid, config_flags)
+    if (config_flags%atm_model == 'wrfdata') Call grid%Handle_wrfdata_update (config_flags)
     call grid%Save_state ()
 
     do while (grid%datetime_now < grid%datetime_end)

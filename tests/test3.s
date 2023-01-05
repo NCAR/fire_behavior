@@ -22,7 +22,6 @@ test3p5=1 # Check Max latent heat flux
 
 file_wrf=./test3/rsl.out.0000
 file_exe=../driver/fire_behavior.exe
-#file_exe=../nuopc/esmApp.exe
 file_output=test3_output.txt
 
 cp ./test3/wrf_input.dat .

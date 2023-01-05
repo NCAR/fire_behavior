@@ -10,7 +10,8 @@
 
     type :: namelist_fire_t
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
-          end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1
+          end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1, &
+          interval_atm = -1
       real :: dt = 2.0
       character (len = :), allocatable :: atm_model
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
@@ -156,16 +157,17 @@
       character (len = *), intent (in) :: file_name
 
       real :: dx, dy
-      integer :: ide, jde, kde, sr_x, sr_y
+      integer :: ide, jde, kde, sr_x, sr_y, interval_atm
       integer, parameter :: MAX_CHAR_LEN = 250
       character (len = MAX_CHAR_LEN) :: atm_model
 
       integer :: unit_nml, io_stat
 
-      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, atm_model
+      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, atm_model, interval_atm
 
 
       atm_model = 'Unknown'
+      interval_atm = 0
         ! The following vars are legacy vars
       dx = 200.1
       dy = 200.1
@@ -189,6 +191,8 @@
       close (unit_nml)
 
       this%atm_model = trim (atm_model)
+      this%interval_atm = interval_atm
+
         ! Legacy vars
       this%dx = dx
       this%dy = dy
