@@ -54,7 +54,7 @@
           Call Read_wrf_input (grid)
 
         case ('wrfdata')
-          ! nothing to do here
+          Call grid%Handle_wrfdata_update (config_flags)
 
         case default
           write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model

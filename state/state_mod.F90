@@ -182,7 +182,7 @@
       integer :: i, j, k
 
 
-      if (this%datetime_now == this%datetime_next_atm_update) then
+      If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
@@ -281,10 +281,7 @@
         call wrf%Destroy_rho ()
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
-
-!print *, 'ABORTING in Handle_wrfdata_update until interpolation is implemented'
-!stop
-      end if
+      end if If_update_atm
 
     end subroutine Handle_wrfdata_update
 

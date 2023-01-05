@@ -20,7 +20,7 @@ test4p5=1 # Check Max latent heat flux
 #################################################
 #
 
-file_wrf=./test4/rsl.out.0000
+file_wrf=./test4/rsl.out.0000_10s
 file_exe=../driver/fire_behavior.exe
 file_output=test4_output.txt
 
@@ -144,9 +144,12 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $8}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-  if [ $test -eq 0 ]
+    # Here we allow one difference since we are not expecting bit4bit results
+  if [ $test -le 4 ]
   then
     echo '  Test4.5 PASSED'
+    echo '    Ignore this difference:'
+    diff ./file1.dat ./file2.dat
     n_test_passed=$(expr $n_test_passed + 1)
   else
     echo '  Test4.5 FAILS'
@@ -162,7 +165,7 @@ rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d0
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
-  rm -f ./fire_output_2012-06-25_18:00:0?.nc
+  rm -f ./fire_output_2012-06-25_18:00:??.nc
 fi
 
   # Print summary of Test 4

@@ -10,13 +10,14 @@
  end_day = 25
  end_hour = 18
  end_minute = 0
- end_second = 1
+ end_second = 10
  dt = 0.5
  interval_output = 1
 /
 
  &atm
  atm_model = 'wrfdata'
+ interval_atm = 1
  ide = 20
  jde = 20
  kde = 45
