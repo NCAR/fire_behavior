@@ -164,8 +164,9 @@ fi
 rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
 if [ $purge_output -eq 1 ]
 then
-  rm -rf ./$file_output
+  rm -f ./$file_output
   rm -f ./fire_output_2012-06-25_18:00:??.nc
+  rm -f ./wrf.nc ./PET0.ESMF_LogFile
 fi
 
   # Print summary of Test 4
@@ -193,6 +194,5 @@ then
 fi
 
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
-rm -f ./wrf.nc ./PET0.ESMF_LogFile
 
 

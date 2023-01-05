@@ -17,6 +17,7 @@
 
  &atm
  atm_model = 'wrfdata_legacy'
+ interval_atm = 1
  ide = 20
  jde = 20
  kde = 45

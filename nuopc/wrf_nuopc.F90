@@ -12,6 +12,7 @@ module wrf_nuopc
   use NUOPC_Model, &
     modelSS    => SetServices
   use wrf_mod, only : wrf_t
+  use namelist_mod, only : namelist_t
 
 
   implicit none
@@ -23,6 +24,7 @@ module wrf_nuopc
   type (wrf_t) :: state
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   integer                         :: clb(2), cub(2)
+  type (namelist_t) :: config_flags
 
   !-----------------------------------------------------------------------------
   contains
@@ -54,6 +56,11 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+!    call NUOPC_CompSpecialize (model, specLabel = label_SetClock, specRoutine = SetClock, rc = rc)
+!    if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+!        return
+
     call NUOPC_CompSpecialize(model, specLabel=label_Advance, &
       specRoutine=Advance, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -85,6 +92,9 @@ module wrf_nuopc
     ! Eventually, you will advertise your model's import and
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
+
+    call config_flags%Init_time_block ('namelist.input')
+    call config_flags%Init_atm_block ('namelist.input')
 
     state = wrf_t(file_name = 'wrf.nc')
     allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
@@ -254,6 +264,47 @@ module wrf_nuopc
 
   !-----------------------------------------------------------------------------
 
+  subroutine SetClock(model, rc)
+
+    implicit none
+
+    type(ESMF_GridComp) :: model
+    integer, intent(out) :: rc
+
+    type (ESMF_Clock) :: modelClock
+    type (ESMF_Time) :: startTime
+    type (ESMF_Time) :: stopTime
+    type (ESMF_TimeInterval) :: timeStep
+
+
+    rc = ESMF_SUCCESS
+
+    call ESMF_TimeIntervalSet (timeStep, s = config_flags%interval_atm, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    call ESMF_TimeSet (startTime, yy = config_flags%start_year, mm = config_flags%start_month, &
+        dd = config_flags%start_day, h = config_flags%start_hour, m = config_flags%start_minute, &
+        s = config_flags%start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    call ESMF_TimeSet (stopTime, yy = config_flags%end_year, mm = config_flags%end_month, &
+        dd = config_flags%end_day, h = config_flags%end_hour, m = config_flags%end_minute, &
+        s = config_flags%end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    modelClock = ESMF_ClockCreate (name = "WRFdata Clock", timeStep = timeStep, startTime = startTime, stopTime = stopTime, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+    call ESMF_GridCompSet (model, clock = modelClock, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
+
+  end subroutine
+
   subroutine Advance(model, rc)
 
     type(ESMF_GridComp)  :: model
@@ -299,7 +350,7 @@ module wrf_nuopc
       state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
 
     call ESMF_ClockPrint(clock, options="currTime", &
-      preString="------>Advancing Fire model from: ", unit=msgString, rc=rc)
+      preString="------>Advancing WRFdata model from: ", unit=msgString, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
