@@ -432,7 +432,7 @@ print *, config_flags%end_year, config_flags%end_month, config_flags%end_day, co
     ! Set field data
     ptr_t2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
       state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
-    call state%Destroy_t2 ()
+!    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing WRFdata model from: ", unit=msgString, rc=rc)
