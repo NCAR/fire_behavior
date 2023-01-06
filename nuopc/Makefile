@@ -9,7 +9,7 @@ DRIVER_DIR = ../driver
 DRIVER_INCLUDE="-I$(DRIVER_DIR)"
 
 SHARE_DIR = ../share
-DRIVER_INCLUDE="-I$(SHARE_DIR)"
+SHARE_INCLUDE="-I$(SHARE_DIR)"
 
 ifneq ($(origin ESMFMKFILE), environment)
 $(error Environment variable ESMFMKFILE was not set.)
