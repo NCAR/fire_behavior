@@ -315,10 +315,6 @@ halo_fire_mag_sub
             grid%fmc_lag,                      & ! fuel moisture fields updated, by class, tendency diagnostic
             fp%fmc_g , &                             !  write-only alias. need to exit before using fp again
             fp, &
-            grid, & ! DME added for halo update
-            ids,ide,jds,jde,kds,kde, & 
-            ims,ime,jms,jme,kms,kme, & 
-            ips,ipe,jps,jpe,kps,kpe, &
             config_flags & 
         )
 
@@ -418,21 +414,14 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     fmc_lag,                    &  ! fuel moisture fields updated, by class tendency diagnostic
     fmc_g, &                          ! fuel moisture, alias of fp%fmc_g
     fp,                                           & ! fire params
-    grid,                                         & 
-    ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, &
-    ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, &
-    ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu, &
     config_flags & 
     )
 
 #ifdef DM_PARALLEL
 USE module_dm, only:wrf_dm_maxval
 #endif
-USE state_mod, only: domain
 
 implicit none
-
-    type(domain) , target :: grid                             ! state 
 
 !*** arguments
 
@@ -453,10 +442,6 @@ integer, intent(in)::ifun,                        &
                                                        ! 2=from file
     nfuel_cat0,                                   & ! fuel category to initialize everything to
     num_tiles                                       ! number of tiles
-
-integer, intent(in)::ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-                     ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-                     ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu   
 
 type (namelist_t), intent(in)          :: config_flags
 
