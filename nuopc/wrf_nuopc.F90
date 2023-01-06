@@ -24,6 +24,7 @@ module wrf_nuopc
 
   type (wrf_t) :: state
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   integer                         :: clb(2), cub(2)
   type (namelist_t) :: config_flags
 
@@ -99,7 +100,7 @@ module wrf_nuopc
 
     state = wrf_t(file_name = 'wrf.nc')
     allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
-    state%t2 = 300.0
+    allocate(state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
     ! Import/ Export Variables -----------------------------------------------------
 
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
@@ -108,6 +109,14 @@ module wrf_nuopc
 
 #define WITHEXPORTFIELDS
 #ifdef WITHEXPORTFIELDS
+    ! exportable field: inst_surface_roughness
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_surface_roughness", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
     ! exportable field: inst_temp_height2m
     call NUOPC_Advertise(exportState, &
       StandardName="inst_temp_height2m", rc=rc)
@@ -206,6 +215,23 @@ module wrf_nuopc
 
 #ifdef WITHEXPORTFIELDS
     ! exportable field on Grid: inst_temp_height2m
+    field = ESMF_FieldCreate(name="inst_surface_roughness", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! Get Field memory
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_z0, &
+      computationalLBound=clb, computationalUBound=cub, rc=rc)
+
+    ! exportable field on Grid: inst_temp_height2m
     field = ESMF_FieldCreate(name="inst_temp_height2m", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -219,8 +245,7 @@ module wrf_nuopc
       return  ! bail out
 
     ! Get Field memory
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, &
-      computationalLBound=clb, computationalUBound=cub, rc=rc)
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc)
 
 #endif
 
@@ -326,10 +351,13 @@ module wrf_nuopc
     
       ! "Run" atmospheric model
     call state%Get_t2(datetime_now)
+    call state%Get_z0(datetime_now)
 
     ! Set field data
     ptr_t2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
-      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
+      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_z0(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
+      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
 !    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &

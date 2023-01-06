@@ -22,6 +22,7 @@ module fire_behavior_nuopc
   type (domain) :: grid
   type (namelist_t) :: config_flags
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   integer :: clb(2), cub(2)
 
   contains
@@ -166,15 +167,15 @@ module fire_behavior_nuopc
 !      return  ! bail out
 !
 !    !  2D fields
-!
-!    ! importable field: inst_surface_roughness
-!    call NUOPC_Advertise(importState, &
-!      StandardName="inst_surface_roughness", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-!
+
+    ! importable field: inst_surface_roughness
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_surface_roughness", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
 !    ! importable field: inst_rainfall_amount
 !    call NUOPC_Advertise(importState, &
 !      StandardName="inst_rainfall_amount", rc=rc)
@@ -551,20 +552,28 @@ module fire_behavior_nuopc
 !       return  ! bail out
 !
 !     !  2D fields
-!
-!     ! importable field on Grid: inst_surface_roughness
-!     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=fire_grid, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
+
+     ! importable field on Grid: inst_surface_roughness
+     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_z0, &
+       computationalLBound=clb, computationalUBound=cub, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
 !     ! importable field on Grid: inst_rainfall_amount
 !     field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
@@ -618,8 +627,12 @@ module fire_behavior_nuopc
        return  ! bail out
 
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, &
-       computationalLBound=clb, computationalUBound=cub, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
 #endif
 
 ! #ifdef WITHEXPORTFIELDS
@@ -763,6 +776,7 @@ module fire_behavior_nuopc
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
+    grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2))
 #endif
 
     call Advance_state (grid, config_flags)
