@@ -8,6 +8,9 @@ STATE_INCLUDE="-I$(STATE_DIR)"
 DRIVER_DIR = ../driver
 DRIVER_INCLUDE="-I$(DRIVER_DIR)"
 
+SHARE_DIR = ../share
+DRIVER_INCLUDE="-I$(SHARE_DIR)"
+
 ifneq ($(origin ESMFMKFILE), environment)
 $(error Environment variable ESMFMKFILE was not set.)
 endif
@@ -21,7 +24,7 @@ esmApp.exe: esmApp.o esm.o fire_behavior_nuopc.o wrf_nuopc.o ../share/proj_lc_mo
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS) $(NETCDF_LIBS)
 
 %.o : %.F90
-	$(ESMF_F90COMPILER) -c $(FCFLAGS) $(ESMF_F90COMPILEOPTS) $(STATE_INCLUDE) $(IO_INCLUDE) $(DRIVER_INCLUDE) $(ESMF_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) $<
+	$(ESMF_F90COMPILER) -c $(FCFLAGS) $(ESMF_F90COMPILEOPTS) $(STATE_INCLUDE) $(IO_INCLUDE) $(DRIVER_INCLUDE) $(SHARE_INCLUDE) $(ESMF_F90COMPILEPATHS) $(ESMF_F90COMPILEFREECPP) $(ESMF_F90COMPILECPPFLAGS) $<
 
 clean:
 	rm -f ./*.o ./*.mod ./*.exe
@@ -29,7 +32,7 @@ clean:
   # Dependencies
 fire_behavior_nuopc.o: ../state/state_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o
 
-wrf_nuopc.o: ../io/wrf_mod.o
+wrf_nuopc.o: ../io/wrf_mod.o ../share/datetime_mod.o
 
 esmApp.o: esm.o
 
