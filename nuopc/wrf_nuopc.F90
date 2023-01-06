@@ -58,9 +58,9 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-!    call NUOPC_CompSpecialize (model, specLabel = label_SetClock, specRoutine = SetClock, rc = rc)
-!    if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-!        return
+    call NUOPC_CompSpecialize (model, specLabel = label_SetClock, specRoutine = SetClock, rc = rc)
+    if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
+        return
 
     call NUOPC_CompSpecialize(model, specLabel=label_Advance, &
       specRoutine=Advance, rc=rc)
@@ -224,48 +224,9 @@ module wrf_nuopc
 
 #endif
 
-
   end subroutine
 
-  ! !-----------------------------------------------------------------------------
-
-!   subroutine SetClock(model, rc)
-!     type(ESMF_GridComp)  :: model
-!     integer, intent(out) :: rc
-!
-!     ! local variables
-!     type(ESMF_Clock)              :: clock
-!     type(ESMF_TimeInterval)       :: stabilityTimeStep
-!
-!     rc = ESMF_SUCCESS
-!
-!     ! query for clock
-!     call NUOPC_ModelGet(model, modelClock=clock, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
-!     ! initialize internal clock
-!     ! here: parent Clock and stability timeStep determine actual model timeStep
-!     !TODO: stabilityTimeStep should be read in from configuation
-!     !TODO: or computed from internal Grid information
-!     call ESMF_TimeIntervalSet(stabilityTimeStep, s = config_flags%interval_atm, rc=rc) 
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_CompSetClock(model, clock, stabilityTimeStep, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
-!   end subroutine
-
-  !-----------------------------------------------------------------------------
-
-  subroutine SetClock(model, rc)
+  subroutine SetClock (model, rc)
 
     implicit none
 
@@ -280,24 +241,16 @@ module wrf_nuopc
 
     rc = ESMF_SUCCESS
 
-print *, 'Interval '
-print *, config_flags%interval_atm
     call ESMF_TimeIntervalSet (timeStep, s = config_flags%interval_atm, rc = rc)
     if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
         return
 
-print *, 'Start time:'
-print *, config_flags%start_year, config_flags%start_month, config_flags%start_day, config_flags%start_hour, &
-     config_flags%start_minute, config_flags%start_second
     call ESMF_TimeSet (startTime, yy = config_flags%start_year, mm = config_flags%start_month, &
         dd = config_flags%start_day, h = config_flags%start_hour, m = config_flags%start_minute, &
         s = config_flags%start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
     if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
         return
 
-print *, 'End time:'
-print *, config_flags%end_year, config_flags%end_month, config_flags%end_day, config_flags%end_hour, &
-     config_flags%end_minute, config_flags%end_second
     call ESMF_TimeSet (stopTime, yy = config_flags%end_year, mm = config_flags%end_month, &
         dd = config_flags%end_day, h = config_flags%end_hour, m = config_flags%end_minute, &
         s = config_flags%end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
@@ -309,65 +262,10 @@ print *, config_flags%end_year, config_flags%end_month, config_flags%end_day, co
         return
 
     call ESMF_GridCompSet (model, clock = modelClock, rc = rc)
-!    call NUOPC_GridCompSetClock(model, externalClock=modelClock, rc=rc)
     if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
         return
 
   end subroutine
-
-  subroutine SetClock2 (model, rc)
-
-    implicit none
-
-    type(ESMF_GridComp) :: model
-    integer, intent(out) :: rc
-
-    type (ESMF_Clock) :: modelClock
-    type (ESMF_Time) :: startTime
-    type (ESMF_Time) :: stopTime
-    type (ESMF_TimeInterval) :: timeStep
-
-
-    rc = ESMF_SUCCESS
-
-    call NUOPC_ModelGet(model, modelClock=modelClock, rc=rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-print *, 'Interval '
-print *, config_flags%interval_atm
-    call ESMF_TimeIntervalSet (timeStep, s = config_flags%interval_atm, rc = rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-print *, 'Start time:'
-print *, config_flags%start_year, config_flags%start_month, config_flags%start_day, config_flags%start_hour, &
-     config_flags%start_minute, config_flags%start_second
-    call ESMF_TimeSet (startTime, yy = config_flags%start_year, mm = config_flags%start_month, &
-        dd = config_flags%start_day, h = config_flags%start_hour, m = config_flags%start_minute, &
-        s = config_flags%start_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-print *, 'End time:'
-print *, config_flags%end_year, config_flags%end_month, config_flags%end_day, config_flags%end_hour, &
-     config_flags%end_minute, config_flags%end_second
-    call ESMF_TimeSet (stopTime, yy = config_flags%end_year, mm = config_flags%end_month, &
-        dd = config_flags%end_day, h = config_flags%end_hour, m = config_flags%end_minute, &
-        s = config_flags%end_second, calkindflag = ESMF_CALKIND_GREGORIAN, rc = rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-    call ESMF_ClockSet (clock = modelClock, timeStep = timeStep, startTime = startTime, stopTime = stopTime, rc = rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-    call ESMF_GridCompSet (model, clock = modelClock, rc = rc)
-!    call NUOPC_GridCompSetClock(model, externalClock=modelClock, rc=rc)
-    if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
-        return
-
-  end subroutine SetClock2
 
   subroutine Advance(model, rc)
 

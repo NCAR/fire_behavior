@@ -69,6 +69,9 @@ module ESM
   !-----------------------------------------------------------------------------
 
   subroutine SetModelServices(driver, rc)
+
+    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
     type(ESMF_GridComp)  :: driver
     integer, intent(out) :: rc
 
@@ -150,8 +153,14 @@ module ESM
 
       ! set the driver clock
     call fire_nml%Init_time_block ('namelist.input')
+    call fire_nml%Init_atm_block ('namelist.input')
 
-    call ESMF_TimeIntervalSet (timeStep, s_r8 = real (fire_nml%dt, kind = ESMF_KIND_R8), rc = rc)
+    if (fire_nml%dt > real (fire_nml%interval_atm)) then
+      write (ERROR_UNIT, *) 'ERROR: The model time step (dt) must be smaller than the atm time step (interval_atm)'
+      stop
+    end if
+
+    call ESMF_TimeIntervalSet (timeStep, s_r8 = real (fire_nml%interval_atm, kind = ESMF_KIND_R8), rc = rc)
     if (ESMF_LogFoundError (rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
         return
 
