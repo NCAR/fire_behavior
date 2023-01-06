@@ -314,8 +314,7 @@ halo_fire_mag_sub
             grid%fmc_equi,                      & ! fuel moisture fields updated, by class, equilibrium diagnostic 
             grid%fmc_lag,                      & ! fuel moisture fields updated, by class, tendency diagnostic
             fp%fmc_g , &                             !  write-only alias. need to exit before using fp again
-            fp, &
-            config_flags & 
+            fp &
         )
 
    
@@ -413,8 +412,7 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     fmc_equi,                    &  ! fuel moisture fields updated, by class equilibrium diagnostic
     fmc_lag,                    &  ! fuel moisture fields updated, by class tendency diagnostic
     fmc_g, &                          ! fuel moisture, alias of fp%fmc_g
-    fp,                                           & ! fire params
-    config_flags & 
+    fp & ! fire params
     )
 
 #ifdef DM_PARALLEL
@@ -442,8 +440,6 @@ integer, intent(in)::ifun,                        &
                                                        ! 2=from file
     nfuel_cat0,                                   & ! fuel category to initialize everything to
     num_tiles                                       ! number of tiles
-
-type (namelist_t), intent(in)          :: config_flags
 
 logical, intent(in)::restart
     
