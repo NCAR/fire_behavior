@@ -36,11 +36,7 @@ subroutine fire_model (                    &
     ros,                                    & ! output: rate of spread
     nfuel_cat,                              & ! fuel data per point 
     fuel_time,                              & ! save derived internal data
-    fp, &
-    grid, &                
-    ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-    ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-    ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu  & 
+    fp  &
 ) 
 
 ! This subroutine implements the fire spread model.
@@ -89,13 +85,6 @@ USE namelist_mod, only: namelist_t
 implicit none
 
 !*** arguments
-
-! DME added for halo update
-    type(domain) , target :: grid                            
-    integer, intent(in):: ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-                          ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-                          ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu
-!
 
 ! control switches
 integer, intent(in) :: id
@@ -318,11 +307,7 @@ elseif (ifun.eq.4) then  ! do the timestep
              time_start,dt,fdx,fdy,tbound,              &
              lfn,                                       &
              lfn_0,lfn_1,lfn_2,                         & 
-             lfn_out,tign,ros, fp,                      &
-             grid,                                      & 
-             ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-             ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-             ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu  &
+             lfn_out,tign,ros, fp                       &
          ) 
 
        call tign_update(ifts,ifte,jfts,jfte, & 
@@ -346,11 +331,7 @@ elseif (ifun.eq.4) then  ! do the timestep
                           time_start,dt,fdx,fdy,                     &               
                           lfn,                                       &
                           lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,         &
-                          lfn_out,tign,                              &                      
-                          grid,                                      &          
-                          ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-                          ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-                          ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu  &
+                          lfn_out,tign                               &
                          )
        endif ! fire_lsm_reinit
 

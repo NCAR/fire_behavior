@@ -753,11 +753,7 @@ do ij=1,num_tiles
         ros,                                    & ! output: rate of spread for display
         nfuel_cat,                              & ! fuel data per point 
         fuel_time,                              & ! save derived internal data
-        fp,                                      & ! fire coefficients
-        grid,            &  ! DME added for halo update
-        ids_hu,ide_hu,jds_hu,jde_hu,kds_hu,kde_hu, & 
-        ims_hu,ime_hu,jms_hu,jme_hu,kms_hu,kme_hu, & 
-        ips_hu,ipe_hu,jps_hu,jpe_hu,kps_hu,kpe_hu  &
+        fp                                       & ! fire coefficients
     )
 
   endif ! fire_run

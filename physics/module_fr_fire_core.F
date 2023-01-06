@@ -1278,11 +1278,7 @@ subroutine prop_ls_rk3(id,               &
                 lfn_in,                  &
                 lfn_0,lfn_1,lfn_2,       & 
                 lfn_out,tign,ros,        &           
-                fp,                      &
-                grid,                    &       
-                ids,ide,jds,jde,kds,kde, & 
-                ims,ime,jms,jme,kms,kme, & 
-                ips,ipe,jps,jpe,kps,kpe  &
+                fp                       &
                    )
 
 
@@ -1349,12 +1345,6 @@ implicit none
 ! tign              inout the ignition time at nodes
 
 !*** calls
-!
-! DME added for halo update
-type(domain) , target :: grid                     
-integer, intent(in):: ids,ide,jds,jde,kds,kde, &
-    ims,ime,jms,jme,kms,kme, &
-    ips,ipe,jps,jpe,kps,kpe
 !
 
 integer,intent(in)::id,ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte,ifps,ifpe,jfps,jfpe 
@@ -1515,11 +1505,7 @@ subroutine reinit_ls_rk3(id,                       &
                 ts,dt,dx,dy,                       &                    
                 lfn_in,                            & 
                 lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3, & 
-                lfn_out,tign,                      &             
-                grid,                              &          
-                ids,ide,jds,jde,kds,kde,           &
-                ims,ime,jms,jme,kms,kme,           & 
-                ips,ipe,jps,jpe,kps,kpe            &
+                lfn_out,tign                       &
                 ) 
 
 
@@ -1543,11 +1529,6 @@ implicit none
 !*************************************************************************************!
 
 !*** purpose: reinitialize the level-set function
-
-type(domain) , target :: grid
-integer, intent(in):: ids,ide,jds,jde,kds,kde, & 
-                      ims,ime,jms,jme,kms,kme, & 
-                      ips,ipe,jps,jpe,kps,kpe    
 
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,id 
 integer,intent(in)::ifds,ifde,jfds,jfde,ifps,ifpe,jfps,jfpe  
