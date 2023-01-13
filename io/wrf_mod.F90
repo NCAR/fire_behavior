@@ -16,6 +16,7 @@
       character (len = 300) :: file_name
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, z0, mut
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, dz8w, z_at_w, rho
+      integer :: bottom_top, bottom_top_stag
     contains
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
@@ -447,6 +448,9 @@
       call return_value%Get_latlons ()
       ! Corners
       call return_value%Get_latcloncs ()
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
       
     end function Wrf_t_const
 

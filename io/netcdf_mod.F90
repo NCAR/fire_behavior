@@ -8,6 +8,7 @@
 
     interface Add_netcdf_var
       module procedure Add_netcdf_var_real32_2d
+      module procedure Add_netcdf_var_real32_3d
     end interface Add_netcdf_var
 
     interface Get_netcdf_var
@@ -95,6 +96,50 @@
       call Check_status (status)
 
     end subroutine Add_netcdf_var_real32_2d
+
+    subroutine Add_netcdf_var_real32_3d (file_name, name_dims, varname, var)
+
+      use netcdf
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name, varname
+      character (len = *), dimension(:), intent (in) :: name_dims
+      real, dimension(:, :, :), intent (in) :: var
+
+      integer, parameter :: N_DIMS = 3
+      integer :: ncidout, status, dimid, varid, n
+      integer :: dimids(N_DIMS)
+
+
+      status = nf90_open (file_name, NF90_WRITE, ncidout)
+      call Check_status (status)
+
+      status = nf90_redef (ncidout)
+      call Check_status (status)
+
+      do n = 1, N_DIMS
+        status = nf90_inq_dimid(ncidout, name_dims(n), dimids(n))
+        call Check_status (status)
+      end do
+
+      status = nf90_inq_varid (ncidout, varname, varid)
+      if (status == NF90_ENOTVAR) then
+        status = nf90_def_var (ncidout, varname, NF90_FLOAT, dimids, varid)
+        call Check_status (status)
+      end if
+
+      status = nf90_enddef (ncidout)
+      call Check_status (status)
+
+      status = nf90_put_var (ncidout, varid, var)
+      call Check_status (status)
+
+      status = nf90_close (ncidout)
+      call Check_status (status)
+
+    end subroutine Add_netcdf_var_real32_3d
+
 
     subroutine Check_status (status)
 

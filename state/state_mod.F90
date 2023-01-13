@@ -24,6 +24,7 @@
       type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output, datetime_next_atm_update
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
+      real, dimension(:, :, :), allocatable :: fire_u3d ! W-E winds used in fire module 3D
       real, dimension(:, :), allocatable :: vf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: zsf    ! terrain height
       real, dimension(:, :), allocatable :: dzdxf  ! terrain grad
@@ -530,7 +531,9 @@
       allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
+
       allocate (this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_u3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
 
       this%dt = config_flags%dt
 
@@ -723,6 +726,7 @@
       class (state_fire_t), intent (in) :: this
 
       character (len = :), allocatable :: file_output
+      integer :: nz
 
 
       file_output='fire_output_'//this%datetime_now%datetime//'.nc'
@@ -732,11 +736,21 @@
       call Add_netcdf_dim (file_output, 'nx', this%nx)
       call Add_netcdf_dim (file_output, 'ny', this%ny)
 
+      if (allocated (this%fire_u3d)) then
+        nz = size (this%fire_u3d, dim = 3)
+        call Add_netcdf_dim (file_output, 'nz', nz - 1)
+      else
+        nz = 0
+      end if
+
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_t2', this%fire_t2(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fz0', this%fz0(1:this%nx, 1:this%ny))
+      if (nz > 0) then
+        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'u3d', this%fire_u3d(1:this%nx, 1:this%ny, 1:nz - 1))
+      end if
 
     end subroutine Save_state
 
