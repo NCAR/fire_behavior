@@ -23,8 +23,9 @@ module wrf_nuopc
   public SetServices
 
   type (wrf_t) :: state
-  real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   integer                         :: clb(2), cub(2), clb3(3), cub3(3)
   type (namelist_t) :: config_flags
@@ -122,6 +123,14 @@ module wrf_nuopc
     ! exportable field: inst_surface_roughness
     call NUOPC_Advertise(exportState, &
       StandardName="inst_surface_roughness", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: inst_spec_humid_height2m
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_spec_humid_height2m", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -241,6 +250,10 @@ module wrf_nuopc
      ! Get Field memory
      call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_u3d, &
        computationalLBound=clb3, computationalUBound=cub3, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! exportable field on Grid: inst_surface_roughness
     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=grid, &
@@ -258,6 +271,30 @@ module wrf_nuopc
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_z0, &
       computationalLBound=clb, computationalUBound=cub, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field on Grid: inst_spec_humid_height2m
+    field = ESMF_FieldCreate(name="inst_spec_humid_height2m", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! Get Field memory
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_q2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! exportable field on Grid: inst_temp_height2m
     field = ESMF_FieldCreate(name="inst_temp_height2m", grid=grid, &
@@ -274,6 +311,10 @@ module wrf_nuopc
 
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
 #endif
 
@@ -379,14 +420,17 @@ module wrf_nuopc
     
       ! "Run" atmospheric model
     call state%Get_t2(datetime_now)
+    call state%Get_q2(datetime_now)
     call state%Get_z0(datetime_now)
     call state%Get_u3d(datetime_now)
 
     ! Set field data
-    ptr_t2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
-      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing 
       state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) 
+    ptr_q2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing
+      state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_t2(clb(1):cub(1),clb(2):cub(2))= & ! Just set it to this for testing
+      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= & ! Just set it to this for testing
       state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
 !    call state%Destroy_t2 ()

@@ -23,10 +23,10 @@
       procedure, public :: Destroy_ph => Destroy_geopotential
       procedure, public :: Destroy_phb => Destroy_geopotential_base
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
-      procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
       procedure, public :: Destroy_rho => Destroy_rho
       procedure, public :: Destroy_rainc => Destroy_rain_convective
       procedure, public :: Destroy_rainnc => Destroy_rain_non_convective
+      procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
       procedure, public :: Destroy_t2 => Destroy_temperature_2m
       procedure, public :: Destroy_u3d => Destroy_zonal_wind
       procedure, public :: Destroy_v3d => Destroy_meridional_wind
@@ -39,11 +39,11 @@
       procedure, public :: Get_mut => Get_mut
       procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
       procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
-      procedure, public :: Get_q2 => Get_specific_humidity_2m
       procedure, public :: Get_rainc => Get_rain_convective
       procedure, public :: Get_rainnc => Get_rain_non_convective
       procedure, public :: Get_rho => Get_rho
       procedure, public :: Get_psfc => Get_surface_pressure
+      procedure, public :: Get_q2 => Get_specific_humidity_2m
       procedure, public :: Get_t2 => Get_temperature_2m
       procedure, public :: Get_u3d => Get_zonal_wind_3d
       procedure, public :: Get_u3d_stag => Get_zonal_wind_stag_3d
@@ -480,7 +480,7 @@
       this%psfc = var3d(:, :, nt)
 
     end subroutine Get_surface_pressure
-
+       
     subroutine Get_temperature_2m (this, datetime)
 
       implicit none
