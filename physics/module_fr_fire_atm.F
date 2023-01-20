@@ -8,6 +8,8 @@ use wrf_atmosphere_mod, only: CP, XLV
 use module_fr_fire_util
 use state_mod, only: num_tracer 
 use state_mod, only: P_FIRE_SMOKE
+use state_mod, only: domain
+use namelist_mod , only : namelist_t
 
 contains
 
@@ -21,7 +23,7 @@ subroutine add_fire_tracer_emissions(    &
        its,ite,kts,kte,jts,jte,          &
        rho,dz8w,                         &
        burnt_area_dt,fgip,               &
-       tracer,fire_tracer_smoke          &
+       tracer,emis,fire_tracer_smoke     &
 )
 
 implicit none
@@ -31,12 +33,13 @@ real,intent(in)::fire_tracer_smoke
 real,intent(in)::dt,dx,dy
 integer,intent(in)::ifms,ifme,jfms,jfme,ifts,ifte,jtfs,jfte,ids,ide,kds,kde,jds,jde,ims,ime,kms,kme,jms,jme,its,ite,kts,kte,jts,jte
 real,intent(in)::rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
-real,intent(in),dimension(ifms:ifme,jfms:jfme)::burnt_area_dt,fgip
+real,intent(in),dimension(ifms:ifme,jfms:jfme)::burnt_area_dt,fgip,emis
 real,intent(inout)::tracer(ims:ime,kms:kme,jms:jme,num_tracer)
 ! local
 integer::isz1,jsz1,isz2,jsz2,ir,jr
 integer::i,j,ibase,jbase,i_f,ioff,j_f,joff
-real::avgw,emis,conv
+real::avgw,conv
+character(len=128)::msg
 
 isz1 = ite-its+1
 jsz1 = jte-jts+1
@@ -55,8 +58,13 @@ do j=max(jds+1,jts),min(jte,jde-2)
            do ioff=0,ir-1
                i_f=ioff+ibase
                if (num_tracer >0)then
-                     emis=avgw*fire_tracer_smoke*burnt_area_dt(i_f,j_f)*fgip(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j)) ! g_smoke/kg_air
-                     tracer(i,kts,j,p_fire_smoke)=tracer(i,kts,j,p_fire_smoke)+emis
+                     tracer(i,kts,j,p_fire_smoke)=tracer(i,kts,j,p_fire_smoke) &
+                                                                + (avgw*emis(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j))) ! g_smoke/kg_air
+!!! TWJ TO REMOVE LATER
+!$OMP MASTER
+!                     write(6,*)'Tracer: i, j, = ', i, j, tracer(i,kts,j,p_fire_smoke)
+!$OMP END MASTER
+!!! TWJ TO REMOVE LATER
                 endif
            enddo
        enddo
@@ -64,6 +72,31 @@ do j=max(jds+1,jts),min(jte,jde-2)
 enddo
 
 end subroutine add_fire_tracer_emissions
+
+!
+!***
+!
+
+subroutine calc_smoke_emissions(         &
+       grid,config_flags,                &
+       ifts,ifte,jfts,jfte               &
+)
+
+implicit none
+! arguments
+TYPE(domain) , TARGET          :: grid   ! data
+TYPE (namelist_t) , INTENT(IN)          :: config_flags
+integer,intent(in)::ifts,ifte,jfts,jfte
+! local
+integer::i_f,j_f
+
+do j_f=jfts,jfte
+    do i_f=ifts,ifte
+        grid%emis_smoke(i_f,j_f)=config_flags%fire_tracer_smoke*grid%burnt_area_dt(i_f,j_f)*grid%fgip(i_f,j_f)  ! kg/m^2
+    enddo
+enddo
+
+end subroutine calc_smoke_emissions
 
 !
 !***

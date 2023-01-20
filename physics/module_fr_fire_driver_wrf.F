@@ -7,7 +7,7 @@ module module_fr_fire_driver_wrf
 ! wrf-specific driver
 
 use module_fr_fire_driver, only : fire_driver_em
-use module_fr_fire_atm, only : fire_tendency
+use module_fr_fire_atm, only : fire_tendency, calc_smoke_emissions, add_fire_tracer_emissions
 use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
                                 print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
                                 continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
@@ -140,6 +140,20 @@ subroutine fire_driver_em_step (grid , config_flags               &
             )
  
     call sum_2d_fire_vars (grid, config_flags)
+
+    if (config_flags%tracer_opt.eq.3)then
+       call calc_smoke_emissions(grid,config_flags,ifts,ifte,jfts,jfte)
+
+       call add_fire_tracer_emissions(config_flags%tracer_opt,grid%dt,grid%dx,grid%dy, &
+                 ifms,ifme,jfms,jfme,    &
+                 ifps,ifpe,jfps,jfpe,    &
+                 ids,ide,kds,kde,jds,jde,          &
+                 ims,ime,kms,kme,jms,jme,          &
+                 ips,ipe,kps,kpe,jps,jpe,          &
+                 rho,dz8w,                         &
+                 grid%burnt_area_dt,grid%fgip, &
+                 grid%tracer,grid%emis_smoke,config_flags%fire_tracer_smoke)
+    end if
 
     ! --- add heat and moisture fluxes to tendency variables by postulated decay
     do ij=1,grid%num_tiles

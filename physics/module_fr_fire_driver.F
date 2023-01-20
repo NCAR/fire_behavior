@@ -22,7 +22,6 @@ use module_fr_fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats
 use module_fr_fire_util
 use module_fr_fire_core, only: ignition_line_type
-use module_fr_fire_atm, only: add_fire_tracer_emissions 
 
 USE state_mod, only: domain
 USE namelist_mod, only: namelist_t
@@ -336,19 +335,6 @@ halo_fire_mag_sub
             endif
 #endif
 
-! DME update tracer emissions
-     if(fire_ifun.eq.6 .AND. config_flags%tracer_opt.eq.3)then
-       call add_fire_tracer_emissions(config_flags%tracer_opt,grid%dt,grid%dx,grid%dy, &
-                 ifms,ifme,jfms,jfme,    &
-                 ifps,ifpe,jfps,jfpe,    &
-                 ids,ide,kds,kde,jds,jde,          &
-                 ims,ime,kms,kme,jms,jme,          &
-                 ips,ipe,kps,kpe,jps,jpe,          &
-                 rho,dz8w,                         &
-                 grid%burnt_area_dt,grid%fgip, &
-                 grid%tracer,config_flags%fire_tracer_smoke)
-     endif
-! DME
       enddo
     enddo
     if(tsteps>0)call crash('fire_driver_em: test run of uncoupled fire model completed')
