@@ -25,6 +25,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
 
   contains
@@ -113,13 +114,13 @@ module fire_behavior_nuopc
       return  ! bail out
 
 !    ! importable field: inst_merid_wind_levels
-!    call NUOPC_Advertise(importState, &
-!      StandardName="inst_merid_wind_levels", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-!
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_merid_wind_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
 !    ! importable field: inst_geop_levels
 !    call NUOPC_Advertise(importState, &
 !      StandardName="inst_geop_levels", rc=rc)
@@ -452,20 +453,22 @@ module fire_behavior_nuopc
        computationalLBound=clb3, computationalUBound=cub3, rc=rc)
 
 !     ! importable field on Grid: inst_zonal_wind_levels
-!     field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
-!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
+     field = ESMF_FieldCreate(name="inst_merid_wind_levels", grid=fire_grid, &
+       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+       ungriddedUBound=(/grid%kde - 1/), &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_v3d, rc=rc)
+
 !     ! importable field on Grid: inst_geop_levels
 !     field = ESMF_FieldCreate(name="inst_geop_levels", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
@@ -791,6 +794,7 @@ module fire_behavior_nuopc
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_u3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_v3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
 
     call Advance_state (grid, config_flags)
