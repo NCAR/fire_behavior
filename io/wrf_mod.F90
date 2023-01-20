@@ -14,7 +14,7 @@
 
     type :: wrf_t
       character (len = 300) :: file_name
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, z0, mut
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rainc, rainnc
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, dz8w, z_at_w, rho
       integer :: bottom_top, bottom_top_stag
     contains
@@ -22,7 +22,11 @@
       procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_ph => Destroy_geopotential
       procedure, public :: Destroy_phb => Destroy_geopotential_base
+      procedure, public :: Destroy_psfc => Destroy_surface_pressure
+      procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
       procedure, public :: Destroy_rho => Destroy_rho
+      procedure, public :: Destroy_rainc => Destroy_rain_convective
+      procedure, public :: Destroy_rainnc => Destroy_rain_non_convective
       procedure, public :: Destroy_t2 => Destroy_temperature_2m
       procedure, public :: Destroy_u3d => Destroy_zonal_wind
       procedure, public :: Destroy_v3d => Destroy_meridional_wind
@@ -35,7 +39,11 @@
       procedure, public :: Get_mut => Get_mut
       procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
       procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
+      procedure, public :: Get_q2 => Get_specific_humidity_2m
+      procedure, public :: Get_rainc => Get_rain_convective
+      procedure, public :: Get_rainnc => Get_rain_non_convective
       procedure, public :: Get_rho => Get_rho
+      procedure, public :: Get_psfc => Get_surface_pressure
       procedure, public :: Get_t2 => Get_temperature_2m
       procedure, public :: Get_u3d => Get_zonal_wind_3d
       procedure, public :: Get_u3d_stag => Get_zonal_wind_stag_3d
@@ -101,6 +109,26 @@
 
     end subroutine Destroy_mut
 
+    subroutine Destroy_rain_convective (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%rainc)) deallocate (this%rainc)
+
+    end subroutine Destroy_rain_convective
+
+    subroutine Destroy_rain_non_convective (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%rainnc)) deallocate (this%rainnc)
+
+    end subroutine Destroy_rain_non_convective
+
     subroutine Destroy_rho (this)
 
       implicit none
@@ -110,6 +138,26 @@
       if (allocated(this%rho)) deallocate (this%rho)
 
     end subroutine Destroy_rho
+
+    subroutine Destroy_surface_pressure (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%psfc)) deallocate (this%psfc)
+
+    end subroutine Destroy_surface_pressure
+
+    subroutine Destroy_specific_humidity_2m (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%q2)) deallocate (this%q2)
+
+    end subroutine Destroy_specific_humidity_2m
 
     subroutine Destroy_temperature_2m (this)
 
@@ -345,6 +393,57 @@
 
     end subroutine Get_mut
 
+    subroutine Get_specific_humidity_2m (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :), allocatable :: var3d
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'Q2', var3d)
+      this%q2 = var3d(:, :, nt)
+
+    end subroutine Get_specific_humidity_2m
+
+    subroutine Get_rain_convective (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :), allocatable :: var3d
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'RAINC', var3d)
+      this%rainc = var3d(:, :, nt)
+
+    end subroutine Get_rain_convective
+
+    subroutine Get_rain_non_convective (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :), allocatable :: var3d
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'RAINNC', var3d)
+      this%rainnc = var3d(:, :, nt)
+
+    end subroutine Get_rain_non_convective
+
     subroutine Get_rho (this, datetime)
 
       implicit none
@@ -364,6 +463,23 @@
       deallocate (alt, qvapor)
 
     end subroutine Get_rho
+
+    subroutine Get_surface_pressure (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :), allocatable :: var3d
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'PSFC', var3d)
+      this%psfc = var3d(:, :, nt)
+
+    end subroutine Get_surface_pressure
 
     subroutine Get_temperature_2m (this, datetime)
 

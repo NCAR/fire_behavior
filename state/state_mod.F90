@@ -194,6 +194,26 @@
         this%t2(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%t2(:, :)
         call wrf%Destroy_t2 ()
 
+          ! Update q2
+        call wrf%Get_q2 (this%datetime_now)
+        this%q2(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%q2(:, :)
+        call wrf%Destroy_q2 ()
+
+          ! Update psfc
+        call wrf%Get_psfc (this%datetime_now)
+        this%psfc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%psfc(:, :)
+        call wrf%Destroy_psfc ()
+
+          ! Update rainc
+        call wrf%Get_rainc (this%datetime_now)
+        this%rainc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%rainc(:, :)
+        call wrf%Destroy_rainc ()
+
+          ! Update rainnc
+        call wrf%Get_rainnc (this%datetime_now)
+        this%rainnc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%rainnc(:, :)
+        call wrf%Destroy_rainnc ()
+
           ! Update z0
         call wrf%Get_z0 (this%datetime_now)
         this%z0(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%z0(:, :)
