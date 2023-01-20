@@ -78,6 +78,7 @@
       real, dimension(:, :), allocatable :: fire_q2     ! "Value of 2m specific humidity" "kg/kg"
       real, dimension(:, :, :), allocatable :: fire_u3d ! W-E winds used in fire module 3D
       real, dimension(:, :, :), allocatable :: fire_v3d ! S-N winds used in fire module 3D
+      real, dimension(:, :, :), allocatable :: fire_ph  ! "geopotential levels"  "m2 s-2"
 
         ! FMC model
       real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
@@ -558,6 +559,7 @@
       allocate (this%fire_q2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_u3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
       allocate (this%fire_v3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
+      allocate (this%fire_ph(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
 
       this%dt = config_flags%dt
 
@@ -774,8 +776,9 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_q2', this%fire_q2(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fz0', this%fz0(1:this%nx, 1:this%ny))
       if (nz > 0) then
-        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'u3d', this%fire_u3d(1:this%nx, 1:this%ny, 1:nz - 1))
-        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'v3d', this%fire_v3d(1:this%nx, 1:this%ny, 1:nz - 1))
+        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_u3d', this%fire_u3d(1:this%nx, 1:this%ny, 1:nz - 1))
+        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_v3d', this%fire_v3d(1:this%nx, 1:this%ny, 1:nz - 1))
+        call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_ph', this%fire_ph(1:this%nx, 1:this%ny, 1:nz - 1))
       end if
 
     end subroutine Save_state
