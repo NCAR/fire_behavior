@@ -23,6 +23,7 @@ module fire_behavior_nuopc
   type (namelist_t) :: config_flags
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_psfc(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
@@ -196,13 +197,13 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-!    ! importable field: inst_pres_height_surface
-!    call NUOPC_Advertise(importState, &
-!      StandardName="inst_pres_height_surface", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
+    ! importable field: inst_pres_height_surface
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_pres_height_surface", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! importable field: inst_temp_height2m
     call NUOPC_Advertise(importState, &
@@ -633,18 +634,25 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
-!     ! importable field on Grid: inst_pres_height_surface
-!     field = ESMF_FieldCreate(name="inst_pres_height_surface", grid=fire_grid, &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
+     ! importable field on Grid: inst_pres_height_surface
+     field = ESMF_FieldCreate(name="inst_pres_height_surface", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_psfc, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
 
      ! importable field on Grid: inst_temp_height2m
      field = ESMF_FieldCreate(name="inst_temp_height2m", grid=fire_grid, &
@@ -811,6 +819,7 @@ module fire_behavior_nuopc
     grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2))
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
+    grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
     grid%fire_u3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     grid%fire_v3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     grid%fire_ph(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))

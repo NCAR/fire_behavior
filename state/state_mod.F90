@@ -74,6 +74,7 @@
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
       real, dimension(:, :), allocatable :: emis_smoke
+      real, dimension(:, :), allocatable :: fire_psfc   ! "Surface Pressure"  "Pa"
       real, dimension(:, :), allocatable :: fire_t2     ! "TEMP at 2 M"       "K"
       real, dimension(:, :), allocatable :: fire_q2     ! "Value of 2m specific humidity" "kg/kg"
       real, dimension(:, :, :), allocatable :: fire_u3d ! W-E winds used in fire module 3D
@@ -555,6 +556,7 @@
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
 
+      allocate (this%fire_psfc(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_q2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_u3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
@@ -774,6 +776,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_t2', this%fire_t2(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_q2', this%fire_q2(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_psfc', this%fire_psfc(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fz0', this%fz0(1:this%nx, 1:this%ny))
       if (nz > 0) then
         call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_u3d', this%fire_u3d(1:this%nx, 1:this%ny, 1:nz - 1))
