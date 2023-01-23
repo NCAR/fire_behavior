@@ -26,6 +26,7 @@ module wrf_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_psfc(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_rain(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
@@ -107,6 +108,7 @@ module wrf_nuopc
     state = wrf_t(file_name = 'wrf.nc')
     allocate(state%q2(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate(state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
@@ -174,6 +176,14 @@ module wrf_nuopc
     ! exportable field: inst_pres_height_surface
     call NUOPC_Advertise(exportState, &
       StandardName="inst_pres_height_surface", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: inst_rainfall_amount
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_rainfall_amount", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -374,7 +384,6 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_z0, &
       computationalLBound=clb, computationalUBound=cub, rc=rc)
@@ -395,7 +404,6 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_q2, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -415,7 +423,6 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_psfc, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -423,6 +430,24 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+    ! exportable field on Grid: inst_rainfall_amount
+    field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! Get Field memory
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_rain, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! exportable field on Grid: inst_temp_height2m
     field = ESMF_FieldCreate(name="inst_temp_height2m", grid=grid, &
@@ -436,7 +461,6 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
     ! Get Field memory
     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -549,6 +573,7 @@ module wrf_nuopc
       ! "Run" atmospheric model
     call state%Get_q2(datetime_now)
     call state%Get_psfc(datetime_now)
+    call state%Get_rain(datetime_now)
     call state%Get_t2(datetime_now)
     call state%Get_z0(datetime_now)
     call state%Get_u3d(datetime_now)
@@ -563,6 +588,8 @@ module wrf_nuopc
       state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
       state%psfc(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_rain(clb(1):cub(1),clb(2):cub(2))= &
+      state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
       state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &

@@ -14,7 +14,7 @@
 
     type :: wrf_t
       character (len = 300) :: file_name
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rainc, rainnc
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       integer :: bottom_top, bottom_top_stag
     contains
@@ -28,6 +28,7 @@
       procedure, public :: Destroy_rho => Destroy_rho
       procedure, public :: Destroy_rainc => Destroy_rain_convective
       procedure, public :: Destroy_rainnc => Destroy_rain_non_convective
+      procedure, public :: Destroy_rain => Destroy_rain
       procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
       procedure, public :: Destroy_t2 => Destroy_temperature_2m
       procedure, public :: Destroy_u3d => Destroy_zonal_wind
@@ -45,6 +46,7 @@
       procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
       procedure, public :: Get_rainc => Get_rain_convective
       procedure, public :: Get_rainnc => Get_rain_non_convective
+      procedure, public :: Get_rain => Get_rain
       procedure, public :: Get_rho => Get_rho
       procedure, public :: Get_psfc => Get_surface_pressure
       procedure, public :: Get_q2 => Get_specific_humidity_2m
@@ -152,6 +154,16 @@
       if (allocated(this%rainnc)) deallocate (this%rainnc)
 
     end subroutine Destroy_rain_non_convective
+
+    subroutine Destroy_rain (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%rain)) deallocate (this%rain)
+
+    end subroutine Destroy_rain
 
     subroutine Destroy_rho (this)
 
@@ -511,6 +523,24 @@
       this%rainnc = var3d(:, :, nt)
 
     end subroutine Get_rain_non_convective
+
+    subroutine Get_rain (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :), allocatable :: var3d, var3d2
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'RAINC', var3d)
+      call Get_netcdf_var (trim (this%file_name), 'RAINNC', var3d2)
+      this%rain = var3d(:, :, nt) + var3d2(:, :, nt)
+
+    end subroutine Get_rain
 
     subroutine Get_rho (this, datetime)
 
