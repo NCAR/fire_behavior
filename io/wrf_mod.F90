@@ -15,12 +15,13 @@
     type :: wrf_t
       character (len = 300) :: file_name
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rainc, rainnc
-      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, dz8w, z_at_w, rho
+      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       integer :: bottom_top, bottom_top_stag
     contains
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
+      procedure, public :: Destroy_pres => Destroy_pressure_levels
       procedure, public :: Destroy_ph => Destroy_geopotential
       procedure, public :: Destroy_phb => Destroy_geopotential_base
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
@@ -39,6 +40,7 @@
       procedure, public :: Get_latcloncs => Get_latcloncs
       procedure, public :: Get_mut => Get_mut
       procedure, public :: Get_phl => Get_geopotential_levels
+      procedure, public :: Get_pres => Get_pressure_levels
       procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
       procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
       procedure, public :: Get_rainc => Get_rain_convective
@@ -80,6 +82,16 @@
       if (allocated(this%phl)) deallocate (this%phl)
 
     end subroutine Destroy_geopotential_levels
+
+    subroutine Destroy_pressure_levels (this)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+
+      if (allocated(this%pres)) deallocate (this%pres)
+
+    end subroutine Destroy_pressure_levels
 
     subroutine Destroy_geopotential (this)
 
@@ -306,6 +318,26 @@
       deallocate (temp)
 
     end subroutine Get_geopotential_levels
+
+    subroutine Get_pressure_levels (this, datetime)
+
+      implicit none
+
+      class (wrf_t), intent (in out) :: this
+      type (datetime_t), intent (in) :: datetime
+
+      real, dimension(:, :, :, :), allocatable :: var4d, var4d2
+      integer :: nt
+
+
+      nt = this%Get_datetime_index (datetime)
+      call Get_netcdf_var (trim (this%file_name), 'P', var4d)
+      call Get_netcdf_var (trim (this%file_name), 'PB', var4d2)
+
+      this%pres = var4d(:, :, :, nt) + var4d2(:, :, :, nt)
+      deallocate (var4d, var4d2)
+
+    end subroutine Get_pressure_levels
 
     subroutine Get_geopotential_stag_3d (this, datetime)
 

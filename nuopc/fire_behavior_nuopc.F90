@@ -28,6 +28,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
 
   contains
@@ -146,15 +147,15 @@ module fire_behavior_nuopc
 !      line=__LINE__, &
 !      file=__FILE__)) &
 !      return  ! bail out
-!
-!    ! importable field: inst_pres_levels
-!    call NUOPC_Advertise(importState, &
-!      StandardName="inst_pres_levels", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-!
+
+    ! importable field: inst_pres_levels
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_pres_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
 !    ! importable field: inst_temp_levels
 !    call NUOPC_Advertise(importState, &
 !      StandardName="inst_temp_levels", rc=rc)
@@ -488,21 +489,6 @@ module fire_behavior_nuopc
      ! Get Field memory
      call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_ph, rc=rc)
 
-!     ! importable field on Grid: inst_geop_levels
-!     field = ESMF_FieldCreate(name="inst_geop_levels", grid=fire_grid, &
-!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
 !     ! importable field on Grid: inst_geop_interface
 !     field = ESMF_FieldCreate(name="inst_geop_interface", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
@@ -532,26 +518,28 @@ module fire_behavior_nuopc
 !       line=__LINE__, &
 !       file=__FILE__)) &
 !       return  ! bail out
-!
-!     ! importable field on Grid: inst_pres_levels
-!     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
-!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!
+
+     ! importable field on Grid: inst_pres_levels
+     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
+       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+       ungriddedUBound=(/grid%kde - 1/), &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
+
 !     ! importable field on Grid: inst_temp_levels
 !     field = ESMF_FieldCreate(name="inst_temp_levels", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
+!       ungriddedUBound=(/grid%kde - 1/), &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
 !     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
 !       line=__LINE__, &
@@ -823,6 +811,7 @@ module fire_behavior_nuopc
     grid%fire_u3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     grid%fire_v3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     grid%fire_ph(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_pres(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
 
     call Advance_state (grid, config_flags)

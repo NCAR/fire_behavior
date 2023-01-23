@@ -30,6 +30,7 @@ module wrf_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_phl(:,:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer                         :: clb(2), cub(2), clb3(3), cub3(3)
   type (namelist_t) :: config_flags
 
@@ -110,6 +111,8 @@ module wrf_nuopc
     allocate(state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
     allocate(state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate(state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate(state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
     ! Import/ Export Variables -----------------------------------------------------
 
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
@@ -135,9 +138,17 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: inst_merid_wind_levels
+    ! exportable field: inst_geop_levels
     call NUOPC_Advertise(exportState, &
       StandardName="inst_geop_levels", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: inst_pres_levels
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_pres_levels", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -329,6 +340,28 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+     ! exportable field on Grid: inst_pres_levels
+     field = ESMF_FieldCreate(name="inst_pres_levels", grid=grid, &
+       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+       ungriddedUBound=(/state%bottom_top/), &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(exportState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! 2D
     ! exportable field on Grid: inst_surface_roughness
     field = ESMF_FieldCreate(name="inst_surface_roughness", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
@@ -521,6 +554,7 @@ module wrf_nuopc
     call state%Get_u3d(datetime_now)
     call state%Get_v3d(datetime_now)
     call state%Get_phl(datetime_now)
+    call state%Get_pres(datetime_now)
 
     ! Set field data
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
@@ -537,6 +571,8 @@ module wrf_nuopc
       state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
     ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
       state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
 !    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &
