@@ -48,7 +48,6 @@ subroutine fire_driver_em ( grid , config_flags                    &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
-            ,rho,z_at_w,dz8w           &  
             )
 
 !*** purpose: driver from grid structure
@@ -74,7 +73,6 @@ halo_fire_mag_sub
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
              ifps,ifpe, jfps,jfpe 
-    real,dimension(ims:ime, kms:kme, jms:jme),intent(in), optional::rho,z_at_w,dz8w 
 
 !*** local
     INTEGER:: fire_num_ignitions
