@@ -269,7 +269,6 @@ halo_fire_mag_sub
             time_start,                                 &
             itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
             grid%dt,grid%dx,grid%dy,                    &
-            grid%u_frame,grid%v_frame,                  &
             grid%unit_fxlong,grid%unit_fxlat,                           & ! coordinates of grid center
             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
             config_flags%fire_wind_height,              &  ! height of wind input to fire spread formula
@@ -354,7 +353,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     num_tiles,i_start,i_end,j_start,j_end,        & ! atm grid tiling
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,dt,dx,dy,      & ! in scalars
-    u_frame,v_frame,                              &
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
     fire_wind_height,                             & ! for vertical wind interpolation
@@ -434,7 +432,6 @@ real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
     dt,                                           & ! time step
     dx,dy,                                        & ! atm grid step
-    u_frame,v_frame,                              & ! velocity offset
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_crwn_hgt,                                & ! lowest height crown fire heat is released (m)
     fire_ext_grnd,                                & ! extinction depth of surface fire heat flux (m)
