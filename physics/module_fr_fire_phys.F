@@ -262,12 +262,10 @@ integer, intent(in)::                    &
 
 
 real,intent(in),dimension(ifms:ifme,jfms:jfme):: nfuel_cat ! fuel data
-real,intent(inout),dimension(ims:ime,nfmc,jms:jme):: fmc_gc
+real,intent(in),dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
 real,intent(out),dimension(ifms:ifme,jfms:jfme):: fmc_g ! fuel data
 
 !**** local
-real, dimension(its-1:ite+1,jts-1:jte+1):: fmc_k  ! copy of fmc_gc(:,k,:) 
-real, dimension(ifts-1:ifte+1,jfts-1:jfte+1):: fmc_f      ! interpolation of fmc_gc(:,k,:) to the fire grid 
 integer::i,j,k,n
 integer::ibs,ibe,jbs,jbe
 character(len=128)::msg
