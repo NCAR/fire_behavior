@@ -283,9 +283,6 @@ halo_fire_mag_sub
             grid%fire_area,                               & ! redundant, for display, fire grid
             grid%burnt_area_dt,                               & ! redundant, for display
             lfn_out,                                      & ! work - one timestep    
-            grid%avg_fuel_frac,                           & ! out redundant arrays, atm grid
-            grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx, & ! out redundant arrays, atm grid
-            grid%grnhfx_fu,grid%grnqfx_fu, & ! out redundant arrays, atm grid
             grid%fgrnhfx,grid%fgrnqfx,grid%fcanhfx,grid%fcanqfx, & ! out redundant arrays, atm grid
             grid%ros,                                   & ! rate of spread
             grid%fxlong,grid%fxlat,grid%fz0,                           &       
@@ -362,9 +359,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     fire_area,                                    & ! redundant state, fire grid
     burnt_area_dt,                                    & ! redundant state, fire grid
     lfn_out,                                      & ! out level set function    
-    avg_fuel_frac,                                &
-    grnhfx,grnqfx,canhfx,canqfx,                  & ! out redundant arrays, atm grid  
-    grnhfx_fu,grnqfx_fu,                 & ! out redundant arrays, atm grid
     fgrnhfx,fgrnqfx,fcanhfx,fcanqfx,              & ! out redundant arrays, fire grid
     ros,                                          &
     fxlong,fxlat,fz0,                                 & 
@@ -450,15 +444,6 @@ real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
 
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
     burnt_area_dt                                        
-real, intent(out), dimension(ims:ime, jms:jme)::  &
-   grnhfx_fu,grnqfx_fu                                        
-
-real, intent(out), dimension(ims:ime, jms:jme):: &  ! redundant arrays, for display purposes only (atm grid)
-    avg_fuel_frac,                               &  ! average fuel fraction
-    grnhfx,                                      &  ! heat flux from surface fire (W/m^2) 
-    grnqfx,                                      &  ! moisture flux from surface fire (W/m^2) 
-    canhfx,                                      &  ! heat flux from crown fire (W/m^2) 
-    canqfx                                         ! moisture flux from crown fire (W/m^2) 
 
 real, intent(out), dimension(ifms:ifme, jfms:jfme):: &  ! redundant arrays, for display only, fire grid
     fgrnhfx,                                      &  ! heat flux from surface fire (W/m^2) 
@@ -490,8 +475,8 @@ type(fire_params),intent(inout)::fp
     
 !*** local
 real :: dxf,dyf,latm, s
-integer :: its,ite,jts,jte,kts,kte, &            ! tile
-    ij,i,j,k,id,pid,ipe1,jpe1,ite1,jte1, &
+integer :: its,ite,jts,jte, &            ! tile
+    ij,i,j,k,id,pid,ite1,jte1, &
     ifts,ifte,jfts,jfte                          ! fire tile
 character(len=128)::msg
 character(len=3)::kk
@@ -551,14 +536,6 @@ pid=0
 if(fire_print_file.gt.0)then
     if(itimestep.le.fire_print_file.or.mod(itimestep,fire_print_file).eq.0)pid=itimestep ! print 1-fire_print_file then every fire_print_file-th
 endif
-
-! fake atm tile bounds
-kts=kps
-kte=kpe
-
-! staggered atm patch bounds
-ipe1=ifval(ipe.eq.ide,ipe+1,ipe)
-jpe1=ifval(jpe.eq.jde,jpe+1,jpe)
 
 ! set up fire tiles & interpolate to fire grid
 !$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
@@ -728,8 +705,6 @@ if (ifun.eq.3)then
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vy,'vf')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
     endif
@@ -748,12 +723,8 @@ endif
 if(ifun.eq.6)then
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnhfx,'fgrnhfx')
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnqfx,'fgrnqfx')
-    call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,0,grnhfx,'grnhfx')
-    call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,0,grnqfx,'grnqfx')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fuel_frac,'fuel_frac',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnhfx,'fgrnhfx',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnqfx,'fgrnqfx',pid)
