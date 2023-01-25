@@ -70,6 +70,8 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     call calc_fz0 (grid, config_flags)
 
+    call interpolate_vars_for_fmc_model (grid, config_flags)
+
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
             ,ids,ide, kds,kde, jds,jde                              &
@@ -338,6 +340,72 @@ subroutine calc_fz0 (grid, config_flags)
     end if
 
 end subroutine calc_fz0
+
+
+subroutine interpolate_vars_for_fmc_model (grid, config_flags)
+
+    implicit none
+!*** arguments
+    TYPE(domain) , TARGET :: grid                   ! state
+    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
+
+!*** local
+    logical :: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
+    integer :: pid, id
+
+    pid = 1
+    id = ifval(pid.ne.0,pid+1*10000,0) ! for print
+
+    call interpolate_z2fire(id,             &
+        grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+        grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+        grid%its,grid%ite,grid%jts,grid%jte,                              &
+        grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+        grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+        grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+        grid%t2,                                 &
+        grid%fire_t2,1)
+
+    call interpolate_z2fire(id,             &
+        grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+        grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+        grid%its,grid%ite,grid%jts,grid%jte,                              &
+        grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+        grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+        grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+        grid%q2,                                 &
+        grid%fire_q2,1)
+
+    call interpolate_z2fire(id,             &
+        grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+        grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+        grid%its,grid%ite,grid%jts,grid%jte,                              &
+        grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+        grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+        grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+        grid%psfc,                                 &
+        grid%fire_psfc,1)
+
+    call interpolate_z2fire(id,             &
+        grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
+        grid%ims,grid%ime,  grid%jms,grid%jme,                    &
+        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
+        grid%its,grid%ite,grid%jts,grid%jte,                              &
+        grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
+        grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
+        grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
+        grid%rainc+grid%rainnc,                                 &
+        grid%fire_rain,1)
+
+end subroutine interpolate_vars_for_fmc_model
+
 
 subroutine interpolate_winds2fire (grid, config_flags)
 

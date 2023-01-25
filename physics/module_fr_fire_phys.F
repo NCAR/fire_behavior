@@ -334,12 +334,12 @@ end subroutine fuel_moisture
 
 subroutine advance_moisture(    &
     initialize,                 & ! initialize timestepping. true on the first call at time 0, then false
-    ims,ime,  jms,jme,          & ! memory dimensions
-    its,ite,  jts,jte,          & ! tile dimensions
+    ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
+    ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
     nfmc,                       & ! dimension of moisture fields
     moisture_dt,                & ! timestep = time step time elapsed from the last call
     fmep_decay_tlag,            & ! moisture extended model assimilated diffs. decay time lag
-    rainc, rainnc,              & ! accumulated rain 
+    rain,                       & ! accumulated rain 
     t2, q2, psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
     rain_old,                   & ! previous value of accumulated rain
     t2_old, q2_old, psfc_old,   & ! previous values of the atmospheric state at surface
@@ -355,16 +355,16 @@ implicit none
 !*** arguments
 logical, intent(in):: initialize
 integer, intent(in)::           &
-    ims,ime,  jms,jme,          & ! memory dimensions
-    its,ite,  jts,jte,          & ! tile dimensions
+    ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
+    ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
     nfmc                          ! number of moisture fields
 real, intent(in):: moisture_dt, fmep_decay_tlag
-real, intent(in), dimension(ims:ime,jms:jme):: t2, q2, psfc, rainc, rainnc
-real, intent(inout), dimension(ims:ime,jms:jme):: t2_old, q2_old, psfc_old, rain_old 
-real, intent(inout), dimension(ims:ime,nfmc,jms:jme):: fmc_gc
-real, intent(inout), dimension(ims:ime,2,jms:jme):: fmep
-real, intent(out), dimension(ims:ime,nfmc,jms:jme):: fmc_equi, fmc_lag
-real, intent(out), dimension(ims:ime,jms:jme)::rh_fire 
+real, intent(in), dimension(ifms:ifme,jfms:jfme):: t2, q2, psfc, rain
+real, intent(inout), dimension(ifms:ifme,jfms:jfme):: t2_old, q2_old, psfc_old, rain_old 
+real, intent(inout), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
+real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
+real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi, fmc_lag
+real, intent(out), dimension(ifms:ifme,jfms:jfme)::rh_fire 
 
 !*** global
 ! fuel properties moisture set by init_fuel_cats
@@ -398,20 +398,16 @@ if(moisture_classes > nfmc .or. moisture_classes > max_moisture_classes)then
     call crash(msg)
 endif
 
-call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme,t2,'T2')
-call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme,q2,'Q2')
-call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme,psfc,'PSFC')
-
 if(initialize) then 
     call message('advance_moisture: initializing, copying surface variables to old')
     call copy2old
-else
-    call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_gc,'before advance fmc_gc')
+!else
+!    call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_gc,'before advance fmc_gc')
 endif
 
 if(check_data)then
-    do j=jts,jte
-        do i=its,ite
+    do j=jfts,jfte
+        do i=ifts,ifte
             if( .not.(t2(i,j)>0.0 .and. psfc(i,j)>0.0 .and. .not. q2(i,j) < 0.0 ))then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
                  write(msg,'(a,2i4,a,3e12.2)')'At i j',i,j,' t2 psfc q2 are ',t2(i,j),psfc(i,j),q2(i,j)
@@ -429,12 +425,12 @@ rhmax=-huge(rhmax)
 rhmin=huge(rhmin)
 rainmax=-huge(rainmax)
 rainmin= huge(rainmin)
-do j=jts,jte
+do j=jfts,jfte
     do k=1,moisture_classes
-        do i=its,ite
+        do i=ifts,ifte
             ! old fuel moisture contents
             ! compute the rain intensity from the difference of accumulated rain
-            rain_diff = ((rainc(i,j) + rainnc(i,j)) - rain_old(i,j))
+            rain_diff = rain(i,j) - rain_old(i,j)
             if(moisture_dt > 0.)then
                 rain_int  = 3600. * rain_diff / moisture_dt 
             else
@@ -555,9 +551,9 @@ enddo
 
 
 ! assimilated differences decay
-do j=jts,jte
+do j=jfts,jfte
   do k=1,2
-    do i=its,ite
+    do i=ifts,ifte
       change = moisture_dt / (fmep_decay_tlag * 3600.)
       if(change < tol) then
         fmep(i,k,j) = fmep(i,k,j)*(1.0 - change * (1.0 - 0.5 * change))
@@ -585,10 +581,6 @@ if(fire_print_msg.ge.2)then
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
 endif
 
-call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_equi,'equilibrium fmc_equi')
-call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_lag,'time lag')
-call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_gc,'after advance fmc_gc')
-
 call copy2old
 
 return
@@ -597,9 +589,9 @@ contains
 
 subroutine copy2old
 
-do j=jts,jte
-    do i=its,ite
-        rain_old(i,j) = rainc(i,j) + rainnc(i,j)
+do j=jfts,jfte
+    do i=ifts,ifte
+        rain_old(i,j) = rain(i,j)
         t2_old(i,j) = t2(i,j)
         q2_old(i,j) = q2(i,j)
         psfc_old(i,j) = psfc(i,j)

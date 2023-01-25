@@ -74,14 +74,21 @@
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
       real, dimension(:, :), allocatable :: emis_smoke
-      real, dimension(:, :), allocatable :: fire_psfc   ! "Surface Pressure"  "Pa"
-      real, dimension(:, :), allocatable :: fire_rain   ! "Accumulated total rain"  "mm"
-      real, dimension(:, :), allocatable :: fire_t2     ! "TEMP at 2 M"       "K"
-      real, dimension(:, :), allocatable :: fire_q2     ! "Value of 2m specific humidity" "kg/kg"
-      real, dimension(:, :, :), allocatable :: fire_u3d ! W-E winds used in fire module 3D
-      real, dimension(:, :, :), allocatable :: fire_v3d ! S-N winds used in fire module 3D
-      real, dimension(:, :, :), allocatable :: fire_ph  ! "geopotential levels"  "m2 s-2"
-      real, dimension(:, :, :), allocatable :: fire_pres! "pressure levels"  "Pa"
+
+        ! New vars defined on fire grid for NUOPC coupling
+      real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
+      real, dimension(:, :), allocatable :: fire_rain       ! "Accumulated total rain"  "mm"
+      real, dimension(:, :), allocatable :: fire_t2         ! "TEMP at 2 M"       "K"
+      real, dimension(:, :), allocatable :: fire_q2         ! "Value of 2m specific humidity" "kg/kg"
+      real, dimension(:, :), allocatable :: fire_rh_fire    ! "relative humidity, diagnostics" ""
+      real, dimension(:, :), allocatable :: fire_psfc_old   ! "Surface Pressure, previous value"  "Pa"
+      real, dimension(:, :), allocatable :: fire_rain_old   ! "Accumulated total rain, previous value"  "mm"
+      real, dimension(:, :), allocatable :: fire_t2_old     ! "TEMP at 2 M, previous value"       "K"
+      real, dimension(:, :), allocatable :: fire_q2_old     ! "Value of 2m specific humidity, previous value" "kg/kg"
+      real, dimension(:, :, :), allocatable :: fire_u3d     ! W-E winds used in fire module 3D
+      real, dimension(:, :, :), allocatable :: fire_v3d     ! S-N winds used in fire module 3D
+      real, dimension(:, :, :), allocatable :: fire_ph      ! "geopotential levels"  "m2 s-2"
+      real, dimension(:, :, :), allocatable :: fire_pres    ! "pressure levels"  "Pa"
 
         ! FMC model
       real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
@@ -465,11 +472,6 @@
       allocate (this%uah(this%ims:this%ime, this%jms:this%jme))
       allocate (this%vah(this%ims:this%ime, this%jms:this%jme))
 
-      allocate (this%fmc_gc(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
-      allocate (this%fmc_equi(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
-      allocate (this%fmc_lag(this%ims:this%ime, NUM_FMC, this%jms:this%jme))
-      allocate (this%fmep(this%ims:this%ime, NUM_FMEP, this%jms:this%jme))
-
         ! Grid dimensions
       if_geogrid: if (use_geogrid) then
         if (geogrid%dx == config_flags%dx) then
@@ -562,10 +564,20 @@
       allocate (this%fire_rain(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_q2(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_rh_fire(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_psfc_old(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_rain_old(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_t2_old(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fire_q2_old(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_u3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
       allocate (this%fire_v3d(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
       allocate (this%fire_ph(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
       allocate (this%fire_pres(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
+
+      allocate (this%fmc_gc(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
+      allocate (this%fmc_equi(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
+      allocate (this%fmc_lag(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
+      allocate (this%fmep(this%ifms:this%ifme, NUM_FMEP, this%jfms:this%jfme))
 
       this%dt = config_flags%dt
 
