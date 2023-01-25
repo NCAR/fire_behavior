@@ -48,7 +48,6 @@ subroutine fire_driver_em ( grid , config_flags                    &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
-            ,rho,z_at_w,dz8w           &  
             )
 
 !*** purpose: driver from grid structure
@@ -74,7 +73,6 @@ halo_fire_mag_sub
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
              ifps,ifpe, jfps,jfpe 
-    real,dimension(ims:ime, kms:kme, jms:jme),intent(in), optional::rho,z_at_w,dz8w 
 
 !*** local
     INTEGER:: fire_num_ignitions
@@ -271,18 +269,12 @@ halo_fire_mag_sub
             time_start,                                 &
             itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
             grid%dt,grid%dx,grid%dy,                    &
-            grid%u_frame,grid%v_frame,                  &
             grid%unit_fxlong,grid%unit_fxlat,                           & ! coordinates of grid center
             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
             config_flags%fire_wind_height,              &  ! height of wind input to fire spread formula
             fire_num_ignitions,                                & 
             grid%fire_ignition_longlat,      &
             ignition_line,              &
-            grid%u_2,grid%v_2,           &          ! atm arrays in
-            grid%ph_2,grid%phb,               & ! geopotential
-            grid%z0,                        & ! roughness height
-            grid%ht,                        &                         ! terrain height
-            grid%xlong,grid%xlat,                         & ! coordinates of atm grid centers, for ignition location
             grid%lfn, &
             grid%lfn_hist, &  ! PAJ: to initialize fire perimeter from obs
             config_flags%fire_is_real_perim,  & ! PAJ: use obs fire perimeter. 
@@ -291,10 +283,6 @@ halo_fire_mag_sub
             grid%fire_area,                               & ! redundant, for display, fire grid
             grid%burnt_area_dt,                               & ! redundant, for display
             lfn_out,                                      & ! work - one timestep    
-            grid%avg_fuel_frac,                           & ! out redundant arrays, atm grid
-            grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx, & ! out redundant arrays, atm grid
-            grid%grnhfx_fu,grid%grnqfx_fu, & ! out redundant arrays, atm grid
-            grid%uah,grid%vah,                          &
             grid%fgrnhfx,grid%fgrnqfx,grid%fcanhfx,grid%fcanqfx, & ! out redundant arrays, atm grid
             grid%ros,                                   & ! rate of spread
             grid%fxlong,grid%fxlat,grid%fz0,                           &       
@@ -357,17 +345,12 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     num_tiles,i_start,i_end,j_start,j_end,        & ! atm grid tiling
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,dt,dx,dy,      & ! in scalars
-    u_frame,v_frame,                              &
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
     fire_wind_height,                             & ! for vertical wind interpolation
     num_ignitions,                                & 
     ignition_longlat,                             &
     ignition_line,                                &
-    u,v,                                       & ! in arrays, atm grid
-    ph,phb,                                       &
-    z0,zs,                                        & 
-    xlong,xlat,                                   &
     lfn,                                      &
     lfn_hist,                                      & ! PAJ to init perimeter from obs
     fire_is_real_perim,                            & ! PAJ to init perimeter from obs
@@ -376,10 +359,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     fire_area,                                    & ! redundant state, fire grid
     burnt_area_dt,                                    & ! redundant state, fire grid
     lfn_out,                                      & ! out level set function    
-    avg_fuel_frac,                                &
-    grnhfx,grnqfx,canhfx,canqfx,                  & ! out redundant arrays, atm grid  
-    grnhfx_fu,grnqfx_fu,                 & ! out redundant arrays, atm grid
-    uah,vah,                                      & ! out atm grid
     fgrnhfx,fgrnqfx,fcanhfx,fcanqfx,              & ! out redundant arrays, fire grid
     ros,                                          &
     fxlong,fxlat,fz0,                                 & 
@@ -438,7 +417,6 @@ real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
     dt,                                           & ! time step
     dx,dy,                                        & ! atm grid step
-    u_frame,v_frame,                              & ! velocity offset
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_crwn_hgt,                                & ! lowest height crown fire heat is released (m)
     fire_ext_grnd,                                & ! extinction depth of surface fire heat flux (m)
@@ -449,17 +427,7 @@ real, intent(in):: &
 integer, intent(in):: num_ignitions                 ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
-
-real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::u,v, & ! wind velocity (m/s) (staggered atm grid) 
-                              ph, phb                      ! geopotential (w-points atm grid)
-real,intent(in),dimension(ims:ime, jms:jme)::   z0, &    ! roughness height
-                                                zs       ! terrain height  
-real,intent(out),dimension(ims:ime,jms:jme)::&
-    uah,                                           & ! atm wind at fire_wind_height, diagnostics
-    vah                                              ! atm wind at fire_wind_height, diagnostics
-
-real, dimension(ims:ime, jms:jme), intent(in)::xlong, xlat ! in because computed in driver_wrf
-    
+ 
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
     nfuel_cat                                       ! fuel data; can be also set inside (cell based, fire grid)
 
@@ -476,15 +444,6 @@ real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
 
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
     burnt_area_dt                                        
-real, intent(out), dimension(ims:ime, jms:jme)::  &
-   grnhfx_fu,grnqfx_fu                                        
-
-real, intent(out), dimension(ims:ime, jms:jme):: &  ! redundant arrays, for display purposes only (atm grid)
-    avg_fuel_frac,                               &  ! average fuel fraction
-    grnhfx,                                      &  ! heat flux from surface fire (W/m^2) 
-    grnqfx,                                      &  ! moisture flux from surface fire (W/m^2) 
-    canhfx,                                      &  ! heat flux from crown fire (W/m^2) 
-    canqfx                                         ! moisture flux from crown fire (W/m^2) 
 
 real, intent(out), dimension(ifms:ifme, jfms:jfme):: &  ! redundant arrays, for display only, fire grid
     fgrnhfx,                                      &  ! heat flux from surface fire (W/m^2) 
@@ -516,8 +475,8 @@ type(fire_params),intent(inout)::fp
     
 !*** local
 real :: dxf,dyf,latm, s
-integer :: its,ite,jts,jte,kts,kte, &            ! tile
-    ij,i,j,k,id,pid,ipe1,jpe1,ite1,jte1, &
+integer :: its,ite,jts,jte, &            ! tile
+    ij,i,j,k,id,pid,ite1,jte1, &
     ifts,ifte,jfts,jfte                          ! fire tile
 character(len=128)::msg
 character(len=3)::kk
@@ -577,20 +536,6 @@ pid=0
 if(fire_print_file.gt.0)then
     if(itimestep.le.fire_print_file.or.mod(itimestep,fire_print_file).eq.0)pid=itimestep ! print 1-fire_print_file then every fire_print_file-th
 endif
-
-if(ifun.eq.3)then
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,1,0,0,u,'u')
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,0,0,1,v,'v')
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,0,1,0,ph,'ph')
-endif
-
-! fake atm tile bounds
-kts=kps
-kte=kpe
-
-! staggered atm patch bounds
-ipe1=ifval(ipe.eq.ide,ipe+1,ipe)
-jpe1=ifval(jpe.eq.jde,jpe+1,jpe)
 
 ! set up fire tiles & interpolate to fire grid
 !$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
@@ -730,7 +675,6 @@ enddo ! tiles
 #ifdef DEBUG_OUT
 if(ifun.eq.1)then
     if(pid.ne.0)then
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,zs,'zs',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%zsf,'zsf',pid)
     endif
 endif
@@ -757,18 +701,10 @@ if (ifun.eq.3)then
         endif
     enddo
 
- call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,1,0,0,uah,'uah')
- call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,1,vah,'vah')
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vx,'uf')
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vy,'vf')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ips,ipe1,jps,jpe,ims,ime,jms,jme,uah,'uah',pid)
-        call write_array_m(ips,ipe,jps,jpe1,ims,ime,jms,jme,vah,'vah',pid)
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
-        call write_array_m3(ips,ipe1,kds,kde+1,jps,jpe,ims,ime,kms,kme,jms,jme,u,'u',pid)
-        call write_array_m3(ips,ipe,kds,kde+1,jps,jpe1,ims,ime,kms,kme,jms,jme,v,'v',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
     endif
@@ -787,12 +723,8 @@ endif
 if(ifun.eq.6)then
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnhfx,'fgrnhfx')
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnqfx,'fgrnqfx')
-    call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,0,grnhfx,'grnhfx')
-    call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,0,grnqfx,'grnqfx')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fuel_frac,'fuel_frac',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnhfx,'fgrnhfx',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnqfx,'fgrnqfx',pid)

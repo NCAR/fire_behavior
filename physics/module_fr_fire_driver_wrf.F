@@ -138,7 +138,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
-            ,rho,z_at_w,dz8w                                        &
             )
  
     call sum_2d_fire_vars (grid, config_flags)
