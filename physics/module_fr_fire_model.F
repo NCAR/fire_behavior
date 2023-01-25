@@ -240,19 +240,6 @@ elseif(ifun.eq.3)then   ! ignition if so specified
     
 elseif (ifun.eq.4) then  ! do the timestep
 
-    if(run_fuel_moisture)then
-        ! fuel moisture may have changed, reset the precomputed ros parameters
-        ! uses nfuel_cat to set the other fuel data arrays
-        ! needs zsf on halo width 1 to compute the terrain gradient
-        call set_fire_params(    &       ! also on restart
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            fdx,fdy,nfuel_cat0,  &
-            nfuel_cat,fuel_time, &
-            fp)
-    endif
-
     if(fire_print_msg.ge.stat_lev)then
       aw=fun_real(RNRM_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims

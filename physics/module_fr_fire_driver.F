@@ -632,6 +632,17 @@ do ij=1,num_tiles
         fmc_g                                & ! weighted fuel moisture contents on fire grid
         )
         call message('fuel_moisture end')
+
+        ! fuel moisture may have changed, reset the precomputed ros parameters
+        ! uses nfuel_cat to set the other fuel data arrays
+        ! needs zsf on halo width 1 to compute the terrain gradient
+        call set_fire_params(    &       ! also on restart
+            ifds,ifde,jfds,jfde, &
+            ifms,ifme,jfms,jfme, &
+            ifts,ifte,jfts,jfte, &
+            dxf,dyf,nfuel_cat0,  &
+            nfuel_cat,fuel_time, &
+            fp)
       endif ! run_fuel_moisture`
 
      endif ! ifun
