@@ -290,7 +290,6 @@ halo_fire_mag_sub
             grid%avg_fuel_frac,                           & ! out redundant arrays, atm grid
             grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx, & ! out redundant arrays, atm grid
             grid%grnhfx_fu,grid%grnqfx_fu, & ! out redundant arrays, atm grid
-            grid%uah,grid%vah,                          &
             grid%fgrnhfx,grid%fgrnqfx,grid%fcanhfx,grid%fcanqfx, & ! out redundant arrays, atm grid
             grid%ros,                                   & ! rate of spread
             grid%fxlong,grid%fxlat,grid%fz0,                           &       
@@ -373,7 +372,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     avg_fuel_frac,                                &
     grnhfx,grnqfx,canhfx,canqfx,                  & ! out redundant arrays, atm grid  
     grnhfx_fu,grnqfx_fu,                 & ! out redundant arrays, atm grid
-    uah,vah,                                      & ! out atm grid
     fgrnhfx,fgrnqfx,fcanhfx,fcanqfx,              & ! out redundant arrays, fire grid
     ros,                                          &
     fxlong,fxlat,fz0,                                 & 
@@ -446,9 +444,6 @@ TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
 real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::u,v  ! wind velocity (m/s) (staggered atm grid) 
 real,intent(in),dimension(ims:ime, jms:jme)::   z0, &    ! roughness height
                                                 zs       ! terrain height  
-real,intent(out),dimension(ims:ime,jms:jme)::&
-    uah,                                           & ! atm wind at fire_wind_height, diagnostics
-    vah                                              ! atm wind at fire_wind_height, diagnostics
 
 real, dimension(ims:ime, jms:jme), intent(in)::xlong, xlat ! in because computed in driver_wrf
     
@@ -748,14 +743,10 @@ if (ifun.eq.3)then
         endif
     enddo
 
- call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,1,0,0,uah,'uah')
- call print_chsum(itimestep,ims,ime,1,1,jms,jme,ids,ide,1,1,jds,jde,ips,ipe,1,1,jps,jpe,0,0,1,vah,'vah')
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vx,'uf')
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vy,'vf')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ips,ipe1,jps,jpe,ims,ime,jms,jme,uah,'uah',pid)
-        call write_array_m(ips,ipe,jps,jpe1,ims,ime,jms,jme,vah,'vah',pid)
         call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
         call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
         call write_array_m3(ips,ipe1,kds,kde+1,jps,jpe,ims,ime,kms,kme,jms,jme,u,'u',pid)
