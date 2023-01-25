@@ -277,7 +277,6 @@ halo_fire_mag_sub
             grid%fire_ignition_longlat,      &
             ignition_line,              &
             grid%u_2,grid%v_2,           &          ! atm arrays in
-            grid%ph_2,grid%phb,               & ! geopotential
             grid%z0,                        & ! roughness height
             grid%ht,                        &                         ! terrain height
             grid%xlong,grid%xlat,                         & ! coordinates of atm grid centers, for ignition location
@@ -363,7 +362,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     ignition_longlat,                             &
     ignition_line,                                &
     u,v,                                       & ! in arrays, atm grid
-    ph,phb,                                       &
     z0,zs,                                        & 
     xlong,xlat,                                   &
     lfn,                                      &
@@ -448,8 +446,7 @@ integer, intent(in):: num_ignitions                 ! number of ignitions, can b
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
 
-real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::u,v, & ! wind velocity (m/s) (staggered atm grid) 
-                              ph, phb                      ! geopotential (w-points atm grid)
+real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::u,v  ! wind velocity (m/s) (staggered atm grid) 
 real,intent(in),dimension(ims:ime, jms:jme)::   z0, &    ! roughness height
                                                 zs       ! terrain height  
 real,intent(out),dimension(ims:ime,jms:jme)::&
@@ -579,7 +576,6 @@ endif
 if(ifun.eq.3)then
  call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,1,0,0,u,'u')
  call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,0,0,1,v,'v')
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,0,1,0,ph,'ph')
 endif
 
 ! fake atm tile bounds
