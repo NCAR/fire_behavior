@@ -458,7 +458,7 @@ real, intent(in)::dt_moisture
 real, intent(in)::fmep_decay_tlag
 real, intent(in), dimension(ifms:ifme,jfms:jfme):: fire_t2, fire_q2, fire_psfc, fire_rain
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: fire_t2_old, fire_q2_old, fire_psfc_old, fire_rain_old 
-real, intent(out),dimension(ifms:ime,jfms:jme):: fire_rh_fire
+real, intent(out),dimension(ifms:ifme,jfms:jfme):: fire_rh_fire
 real, intent(inout), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
 real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
 real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi,fmc_lag
