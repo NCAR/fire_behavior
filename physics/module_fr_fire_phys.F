@@ -291,36 +291,12 @@ call check_mesh_2dim(ibs,ibe,jbs,jbe,ims,ime,jms,jme) ! check if tile with halo 
 
 do k=1,moisture_classes
 
-    ! copy halo beyond the tile but not beyond the domain boundary
-    do j=jbs,jbe
-        do i=ibs,ibe
-            fmc_k(i,j)=fmc_gc(i,k,j)      ! copy slice to 2d array
-        enddo
-    enddo
-
-    call print_2d_stats(ibs,ibe,jbs,jbe,its-1,ite+1,jts-1,jte+1,fmc_k,'fuel_moisture: fmc_k')
-
-    ! interpolate moisture contents in the class k to the fire mesh
-    call interpolate_z2fire(id,        & ! for debug output, <= 0 no output
-    ids,ide,jds,jde,                     & ! atm grid dimensions
-    its-1,ite+1,jts-1,jte+1,             & ! memory dimensions of fmc_k
-    ips,ipe,jps,jpe,                     &
-    its,ite,jts,jte,                     &
-    ifds, ifde, jfds, jfde,              & ! fire grid dimensions
-    ifts-1,ifte+1,jfts-1,jfte+1,         & ! memory dimensions of fmc_f
-    ifts,ifte,  jfts,jfte,               &
-    ir,jr,                               & ! atm/fire grid ratio
-    fmc_k,                               & ! atm grid arrays in
-    fmc_f,0)                                 ! fire grid arrays out
-
-    call print_2d_stats(ifts,ifte,jfts,jfte,ifts-1,ifte+1,jfts-1,jfte+1,fmc_f,'fuel_moisture: fmc_f')
-
     ! add moisture contents for class k to the fuel moisture
     do j=jfts,jfte
         do i=ifts,ifte
             n = nfuel_cat(i,j)
             if(n > 0)then
-                fmc_g(i,j)=fmc_g(i,j)+fmc_gw(n,k)*fmc_f(i,j)      ! add to sum over classes
+                fmc_g(i,j)=fmc_g(i,j)+fmc_gw(n,k)*fmc_gc(i,k,j)      ! add to sum over classes
             endif
         enddo
     enddo
