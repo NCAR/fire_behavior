@@ -275,10 +275,6 @@ halo_fire_mag_sub
             fire_num_ignitions,                                & 
             grid%fire_ignition_longlat,      &
             ignition_line,              &
-            grid%u_2,grid%v_2,           &          ! atm arrays in
-            grid%z0,                        & ! roughness height
-            grid%ht,                        &                         ! terrain height
-            grid%xlong,grid%xlat,                         & ! coordinates of atm grid centers, for ignition location
             grid%lfn, &
             grid%lfn_hist, &  ! PAJ: to initialize fire perimeter from obs
             config_flags%fire_is_real_perim,  & ! PAJ: use obs fire perimeter. 
@@ -358,9 +354,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     num_ignitions,                                & 
     ignition_longlat,                             &
     ignition_line,                                &
-    u,v,                                       & ! in arrays, atm grid
-    z0,zs,                                        & 
-    xlong,xlat,                                   &
     lfn,                                      &
     lfn_hist,                                      & ! PAJ to init perimeter from obs
     fire_is_real_perim,                            & ! PAJ to init perimeter from obs
@@ -440,13 +433,7 @@ real, intent(in):: &
 integer, intent(in):: num_ignitions                 ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
-
-real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::u,v  ! wind velocity (m/s) (staggered atm grid) 
-real,intent(in),dimension(ims:ime, jms:jme)::   z0, &    ! roughness height
-                                                zs       ! terrain height  
-
-real, dimension(ims:ime, jms:jme), intent(in)::xlong, xlat ! in because computed in driver_wrf
-    
+ 
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
     nfuel_cat                                       ! fuel data; can be also set inside (cell based, fire grid)
 
@@ -563,11 +550,6 @@ endif
 pid=0
 if(fire_print_file.gt.0)then
     if(itimestep.le.fire_print_file.or.mod(itimestep,fire_print_file).eq.0)pid=itimestep ! print 1-fire_print_file then every fire_print_file-th
-endif
-
-if(ifun.eq.3)then
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,1,0,0,u,'u')
- call print_chsum(itimestep,ims,ime,kms,kme,jms,jme,ids,ide,kds,kde,jds,jde,ips,ipe,kps,kpe,jps,jpe,0,0,1,v,'v')
 endif
 
 ! fake atm tile bounds
@@ -716,7 +698,6 @@ enddo ! tiles
 #ifdef DEBUG_OUT
 if(ifun.eq.1)then
     if(pid.ne.0)then
-        call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,zs,'zs',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%zsf,'zsf',pid)
     endif
 endif
@@ -749,8 +730,6 @@ if (ifun.eq.3)then
     if(pid.gt.0)then
         call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnhfx,'grnhfx',pid)
         call write_array_m(ips,ipe,jps,jpe,ims,ime,jms,jme,grnqfx,'grnqfx',pid)
-        call write_array_m3(ips,ipe1,kds,kde+1,jps,jpe,ims,ime,kms,kme,jms,jme,u,'u',pid)
-        call write_array_m3(ips,ipe,kds,kde+1,jps,jpe1,ims,ime,kms,kme,jms,jme,v,'v',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
         call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
     endif
