@@ -14,7 +14,6 @@ subroutine fire_model (                    &
     ifun,                                   & ! what to do see below
     restart,                                &
     need_lfn_update,                          & ! if lfn needs to be synced between tiles
-    run_fuel_moisture,                      & ! if need update fuel moisture in pass 4
     num_ignitions,                          & ! number of ignitions before advancing
     ifuelread,nfuel_cat0,                   & ! initialize fuel categories
     ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
@@ -96,7 +95,6 @@ integer, intent(in) :: ifun                 ! 1 = initialize run pass 1
                                             ! 6 = compute output fluxes
 logical, intent(in):: restart               ! if true, use existing state
 logical, intent(out)::need_lfn_update       ! if true, halo update on lfn afterwards
-logical, intent(in)::run_fuel_moisture      ! 
 ! scalar data
 integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifuelread,nfuel_cat0 ! for set_fire_params

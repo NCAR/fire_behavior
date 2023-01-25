@@ -619,14 +619,9 @@ do ij=1,num_tiles
         call fuel_moisture(                &
         id,                                     & ! for prints and maybe file names
         nfmc,                                &
-        ids,ide, jds,jde,               & ! atm grid dimensions
-        ims,ime, jms,jme,           &
-        ips,ipe,jps,jpe,                &
-        its,ite,jts,jte,                     &
         ifds, ifde, jfds, jfde,         & ! fire grid dimensions
         ifms, ifme, jfms, jfme,     &
         ifts,ifte,jfts,jfte,                 &
-        ir,jr,                                   & ! atm/fire grid ratio
         nfuel_cat,                         & ! fuel data
         fmc_gc,                             & ! moisture contents by class on atmospheric grid
         fmc_g                                & ! weighted fuel moisture contents on fire grid
@@ -653,7 +648,6 @@ do ij=1,num_tiles
 
     if(fire_run)then
       call fire_model (id,ifun,restart,need_lfn_update,  &
-        run_fuel_moisture,                      & ! if fuel moisture needs to be updated
         num_ignitions,                          & ! switches
         ifuelread,nfuel_cat0,                   & ! initialize fuel categories
         ifds,ifde,jfds,jfde,                    & ! fire domain dims

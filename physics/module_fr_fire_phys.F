@@ -233,14 +233,9 @@ contains
 subroutine fuel_moisture(                &
     id,                                  & ! for prints and maybe file names
     nfmc,                                &
-    ids,ide, jds,jde,                    & ! atm grid dimensions
-    ims,ime, jms,jme,                    &
-    ips,ipe,jps,jpe,                     &
-    its,ite,jts,jte,                     &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
     ifts,ifte,jfts,jfte,                 &
-    ir,jr,                               & ! atm/fire grid ratio
     nfuel_cat,                           & ! fuel data
     fmc_gc,                              & ! moisture contents by class on atmospheric grid
     fmc_g                                & ! weighted fuel moisture contents on fire grid
@@ -251,14 +246,9 @@ implicit none
 !**** arguments
 integer, intent(in)::                    &
     id,nfmc,                             &
-    ids,ide, jds,jde,                    & ! atm grid dimensions
-    ims,ime, jms,jme,                    &
-    ips,ipe,jps,jpe,                     &
-    its,ite,jts,jte,                     &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
-    ifts,ifte,jfts,jfte,                 &
-    ir,jr                                  ! atm/fire grid ratio
+    ifts,ifte,jfts,jfte
 
 
 real,intent(in),dimension(ifms:ifme,jfms:jfme):: nfuel_cat ! fuel data
@@ -267,7 +257,6 @@ real,intent(out),dimension(ifms:ifme,jfms:jfme):: fmc_g ! fuel data
 
 !**** local
 integer::i,j,k,n
-integer::ibs,ibe,jbs,jbe
 character(len=128)::msg
 
 call check_mesh_2dim(ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde) ! check if fire tile fits into domain
@@ -278,14 +267,6 @@ do j=jfts,jfte
         fmc_g(i,j)=0.               ! initialize sum over classes
     enddo
 enddo
-
-! one beyond the tile but not beyond the domain boundary
-ibs=max(ids,its-1)
-ibe=min(ide,ite+1)
-jbs=max(jds,jts-1)
-jbe=min(jde,jte+1)
-
-call check_mesh_2dim(ibs,ibe,jbs,jbe,ims,ime,jms,jme) ! check if tile with halo fits into memory
 
 do k=1,moisture_classes
 
