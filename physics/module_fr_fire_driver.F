@@ -42,12 +42,10 @@ contains
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
             ,fire_ifun_start,fire_ifun_end,tsteps                   &
-            ,ids,ide, kds,kde, jds,jde                              &
-            ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe                              &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
+            ,ifts,ifte, jfts,jfte                                   &
             )
 
 !*** purpose: driver from grid structure
@@ -67,12 +65,10 @@ halo_fire_mag_sub
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
     integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
     integer, intent(in):: &
-             ids,ide, kds,kde, jds,jde,                              &
-             ims,ime, kms,kme, jms,jme,                              &
-             ips,ipe, kps,kpe, jps,jpe,                              &
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
-             ifps,ifpe, jfps,jfpe 
+             ifps,ifpe, jfps,jfpe,                                   &
+             ifts,ifte, jfts,jfte
 
 !*** local
     INTEGER:: fire_num_ignitions
@@ -247,16 +243,12 @@ halo_fire_mag_sub
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
             fire_ifun,need_lfn_update,                  &
-            ids,ide-1, kds,kde, jds,jde-1,                          &
-            ims,ime, kms,kme, jms,jme,                          &
-            ips,min(ipe,ide-1), kps,kpe, jps,min(jpe,jde-1),                          & 
             ifds,ifde-ir, jfds,jfde-jr,                    &
             ifms,ifme, jfms,jfme,                    &
             ifps,min(ifpe,ifde-ir), jfps,min(jfpe,jfde-jr),      &
+            ifts,ifte-ir, jfts,jfte-jr,                          &
             ir,jr,                                      & ! atm/fire grid ratio
             grid%num_tiles,                             & ! atm grid tiling
-            grid%i_start,min(grid%i_end,ide-1),                    &
-            grid%j_start,min(grid%j_end,jde-1),                    &
             time_start,                                 &
             itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
             grid%dt,grid%dx,grid%dy,                    &
@@ -326,14 +318,12 @@ end subroutine fire_driver_em
 
 ! module_fr_fire_driver%%fire_driver
 subroutine fire_driver_phys (ifun,need_lfn_update,    &
-    ids,ide, kds,kde, jds,jde,                    & ! atm grid dimensions
-    ims,ime, kms,kme, jms,jme,                    &
-    ips,ipe, kps,kpe, jps,jpe,                    &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
     ifps, ifpe, jfps, jfpe,                       & ! fire patch in - will use smaller
+    ifts, ifte, jfts, jfte,                       &
     ir,jr,                                        & ! atm/fire grid ratio
-    num_tiles,i_start,i_end,j_start,j_end,        & ! atm grid tiling
+    num_tiles,                                    & ! atm grid tiling
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,dt,dx,dy,      & ! in scalars
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
@@ -380,12 +370,10 @@ implicit none
 !*** arguments
 
 integer, intent(in)::ifun,                        &
-    ids,ide, kds,kde, jds,jde,                    & ! atm domain bounds
-    ims,ime, kms,kme, jms,jme,                    & ! atm memory bounds 
-    ips,ipe, kps,kpe, jps,jpe,                    & ! atm patch bounds
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
     ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
+    ifts, ifte, jfts, jfte,                       & ! fire tile bounds
     ir,jr,                                        & ! atm/fire grid refinement ratio
     nfmc,                                     & ! number of fuel moisture classes
     itimestep,                                    & ! number of this timestep
@@ -401,8 +389,6 @@ logical, intent(in)::restart
     
 
 logical, intent(out)::need_lfn_update
-
-integer,dimension(num_tiles),intent(in) :: i_start,i_end,j_start,j_end  ! atm grid tiling
 
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
@@ -467,8 +453,7 @@ type(fire_params),intent(inout)::fp
 !*** local
 real :: dxf,dyf,latm, s
 integer :: its,ite,jts,jte, &            ! tile
-    ij,i,j,k,id,pid,ite1,jte1, &
-    ifts,ifte,jfts,jfte                          ! fire tile
+    ij,i,j,k,id,pid,ite1,jte1
 character(len=128)::msg
 character(len=3)::kk
 integer::ignitions_done_tile(num_tiles),ignited_tile(num_ignitions,num_tiles)
@@ -490,28 +475,18 @@ write(msg,'(a,2f15.6)')'atmosphere mesh step:',dx,dy
 call message(msg)
 write(msg,'(a,2f15.6)')'fire mesh step:      ',dxf,dyf
 call message(msg)
-write(msg,7001)'atm domain      ','ids',ids,ide,jds,jde
-call message(msg)                    
-write(msg,7001)'atm memory      ','ims',ims,ime,jms,jme
-call message(msg)                    
-write(msg,7001)'atm patch       ','ips',ips,ipe,jps,jpe
-call message(msg)                    
 write(msg,7001)'fire domain     ','ifds',ifds,ifde,jfds,jfde
 call message(msg)                    
 write(msg,7001)'fire memory     ','ifms',ifms,ifme,jfms,jfme
 call message(msg)                    
 write(msg,7001)'fire patch      ','ifps',ifps,ifpe,jfps,jfpe
 call message(msg)                    
+write(msg,7001)'fire tile       ','ifts',ifts,ifte,jfts,jfte
+call message(msg)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
 ! check mesh dimensions
-call check_fmesh(ids,ide,ifds,ifde,ir,'id')           ! check if atm and fire grids line up
-call check_fmesh(jds,jde,jfds,jfde,jr,'jd')
-call check_fmesh(ips,ipe,ifps,ifpe,ir,'ip')
-call check_fmesh(jps,jpe,jfps,jfpe,jr,'jp')
-call check_mesh_2dim(ips,ipe,jps,jpe,ims,ime,jms,jme)        ! check if atm patch fits in atm array
 call check_mesh_2dim(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme) ! check if fire patch fits in fire array
-call check_mesh_2dim(ips,ipe,jps,jpe,ids,ide,jds,jde)        ! check if atm patch fits in atm domain
 call check_mesh_2dim(ifps,ifpe,jfps,jfpe,ifds,ifde,jfds,jfde) ! check if fire patch fits in fire domain
 
 !$OMP SINGLE
@@ -537,31 +512,14 @@ do ij=1,num_tiles
 
     ignitions_done_tile(ij)=0
 
-    ! set up tile bounds    
-    its = i_start(ij)  ! start atmospheric tile in i
-    ite = i_end(ij)    ! end atmospheric tile in i
-    jts = j_start(ij)  ! start atmospheric tile in j
-    jte = j_end(ij)    ! end atmospheric tile in j
-    ifts= (its-ids)*ir+ifds       ! start fire tile in i
-    ifte= (ite-ids+1)*ir+ifds-1   ! end fire tile in i
-    jfts= (jts-jds)*jr+jfds       ! start fire tile in j
-    jfte= (jte-jds+1)*jr+jfds-1   ! end fire tile in j
-        
-! staggered atm tile bounds
-    ite1=ifval(ite.eq.ide,ite+1,ite)
-    jte1=ifval(jte.eq.jde,jte+1,jte)
-
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
     write(msg,'(a,i3,1x,a,i7,1x,a,i3)')'tile=',ij,' id=',id,' ifun=',ifun
     call message(msg)
-    write(msg,7001)'atm tile   ','its',its,ite,jts,jte
-    call message(msg)                   
     write(msg,7001)'fire tile  ','ifts',ifts,ifte,jfts,jfte
     call message(msg)                    
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
     ! check the tiles
-    call check_mesh_2dim(its,ite,jts,jte,ips,ipe,jps,jpe)                 ! check if atm tile fits in atm patch
     call check_mesh_2dim(ifts,ifte,jfts,jfte,ifps,ifpe,jfps,jfpe)         ! check if fire tile fits in fire patch
     call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
 

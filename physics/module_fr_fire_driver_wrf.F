@@ -74,12 +74,10 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
-            ,ids,ide, kds,kde, jds,jde                              &
-            ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe                              &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
+            ,ifts,ifte, jfts,jfte                                   &
             ) 
 
     call message('fire_driver_em_init: FIRE initialization complete')
@@ -135,12 +133,10 @@ subroutine fire_driver_em_step (grid , config_flags               &
 
     call fire_driver_em ( grid , config_flags               & 
             ,3,6,fire_test_steps                                &
-            ,ids,ide, kds,kde, jds,jde                              &
-            ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe                              &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
+            ,ifts,ifte, jfts,jfte                                   &
             )
  
     call sum_2d_fire_vars (grid, config_flags)
