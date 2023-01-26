@@ -45,7 +45,6 @@
       real :: fire_slope_factor = 1.0         ! "slope correction factor" "-"
       integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file"
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
-      logical :: fmoist_interp = .false.      ! "interpolate moisture from the model or the input to fuels on the fire grid"
       logical :: fmoist_only = .false.        ! "only run moisture model, skip fire"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
@@ -242,7 +241,6 @@
       real :: fire_slope_factor = 1.0         ! "slope correction factor" "-"
       integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file" 
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
-      logical :: fmoist_interp = .false.      ! "interpolate moisture from the model or the input to fuels on the fire grid"
       logical :: fmoist_only = .false.        ! "only run moisture model, skip fire"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
@@ -298,7 +296,7 @@
           fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_test_steps, fire_advection, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, fmoist_interp, &
+          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
           fmoist_only, fmoist_freq, fmoist_dt, fire_fuel_read, fire_fuel_cat, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, tracer_opt, fire_tracer_smoke, &
             ! Ignitions
@@ -375,7 +373,6 @@
       this%fire_slope_factor = fire_slope_factor
       this%fire_fmc_read = fire_fmc_read
       this%fmoist_run = fmoist_run
-      this%fmoist_interp = fmoist_interp
       this%fmoist_only = fmoist_only
       this%fmoist_freq = fmoist_freq
       this%fmoist_dt = fmoist_dt
