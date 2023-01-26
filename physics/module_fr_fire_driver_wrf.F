@@ -128,7 +128,10 @@ subroutine fire_driver_em_step (grid , config_flags               &
                             ifps,ifpe, jfps,jfpe,kfps,kfpe,                        &
                             ifts,ifte, jfts,jfte,kfts,kfte)
 
+      ! PAJM: These calls only necessary if the atm state has been updated
+      ! So we are doing the interpolation more than needed
     call interpolate_winds2fire (grid, config_flags)
+    call interpolate_vars_for_fmc_model (grid, config_flags)
 
     call fire_driver_em ( grid , config_flags               & 
             ,3,6,fire_test_steps                                &
