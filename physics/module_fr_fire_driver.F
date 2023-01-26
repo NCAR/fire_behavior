@@ -86,7 +86,7 @@ halo_fire_mag_sub
     type(fire_params)::fp
     real:: time_start, dt
     real:: moisture_time
-    logical:: run_advance_moisture,run_fuel_moisture, moisture_initializing
+    logical:: run_advance_moisture, moisture_initializing
     real::    dt_moisture
 
 
@@ -137,7 +137,6 @@ halo_fire_mag_sub
     !decide what to run
     moisture_time = time_start
     run_advance_moisture = .false. ! default
-    run_fuel_moisture = .false. ! default
     moisture_initializing = fire_ifun_start < 3
     
     
@@ -176,7 +175,6 @@ halo_fire_mag_sub
                     write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
                     call message(msg)
                 endif
-                    run_fuel_moisture=.true.
             endif
         endif
     endif
@@ -232,7 +230,7 @@ halo_fire_mag_sub
 !           halo exchange on fire winds width 2 for a 2-step RK method
 #include "HALO_FIRE_WIND_F.inc"
 
-            if(run_fuel_moisture)then
+            if(run_advance_moisture)then
             ! have interpolated to the fire grid
 #include "HALO_FIRE_MFG.inc"
             endif
@@ -282,7 +280,7 @@ halo_fire_mag_sub
             grid%nfuel_cat,                               & ! input, or internal for safekeeping
             grid%fuel_time,                      & 
             config_flags%nfmc,         & ! moisture model variables start
-            run_advance_moisture,run_fuel_moisture,dt_moisture,     &    ! moisture model control
+            run_advance_moisture,dt_moisture,     &    ! moisture model control
             config_flags%fmep_decay_tlag,                               & ! moisture extended model assim. diffs decay time lag
             grid%fire_rain,                       & ! accumulated rain from different sources
             grid%fire_t2, grid%fire_q2, grid%fire_psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
@@ -307,7 +305,7 @@ halo_fire_mag_sub
                 call message('halo exchange on lfn width 2')
 #include "HALO_FIRE_LFN.inc"
           endif
-          if(run_fuel_moisture)then
+          if(run_advance_moisture)then
             if(fire_ifun.eq.3)then
                      ! prepare for interpolation to the fire grid
 #include "HALO_FIRE_MAG.inc"
@@ -358,7 +356,7 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     nfuel_cat,                                    & ! in array, data, fire grid, or constant internal
     fuel_time,                                & ! save constant internal data, fire grid
     nfmc,                                     & ! number of fuel moisture classes
-    run_advance_moisture,run_fuel_moisture,dt_moisture,& ! moisture model control
+    run_advance_moisture,dt_moisture,& ! moisture model control
     fmep_decay_tlag,                              & ! moist. extended model assim. diffs time lag
     fire_rain,              & ! accumulated rain from different sources
     fire_t2, fire_q2, fire_psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
@@ -446,7 +444,7 @@ real, intent(out), dimension(ifms:ifme, jfms:jfme):: &  ! redundant arrays, for 
     ros                                             ! fire rate of spread (m/s)
     
 ! moisture model arguments
-logical, intent(in)::run_advance_moisture,run_fuel_moisture
+logical, intent(in)::run_advance_moisture
 real, intent(in)::dt_moisture
 real, intent(in)::fmep_decay_tlag
 real, intent(in), dimension(ifms:ifme,jfms:jfme):: fire_t2, fire_q2, fire_psfc, fire_rain
@@ -598,44 +596,33 @@ do ij=1,num_tiles
               fmc_lag                    &  ! fuel moisture fields updated, by class tendency diagnostic
           )
           call message('advance_moisture end')
+
+          call message('fuel_moisture start')
+          call fuel_moisture(                &
+          id,                                     & ! for prints and maybe file names
+          nfmc,                                &
+          ifds, ifde, jfds, jfde,         & ! fire grid dimensions
+          ifms, ifme, jfms, jfme,     &
+          ifts,ifte,jfts,jfte,                 &
+          nfuel_cat,                         & ! fuel data
+          fmc_gc,                             & ! moisture contents by class on atmospheric grid
+          fmc_g                                & ! weighted fuel moisture contents on fire grid
+          )
+          call message('fuel_moisture end')
+
+          ! fuel moisture may have changed, reset the precomputed ros parameters
+          ! uses nfuel_cat to set the other fuel data arrays
+          ! needs zsf on halo width 1 to compute the terrain gradient
+          call set_fire_params(    &       ! also on restart
+              ifds,ifde,jfds,jfde, &
+              ifms,ifme,jfms,jfme, &
+              ifts,ifte,jfts,jfte, &
+              dxf,dyf,nfuel_cat0,  &
+              nfuel_cat,fuel_time, &
+              fp)
+
       endif
     endif
-        
-    if(fire_run)then
-
-    if(ifun.eq.4)then
-
-      ! interpolate and compute weighted average to get the fuel moisture
-      !! print *,'ifun=4, run_fuel_moisture=',run_fuel_moisture
-      if(run_fuel_moisture)then
-        call message('fuel_moisture start')
-        call fuel_moisture(                &
-        id,                                     & ! for prints and maybe file names
-        nfmc,                                &
-        ifds, ifde, jfds, jfde,         & ! fire grid dimensions
-        ifms, ifme, jfms, jfme,     &
-        ifts,ifte,jfts,jfte,                 &
-        nfuel_cat,                         & ! fuel data
-        fmc_gc,                             & ! moisture contents by class on atmospheric grid
-        fmc_g                                & ! weighted fuel moisture contents on fire grid
-        )
-        call message('fuel_moisture end')
-
-        ! fuel moisture may have changed, reset the precomputed ros parameters
-        ! uses nfuel_cat to set the other fuel data arrays
-        ! needs zsf on halo width 1 to compute the terrain gradient
-        call set_fire_params(    &       ! also on restart
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            dxf,dyf,nfuel_cat0,  &
-            nfuel_cat,fuel_time, &
-            fp)
-      endif ! run_fuel_moisture`
-
-     endif ! ifun
-
-    endif ! fire_run
 
 !   the following executes in any case
 
