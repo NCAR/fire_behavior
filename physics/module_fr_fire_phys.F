@@ -1182,6 +1182,7 @@ do j=jfts,jfte
 
         fp%ischap(i,j)=ichap(k)
         fp%fgip(i,j)=fgi(k)
+        ! PAJM: is it possible that if fire_fmc_read == 0, needed by the FMC model, fp%fmc_g is not initialized?
         if(fire_fmc_read.eq.1)then
            fp%fmc_g(i,j)=fuelmc_g
         endif
