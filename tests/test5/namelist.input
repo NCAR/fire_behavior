@@ -52,5 +52,6 @@
  fmoist_run = .true.,   ! Run fuel moisture model
  fmoist_freq = 1,       ! Fuel moisture model updated every time step
  fire_fmc_read = 0,     ! "fuel categories are set by: if 0, uniform; if 1, user-presc; if 2, read from file"   ""
+ fmoist_interp = .true.
 /
 

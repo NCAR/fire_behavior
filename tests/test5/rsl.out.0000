@@ -1,4 +1,4 @@
-taskid: 0 hostname: r10i5n12
+taskid: 0 hostname: r10i5n4
 Quilting with   1 groups of   0 I/O tasks.
  Ntasks in X            1 , ntasks in Y            1
   Domain # 1: dx =   100.000 m
@@ -13,10 +13,14 @@ git commit b00c5536bc3f81084780a705c51d5e79e646bd20
 DYNAMICS OPTION: Eulerian Mass Coordinate
    alloc_space_field: domain            1 ,              36145560  bytes allocated
   med_initialdata_input: calling input_input
+ Domain            1  Setting history stream            0  for mut
+ Domain            1  Setting history stream            0  for alt
+ Domain            1  Setting history stream            0  for rho
+ Domain            1  Setting history stream            0  for znt
    Input data is acceptable to use: wrfinput_d01
  CURRENT DATE          = 2012-06-25_18:00:00
  SIMULATION START DATE = 2012-06-25_18:00:00
-Timing for processing wrfinput file (stream 0) for domain        1:    0.10464 elapsed seconds
+Timing for processing wrfinput file (stream 0) for domain        1:    0.12139 elapsed seconds
 Max map factor in domain 1 =  1.00. Scale the dt in the model accordingly.
  D01: Time step                              =   0.500000000      (s)
  D01: Grid Distance                          =   0.100000001      (km)
@@ -35,183 +39,183 @@ FIRE:fire_driver_em_init: FIRE initialization start
 FIRE:Using real ignition coordinates, longitude and latitude
 FIRE:Reading file namelist.fire
 FIRE:File namelist.fire not found, using defaults
-Timing for Writing wrfout_d01_2012-06-25_18:00:00 for domain        1:    0.19060 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:00 for domain        1:    0.22010 elapsed seconds
 d01 2012-06-25_18:00:00  Input data is acceptable to use: wrfbdy_d01
-Timing for processing lateral boundary for domain        1:    0.06668 elapsed seconds
+Timing for processing lateral boundary for domain        1:    0.07657 elapsed seconds
  Tile Strategy is not specified. Assuming 1D-Y
 WRF TILE   1 IS      1 IE     20 JS      1 JE     20
 WRF NUMBER OF TILES =   1
 FIRE:Time       0.500 s Average wind           0.349E+01 m/s
 FIRE:Time       0.500 s Maximum wind           0.361E+01 m/s
 FIRE:Time       0.500 s Fire area              0.629E+01 m^2
-FIRE:Time       0.500 s Heat output            0.282E+05 W
-FIRE:Time       0.500 s Max heat flux          0.452E+02 W/m^2
-FIRE:Time       0.500 s Latent heat output     0.227E+04 W
-FIRE:Time       0.500 s Max latent heat flux   0.363E+01 W/m^2
+FIRE:Time       0.500 s Heat output            0.277E+05 W
+FIRE:Time       0.500 s Max heat flux          0.442E+02 W/m^2
+FIRE:Time       0.500 s Latent heat output     0.231E+04 W
+FIRE:Time       0.500 s Max latent heat flux   0.369E+01 W/m^2
 d01 2012-06-25_18:00:00  ----------------------------------------
 d01 2012-06-25_18:00:00  W-DAMPING  BEGINS AT W-COURANT NUMBER =    1.00000000
 d01 2012-06-25_18:00:00  ----------------------------------------
-Timing for main: time 2012-06-25_18:00:00 on domain   1:    1.27104 elapsed seconds
+Timing for main: time 2012-06-25_18:00:00 on domain   1:    1.32189 elapsed seconds
 FIRE:Time       1.000 s Average wind           0.349E+01 m/s
 FIRE:Time       1.000 s Maximum wind           0.361E+01 m/s
 FIRE:Time       1.000 s Fire area              0.195E+03 m^2
-FIRE:Time       1.000 s Heat output            0.229E+08 W
-FIRE:Time       1.000 s Max heat flux          0.363E+05 W/m^2
-FIRE:Time       1.000 s Latent heat output     0.184E+07 W
-FIRE:Time       1.000 s Max latent heat flux   0.292E+04 W/m^2
-Timing for main: time 2012-06-25_18:00:01 on domain   1:    0.26744 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:01 for domain        1:    0.09989 elapsed seconds
+FIRE:Time       1.000 s Heat output            0.224E+08 W
+FIRE:Time       1.000 s Max heat flux          0.356E+05 W/m^2
+FIRE:Time       1.000 s Latent heat output     0.187E+07 W
+FIRE:Time       1.000 s Max latent heat flux   0.297E+04 W/m^2
+Timing for main: time 2012-06-25_18:00:01 on domain   1:    0.27042 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:01 for domain        1:    0.12200 elapsed seconds
 FIRE:Time       1.500 s Average wind           0.349E+01 m/s
 FIRE:Time       1.500 s Maximum wind           0.364E+01 m/s
 FIRE:Time       1.500 s Fire area              0.686E+03 m^2
-FIRE:Time       1.500 s Heat output            0.149E+09 W
-FIRE:Time       1.500 s Max heat flux          0.200E+06 W/m^2
-FIRE:Time       1.500 s Latent heat output     0.120E+08 W
-FIRE:Time       1.500 s Max latent heat flux   0.161E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:01 on domain   1:    0.35778 elapsed seconds
+FIRE:Time       1.500 s Heat output            0.146E+09 W
+FIRE:Time       1.500 s Max heat flux          0.196E+06 W/m^2
+FIRE:Time       1.500 s Latent heat output     0.122E+08 W
+FIRE:Time       1.500 s Max latent heat flux   0.163E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:01 on domain   1:    0.37359 elapsed seconds
 FIRE:Time       2.000 s Average wind           0.349E+01 m/s
 FIRE:Time       2.000 s Maximum wind           0.365E+01 m/s
 FIRE:Time       2.000 s Fire area              0.147E+04 m^2
-FIRE:Time       2.000 s Heat output            0.396E+09 W
-FIRE:Time       2.000 s Max heat flux          0.339E+06 W/m^2
-FIRE:Time       2.000 s Latent heat output     0.318E+08 W
-FIRE:Time       2.000 s Max latent heat flux   0.272E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:02 on domain   1:    0.28558 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:02 for domain        1:    0.10073 elapsed seconds
+FIRE:Time       2.000 s Heat output            0.388E+09 W
+FIRE:Time       2.000 s Max heat flux          0.331E+06 W/m^2
+FIRE:Time       2.000 s Latent heat output     0.323E+08 W
+FIRE:Time       2.000 s Max latent heat flux   0.276E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:02 on domain   1:    0.30855 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:02 for domain        1:    0.12283 elapsed seconds
 FIRE:Time       2.500 s Average wind           0.349E+01 m/s
 FIRE:Time       2.500 s Maximum wind           0.375E+01 m/s
 FIRE:Time       2.500 s Fire area              0.240E+04 m^2
-FIRE:Time       2.500 s Heat output            0.573E+09 W
-FIRE:Time       2.500 s Max heat flux          0.259E+06 W/m^2
-FIRE:Time       2.500 s Latent heat output     0.460E+08 W
-FIRE:Time       2.500 s Max latent heat flux   0.208E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:02 on domain   1:    0.35056 elapsed seconds
+FIRE:Time       2.500 s Heat output            0.561E+09 W
+FIRE:Time       2.500 s Max heat flux          0.254E+06 W/m^2
+FIRE:Time       2.500 s Latent heat output     0.468E+08 W
+FIRE:Time       2.500 s Max latent heat flux   0.212E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:02 on domain   1:    0.37233 elapsed seconds
 FIRE:Time       3.000 s Average wind           0.349E+01 m/s
 FIRE:Time       3.000 s Maximum wind           0.379E+01 m/s
 FIRE:Time       3.000 s Fire area              0.358E+04 m^2
-FIRE:Time       3.000 s Heat output            0.884E+09 W
-FIRE:Time       3.000 s Max heat flux          0.257E+06 W/m^2
-FIRE:Time       3.000 s Latent heat output     0.710E+08 W
-FIRE:Time       3.000 s Max latent heat flux   0.207E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:03 on domain   1:    0.24963 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:03 for domain        1:    0.10079 elapsed seconds
+FIRE:Time       3.000 s Heat output            0.864E+09 W
+FIRE:Time       3.000 s Max heat flux          0.252E+06 W/m^2
+FIRE:Time       3.000 s Latent heat output     0.721E+08 W
+FIRE:Time       3.000 s Max latent heat flux   0.210E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:03 on domain   1:    0.24881 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:03 for domain        1:    0.12263 elapsed seconds
 FIRE:Time       3.500 s Average wind           0.348E+01 m/s
 FIRE:Time       3.500 s Maximum wind           0.377E+01 m/s
 FIRE:Time       3.500 s Fire area              0.471E+04 m^2
-FIRE:Time       3.500 s Heat output            0.132E+10 W
-FIRE:Time       3.500 s Max heat flux          0.347E+06 W/m^2
-FIRE:Time       3.500 s Latent heat output     0.106E+09 W
-FIRE:Time       3.500 s Max latent heat flux   0.279E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:03 on domain   1:    0.38592 elapsed seconds
+FIRE:Time       3.500 s Heat output            0.129E+10 W
+FIRE:Time       3.500 s Max heat flux          0.340E+06 W/m^2
+FIRE:Time       3.500 s Latent heat output     0.108E+09 W
+FIRE:Time       3.500 s Max latent heat flux   0.284E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:03 on domain   1:    0.37577 elapsed seconds
 FIRE:Time       4.000 s Average wind           0.348E+01 m/s
 FIRE:Time       4.000 s Maximum wind           0.363E+01 m/s
 FIRE:Time       4.000 s Fire area              0.611E+04 m^2
-FIRE:Time       4.000 s Heat output            0.163E+10 W
-FIRE:Time       4.000 s Max heat flux          0.309E+06 W/m^2
-FIRE:Time       4.000 s Latent heat output     0.131E+09 W
-FIRE:Time       4.000 s Max latent heat flux   0.249E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:04 on domain   1:    0.24958 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:04 for domain        1:    0.10098 elapsed seconds
+FIRE:Time       4.000 s Heat output            0.165E+10 W
+FIRE:Time       4.000 s Max heat flux          0.304E+06 W/m^2
+FIRE:Time       4.000 s Latent heat output     0.138E+09 W
+FIRE:Time       4.000 s Max latent heat flux   0.253E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:04 on domain   1:    0.25115 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:04 for domain        1:    0.12300 elapsed seconds
 FIRE:Time       4.500 s Average wind           0.348E+01 m/s
 FIRE:Time       4.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       4.500 s Fire area              0.754E+04 m^2
-FIRE:Time       4.500 s Heat output            0.188E+10 W
-FIRE:Time       4.500 s Max heat flux          0.284E+06 W/m^2
-FIRE:Time       4.500 s Latent heat output     0.151E+09 W
-FIRE:Time       4.500 s Max latent heat flux   0.228E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:04 on domain   1:    0.35208 elapsed seconds
+FIRE:Time       4.500 s Heat output            0.186E+10 W
+FIRE:Time       4.500 s Max heat flux          0.278E+06 W/m^2
+FIRE:Time       4.500 s Latent heat output     0.155E+09 W
+FIRE:Time       4.500 s Max latent heat flux   0.232E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:04 on domain   1:    0.37526 elapsed seconds
 FIRE:Time       5.000 s Average wind           0.347E+01 m/s
 FIRE:Time       5.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time       5.000 s Fire area              0.912E+04 m^2
-FIRE:Time       5.000 s Heat output            0.245E+10 W
-FIRE:Time       5.000 s Max heat flux          0.383E+06 W/m^2
-FIRE:Time       5.000 s Latent heat output     0.197E+09 W
-FIRE:Time       5.000 s Max latent heat flux   0.307E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:05 on domain   1:    0.25231 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:05 for domain        1:    0.10097 elapsed seconds
+FIRE:Time       5.000 s Heat output            0.242E+10 W
+FIRE:Time       5.000 s Max heat flux          0.375E+06 W/m^2
+FIRE:Time       5.000 s Latent heat output     0.202E+09 W
+FIRE:Time       5.000 s Max latent heat flux   0.312E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:05 on domain   1:    0.25163 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:05 for domain        1:    0.12313 elapsed seconds
 FIRE:Time       5.500 s Average wind           0.347E+01 m/s
 FIRE:Time       5.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       5.500 s Fire area              0.109E+05 m^2
-FIRE:Time       5.500 s Heat output            0.308E+10 W
-FIRE:Time       5.500 s Max heat flux          0.372E+06 W/m^2
-FIRE:Time       5.500 s Latent heat output     0.247E+09 W
-FIRE:Time       5.500 s Max latent heat flux   0.299E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:05 on domain   1:    0.35337 elapsed seconds
+FIRE:Time       5.500 s Heat output            0.301E+10 W
+FIRE:Time       5.500 s Max heat flux          0.365E+06 W/m^2
+FIRE:Time       5.500 s Latent heat output     0.251E+09 W
+FIRE:Time       5.500 s Max latent heat flux   0.304E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:05 on domain   1:    0.37602 elapsed seconds
 FIRE:Time       6.000 s Average wind           0.347E+01 m/s
 FIRE:Time       6.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time       6.000 s Fire area              0.129E+05 m^2
-FIRE:Time       6.000 s Heat output            0.343E+10 W
-FIRE:Time       6.000 s Max heat flux          0.305E+06 W/m^2
-FIRE:Time       6.000 s Latent heat output     0.276E+09 W
-FIRE:Time       6.000 s Max latent heat flux   0.245E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:06 on domain   1:    0.25131 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:06 for domain        1:    0.10114 elapsed seconds
+FIRE:Time       6.000 s Heat output            0.335E+10 W
+FIRE:Time       6.000 s Max heat flux          0.299E+06 W/m^2
+FIRE:Time       6.000 s Latent heat output     0.281E+09 W
+FIRE:Time       6.000 s Max latent heat flux   0.249E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:06 on domain   1:    0.25088 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:06 for domain        1:    0.12336 elapsed seconds
 FIRE:Time       6.500 s Average wind           0.347E+01 m/s
-FIRE:Time       6.500 s Maximum wind           0.361E+01 m/s
+FIRE:Time       6.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       6.500 s Fire area              0.152E+05 m^2
-FIRE:Time       6.500 s Heat output            0.427E+10 W
-FIRE:Time       6.500 s Max heat flux          0.559E+06 W/m^2
-FIRE:Time       6.500 s Latent heat output     0.343E+09 W
-FIRE:Time       6.500 s Max latent heat flux   0.449E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:06 on domain   1:    0.35467 elapsed seconds
+FIRE:Time       6.500 s Heat output            0.420E+10 W
+FIRE:Time       6.500 s Max heat flux          0.520E+06 W/m^2
+FIRE:Time       6.500 s Latent heat output     0.353E+09 W
+FIRE:Time       6.500 s Max latent heat flux   0.459E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:06 on domain   1:    0.37536 elapsed seconds
 FIRE:Time       7.000 s Average wind           0.346E+01 m/s
 FIRE:Time       7.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time       7.000 s Fire area              0.172E+05 m^2
-FIRE:Time       7.000 s Heat output            0.529E+10 W
-FIRE:Time       7.000 s Max heat flux          0.100E+07 W/m^2
-FIRE:Time       7.000 s Latent heat output     0.425E+09 W
-FIRE:Time       7.000 s Max latent heat flux   0.804E+05 W/m^2
-Timing for main: time 2012-06-25_18:00:07 on domain   1:    0.25162 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:07 for domain        1:    0.10132 elapsed seconds
+FIRE:Time       7.000 s Heat output            0.515E+10 W
+FIRE:Time       7.000 s Max heat flux          0.945E+06 W/m^2
+FIRE:Time       7.000 s Latent heat output     0.436E+09 W
+FIRE:Time       7.000 s Max latent heat flux   0.836E+05 W/m^2
+Timing for main: time 2012-06-25_18:00:07 on domain   1:    0.25253 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:07 for domain        1:    0.12340 elapsed seconds
 FIRE:Time       7.500 s Average wind           0.346E+01 m/s
 FIRE:Time       7.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       7.500 s Fire area              0.196E+05 m^2
-FIRE:Time       7.500 s Heat output            0.693E+10 W
-FIRE:Time       7.500 s Max heat flux          0.153E+07 W/m^2
-FIRE:Time       7.500 s Latent heat output     0.556E+09 W
-FIRE:Time       7.500 s Max latent heat flux   0.123E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:07 on domain   1:    0.35323 elapsed seconds
+FIRE:Time       7.500 s Heat output            0.671E+10 W
+FIRE:Time       7.500 s Max heat flux          0.144E+07 W/m^2
+FIRE:Time       7.500 s Latent heat output     0.571E+09 W
+FIRE:Time       7.500 s Max latent heat flux   0.128E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:07 on domain   1:    0.37481 elapsed seconds
 FIRE:Time       8.000 s Average wind           0.346E+01 m/s
 FIRE:Time       8.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time       8.000 s Fire area              0.220E+05 m^2
-FIRE:Time       8.000 s Heat output            0.786E+10 W
+FIRE:Time       8.000 s Heat output            0.788E+10 W
 FIRE:Time       8.000 s Max heat flux          0.167E+07 W/m^2
-FIRE:Time       8.000 s Latent heat output     0.632E+09 W
-FIRE:Time       8.000 s Max latent heat flux   0.134E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:08 on domain   1:    0.25192 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:08 for domain        1:    0.10151 elapsed seconds
+FIRE:Time       8.000 s Latent heat output     0.674E+09 W
+FIRE:Time       8.000 s Max latent heat flux   0.148E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:08 on domain   1:    0.25113 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:08 for domain        1:    0.12353 elapsed seconds
 FIRE:Time       8.500 s Average wind           0.346E+01 m/s
 FIRE:Time       8.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       8.500 s Fire area              0.248E+05 m^2
-FIRE:Time       8.500 s Heat output            0.955E+10 W
-FIRE:Time       8.500 s Max heat flux          0.168E+07 W/m^2
-FIRE:Time       8.500 s Latent heat output     0.767E+09 W
-FIRE:Time       8.500 s Max latent heat flux   0.135E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:08 on domain   1:    0.35439 elapsed seconds
+FIRE:Time       8.500 s Heat output            0.927E+10 W
+FIRE:Time       8.500 s Max heat flux          0.159E+07 W/m^2
+FIRE:Time       8.500 s Latent heat output     0.794E+09 W
+FIRE:Time       8.500 s Max latent heat flux   0.141E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:08 on domain   1:    0.37665 elapsed seconds
 FIRE:Time       9.000 s Average wind           0.345E+01 m/s
 FIRE:Time       9.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time       9.000 s Fire area              0.278E+05 m^2
-FIRE:Time       9.000 s Heat output            0.105E+11 W
-FIRE:Time       9.000 s Max heat flux          0.147E+07 W/m^2
-FIRE:Time       9.000 s Latent heat output     0.841E+09 W
-FIRE:Time       9.000 s Max latent heat flux   0.118E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:09 on domain   1:    0.25214 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:09 for domain        1:    0.10195 elapsed seconds
+FIRE:Time       9.000 s Heat output            0.101E+11 W
+FIRE:Time       9.000 s Max heat flux          0.141E+07 W/m^2
+FIRE:Time       9.000 s Latent heat output     0.864E+09 W
+FIRE:Time       9.000 s Max latent heat flux   0.125E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:09 on domain   1:    0.25115 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:09 for domain        1:    0.13403 elapsed seconds
 FIRE:Time       9.500 s Average wind           0.345E+01 m/s
 FIRE:Time       9.500 s Maximum wind           0.362E+01 m/s
 FIRE:Time       9.500 s Fire area              0.308E+05 m^2
-FIRE:Time       9.500 s Heat output            0.120E+11 W
-FIRE:Time       9.500 s Max heat flux          0.153E+07 W/m^2
-FIRE:Time       9.500 s Latent heat output     0.965E+09 W
-FIRE:Time       9.500 s Max latent heat flux   0.123E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:09 on domain   1:    0.35404 elapsed seconds
+FIRE:Time       9.500 s Heat output            0.115E+11 W
+FIRE:Time       9.500 s Max heat flux          0.145E+07 W/m^2
+FIRE:Time       9.500 s Latent heat output     0.990E+09 W
+FIRE:Time       9.500 s Max latent heat flux   0.128E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:09 on domain   1:    0.38577 elapsed seconds
 FIRE:Time      10.000 s Average wind           0.345E+01 m/s
 FIRE:Time      10.000 s Maximum wind           0.362E+01 m/s
 FIRE:Time      10.000 s Fire area              0.340E+05 m^2
-FIRE:Time      10.000 s Heat output            0.136E+11 W
-FIRE:Time      10.000 s Max heat flux          0.178E+07 W/m^2
-FIRE:Time      10.000 s Latent heat output     0.109E+10 W
-FIRE:Time      10.000 s Max latent heat flux   0.143E+06 W/m^2
-Timing for main: time 2012-06-25_18:00:10 on domain   1:    0.25615 elapsed seconds
-Timing for Writing wrfout_d01_2012-06-25_18:00:10 for domain        1:    0.11082 elapsed seconds
+FIRE:Time      10.000 s Heat output            0.131E+11 W
+FIRE:Time      10.000 s Max heat flux          0.168E+07 W/m^2
+FIRE:Time      10.000 s Latent heat output     0.112E+10 W
+FIRE:Time      10.000 s Max latent heat flux   0.149E+06 W/m^2
+Timing for main: time 2012-06-25_18:00:10 on domain   1:    0.25307 elapsed seconds
+Timing for Writing wrfout_d01_2012-06-25_18:00:10 for domain        1:    0.12365 elapsed seconds
 d01 2012-06-25_18:00:10 wrf: SUCCESS COMPLETE WRF
