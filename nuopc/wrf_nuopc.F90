@@ -87,6 +87,7 @@ module wrf_nuopc
 
     ! local variables
     type(ESMF_State)        :: importState, exportState
+    type (datetime_t) :: datetime_now
 
     rc = ESMF_SUCCESS
 
@@ -107,14 +108,15 @@ module wrf_nuopc
 
     state = wrf_t(file_name = 'wrf.nc')
     allocate(state%q2(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate(state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate(state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate(state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
     allocate(state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
     allocate(state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
     allocate(state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+
     ! Import/ Export Variables -----------------------------------------------------
 
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
@@ -222,6 +224,7 @@ module wrf_nuopc
     real(ESMF_KIND_COORD), pointer :: coordXcorner(:,:)
     real(ESMF_KIND_COORD), pointer :: coordYcorner(:,:)
     integer                        :: i, j, nx, ny
+    type (datetime_t) :: datetime_now
 
     rc = ESMF_SUCCESS
 
@@ -468,6 +471,40 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+    datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, &
+      config_flags%start_day, config_flags%start_hour, config_flags%start_minute, &
+      config_flags%start_second)
+
+    call state%Get_q2(datetime_now)
+    call state%Get_t2(datetime_now)
+    call state%Get_z0(datetime_now)
+    call state%Get_psfc(datetime_now)
+    call state%Get_rain(datetime_now)
+    call state%Get_u3d(datetime_now)
+    call state%Get_v3d(datetime_now)
+    call state%Get_phl(datetime_now)
+    call state%Get_pres(datetime_now)
+
+    ! Set field data
+    ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
+      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
+      state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
+      state%psfc(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_rain(clb(1):cub(1),clb(2):cub(2))= &
+      state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
+      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+
 #endif
 
   end subroutine
@@ -569,13 +606,12 @@ module wrf_nuopc
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    
       ! "Run" atmospheric model
     call state%Get_q2(datetime_now)
-    call state%Get_psfc(datetime_now)
-    call state%Get_rain(datetime_now)
     call state%Get_t2(datetime_now)
     call state%Get_z0(datetime_now)
+    call state%Get_psfc(datetime_now)
+    call state%Get_rain(datetime_now)
     call state%Get_u3d(datetime_now)
     call state%Get_v3d(datetime_now)
     call state%Get_phl(datetime_now)
