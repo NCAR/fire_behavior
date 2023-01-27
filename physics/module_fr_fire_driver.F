@@ -782,27 +782,6 @@ end subroutine fire_ignition_convert
 !***
 !
 
-subroutine check_fmesh(ids,ide,ifds,ifde,ir,s)
-!*** purpose: check if fire and atm meshes line up
-implicit none
-!*** arguments
-integer, intent(in)::ids,ide,ifds,ifde,ir
-character(len=*),intent(in)::s
-!*** local
-character(len=128)msg
-!*** executable
-if ((ide-ids+1)*ir.ne.(ifde-ifds+1))then
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-    write(msg,1)s,ids,ide,ifds,ifde,ir
-1   format('module_fr_fire_driver: incompatible bounds ',a,' atm ',i5,':',i5,' fire ',i5,':',i5,' ratio ',i3)    
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-    call crash(msg)
-endif
-end subroutine check_fmesh
-
-!
-!*****************************
-!
 subroutine set_flags(config_flags)
 implicit none
 TYPE (namelist_t) , INTENT(IN)          :: config_flags
