@@ -819,6 +819,8 @@ module fire_behavior_nuopc
     grid%fire_pres(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
 
+    if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
+
     call Advance_state (grid, config_flags)
 
     call grid%Handle_output (config_flags)
