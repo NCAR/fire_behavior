@@ -475,35 +475,8 @@ module wrf_nuopc
       config_flags%start_day, config_flags%start_hour, config_flags%start_minute, &
       config_flags%start_second)
 
-    call state%Get_q2(datetime_now)
-    call state%Get_t2(datetime_now)
-    call state%Get_z0(datetime_now)
-    call state%Get_psfc(datetime_now)
-    call state%Get_rain(datetime_now)
-    call state%Get_u3d(datetime_now)
-    call state%Get_v3d(datetime_now)
-    call state%Get_phl(datetime_now)
-    call state%Get_pres(datetime_now)
-
-    ! Set field data
-    ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
-      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
-      state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
-      state%psfc(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_rain(clb(1):cub(1),clb(2):cub(2))= &
-      state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
-      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+!      ! "Initialize" atmospheric model
+     call Update_atm_state(datetime_now)
 
 #endif
 
@@ -606,36 +579,8 @@ module wrf_nuopc
     !   file=__FILE__)) &
     !   return  ! bail out
 
-      ! "Run" atmospheric model
-    call state%Get_q2(datetime_now)
-    call state%Get_t2(datetime_now)
-    call state%Get_z0(datetime_now)
-    call state%Get_psfc(datetime_now)
-    call state%Get_rain(datetime_now)
-    call state%Get_u3d(datetime_now)
-    call state%Get_v3d(datetime_now)
-    call state%Get_phl(datetime_now)
-    call state%Get_pres(datetime_now)
-
-    ! Set field data
-    ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
-      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
-      state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
-      state%psfc(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_rain(clb(1):cub(1),clb(2):cub(2))= &
-      state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
-      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
-    ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
-    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+!      ! "Run" atmospheric model
+     call Update_atm_state(datetime_now)
 !    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &
@@ -662,6 +607,43 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+  end subroutine
+
+  subroutine Update_atm_state(datetime)
+   
+    type (datetime_t), intent (in) :: datetime
+
+
+    call state%Get_q2(datetime)
+    call state%Get_t2(datetime)
+    call state%Get_z0(datetime)
+    call state%Get_psfc(datetime)
+    call state%Get_rain(datetime)
+    call state%Get_u3d(datetime)
+    call state%Get_v3d(datetime)
+    call state%Get_phl(datetime)
+    call state%Get_pres(datetime)
+
+    ! Set field data
+    ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
+      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
+      state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
+      state%psfc(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_rain(clb(1):cub(1),clb(2):cub(2))= &
+      state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
+      state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+    ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+   
   end subroutine
 
 end module wrf_nuopc
