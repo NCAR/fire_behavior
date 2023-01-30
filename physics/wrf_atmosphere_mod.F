@@ -1,14 +1,12 @@
   module wrf_atmosphere_mod
 
-    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
     use state_mod, only : domain
 
     implicit none
 
     private
 
-    public :: CP, XLV, RERADIUS, G, PI2, Wrf_error_fatal, Wrf_message, Get_ijk_from_subgrid, Wrf_debug
+    public :: CP, XLV, RERADIUS, G, PI2, Get_ijk_from_subgrid
 
     real, parameter :: R_D = 287.0                ! gas constant of dry air (J deg^-1 kg^-1)
     real, parameter :: CP = 7.0 * R_D / 2.0
@@ -73,68 +71,5 @@
       return
 
     end subroutine Get_ijk_from_subgrid
-
-    subroutine Wrf_debug (level , str)
-
-      implicit none
-
-      character (len = *) :: str
-      integer, intent (in) :: level
-
-
-      call wrf_message (str)
-
-      return
-
-    end subroutine wrf_debug
-
-    subroutine wrf_error_fatal( str )
-
-      implicit none
-
-      character (len = *) :: str
-
-
-      call Wrf_error_fatal3 (' ', 0, str)
-
-    end subroutine wrf_error_fatal
-
-    subroutine Wrf_error_fatal3 (file_str, line, str)
-
-      implicit none
-
-      character (len = *) :: file_str
-      integer, intent (in) :: line  ! only print file and line if line > 0
-      character (len = *) :: str
-
-      character (len = 256) :: line_str
-
-
-      write (line_str,'(i6)') line
-
-        ! Fatal errors are printed to stdout and stderr regardless of
-        ! any &logging namelist settings.
-      call Wrf_message ('-------------- FATAL CALLED ---------------')
-        ! only print file and line if line is positive
-      if ( line > 0 ) then
-        call wrf_message ('FATAL CALLED FROM FILE:  ' // file_str // '  LINE:  ' // trim (line_str))
-      end if
-      call Wrf_message (str)
-      call Wrf_message ('-------------------------------------------')
-
-      stop
-
-    end subroutine wrf_error_fatal3
-
-    subroutine Wrf_message (str)
-
-      implicit none
-
-      character (len = *) :: str
-
- 300  format (A)
-      print 300, trim(str)
-
-    end subroutine wrf_message
 
   end module wrf_atmosphere_mod

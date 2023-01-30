@@ -7,6 +7,8 @@
 
 module module_fr_fire_util
 
+  use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
+
 ! various method selection parameters
 ! 1. add the parameter and its static default here
 ! optional:
@@ -141,60 +143,36 @@ end subroutine interpolate_z2fire
 !****************
 !
 
-subroutine crash(s)
-!use module_wrf_error
-use wrf_atmosphere_mod, only : wrf_error_fatal
-implicit none
-character(len=*), intent(in)::s
-character(len=128)msg
-msg='crash: '//s
-call message(msg,level=0)
-!$OMP CRITICAL(FIRE_MESSAGE_CRIT)
-call wrf_error_fatal(msg)
-!$OMP END CRITICAL(FIRE_MESSAGE_CRIT)
-end subroutine crash
+  subroutine crash (msg)
 
-!
-!****************
-!
+    implicit none
 
-subroutine message(s,level)
-!use module_wrf_error
-use wrf_atmosphere_mod, only : wrf_message
-#ifdef _OPENMP
-use OMP_LIB 
-#endif
-implicit none
-!*** arguments
-character(len=*), intent(in)::s
-integer,intent(in),optional::level
-!*** local
-character(len=128)::msg
-character(len=118)::t
-integer m,mlevel
-logical op
-!*** executable
-if(present(level))then
-    mlevel=level
-else
-    mlevel=2  ! default message level
-endif
-if(fire_print_msg.ge.mlevel)then
-      m=0
-!$OMP CRITICAL(FIRE_MESSAGE_CRIT)
-#ifdef _OPENMP
-      m=omp_get_thread_num()
-      t=s
-      write(msg,'(a6,i3,a1,a118)')'FIRE:',m,':',t
-#else
-      msg='FIRE:'//s
-#endif
-      call wrf_message(msg)
-!      flush(6)
-!      flush(0)
-!$OMP END CRITICAL(FIRE_MESSAGE_CRIT)
-endif
-end subroutine message
+    character (len = *), intent(in) :: msg
+
+    write (ERROR_UNIT, *) trim ('crash: ' // msg)
+    stop
+
+  end subroutine crash
+
+  subroutine message (msg, level)
+
+    implicit none
+
+    character (len = *), intent(in) :: msg
+    integer, intent(in), optional :: level
+
+    integer mlevel
+
+
+    if (present (level)) then
+      mlevel = level
+    else
+      mlevel = 2
+    endif
+
+    if (fire_print_msg >= mlevel) write (OUTPUT_UNIT, *) 'FIRE:' // trim (msg)
+
+  end subroutine message
 
 !
 !****************

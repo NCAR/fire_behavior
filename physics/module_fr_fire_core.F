@@ -1770,7 +1770,8 @@ subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
                        lfn_in,lfn_out,tign  &              ! arrays inout          
                       )
 
-use wrf_atmosphere_mod, only : wrf_debug
+  use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
 
 implicit none
 
@@ -1811,11 +1812,9 @@ do j=jfts,jfte
   if (j.le.boundary_guard .or. j.gt.(jfde-boundary_guard)) then
     do i=ifts,ifte
       if (lfn_out(i,j).lt.0.) then 
-        WRITE(msg,*)'j-boundary reached'
-        CALL wrf_debug(0,msg)
-        WRITE(msg,*)'i,j,lfn_out=',i,j,lfn_out(i,j)
-        CALL wrf_debug(0,msg)
-        call crash('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
+        write (OUTPUT_UNIT, *) 'j-boundary reached'
+        write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
+        call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
       endif
     enddo
   endif
@@ -1824,11 +1823,9 @@ do i=ifts,ifte
   if (i.le.boundary_guard .or. i.gt.(ifde-boundary_guard)) then
     do j=jfts,jfte
       if (lfn_out(i,j).lt.0.) then 
-        WRITE(msg,*)'i-boundary reached'
-        CALL wrf_debug(0,msg)
-        WRITE(msg,*)'i,j,lfn_out=',i,j,lfn_out(i,j)
-        CALL wrf_debug(0,msg)
-        call crash('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
+        write (OUTPUT_UNIT, *) 'j-boundary reached'
+        write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
+        call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
       endif
     enddo
   endif
