@@ -798,6 +798,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fmc_g', this%fmc_g(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'uf', this%uf(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'vf', this%vf(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'zsf', this%zsf(1:this%nx, 1:this%ny))
       if (nz > 0) then
         call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_u3d', this%fire_u3d(1:this%nx, 1:this%ny, 1:nz - 1))
         call Add_netcdf_var (file_output, ['nx', 'ny', 'nz'], 'fire_v3d', this%fire_v3d(1:this%nx, 1:this%ny, 1:nz - 1))

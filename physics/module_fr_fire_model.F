@@ -145,8 +145,8 @@ type(fire_params),intent(inout)::fp
 
 integer :: xifms,xifme,xjfms,xjfme  ! memory bounds for pass-through arguments to normal spread
 real, dimension(ifts:ifte,jfts:jfte)::fuel_frac_burnt,fuel_frac_end
-integer::ignited,ig,i,j,itso,iteo,jtso,jteo
-real::tbound,err,erri,errj,maxgrad,grad,tfa,thf,mhf,tqf,mqf,aw,mw
+integer::ignited,ig,i,j
+real::tbound,tfa,thf,mhf,tqf,mqf,aw,mw
 character(len=128)::msg
 logical:: freeze_fire
 integer:: stat_lev=1
@@ -173,35 +173,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 if(ifun.eq.1)then       ! do nothing, init pass 1 is outside only
 elseif(ifun.eq.2)then   
         ! initialize all arrays that the model will not change later
-
-        ! assuming halo on zsf done
-        ! extrapolate on 1 row of cells beyond the domain boundary
-        ! including on the halo regions 
-
-        call continue_at_boundary(1,1,0., & ! do x direction or y direction
-            ifms,ifme,jfms,jfme,           &                ! memory dims
-            ifds,ifde,jfds,jfde, &                     ! domain dims 
-            ifps,ifpe,jfps,jfpe, &            ! patch dims - winds defined up to +1
-            ifts,ifte,jfts,jfte, &                ! tile dims
-            itso,iteo,jtso,jteo, &              ! where set now
-            fp%zsf)                               ! array
-
-!       compute the gradients once for all
-        err=0.
-        maxgrad=0.
-        do j=jfts,jfte
-            do i=ifts,ifte
-                erri = fp%dzdxf(i,j) - (fp%zsf(i+1,j)-fp%zsf(i-1,j))/(2.*fdx)
-                errj = fp%dzdyf(i,j) - (fp%zsf(i,j+1)-fp%zsf(i,j-1))/(2.*fdy)
-                err=max(err,abs(erri),abs(errj))
-                grad=sqrt(fp%dzdxf(i,j)**2+fp%dzdyf(i,j)**2)
-                maxgrad=max(maxgrad,grad)
-            enddo
-        enddo
-!$OMP CRITICAL(FIRE_MODEL_CRIT)
-        write(msg,*)'max gradient ',maxgrad,' max error against zsf',err
-!$OMP END CRITICAL(FIRE_MODEL_CRIT)
-        call message(msg)
 
         if(.not.restart)call set_nfuel_cat( &
             ifms,ifme,jfms,jfme, &
