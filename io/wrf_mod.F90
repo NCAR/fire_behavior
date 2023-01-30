@@ -8,9 +8,11 @@
 
     private
 
-    public :: wrf_t
+    public :: wrf_t, G, RERADIUS
 
-    real, parameter :: G = 9.81  ! acceleration due to gravity [m s-2]
+
+    real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
+    real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
 
     type :: wrf_t
       character (len = 300) :: file_name

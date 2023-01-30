@@ -11,10 +11,10 @@ use module_fr_fire_atm, only : fire_tendency, calc_smoke_emissions, add_fire_tra
 use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
                                 print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
                                 continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
-use wrf_atmosphere_mod, only: reradius,    & ! 1/earth radiusw
-                                  pi2, &     ! 2*pi
-                                  g,   &     ! gravity
-                                  get_ijk_from_subgrid
+use wrf_atmosphere_mod, only :  &
+                               get_ijk_from_subgrid
+  use constants_mod, only : PI
+  use wrf_mod, only : G, RERADIUS
   use state_mod, only: domain
   use namelist_mod , only : namelist_t
 
@@ -211,8 +211,8 @@ subroutine calc_unit_fxlat_fxlong (grid, config_flags)
     else
        ! real
        ! 1 degree in m (approximate OK)
-       grid%unit_fxlat=pi2/(360.*reradius)  ! earth circumference in m / 360 degrees
-       grid%unit_fxlong=cos(config_flags%cen_lat*pi2/360.)*grid%unit_fxlat  ! latitude
+       grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+       grid%unit_fxlong = cos (config_flags%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
     endif
 
 end subroutine calc_unit_fxlat_fxlong
@@ -591,7 +591,7 @@ endif
     do j = jtst,jtet
       do k=kds,kdmax+1
         do i = itst,itet
-          altw(i,k,j) = (ph(i,k,j)+phb(i,k,j))/g             ! altitude of the bottom w-point
+          altw(i,k,j) = (ph(i,k,j)+phb(i,k,j)) / G             ! altitude of the bottom w-point
         enddo
       enddo
     enddo

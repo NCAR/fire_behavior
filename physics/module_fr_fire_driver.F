@@ -25,7 +25,6 @@ use module_fr_fire_core, only: ignition_line_type
 
 USE state_mod, only: domain
 USE namelist_mod, only: namelist_t
-use wrf_atmosphere_mod, only: g ! gravitation acceleration
 
 implicit none
 

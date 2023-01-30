@@ -1,5 +1,5 @@
 
-objects = datetime_mod.o proj_lc_mod.o
+objects = datetime_mod.o proj_lc_mod.o constants_mod.o
 
 target: $(objects)
 

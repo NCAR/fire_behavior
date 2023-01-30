@@ -5,25 +5,28 @@ IO_INCLUDE="-I$(IO_DIR)"
 STATE_DIR = ../state
 STATE_INCLUDE="-I$(STATE_DIR)"
 
+SHARE_DIR = ../share
+SHARE_INCLUDE="-I$(SHARE_DIR)"
+
 objects = wrf_atmosphere_mod.o module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o \
 	 module_fr_fire_model.o module_fr_fire_atm.o module_fr_fire_driver.o module_fr_fire_driver_wrf.o module_fr_fire_util.o
 
 target: $(objects)
 %.o: %.F
 	$(CPP) $(CPPFLAGS) $< > $*.f90
-	$(FC) $(IO_INCLUDE) $(STATE_INCLUDE) $(FCFLAGS) -c $*.f90
+	$(FC) $(IO_INCLUDE) $(STATE_INCLUDE) $(SHARE_INCLUDE) $(FCFLAGS) -c $*.f90
 
 clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
 module_fr_fire_driver_wrf.o: wrf_atmosphere_mod.o module_fr_fire_driver.o module_fr_fire_atm.o module_fr_fire_util.o \
-	 ../io/namelist_mod.o ../state/state_mod.o
+	 ../io/namelist_mod.o ../io/wrf_mod.o ../state/state_mod.o ../share/constants_mod.o
 
-module_fr_fire_driver.o: wrf_atmosphere_mod.o module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o module_fr_fire_model.o \
+module_fr_fire_driver.o: module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o module_fr_fire_model.o \
 	../io/namelist_mod.o ../state/state_mod.o
 
-module_fr_fire_atm.o: wrf_atmosphere_mod.o module_fr_fire_util.o ../state/state_mod.o ../io/namelist_mod.o
+module_fr_fire_atm.o: module_fr_fire_util.o ../state/state_mod.o ../io/namelist_mod.o ../share/constants_mod.o
 
 module_fr_fire_model.o: module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o \
 	../io/namelist_mod.o ../state/state_mod.o
@@ -31,7 +34,7 @@ module_fr_fire_model.o: module_fr_fire_core.o module_fr_fire_phys.o module_fr_fi
 module_fr_fire_core.o: module_fr_fire_phys.o module_fr_fire_util.o \
 	../io/namelist_mod.o ../state/state_mod.o
 
-module_fr_fire_phys.o: wrf_atmosphere_mod.o module_fr_fire_util.o
+module_fr_fire_phys.o: module_fr_fire_util.o ../share/constants_mod.o
 
 wrf_atmosphere_mod.o: ../state/state_mod.o
 

@@ -1,8 +1,7 @@
 !
 module module_fr_fire_phys
 
-!use module_model_constants, only: cp,xlv
-use wrf_atmosphere_mod, only: CP, XLV
+use constants_mod, only : XLV
 use module_fr_fire_util
 
 PRIVATE
@@ -1274,7 +1273,7 @@ do j=jfts,jfte
              * fuel_frac_burnt(i,j)        ! fraction burned this call    (1)
          bmst     = fp%fmc_g(i,j)/(1.+fp%fmc_g(i,j))        ! bmst varies by (i,j)
          grnhft(i,j) = (dmass/dt)*(1.-bmst)*cmbcnst         ! surface fire sensible heat flux W/m^2
-         grnqft(i,j) = (bmst+(1.-bmst)*.56)*(dmass/dt)*xlv  ! surface fire latent heat flux W/m
+         grnqft(i,j) = (bmst+(1.-bmst)*.56)*(dmass/dt)*XLV  ! surface fire latent heat flux W/m
          ! xlv is defined in module_model_constants.. Assume 56% of cellulose molecule mass is water.
     enddo
 enddo

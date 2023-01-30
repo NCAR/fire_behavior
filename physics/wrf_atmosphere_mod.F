@@ -6,14 +6,7 @@
 
     private
 
-    public :: CP, XLV, RERADIUS, G, PI2, Get_ijk_from_subgrid
-
-    real, parameter :: R_D = 287.0                ! gas constant of dry air (J deg^-1 kg^-1)
-    real, parameter :: CP = 7.0 * R_D / 2.0
-    real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
-    real, parameter :: XLV = 2.5E6                ! latent heat of vaporization of water at 0^oC (J kg^-1)
-    real, parameter :: G = 9.81                   ! acceleration due to gravity (m {s}^-2)
-    real, parameter :: PI2 = 2.0 * 3.1415926
+    public :: Get_ijk_from_subgrid
 
   contains
 

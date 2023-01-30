@@ -39,10 +39,11 @@ clean:
   # Dependencies
 state: io share
 
-physics: io state
+physics: io state share
 
 driver: io state physics
 
 nuopc: io state driver
 
 io: share
+

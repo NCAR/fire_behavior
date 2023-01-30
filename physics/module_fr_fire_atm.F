@@ -4,12 +4,12 @@
 
 module module_fr_fire_atm
 
-use wrf_atmosphere_mod, only: CP, XLV
 use module_fr_fire_util
 use state_mod, only: num_tracer 
 use state_mod, only: P_FIRE_SMOKE
 use state_mod, only: domain
 use namelist_mod , only : namelist_t
+use constants_mod, only : CP, XLV
 
 contains
 
