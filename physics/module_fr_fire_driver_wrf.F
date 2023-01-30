@@ -51,9 +51,7 @@ subroutine fire_driver_em_init (grid , config_flags               &
              ifms,ifme, kfms,kfme, jfms,jfme,                              &
              ifps,ifpe, kfps,kfpe, jfps,jfpe,                              &
              ifts,ifte, kfts,kfte, jfts,jfte
-    ! dummies
 
-    real,dimension(1,1,1)::rho,z_at_w,dz8w
     
     call message('fire_driver_em_init: FIRE initialization start')
 
