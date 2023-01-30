@@ -614,11 +614,7 @@ module wrf_nuopc
     type (datetime_t), intent (in) :: datetime
 
 
-    call state%Get_q2(datetime)
-    call state%Get_t2(datetime)
     call state%Get_z0(datetime)
-    call state%Get_psfc(datetime)
-    call state%Get_rain(datetime)
     call state%Get_u3d(datetime)
     call state%Get_v3d(datetime)
     call state%Get_phl(datetime)
