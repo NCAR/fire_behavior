@@ -11,7 +11,7 @@
 
     private
 
-    public :: domain, P_FIRE_SMOKE, NUM_TRACER
+    public :: domain, P_FIRE_SMOKE, NUM_TRACER, Get_ijk_from_subgrid
 
     integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, P_FIRE_SMOKE = 1
     integer, parameter :: N_POINTS_IN_HALO = 5

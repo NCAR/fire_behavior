@@ -11,11 +11,9 @@ use module_fr_fire_atm, only : fire_tendency, calc_smoke_emissions, add_fire_tra
 use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
                                 print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
                                 continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
-use wrf_atmosphere_mod, only :  &
-                               get_ijk_from_subgrid
   use constants_mod, only : PI
   use wrf_mod, only : G, RERADIUS
-  use state_mod, only: domain
+  use state_mod, only: domain, Get_ijk_from_subgrid
   use namelist_mod , only : namelist_t
 
 implicit none
