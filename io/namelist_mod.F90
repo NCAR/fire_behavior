@@ -138,8 +138,6 @@
       real :: dx = 200.0, dy = 200.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
       logical :: restart = .false.
-      real :: cen_lat = 0.0 ! "center latitude"      "degrees, negative is south"
-      real :: cen_lon = 0.0 ! "central longitude"      "degrees, negative is west"
     contains
       procedure, public :: Init_atm_block => Init_atm_block_legacy
     end type namelist_t

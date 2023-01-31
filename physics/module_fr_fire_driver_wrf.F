@@ -210,7 +210,7 @@ subroutine calc_unit_fxlat_fxlong (grid, config_flags)
        ! real
        ! 1 degree in m (approximate OK)
        grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-       grid%unit_fxlong = cos (config_flags%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
+       grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
     endif
 
 end subroutine calc_unit_fxlat_fxlong

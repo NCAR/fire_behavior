@@ -36,10 +36,6 @@
         ! Fire state initialization
       if (config_flags%fire_fuel_read == -1) then
         geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-        config_flags%cen_lat = geogrid%cen_lat
-        config_flags%cen_lon = geogrid%cen_lon
-
-        geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
         call grid%Initialization (config_flags, geogrid)
       else
         call grid%Initialization (config_flags)

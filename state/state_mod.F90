@@ -104,6 +104,7 @@
       integer :: fire_ignition_longlat
       integer :: nx ! "number of longitudinal grid points" "1" 
       integer :: ny ! "number of latitudinal grid points" "1"
+      real :: cen_lat, cen_lon
     contains
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Save_state => Save_state
@@ -116,7 +117,6 @@
                  ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
       real :: dxf, dyf
-      real :: cen_lat, cen_lon
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
         ! Atmosphere
@@ -474,6 +474,8 @@
 
         ! Grid dimensions
       if_geogrid: if (use_geogrid) then
+        this%cen_lat = geogrid%cen_lat
+        this%cen_lon = geogrid%cen_lon
         if (geogrid%dx == config_flags%dx) then
           this%dx = geogrid%dx
         else
