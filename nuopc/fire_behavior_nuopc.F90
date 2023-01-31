@@ -10,7 +10,7 @@ module fire_behavior_nuopc
 
   use state_mod, only : domain
   use namelist_mod, only : namelist_t
-  use initialize_mod, only : Init_state
+  use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
 
   implicit none
@@ -97,7 +97,7 @@ module fire_behavior_nuopc
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
 
-    call Init_state (grid, config_flags)
+    call Init_fire_state (grid, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------
 

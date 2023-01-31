@@ -4,14 +4,24 @@
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use module_fr_fire_driver_wrf, only : fire_driver_em_init
+    use wrf_mod, only : wrf_t
 
     private
 
-    public :: Init_state
+    public :: Init_fire_state, Init_atm_state
 
   contains
 
-    subroutine Init_state (grid, config_flags)
+    subroutine Init_atm_state (atm_state, config_flags)
+
+      implicit none
+
+      type (wrf_t), intent (in out) :: atm_state
+      type (namelist_t), intent (in) :: config_flags
+
+    end subroutine Init_atm_state
+
+    subroutine Init_fire_state (grid, config_flags)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
@@ -105,7 +115,7 @@
         write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
       end if
 
-    end subroutine Init_state
+    end subroutine Init_fire_state
 
     subroutine Load_atmosphere_test1 (grid, config_flags)
 
