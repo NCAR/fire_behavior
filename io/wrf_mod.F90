@@ -3,22 +3,32 @@
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att
     use datetime_mod, only : datetime_t
     use proj_lc_mod, only : proj_lc_t
+    use namelist_mod, only : namelist_t
+    use geogrid_mod, only : geogrid_t
 
     implicit none
 
     private
 
-    public :: wrf_t, G, RERADIUS
+    public :: wrf_t, G, RERADIUS, NUM_TRACER
 
-
+    integer, parameter :: NUM_TRACER = 1
     real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
     real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
 
     type :: wrf_t
       character (len = 300) :: file_name
+        ! Atmosphere
+        ! 4D
+      real, dimension(:, :, :, :), allocatable :: tracer
+        ! 3D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       integer :: bottom_top, bottom_top_stag
+      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
+                 its, ite, jts, jte, kts, kte
+      integer :: num_tiles
+      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
     contains
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
@@ -652,21 +662,182 @@
 
     end subroutine Get_zonal_wind_stag_3d
 
-    function Wrf_t_const (file_name) result (return_value)
+    function Wrf_t_const (file_name, config_flags, geogrid) result (return_value)
 
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
 
-      character (len = *), intent (in) :: file_name
+      character (len = *), intent (in), optional :: file_name
+      type (namelist_t), intent (in), optional :: config_flags
+      type (geogrid_t), intent (in), optional :: geogrid
       type (wrf_t) :: return_value
 
-      return_value%file_name = trim (file_name)
-      ! Centers
-      call return_value%Get_latlons ()
-      ! Corners
-      call return_value%Get_latcloncs ()
+      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
+          DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
+        ! Atm vars needed by the fuel moisture model
+      real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
+          DEFAULT_RAINNC = 0.0
 
-      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
-      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
+      logical :: use_geogrid, use_config_flags, use_file
+      integer, parameter :: N_POINTS_IN_HALO = 5
+
+      use_geogrid = .false.
+      use_config_flags = .false.
+      use_file = .false.
+
+      if (present (file_name)) then
+        use_file = .true.
+      end if
+
+      if (present (geogrid)) then
+        use_geogrid = .true.
+      end if
+
+      if (present (config_flags)) then
+        use_config_flags = .true.
+      end if
+
+      if (use_config_flags) then
+        ! Domain dimensions
+      if (use_geogrid) then
+        if (geogrid%ids == config_flags%ids) then
+          return_value%ids = config_flags%ids
+        else
+          write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%ide == config_flags%ide) then
+          return_value%ide = config_flags%ide
+        else
+          write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%jds == config_flags%jds) then
+          return_value%jds = config_flags%jds
+        else
+          write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
+          stop
+        end if
+        if (geogrid%jde == config_flags%jde) then
+          return_value%jde = config_flags%jde
+        else
+          write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
+          stop
+        end if
+      else
+        return_value%ids = config_flags%ids
+        return_value%ide = config_flags%ide
+        return_value%jds = config_flags%jds
+        return_value%jde = config_flags%jde
+      end if
+      return_value%kds = config_flags%kds
+      return_value%kde = config_flags%kde
+
+      return_value%ims = config_flags%ids - N_POINTS_IN_HALO
+      return_value%ime = config_flags%ide + N_POINTS_IN_HALO
+      return_value%kms = config_flags%kds
+      return_value%kme = config_flags%kde
+      return_value%jms = config_flags%jds - N_POINTS_IN_HALO
+      return_value%jme = config_flags%jde + N_POINTS_IN_HALO
+
+      return_value%ips = config_flags%ids
+      return_value%ipe = config_flags%ide
+      return_value%kps = config_flags%kds
+      return_value%kpe = config_flags%kde
+      return_value%jps = config_flags%jds
+      return_value%jpe = config_flags%jde
+
+      return_value%its = config_flags%ids
+      return_value%ite = config_flags%ide
+      return_value%kts = config_flags%kds
+      return_value%kte = config_flags%kde
+      return_value%jts = config_flags%jds
+      return_value%jte = config_flags%jde
+
+      return_value%num_tiles = 1
+      allocate (return_value%i_start(return_value%num_tiles))
+      return_value%i_start = return_value%ids 
+      allocate (return_value%i_end(return_value%num_tiles))
+      return_value%i_end = return_value%ide
+      allocate (return_value%j_start(return_value%num_tiles))
+      return_value%j_start = return_value%jds 
+      allocate (return_value%j_end(return_value%num_tiles))
+      return_value%j_end = return_value%jde
+
+       ! Atmosphere vars
+      allocate (return_value%tracer(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme, &
+                NUM_TRACER))
+
+!      allocate (return_value%ph_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%phb(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%u_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%v_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%rho(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%z_at_w(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%dz8w(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!
+!      allocate (return_value%z0(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%z0 = DEFAULT_Z0
+!      allocate (return_value%mut(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      allocate (return_value%ht(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%ht = DEFAULT_HT
+!      allocate (return_value%rainc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%rainc = DEFAULT_RAINC
+!      allocate (return_value%rainnc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%rainnc = DEFAULT_RAINNC
+!      allocate (return_value%t2(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%t2 = DEFAULT_T2
+!      allocate (return_value%q2(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%q2 = DEFAULT_Q2
+!      allocate (return_value%psfc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+!      return_value%psfc = DEFAULT_PSFC
+!
+!      allocate (return_value%c1h(return_value%kms:return_value%kme))
+!      return_value%c1h = DEFAULT_C1H
+!      allocate (return_value%c2h(return_value%kms:return_value%kme))
+!      return_value%c2h = DEFAULT_C2H
+!
+!      allocate (return_value%rthfrten(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+!      allocate (return_value%rqvfrten(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+
+        ! Grid dimensions
+!      if_geogrid: if (use_geogrid) then
+!        if (geogrid%dx == config_flags%dx) then
+!          return_value%dx = geogrid%dx
+!        else
+!          write (ERROR_UNIT, *) 'dx in namelist and in geogrid differ'
+!          stop
+!        end if
+!        if (geogrid%dy == config_flags%dy) then
+!          return_value%dy = geogrid%dy
+!        else
+!          write (ERROR_UNIT, *) 'dy in namelist and in geogrid differ'
+!          stop
+!        end if
+!      else
+        ! we need to initialize nx, ny here
+!        return_value%dx = config_flags%dx
+!        return_value%dy = config_flags%dy
+
+!        return_value%xlat = 0.0
+!        return_value%xlat(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlat
+!        return_value%xlong = 0.0
+!        return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
+!      end if if_geogrid
+!      return_value%dt = config_flags%dt
+    end if
+
+      if (use_file) then
+        return_value%file_name = trim (file_name)
+        ! Centers
+        call return_value%Get_latlons ()
+        ! Corners
+        call return_value%Get_latcloncs ()
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
+      end if
       
     end function Wrf_t_const
 
