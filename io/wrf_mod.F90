@@ -23,7 +23,9 @@
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
+      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag, ht
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
+      real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
       integer :: bottom_top, bottom_top_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
@@ -69,6 +71,7 @@
       procedure, public :: Get_v3d_stag => Get_meridional_wind_stag_3d
       procedure, public :: Get_z0 => Get_z0
       procedure, public :: Get_z_at_w => Get_height_agl_at_walls
+      procedure, public :: Update_atm_state => Update_atm_state
     end type wrf_t
 
     interface wrf_t
@@ -775,30 +778,44 @@
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme, &
                 NUM_TRACER))
 
-!      allocate (return_value%ph_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%phb(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%u_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%v_2(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%rho(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%z_at_w(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%dz8w(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!
-!      allocate (return_value%z0(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%z0 = DEFAULT_Z0
-!      allocate (return_value%mut(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      allocate (return_value%ht(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%ht = DEFAULT_HT
-!      allocate (return_value%rainc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%rainc = DEFAULT_RAINC
-!      allocate (return_value%rainnc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%rainnc = DEFAULT_RAINNC
-!      allocate (return_value%t2(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%t2 = DEFAULT_T2
-!      allocate (return_value%q2(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%q2 = DEFAULT_Q2
-!      allocate (return_value%psfc(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-!      return_value%psfc = DEFAULT_PSFC
-!
+      allocate (return_value%ph_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%ph_stag = 0.0
+      allocate (return_value%phb_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%phb_stag = 0.0
+      allocate (return_value%u3d_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%u3d_stag = 0.0
+      allocate (return_value%v3d_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%v3d_stag = 0.0
+      allocate (return_value%rho_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%rho_stag = 0.0
+      allocate (return_value%z_at_w_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%z_at_w_stag = 0.0
+      allocate (return_value%dz8w_stag(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      return_value%dz8w_stag = 0.0
+
+      allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%z0_stag = DEFAULT_Z0
+      allocate (return_value%mut_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%ht(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%ht = DEFAULT_HT
+      allocate (return_value%rainc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%rainc_stag = DEFAULT_RAINC
+      allocate (return_value%rainnc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%rainnc_stag = DEFAULT_RAINNC
+      allocate (return_value%t2_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%t2_stag = DEFAULT_T2
+      allocate (return_value%q2_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%q2_stag = DEFAULT_Q2
+      allocate (return_value%psfc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%psfc_stag = DEFAULT_PSFC
+
 !      allocate (return_value%c1h(return_value%kms:return_value%kme))
 !      return_value%c1h = DEFAULT_C1H
 !      allocate (return_value%c2h(return_value%kms:return_value%kme))
@@ -886,6 +903,142 @@
       end do
 
     end subroutine Get_latcloncs
+
+    subroutine Update_atm_state (this, datetime_now)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      class (wrf_t), intent(in out) :: this
+!      type (namelist_t), intent (in) :: config_flags
+      type (datetime_t), intent (in) :: datetime_now
+
+      logical, parameter :: DEBUG_LOCAL = .true.
+      integer :: i, j, k
+
+
+!      must go outside
+!      If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
+!        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
+!        if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
+
+
+          ! Update t2_stag
+        call this%Get_t2 (datetime_now)
+        this%t2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%t2(:, :)
+        call this%Destroy_t2 ()
+
+          ! Update q2
+        call this%Get_q2 (datetime_now)
+        this%q2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%q2(:, :)
+        call this%Destroy_q2 ()
+
+          ! Update psfc
+        call this%Get_psfc (datetime_now)
+        this%psfc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%psfc(:, :)
+        call this%Destroy_psfc ()
+
+          ! Update rainc
+        call this%Get_rainc (datetime_now)
+        this%rainc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%rainc(:, :)
+        call this%Destroy_rainc ()
+
+          ! Update rainnc
+        call this%Get_rainnc (datetime_now)
+        this%rainnc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%rainnc(:, :)
+        call this%Destroy_rainnc ()
+
+          ! Update z0
+        call this%Get_z0 (datetime_now)
+        this%z0_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%z0(:, :)
+        call this%Destroy_z0 ()
+
+          ! Update MUT
+        call this%Get_mut (datetime_now)
+        this%mut_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%mut(:, :)
+        call this%Destroy_mut ()
+
+          ! Update U3D
+        call this%Get_u3d_stag (datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide
+              this%u3d_stag(i, k, j) = this%u3d(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_u3d ()
+
+          ! Update V3D
+        call this%Get_v3d_stag (datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde
+            do i = this%ids, this%ide - 1
+              this%v3d_stag(i, k, j) = this%v3d(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_v3d ()
+
+          ! PHB
+        call this%Get_phb_stag (datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%phb_stag(i, k, j) = this%phb(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_phb ()
+
+          ! PH
+        call this%Get_ph_stag (datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%ph_stag(i, k, j) = this%ph(i, j, k)
+            end do
+          end do
+        end do
+
+          ! DZ8W
+        call this%Get_dz8w (datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%dz8w_stag(i, k, j) = this%dz8w(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_dz8w ()
+
+          ! Z_AT_W
+        call this%Get_z_at_w (datetime_now)
+        do k = this%kds, this%kde
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%z_at_w_stag(i, k, j) = this%z_at_w(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_z_at_w ()
+
+          ! RHO
+        call this%Get_rho (datetime_now)
+        do k = this%kds, this%kde - 1
+          do j = this%jds, this%jde - 1
+            do i = this%ids, this%ide - 1
+              this%rho_stag(i, k, j) = this%rho(i, j, k)
+            end do
+          end do
+        end do
+        call this%Destroy_rho ()
+
+!        call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
+!      end if If_update_atm
+
+    end subroutine Update_atm_state
 
   end module wrf_mod
 
