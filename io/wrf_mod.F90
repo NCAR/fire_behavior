@@ -10,7 +10,7 @@
 
     private
 
-    public :: wrf_t, G, RERADIUS, NUM_TRACER
+    public :: wrf_t, G, RERADIUS
 
     integer, parameter :: NUM_TRACER = 1
     real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
@@ -667,7 +667,7 @@
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
 
-      character (len = *), intent (in), optional :: file_name
+      character (len = *), intent (in) :: file_name
       type (namelist_t), intent (in), optional :: config_flags
       type (geogrid_t), intent (in), optional :: geogrid
       type (wrf_t) :: return_value
@@ -678,16 +678,12 @@
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
 
-      logical :: use_geogrid, use_config_flags, use_file
+      logical :: use_geogrid, use_config_flags
       integer, parameter :: N_POINTS_IN_HALO = 5
+
 
       use_geogrid = .false.
       use_config_flags = .false.
-      use_file = .false.
-
-      if (present (file_name)) then
-        use_file = .true.
-      end if
 
       if (present (geogrid)) then
         use_geogrid = .true.
@@ -697,7 +693,17 @@
         use_config_flags = .true.
       end if
 
-      if (use_config_flags) then
+      return_value%file_name = trim (file_name)
+        ! Centers
+      call return_value%Get_latlons ()
+        ! Corners
+      call return_value%Get_latcloncs ()
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
+
+
+      if_use_config_flags: if (use_config_flags) then
         ! Domain dimensions
       if (use_geogrid) then
         if (geogrid%ids == config_flags%ids) then
@@ -826,19 +832,8 @@
 !        return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
 !      end if if_geogrid
 !      return_value%dt = config_flags%dt
-    end if
+    end if if_use_config_flags
 
-      if (use_file) then
-        return_value%file_name = trim (file_name)
-        ! Centers
-        call return_value%Get_latlons ()
-        ! Corners
-        call return_value%Get_latcloncs ()
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
-      end if
-      
     end function Wrf_t_const
 
     subroutine Get_latcloncs (this)
