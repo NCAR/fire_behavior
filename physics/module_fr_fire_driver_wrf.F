@@ -167,7 +167,7 @@ subroutine fire_driver_em_step (grid , config_flags               &
             its,ite, kts,kte, jts,jte,      & ! 
             grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx,        & ! fluxes on atm grid 
             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt,                &
-            grid%ht,z_at_w,dz8w,grid%mut,grid%c1h,grid%c2h,rho,          &
+            z_at_w,dz8w,grid%mut,grid%c1h,grid%c2h,rho,          &
             grid%rthfrten,grid%rqvfrten)                ! out
 
      enddo
@@ -432,7 +432,7 @@ subroutine interpolate_winds2fire (grid, config_flags)
             grid%u_frame, grid%v_frame,                   & ! velocity frame correction
             grid%u_2,grid%v_2,                            & ! 3D atm grid arrays in
             grid%ph_2,grid%phb,                           &
-            grid%z0,grid%ht,                              & ! 2D atm grid arrays in
+            grid%z0,                              & ! 2D atm grid arrays in
             grid%uah,grid%vah,                            & ! 2D atm grid out
             grid%uf,grid%vf,grid%fz0)                       ! fire grid arrays out
 
@@ -454,7 +454,7 @@ subroutine interpolate_atm2fire(config_flags, id, & ! for debug output, <= 0 no 
     u_frame, v_frame,                             & ! velocity frame correction
     u,v,                                          & ! atm grid arrays in
     ph,phb,                                       &
-    z0,zs,                                        &
+    z0,                                        &
     uah,vah,                                      &
     uf,vf,z0f)                                          ! fire grid arrays out
 
@@ -479,9 +479,7 @@ real, intent(in):: u_frame, v_frame                 ! velocity frame correction
 real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::&
     u,v,                                          & ! atm wind velocity, staggered
     ph,phb                                          ! geopotential
-real,intent(in),dimension(ims:ime,jms:jme)::&
-    z0,                                           & ! roughness height
-    zs                                              ! terrain height
+real,intent(in),dimension(ims:ime,jms:jme) :: z0    ! roughness height
 real,intent(out),dimension(ims:ime,jms:jme)::&
     uah,                                           & ! atm wind at fire_wind_height, diagnostics
     vah                                              !

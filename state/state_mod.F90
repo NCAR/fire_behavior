@@ -132,7 +132,6 @@
       real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
         ! 2D
       real, dimension(:, :), allocatable :: z0       ! "Background ROUGHNESS LENGTH" "m"
-      real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
       real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
@@ -328,7 +327,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in), optional :: geogrid
 
-      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
+      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
@@ -434,8 +433,6 @@
       allocate (this%z0(this%ims:this%ime, this%jms:this%jme))
       this%z0 = DEFAULT_Z0
       allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
-      this%ht = DEFAULT_HT
       allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
       this%rainc = DEFAULT_RAINC
       allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
