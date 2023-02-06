@@ -23,7 +23,7 @@
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
-      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag, ht
+      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
       integer :: bottom_top, bottom_top_stag
@@ -675,7 +675,7 @@
       type (geogrid_t), intent (in), optional :: geogrid
       type (wrf_t) :: return_value
 
-      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_HT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
+      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
@@ -803,8 +803,7 @@
       allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%z0_stag = DEFAULT_Z0
       allocate (return_value%mut_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%ht(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      return_value%ht = DEFAULT_HT
+      return_value%mut_stag = DEFAULT_MUT
       allocate (return_value%rainc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%rainc_stag = DEFAULT_RAINC
       allocate (return_value%rainnc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
