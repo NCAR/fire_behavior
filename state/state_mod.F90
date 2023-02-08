@@ -102,7 +102,7 @@
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
       real :: unit_fxlong, unit_fxlat
       integer :: fire_ignition_longlat
-      integer :: nx ! "number of longitudinal grid points" "1" 
+      integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
     contains
@@ -183,7 +183,7 @@
 
     end subroutine Handle_output
 
-    subroutine Handle_wrfdata_update (this, wrf, config_flags)
+    subroutine Handle_wrfdata_update (this, wrf, config_flags, testcase)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -192,6 +192,7 @@
       class (domain), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
+      logical, intent (in), optional :: testcase
 
       logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
@@ -201,96 +202,109 @@
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
-        call wrf%Update_atm_state(this%datetime_now)
+        If_testcase: if (present (testcase)) then
+          this%ph_2 = wrf%ph_stag
+          this%phb = wrf%phb_stag
+          this%rho = wrf%rho_stag
+          this%z_at_w = wrf%z_at_w_stag
+          this%dz8w = wrf%dz8w_stag
+          this%u_2 = wrf%u3d_stag
+          this%v_2 = wrf%v3d_stag
+           ! 2D arrays
+          this%z0 = wrf%z0_stag
+          this%mut = wrf%mut_stag
+        else
+          call wrf%Update_atm_state (this%datetime_now)
+
+            ! Update z0
+          call wrf%Get_z0 (this%datetime_now)
+          this%z0(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%z0(:, :)
+          call wrf%Destroy_z0 ()
+
+            ! Update MUT
+          call wrf%Get_mut (this%datetime_now)
+          this%mut(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%mut(:, :)
+          call wrf%Destroy_mut ()
+
+            ! Update U3D
+          call wrf%Get_u3d_stag (this%datetime_now)
+          do k = this%kds, this%kde - 1
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide
+                this%u_2(i, k, j) = wrf%u3d(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_u3d ()
+
+            ! Update V3D
+          call wrf%Get_v3d_stag (this%datetime_now)
+          do k = this%kds, this%kde - 1
+            do j = this%jds, this%jde
+              do i = this%ids, this%ide - 1
+                this%v_2(i, k, j) = wrf%v3d(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_v3d ()
+
+            ! PHB
+          call wrf%Get_phb_stag (this%datetime_now)
+          do k = this%kds, this%kde
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide - 1
+                this%phb(i, k, j) = wrf%phb(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_phb ()
+
+            ! PH
+          call wrf%Get_ph_stag (this%datetime_now)
+          do k = this%kds, this%kde
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide - 1
+                this%ph_2(i, k, j) = wrf%ph(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_phb ()
+
+            ! DZ8W
+          call wrf%Get_dz8w (this%datetime_now)
+          do k = this%kds, this%kde - 1
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide - 1
+                this%dz8w(i, k, j) = wrf%dz8w(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_dz8w ()
+
+            ! Z_AT_W
+          call wrf%Get_z_at_w (this%datetime_now)
+          do k = this%kds, this%kde
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide - 1
+                this%z_at_w(i, k, j) = wrf%z_at_w(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_z_at_w ()
+
+            ! RHO
+          call wrf%Get_rho (this%datetime_now)
+          do k = this%kds, this%kde - 1
+            do j = this%jds, this%jde - 1
+              do i = this%ids, this%ide - 1
+                this%rho(i, k, j) = wrf%rho(i, j, k)
+              end do
+            end do
+          end do
+          call wrf%Destroy_rho ()
+        end if if_testcase
 
         call this%interpolate_vars_atm_to_fire(wrf)
-
-          ! Update z0
-        call wrf%Get_z0 (this%datetime_now)
-        this%z0(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%z0(:, :)
-        call wrf%Destroy_z0 ()
-
-          ! Update MUT
-        call wrf%Get_mut (this%datetime_now)
-        this%mut(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%mut(:, :)
-        call wrf%Destroy_mut ()
-
-          ! Update U3D
-        call wrf%Get_u3d_stag (this%datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide
-              this%u_2(i, k, j) = wrf%u3d(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_u3d ()
-
-          ! Update V3D
-        call wrf%Get_v3d_stag (this%datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde
-            do i = this%ids, this%ide - 1
-              this%v_2(i, k, j) = wrf%v3d(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_v3d ()
-
-          ! PHB
-        call wrf%Get_phb_stag (this%datetime_now)
-        do k = this%kds, this%kde
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%phb(i, k, j) = wrf%phb(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_phb ()
-
-          ! PH
-        call wrf%Get_ph_stag (this%datetime_now)
-        do k = this%kds, this%kde
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%ph_2(i, k, j) = wrf%ph(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_phb ()
-
-          ! DZ8W
-        call wrf%Get_dz8w (this%datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%dz8w(i, k, j) = wrf%dz8w(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_dz8w ()
-
-          ! Z_AT_W
-        call wrf%Get_z_at_w (this%datetime_now)
-        do k = this%kds, this%kde
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%z_at_w(i, k, j) = wrf%z_at_w(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_z_at_w ()
-
-          ! RHO
-        call wrf%Get_rho (this%datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%rho(i, k, j) = wrf%rho(i, j, k)
-            end do
-          end do
-        end do
-        call wrf%Destroy_rho ()
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
       end if If_update_atm
@@ -378,11 +392,11 @@
 
       this%num_tiles = 1
       allocate (this%i_start(this%num_tiles))
-      this%i_start = this%ids 
+      this%i_start = this%ids
       allocate (this%i_end(this%num_tiles))
       this%i_end = this%ide
       allocate (this%j_start(this%num_tiles))
-      this%j_start = this%jds 
+      this%j_start = this%jds
       allocate (this%j_end(this%num_tiles))
       this%j_end = this%jde
 
@@ -587,14 +601,14 @@
 
     end subroutine Init_domain
 
-    subroutine Init_latlons_fire (this, cen_lat, cen_lon, standard_lon, & 
+    subroutine Init_latlons_fire (this, cen_lat, cen_lon, standard_lon, &
                            true_lat_1, true_lat_2)
 
       implicit none
 
       class (domain), intent (in out) :: this
       real, intent(in) :: cen_lat, cen_lon, standard_lon, &
-                          true_lat_1, true_lat_2 
+                          true_lat_1, true_lat_2
         ! Local
       type (proj_lc_t) :: proj
       integer :: i, j
@@ -632,14 +646,14 @@
     end subroutine Init_latlons_fire
 
     subroutine Interpolate_vars_atm_to_fire (this, wrf)
-    
+
         implicit none
 
         class (domain), intent(in out) :: this          ! fire state
         type (wrf_t), intent(in) :: wrf                 ! atm state
 !!        type (namelist_t), intent(in) :: config_flags  ! namelist
 !
-!    
+!
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
@@ -663,7 +677,7 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%psfc_stag,                                 &
             this%fire_psfc,1)
- 
+
          call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
@@ -671,8 +685,8 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%rainc_stag+wrf%rainnc_stag,                                 &
             this%fire_rain,1)
-  
-    
+
+
     end subroutine Interpolate_vars_atm_to_fire
 
     subroutine Get_ijk_from_subgrid (  grid ,                &
@@ -682,7 +696,7 @@
                            its0, ite0, jts0, jte0, kts0, kte0     )
 
     ! return the values for subgrid whose refinement is in grid%sr
-    ! note when using this routine, it does not affect K. For K 
+    ! note when using this routine, it does not affect K. For K
     ! (vertical), it just returns what get_ijk_from_grid does
 
       type (domain), intent (in) :: grid
