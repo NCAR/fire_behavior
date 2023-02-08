@@ -97,6 +97,9 @@ module fire_behavior_nuopc
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
 
+      ! Read namelist
+    call config_flags%Initialization (file_name = 'namelist.input')
+
     call Init_fire_state (grid, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------

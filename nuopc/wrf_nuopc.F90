@@ -14,7 +14,7 @@ module wrf_nuopc
   use wrf_mod, only : wrf_t
   use namelist_mod, only : namelist_t
   use datetime_mod, only : datetime_t
-
+  use initialize_mod, only: Init_atm_state
 
   implicit none
 
@@ -106,16 +106,18 @@ module wrf_nuopc
     call config_flags%Init_time_block ('namelist.input')
     call config_flags%Init_atm_block ('namelist.input')
 
-    state = wrf_t(file_name = 'wrf.nc')
-    allocate(state%q2(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate(state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate(state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate(state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate(state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    !state = wrf_t (file_name = 'wrf.nc')
+    call Init_atm_state(state, config_flags)
+!    state = wrf_t('wrf.nc', config_flags, geogrid)
+    allocate (state%q2(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate (state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate (state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate (state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate (state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
+    allocate (state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate (state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate (state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
 
     ! Import/ Export Variables -----------------------------------------------------
 

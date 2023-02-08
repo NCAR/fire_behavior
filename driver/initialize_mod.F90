@@ -19,16 +19,23 @@
       type (wrf_t), intent (in out) :: atm_state
       type (namelist_t), intent (in) :: config_flags
 
+      type (geogrid_t) :: geogrid
+
+
+      if (config_flags%atm_model == 'wrfdata') geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+      atm_state = wrf_t('wrf.nc', config_flags, geogrid)
+
     end subroutine Init_atm_state
 
-    subroutine Init_fire_state (grid, config_flags)
+    subroutine Init_fire_state (grid, config_flags, wrf)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
       implicit none
 
       type (domain), intent (in out) :: grid
-      type (namelist_t), intent (in out) :: config_flags
+      type (namelist_t), intent (in) :: config_flags
+      type (wrf_t), intent (in out), optional :: wrf
 
       type (geogrid_t) :: geogrid
       logical, parameter :: DEBUG_LOCAL = .true.
@@ -40,9 +47,6 @@
         write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
       end if
 
-        ! Read namelist
-      call config_flags%Initialization (file_name = 'namelist.input')
-
         ! Fire state initialization
       if (config_flags%fire_fuel_read == -1) then
         geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
@@ -52,6 +56,7 @@
       end if
 
         ! Atmosphere init
+      if (present (wrf)) then
       select case ( config_flags%atm_model)
         case ('test1')
            call Load_atmosphere_test1 (grid, config_flags)
@@ -60,11 +65,13 @@
           Call Read_wrf_input (grid)
 
         case ('wrfdata')
-          Call grid%Handle_wrfdata_update (config_flags)
+
+          call grid%Handle_wrfdata_update (wrf, config_flags)
 
         case default
           write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
       end select
+      end if
 
         ! Fire init
       call fire_driver_em_init (grid , config_flags                        &

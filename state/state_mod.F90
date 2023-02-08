@@ -135,11 +135,11 @@
       real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
-      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
-      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
-      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
-      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
+!      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
+!      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
+!      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
+!      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
+!      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
       real, dimension(:, :), allocatable :: mut
         ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
@@ -157,6 +157,7 @@
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_latlons_fire => Init_latlons_fire
+      procedure, public :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Print => Print_domain
     end type domain
 
@@ -182,7 +183,7 @@
 
     end subroutine Handle_output
 
-    subroutine Handle_wrfdata_update (this, config_flags)
+    subroutine Handle_wrfdata_update (this, wrf, config_flags)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -190,8 +191,8 @@
 
       class (domain), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
+      type (wrf_t), intent (in out) :: wrf
 
-      type (wrf_t) :: wrf
       logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
 
@@ -200,32 +201,9 @@
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
-        wrf = wrf_t (file_name = 'wrf.nc')
+        call wrf%Update_atm_state(this%datetime_now)
 
-          ! Update t2
-        call wrf%Get_t2 (this%datetime_now)
-        this%t2(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%t2(:, :)
-        call wrf%Destroy_t2 ()
-
-          ! Update q2
-        call wrf%Get_q2 (this%datetime_now)
-        this%q2(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%q2(:, :)
-        call wrf%Destroy_q2 ()
-
-          ! Update psfc
-        call wrf%Get_psfc (this%datetime_now)
-        this%psfc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%psfc(:, :)
-        call wrf%Destroy_psfc ()
-
-          ! Update rainc
-        call wrf%Get_rainc (this%datetime_now)
-        this%rainc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%rainc(:, :)
-        call wrf%Destroy_rainc ()
-
-          ! Update rainnc
-        call wrf%Get_rainnc (this%datetime_now)
-        this%rainnc(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%rainnc(:, :)
-        call wrf%Destroy_rainnc ()
+        call this%interpolate_vars_atm_to_fire(wrf)
 
           ! Update z0
         call wrf%Get_z0 (this%datetime_now)
@@ -436,16 +414,16 @@
       allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
       allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
       this%ht = DEFAULT_HT
-      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
-      this%rainc = DEFAULT_RAINC
-      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
-      this%rainnc = DEFAULT_RAINNC
-      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
-      this%t2 = DEFAULT_T2
-      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
-      this%q2 = DEFAULT_Q2
-      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
-      this%psfc = DEFAULT_PSFC
+!      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
+!      this%rainc = DEFAULT_RAINC
+!      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
+!      this%rainnc = DEFAULT_RAINNC
+!      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
+!      this%t2 = DEFAULT_T2
+!      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
+!      this%q2 = DEFAULT_Q2
+!      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
+!      this%psfc = DEFAULT_PSFC
 
       allocate (this%c1h(this%kms:this%kme))
       this%c1h = DEFAULT_C1H
@@ -652,6 +630,50 @@
           lon = this%lons_c(this%nx + 1, this%ny + 1))
 
     end subroutine Init_latlons_fire
+
+    subroutine Interpolate_vars_atm_to_fire (this, wrf)
+    
+        implicit none
+
+        class (domain), intent(in out) :: this          ! fire state
+        type (wrf_t), intent(in) :: wrf                 ! atm state
+!!        type (namelist_t), intent(in) :: config_flags  ! namelist
+!
+!    
+        call wrf%interpolate_z2fire(                    &
+            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+            this%ifms, this%ifme, this%jfms, this%jfme,  &
+            this%ifts,this%ifte,this%jfts,this%jfte,     &
+            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%t2_stag,                                 &
+            this%fire_t2,1)
+
+         call wrf%interpolate_z2fire(                    &
+            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+            this%ifms, this%ifme, this%jfms, this%jfme,  &
+            this%ifts,this%ifte,this%jfts,this%jfte,     &
+            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%q2_stag,                                 &
+            this%fire_q2,1)
+
+         call wrf%interpolate_z2fire(                    &
+            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+            this%ifms, this%ifme, this%jfms, this%jfme,  &
+            this%ifts,this%ifte,this%jfts,this%jfte,     &
+            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%psfc_stag,                                 &
+            this%fire_psfc,1)
+ 
+         call wrf%interpolate_z2fire(                    &
+            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+            this%ifms, this%ifme, this%jfms, this%jfme,  &
+            this%ifts,this%ifte,this%jfts,this%jfte,     &
+            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%rainc_stag+wrf%rainnc_stag,                                 &
+            this%fire_rain,1)
+  
+    
+    end subroutine Interpolate_vars_atm_to_fire
 
     subroutine Get_ijk_from_subgrid (  grid ,                &
                            ids0, ide0, jds0, jde0, kds0, kde0,    &

@@ -13,14 +13,17 @@
     type (namelist_t) :: config_flags
 
 
-    call Init_fire_state (grid, config_flags)
+      ! Read namelist
+    call config_flags%Initialization (file_name = 'namelist.input')
+
     call Init_atm_state (atm_state, config_flags)
+    call Init_fire_state (grid, config_flags, atm_state)
     call grid%Save_state ()
 
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
       call grid%Handle_output (config_flags)
-      if (config_flags%atm_model == 'wrfdata') Call grid%Handle_wrfdata_update (config_flags)
+      if (config_flags%atm_model == 'wrfdata') Call grid%Handle_wrfdata_update (atm_state, config_flags)
     end do
 
   end program fire_behavior
