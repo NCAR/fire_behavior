@@ -55,8 +55,8 @@ testp1to5 () {
     [[ -f file1.dat ]] && rm file1.dat
     [[ -f file2.dat ]] && rm file2.dat
 
-    grep "$myvar" $file_output  | awk '{print $2, $"${mycol}"}' > ./file1.dat
-    grep "$myvar" $file_wrf     | awk '{print $2, $"${mycol}"}' > ./file2.dat
+    grep "$myvar" $file_output  | awk '{print $2, $"${mycol}"}' | tr -d " " > ./file1.dat
+    grep "$myvar" $file_wrf     | awk '{print $2, $"${mycol}"}' | tr -d " " > ./file2.dat
 
     test=$(diff ./file1.dat ./file2.dat | wc -l)
     if [ $test -eq 0 ]
@@ -80,8 +80,8 @@ testp6 () {
     [[ -f file1.dat ]] && rm file1.dat
     [[ -f file2.dat ]] && rm file2.dat
 
-    head -n 1 ./fort.34 > ./file1.dat # offline
-    head -n 1 ./th_qv_tend.dat > ./file2.dat # online
+    head -n 1 ./fort.34 | tr -d " 045" > ./file1.dat # offline
+    head -n 1 ./th_qv_tend.dat | tr -d " 045" > ./file2.dat # online
 
     test=$(diff ./file1.dat ./file2.dat | wc -l)
     if [ $test -eq 0 ]
