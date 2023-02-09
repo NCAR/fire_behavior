@@ -647,6 +647,7 @@
         class (domain), intent(in out) :: this          ! fire state
         type (wrf_t), intent(in) :: wrf                 ! atm state
 
+        If_testcase: if (this%datetime_now == this%datetime_start) then
 
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
@@ -655,6 +656,7 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%z0_stag,                                 &
             this%fz0,1)
+        endif If_testcase
 
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
