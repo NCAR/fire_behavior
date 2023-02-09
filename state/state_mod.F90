@@ -135,11 +135,6 @@
       real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-!      real, dimension(:, :), allocatable :: rainc    ! "ACCUMULATED TOTAL CUMULUS PRECIPITATION" "mm"
-!      real, dimension(:, :), allocatable :: rainnc   ! "ACCUMULATED TOTAL GRID SCALE PRECIPITATION" "mm"
-!      real, dimension(:, :), allocatable :: t2       ! "TEMP at 2 M"       "K"
-!      real, dimension(:, :), allocatable :: q2       ! "QV at 2 M"         "kg kg-1"
-!      real, dimension(:, :), allocatable :: psfc     ! "SFC PRESSURE"      "Pa"
       real, dimension(:, :), allocatable :: mut
         ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
@@ -202,7 +197,7 @@
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
-        If_testcase: if (present (testcase)) then
+        If_testcase: if (present (testcase) .and. (this%datetime_now == this%datetime_start)) then
           this%ph_2 = wrf%ph_stag
           this%phb = wrf%phb_stag
           this%rho = wrf%rho_stag
@@ -651,9 +646,16 @@
 
         class (domain), intent(in out) :: this          ! fire state
         type (wrf_t), intent(in) :: wrf                 ! atm state
-!!        type (namelist_t), intent(in) :: config_flags  ! namelist
-!
-!
+
+
+        call wrf%interpolate_z2fire(                    &
+            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+            this%ifms, this%ifme, this%jfms, this%jfme,  &
+            this%ifts,this%ifte,this%jfts,this%jfte,     &
+            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%z0_stag,                                 &
+            this%fz0,1)
+
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &

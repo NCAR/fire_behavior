@@ -64,10 +64,6 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     call calc_fxlat_fxlong (grid, config_flags)
 
-    call calc_fz0 (grid, config_flags)
-
-!    call interpolate_vars_for_fmc_model (grid, config_flags)
-
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
             ,ifds,ifde, jfds,jfde                                   &
@@ -125,7 +121,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
       ! PAJM: These calls only necessary if the atm state has been updated
       ! So we are doing the interpolation more than needed
     call interpolate_winds2fire (grid, config_flags)
-!    call interpolate_vars_for_fmc_model (grid, config_flags)
 
     call fire_driver_em ( grid , config_flags               & 
             ,3,6,fire_test_steps                                &
@@ -282,58 +277,6 @@ subroutine calc_fxlat_fxlong (grid, config_flags)
     end if
 
 end subroutine calc_fxlat_fxlong
-
-subroutine calc_fz0 (grid, config_flags)
-
-    implicit none
-!*** arguments
-    TYPE(domain) , TARGET :: grid                   ! state
-    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
-
-!*** local
-    logical :: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
-    integer :: pid, id
-
-    if(config_flags%restart)then
-
-          call message('restart - topo initialization skipped')
-
-    else
-
-        pid = 1
-        id = ifval(pid.ne.0,pid+1*10000,0) ! for print
-
-        if(grid%fire_ignition_longlat .eq.0)then
-            call interpolate_z2fire(id,             &
-                grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
-                grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-                grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
-                grid%its,grid%ite,grid%jts,grid%jte,                              &
-                grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
-                grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
-                grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
-                grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
-                grid%z0,                                 &
-                grid%fz0,1)
-
-        elseif(use_atm_vars)then
-        call interpolate_z2fire(id,                       &
-            grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
-            grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
-            grid%its,grid%ite,grid%jts,grid%jte,                              &
-            grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
-            grid%ifts,grid%ifte,grid%jfts,grid%jfte,                          &
-            grid%sr_x,grid%sr_y,                                        & ! atm/fire grid ratio
-            grid%z0,                                           &
-            grid%fz0,1)
-
-        end if
-
-    end if
-
-end subroutine calc_fz0
 
 subroutine interpolate_winds2fire (grid, config_flags)
 
