@@ -301,6 +301,7 @@ then
     fi 
     ln -sf ${esmx_exe} .
     ln -sf ${TEST_DIR}/esmxRun.config .
+    ln -sf ${TEST_DIR}/fd_nems.yaml .
 
     # -----------------------------------------------
     # Submit job with qcmd
