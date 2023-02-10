@@ -123,10 +123,6 @@
         ! 4D
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
-      real, dimension(:, :, :), allocatable :: ph_2   ! "perturbation geopotential"  "m2 s-2"
-      real, dimension(:, :, :), allocatable :: phb    ! "base-state geopotential"  "m2 s-2"
-      real, dimension(:, :, :), allocatable :: u_2    ! "x-wind component"   "m s-1"
-      real, dimension(:, :, :), allocatable :: v_2    ! "x-wind component"   "m s-1"
       real, dimension(:, :, :), allocatable :: rho    ! "DENSITY"         "Kg m-3"
       real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
       real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
@@ -234,13 +230,9 @@
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
         If_testcase: if (present (testcase) .and. (this%datetime_now == this%datetime_start)) then
-          this%ph_2 = wrf%ph_stag
-          this%phb = wrf%phb_stag
           this%rho = wrf%rho_stag
           this%z_at_w = wrf%z_at_w_stag
           this%dz8w = wrf%dz8w_stag
-          this%u_2 = wrf%u3d_stag
-          this%v_2 = wrf%v3d_stag
            ! 2D arrays
           this%z0 = wrf%z0_stag
           this%mut = wrf%mut_stag
@@ -256,50 +248,6 @@
           call wrf%Get_mut (this%datetime_now)
           this%mut(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%mut(:, :)
           call wrf%Destroy_mut ()
-
-            ! Update U3D
-          call wrf%Get_u3d_stag (this%datetime_now)
-          do k = this%kds, this%kde - 1
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide
-                this%u_2(i, k, j) = wrf%u3d(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_u3d ()
-
-            ! Update V3D
-          call wrf%Get_v3d_stag (this%datetime_now)
-          do k = this%kds, this%kde - 1
-            do j = this%jds, this%jde
-              do i = this%ids, this%ide - 1
-                this%v_2(i, k, j) = wrf%v3d(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_v3d ()
-
-            ! PHB
-          call wrf%Get_phb_stag (this%datetime_now)
-          do k = this%kds, this%kde
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide - 1
-                this%phb(i, k, j) = wrf%phb(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_phb ()
-
-            ! PH
-          call wrf%Get_ph_stag (this%datetime_now)
-          do k = this%kds, this%kde
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide - 1
-                this%ph_2(i, k, j) = wrf%ph(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_phb ()
 
             ! DZ8W
           call wrf%Get_dz8w (this%datetime_now)
@@ -347,8 +295,8 @@
                 this%ifps,min(this%ifpe,this%ifde-this%sr_x), this%jfps,min(this%jfpe,this%jfde-this%sr_y),      &
                 this%ifts, this%ifte, this%jfts, this%jfte,                       &
                 this%sr_x,this%sr_y,                          & ! atm/fire this ratio
-                this%u_2,this%v_2,                            & ! 3D atm this arrays in
-                this%ph_2,this%phb,                           &
+                wrf%u3d_stag,wrf%v3d_stag,                            & ! 3D atm this arrays in
+                wrf%ph_stag,wrf%phb_stag,                           &
                 this%z0,                                      & ! 2D atm this arrays in
                 this%uf,this%vf,this%fz0)                       ! fire this arrays out
 
@@ -463,10 +411,6 @@
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
 
-      allocate (this%ph_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%phb(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%u_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%v_2(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
       allocate (this%rho(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
       allocate (this%z_at_w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
       allocate (this%dz8w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
@@ -884,10 +828,10 @@
       write (OUTPUT_UNIT, *) 'kfts = ', this%kfts, 'kfte = ', this%kfte
 
       write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)
-      write (OUTPUT_UNIT, *) 'shape phb = ', shape (this%phb)
-      write (OUTPUT_UNIT, *) 'shape u_2 = ', shape (this%u_2)
-      write (OUTPUT_UNIT, *) 'shape v_2 = ', shape (this%v_2)
+!      write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)
+!      write (OUTPUT_UNIT, *) 'shape phb = ', shape (this%phb)
+!      write (OUTPUT_UNIT, *) 'shape u_2 = ', shape (this%u_2)
+!      write (OUTPUT_UNIT, *) 'shape v_2 = ', shape (this%v_2)
       write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
 
     end subroutine Print_domain
