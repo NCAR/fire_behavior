@@ -11,22 +11,22 @@ plot=0 # 0) No, 1) yes
 #
 #################################################
 #
-test8p1=1 # Check fire area
-test8p2=1 # Check heat output
-test8p3=1 # Check latent heat output
-test8p4=1 # Check Max heat flux
-test8p5=1 # Check Max latent heat flux
+test7p1=1 # Check fire area
+test7p2=1 # Check heat output
+test7p3=1 # Check latent heat output
+test7p4=1 # Check Max heat flux
+test7p5=1 # Check Max latent heat flux
 #
 #################################################
 #
 
-file_wrf=./test8/test_solution.txt
-file_exe=../install/bin/fire_behavior.exe
-file_output=test8_output.txt
+file_wrf=./test7/test_solution.txt
+file_exe=../install/bin/esmx_fire
+file_output=test7_output.txt
 
-cp ./test8/wrf.nc .
-cp ./test8/namelist.input .
-cp ./test8/geo_em.d01.nc .
+cp ./test7/wrf.nc .
+cp ./test7/namelist.input .
+cp ./test7/geo_em.d01.nc .
 
 rm -f  ./$file_output
 if [ -f $file_exe ]
@@ -45,9 +45,9 @@ pass=false
 # ----------------------------------------
 #
 
-echo "TEST 8:"
+echo "TEST 7:"
 
-if [ $test8p1 -eq 1 ]
+if [ $test7p1 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -58,10 +58,10 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test8.1 PASSED'
+    echo '  Test7.1 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.1 FAILS'
+    echo '  Test7.1 FAILS'
   fi
 
 fi
@@ -70,7 +70,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p2 -eq 1 ]
+if [ $test7p2 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -79,16 +79,15 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $6}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-    # Here we allow one difference since we are not expecting bit4bit results
   echo $test
-  if [ $test -eq 12 ]
+  if [ $test -eq 8 ]
   then
+    echo '  Test7.2 PASSED'
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
-    echo '  Test8.2 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.2 FAILS'
+    echo '  Test7.2 FAILS'
   fi
 fi
 
@@ -96,7 +95,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p3 -eq 1 ]
+if [ $test7p3 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -105,14 +104,15 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
+  echo $test
   if [ $test -eq 4 ]
   then
+    echo '  Test7.3 PASSED'
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
-    echo '  Test8.3 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.3 FAILS'
+    echo '  Test7.3 FAILS'
   fi
 fi
 
@@ -120,7 +120,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p4 -eq 1 ]
+if [ $test7p4 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -129,15 +129,15 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-    # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -eq  8 ]
+  echo $test
+  if [ $test -eq 4 ]
   then
+    echo '  Test7.4 PASSED'
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
-    echo '  Test8.4 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.4 FAILS'
+    echo '  Test7.4 FAILS'
   fi
 fi
 
@@ -145,7 +145,7 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p5 -eq 1 ]
+if [ $test7p5 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
@@ -154,16 +154,12 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $8}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-    # Here we allow one difference since we are not expecting bit4bit results
-  echo $test
-  if [ $test -eq 12 ]
+  if [ $test -eq 0 ]
   then
-    echo '    Ignore this difference:'
-    diff ./file1.dat ./file2.dat
-    echo '  Test8.5 PASSED'
+    echo '  Test7.5 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.5 FAILS'
+    echo '  Test7.5 FAILS'
   fi
 fi
 
@@ -175,11 +171,12 @@ fi
 rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
 if [ $purge_output -eq 1 ]
 then
-  rm -rf ./$file_output
+  rm -f ./$file_output
   rm -f ./fire_output_2012-06-25_18:00:??.nc
+  rm -f ./wrf.nc ./PET0.ESMF_LogFile
 fi
 
-  # Print summary of Test 5
+  # Print summary of Test 7
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
@@ -196,19 +193,16 @@ if [ $plot -eq 1 ]
 then
   if [ -f ./latlons.dat -a -f ./latlons_c.dat -a -f ./wrf_latlons_atm.dat ]
   then
-    ./test4/gn_latlons.s latlons.dat latlons_c.dat wrf_latlons_atm.dat
+    ./test7/gn_latlons.s latlons.dat latlons_c.dat wrf_latlons_atm.dat
   fi
 
   if [ -f ./wrf_latlons_fire.dat -a -f ./latlons.dat -a -f ./wrf_latlons_atm.dat ]
   then
-    ./test4/gn_latlons2.s wrf_latlons_fire.dat latlons.dat wrf_latlons_atm.dat
+    ./test7/gn_latlons2.s wrf_latlons_fire.dat latlons.dat wrf_latlons_atm.dat
   fi
 fi
 
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
-rm -f ./wrf.nc
-
-rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
 
 if [ $pass = true ]
 then

@@ -21,7 +21,7 @@ test7p5=1 # Check Max latent heat flux
 #
 
 file_wrf=./test7/test_solution.txt
-file_exe=../driver/fire_behavior.exe
+file_exe=../install/bin/fire_behavior.exe
 file_output=test7_output.txt
 
 cp ./test7/wrf.nc .
@@ -39,6 +39,7 @@ fi
 
 n_tests=0
 n_test_passed=0
+pass=false
 
 #
 # ----------------------------------------
@@ -180,9 +181,11 @@ if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
   echo ''
+  pass=true
 else
   echo "FAILED: $n_test_passed PASSED of $n_tests"
   echo ''
+  pass=false
 fi
 
   # plots
@@ -207,3 +210,9 @@ rm -f ./wrf.nc
 # ./test7/gn_latlons_proj_check.s latlons_wrf_and_wrfbis.dat latlons_fire.dat
  rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
 
+if [ $pass = true ]
+then
+  exit 0
+else
+  exit 1
+fi

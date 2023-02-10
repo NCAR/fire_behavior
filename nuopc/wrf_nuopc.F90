@@ -20,7 +20,7 @@ module wrf_nuopc
 
   private
 
-  public SetServices
+  public SetVM, SetServices
 
   type (wrf_t) :: state
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)

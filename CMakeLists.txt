@@ -5,17 +5,38 @@ project(
   VERSION 0.0.1
   LANGUAGES Fortran CXX)
 
-# add user defined cmake modules
+# user defined cmake modules
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
-# add ESMF targets
-if (NOT TARGET ESMF)
-  find_package(ESMF MODULE REQUIRED)
-  if (NOT ESMF_FOUND)
-    message(FATAL_ERROR "ESMF library not found. Please set environment variable ESMFMKFILE.")
-  endif (NOT ESMF_FOUND)
-endif (NOT TARGET ESMF)
+# build configuration (cmake/modules/FireBuildSettings.cmake)
+include(FireBuildSettings)
+set_fire_defaults()
+set_fire_cache()
+print_fire_settings()
 
+# preprocessor options
+set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
+
+# compiler options
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -traceback -O2")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -fno-inline -no-ip -check all -fpe0 -ftrapuv -init=snan,arrays")
+  set(CMAKE_Fortran_FLAGS "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -finit-real=nan")
+  set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
+else()
+  message(WARNING "${CMAKE_Fortran_COMPILER_ID} Fortran compiler will be used with default options")
+endif()
+
+# fortran modules directory
+set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
+install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+# third party libraries
 find_package(NetCDF REQUIRED Fortran)
 
 #------------------------------------------------------------------------------
@@ -55,55 +76,20 @@ list(APPEND _driver_files driver/advance_mod.F90
 
 #------------------------------------------------------------------------------
 
-set(CMAKE_Fortran_COMPILER mpif90)
-# set(CMAKE_Fortran_COMPILER         "${ESMF_F90COMPILER}")
-# set(CMAKE_Fortran_FLAGS            "${ESMF_F90COMPILEOPTS}")
-set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
-
-if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -traceback -O2")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -fno-inline -no-ip -check all -fpe0 -ftrapuv -init=snan,arrays")
-  set(CMAKE_Fortran_FLAGS "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
-elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -finit-real=nan")
-  set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
-else()
-  message(WARNING "${CMAKE_Fortran_COMPILER_ID} Fortran compiler will be used with default options")
-endif()
-
-set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
-
-#------------------------------------------------------------------------------
-
-# configure fire behavior library (used by standalone and esmx)
+# configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
 target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:${NetCDF_LIBRARIES}>)
 
-# configure fire behavior executable (standalone code)
-add_executable(fire_behavior_standalone driver/fire_behavior.F90)
-add_dependencies(fire_behavior_standalone firelib)
-target_link_libraries(fire_behavior_standalone PUBLIC firelib)
-target_link_libraries(fire_behavior_standalone PUBLIC NetCDF::NetCDF_Fortran)
-install(TARGETS fire_behavior_standalone DESTINATION bin)
+# configure fire behavior executable
+add_executable(fire_behavior.exe driver/fire_behavior.F90)
+add_dependencies(fire_behavior.exe firelib)
+target_link_libraries(fire_behavior.exe PUBLIC firelib)
+target_link_libraries(fire_behavior.exe PUBLIC NetCDF::NetCDF_Fortran)
+install(TARGETS fire_behavior.exe DESTINATION bin)
 
-# configure fire behavior nuopc cap library (used with esmx)
-add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
-add_dependencies(fire_behavior_nuopc firelib)
-target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
-target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
-target_include_directories(fire_behavior_nuopc INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/mod>
-                                                         $<INSTALL_INTERFACE:mod>)
+if(NUOPC OR ESMX)
+  add_subdirectory(nuopc)
+endif()
 
-# install
-install(TARGETS firelib fire_behavior_nuopc 
-        EXPORT fire_behavior_nuopc 
-	LIBRARY DESTINATION lib
-	ARCHIVE DESTINATION lib
-	INCLUDES DESTINATION mod)
-
-install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
-install(EXPORT fire_behavior_nuopc DESTINATION cmake)
+add_subdirectory(tests)

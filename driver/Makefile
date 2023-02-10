@@ -18,7 +18,8 @@ fire_behavior.exe: fire_behavior.o \
 	../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o \
         ../physics/module_fr_fire_fuel_moisture_model.o ../physics/module_fr_fire_fuel_anderson_mod.o \
 	../physics/ignition_line_mod.o ../physics/ros_wrffire_mod.o
-	$(FC) $^ -o $@ $(NETCDF_LIBS)
+	mkdir -p ../install/bin
+	$(FC) $^ -o ../install/bin/$@ $(NETCDF_LIBS)
 
 %.o: %.F90
 	$(CPP) $(CPPFLAGS) $< > $*.f90

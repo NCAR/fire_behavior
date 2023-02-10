@@ -231,7 +231,7 @@ testp5=${testp5:=1} # Check Max latent heat flux
 testp6=${testp6:=1} # Check tendency t,qv first time step, test1 only
 
 esmx_exe="../../build/esmx"
-standalone_exe="../../install/bin/fire_behavior_standalone"
+standalone_exe="../../install/bin/fire_behavior.exe"
 
 #################################################
 # Tasks for standalone and esmx
@@ -252,15 +252,15 @@ if [[ ${useesmx} -eq 0 ]]
 then
     # -----------------------------------------------
     # clean old links
-    [[ -L "fire_behavior_standalone" ]] && rm fire_behavior_standalone
+    [[ -L "fire_behavior.exe" ]] && rm fire_behavior.exe
     
     # -----------------------------------------------
     # check executable is present, link it, run it
     if [[ -f ${standalone_exe} ]]
     then
 	echo "Running standalone code"
-	ln -sf ${standalone_exe} ./fire_behavior_standalone
-	./fire_behavior_standalone > ${file_output}
+	ln -sf ${standalone_exe} ./fire_behavior.exe
+	./fire_behavior.exe > ${file_output}
     else
 	echo 'Please compile ${standalone_exe}'
 	exit 1
@@ -353,7 +353,7 @@ then
 	[[ -f ${myfile} ]] && rm ${myfile}
     done
     # remove links
-    # for mylink in fire_behavior_standalone esmxRun.config esmx
+    # for mylink in fire_behavior.exe esmxRun.config esmx
     # do
     # 	[[ -L ${mylink} ]] && rm ${mylink}
     # done
