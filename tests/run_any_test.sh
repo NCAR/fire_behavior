@@ -49,7 +49,7 @@ testp1to5 () {
     myvar=$1
     mycol=$2
     
-    echo "Testing for var=${myvar} col=${mycol}"
+    #echo "Testing for var=${myvar} col=${mycol}"
 
     n_tests=$(expr $n_tests + 1)
     [[ -f file1.dat ]] && rm file1.dat
@@ -65,6 +65,8 @@ testp1to5 () {
 	n_test_passed=$(expr $n_test_passed + 1)
     else
 	echo "  Test ${myvar} FAILS"
+	#exit 1
+	diff ./file1.dat ./file2.dat
     fi
 
 }
@@ -235,6 +237,7 @@ standalone_exe="../../install/bin/fire_behavior_standalone"
 # Tasks for standalone and esmx
 
 file_wrf=rsl.out.0000
+[[ ${thistest} == test4 ]] && file_wrf=rsl.out.0000_10s
 file_output=${thistest}_output.txt
 
 TEST_DIR="$PWD"
