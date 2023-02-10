@@ -5,7 +5,8 @@
     use proj_lc_mod, only : proj_lc_t
     use datetime_mod, only : datetime_t
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
-    use wrf_mod, only : wrf_t
+    use wrf_mod, only : wrf_t, G, RERADIUS
+    use constants_mod, only : PI
 
     implicit none
 
@@ -157,6 +158,42 @@
     end type domain
 
   contains
+
+    subroutine calc_unit_fxlat_fxlong (grid, config_flags)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
+
+      implicit none
+
+      type (domain), intent(in out) :: grid
+      type (namelist_t), intent(in) :: config_flags
+
+      logical :: real,ideal
+
+
+      ideal=config_flags%fire_ignition_start_x1 .ne.0. .or. config_flags%fire_ignition_start_y1 .ne. 0.
+      real=config_flags%fire_ignition_start_lon1 .ne. 0. .or. config_flags%fire_ignition_start_lat1 .ne. 0.
+      if(ideal)grid%fire_ignition_longlat = 0
+
+      if (ideal) write (OUTPUT_UNIT, *) 'Using ideal ignition coordinates, m from the lower left domain corner'
+      if (real) grid%fire_ignition_longlat = 1
+      if (real) write (OUTPUT_UNIT, *) 'Using real ignition coordinates, longitude and latitude'
+      if (ideal.and.real) write (ERROR_UNIT, *) 'Only one of the ideal or real coordinates may be given'
+
+      if(grid%fire_ignition_longlat .eq. 0)then
+           ! ideal
+           !  ignition is in m
+        grid%unit_fxlong=1.
+        grid%unit_fxlat=1.
+           ! will set fire mesh coordinates to uniform mesh below
+      else
+           ! real
+           ! 1 degree in m (approximate OK)
+        grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+        grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
+      endif
+
+    end subroutine calc_unit_fxlat_fxlong
 
     subroutine Handle_output (this, config_flags)
 
@@ -593,6 +630,8 @@
         this%dzdxf = DEFAULT_DZDXF
         this%dzdyf = DEFAULT_DZDYF
       end if if_geogrid2d
+
+      call calc_unit_fxlat_fxlong (this, config_flags)
 
     end subroutine Init_domain
 

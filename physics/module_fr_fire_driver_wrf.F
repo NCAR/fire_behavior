@@ -11,8 +11,7 @@ use module_fr_fire_atm, only : fire_tendency, calc_smoke_emissions, add_fire_tra
 use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
                                 print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
                                 continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
-  use constants_mod, only : PI
-  use wrf_mod, only : G, RERADIUS
+  use wrf_mod, only : G
   use state_mod, only: domain, Get_ijk_from_subgrid
   use namelist_mod , only : namelist_t
 
@@ -59,8 +58,6 @@ subroutine fire_driver_em_init (grid , config_flags               &
                             ifms,ifme, jfms,jfme,kfms,kfme,                        &
                             ifps,ifpe, jfps,jfpe,kfps,kfpe,                        &
                             ifts,ifte, jfts,jfte,kfts,kfte)
-
-    call calc_unit_fxlat_fxlong (grid, config_flags)
 
     call calc_fxlat_fxlong (grid, config_flags)
 
@@ -175,40 +172,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
     call message('fire_driver_em_step: FIRE step complete')
             
 end subroutine fire_driver_em_step
-
-subroutine calc_unit_fxlat_fxlong (grid, config_flags)
-
-    implicit none
-!*** arguments
-    TYPE(domain) , TARGET :: grid                   ! state
-    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
-
-!*** local
-    logical :: real,ideal
-
-    ! figure out which kind of coordinates from the first given
-    ideal=config_flags%fire_ignition_start_x1 .ne.0. .or. config_flags%fire_ignition_start_y1 .ne. 0.
-    real=config_flags%fire_ignition_start_lon1 .ne. 0. .or. config_flags%fire_ignition_start_lat1 .ne. 0.
-    if(ideal)grid%fire_ignition_longlat = 0
-    if(ideal)call message('Using ideal ignition coordinates, m from the lower left domain corner')
-    if(real)grid%fire_ignition_longlat = 1
-    if(real)call message('Using real ignition coordinates, longitude and latitude')
-    if(ideal.and.real)call crash('Only one of the ideal or real coordinates may be given')
-
-    if(grid%fire_ignition_longlat .eq. 0)then
-       ! ideal
-       !  ignition is in m
-       grid%unit_fxlong=1.
-       grid%unit_fxlat=1.
-       ! will set fire mesh coordinates to uniform mesh below
-    else
-       ! real
-       ! 1 degree in m (approximate OK)
-       grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-       grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
-    endif
-
-end subroutine calc_unit_fxlat_fxlong
 
 subroutine calc_fxlat_fxlong (grid, config_flags)
 
