@@ -59,8 +59,6 @@ subroutine fire_driver_em_init (grid , config_flags               &
                             ifps,ifpe, jfps,jfpe,kfps,kfpe,                        &
                             ifts,ifte, jfts,jfte,kfts,kfte)
 
-    call calc_fxlat_fxlong (grid, config_flags)
-
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
             ,ifds,ifde, jfds,jfde                                   &

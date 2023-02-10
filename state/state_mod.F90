@@ -688,6 +688,40 @@
 
         If_testcase: if (this%datetime_now == this%datetime_start) then
 
+          if (this%fire_ignition_longlat == 0) then
+              ! set ideal fire mesh coordinates - used for ignition only
+              ! do not forget to set unit_fxlong, unit_fxlat outside of parallel loop
+
+              ! DME: Next call added to fixe a bug when
+              ! initializing a nested domain (before, fxlong & fxlat where not
+              ! assigned, they were supposed to be set by a mod in WPS
+              ! but here we use standard WPS therefore were zero and fire does not ignite)
+            call set_ideal_coord( this%dxf,this%dyf, &
+                  this%ifds,this%ifde,this%jfds,this%jfde,  &
+                  this%ifms,this%ifme,this%jfms,this%jfme,  &
+                  this%ifts,this%ifte,this%jfts,this%jfte,  &
+                  this%fxlong,this%fxlat)
+
+          else
+              ! assume halo xlong xlat
+              ! interpolate nodal coordinates
+            call wrf%interpolate_z2fire(                    &
+                this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+                this%ifms, this%ifme, this%jfms, this%jfme,  &
+                this%ifts,this%ifte,this%jfts,this%jfte,     &
+                this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+                this%xlat,                                 &
+                this%fxlat,0)
+
+            call wrf%interpolate_z2fire(                    &
+                this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+                this%ifms, this%ifme, this%jfms, this%jfme,  &
+                this%ifts,this%ifte,this%jfts,this%jfte,     &
+                this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+                this%xlong,                                 &
+                this%fxlong,0)
+          end if
+
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
@@ -695,6 +729,7 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%z0_stag,                                 &
             this%fz0,1)
+
         endif If_testcase
 
         call wrf%interpolate_z2fire(                    &
@@ -888,6 +923,37 @@
       end if
 
     end subroutine Save_state
+
+    subroutine set_ideal_coord(dxf,dyf,   &
+                    ifds,ifde,jfds,jfde,  &
+                    ifms,ifme,jfms,jfme,  &
+                    ifts,ifte,jfts,jfte,  &
+                    fxlong,fxlat)
+
+    implicit none
+
+    real, intent(in) :: dxf,dyf
+    integer, intent(in) :: &
+                    ifds,ifde,jfds,jfde,  &
+                    ifms,ifme,jfms,jfme,  &
+                    ifts,ifte,jfts,jfte
+    real, intent(out), dimension(ifms:ifme,jfms:jfme) :: fxlong,fxlat
+
+    integer::i,j
+
+
+        ! could we not just as easily get something that
+        ! that looks like a lat/lon
+        ! set fake  coordinates, in m
+      do j=jfts,jfte
+          do i=ifts,ifte
+              ! uniform mesh, lower left domain corner is (0,0)
+              fxlong(i,j)=(i-ifds+0.5)*dxf
+              fxlat (i,j)=(j-jfds+0.5)*dyf
+          enddo
+      enddo
+
+    end subroutine set_ideal_coord
 
   end module state_mod
 
