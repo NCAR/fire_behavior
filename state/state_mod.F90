@@ -127,7 +127,6 @@
       real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
       real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
         ! 2D
-      real, dimension(:, :), allocatable :: z0       ! "Background ROUGHNESS LENGTH" "m"
       real, dimension(:, :), allocatable :: ht       ! "Terrain Height"   "m"
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
@@ -234,15 +233,9 @@
           this%z_at_w = wrf%z_at_w_stag
           this%dz8w = wrf%dz8w_stag
            ! 2D arrays
-          this%z0 = wrf%z0_stag
           this%mut = wrf%mut_stag
         else
           call wrf%Update_atm_state (this%datetime_now)
-
-            ! Update z0
-          call wrf%Get_z0 (this%datetime_now)
-          this%z0(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%z0(:, :)
-          call wrf%Destroy_z0 ()
 
             ! Update MUT
           call wrf%Get_mut (this%datetime_now)
@@ -283,26 +276,27 @@
           call wrf%Destroy_rho ()
         end if if_testcase
 
-        call wrf%interpolate_wind2fire(config_flags,               & ! flag for debug output
-                config_flags%fire_wind_height,                & ! height to interpolate to
-                wrf%ids,this%ide-1, this%kds,this%kde, this%jds,this%jde-1,                &
-                wrf%ims,this%ime, this%kms,this%kme, this%jms,this%jme,                    &
-                wrf%ips,min(this%ipe,this%ide-1), this%jps,min(this%jpe,this%jde-1), &
-                this%i_start(1),min(this%i_end(1),this%ide-1),           &
-                this%j_start(1),min(this%j_end(1),this%jde-1),           &
-                this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,                    &
-                this%ifms, this%ifme, this%jfms, this%jfme,                       &
-                this%ifps,min(this%ifpe,this%ifde-this%sr_x), this%jfps,min(this%jfpe,this%jfde-this%sr_y),      &
-                this%ifts, this%ifte, this%jfts, this%jfte,                       &
+        call wrf%interpolate_wind2fire(config_flags,                            & ! flag for debug output
+                config_flags%fire_wind_height,                                  & ! height to interpolate to
+                wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1,          &
+                wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,              &
+                wrf%ips,min(wrf%ipe,wrf%ide-1), wrf%jps,min(wrf%jpe,wrf%jde-1), &
+                this%i_start(1),min(this%i_end(1),this%ide-1),                  &
+                this%j_start(1),min(this%j_end(1),this%jde-1),                  &
+                this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,   &
+                this%ifms, this%ifme, this%jfms, this%jfme,                     &
+                this%ifps,min(this%ifpe,this%ifde-this%sr_x), this%jfps,min(this%jfpe,this%jfde-this%sr_y), &
+                this%ifts, this%ifte, this%jfts, this%jfte,   &
                 this%sr_x,this%sr_y,                          & ! atm/fire this ratio
-                wrf%u3d_stag,wrf%v3d_stag,                            & ! 3D atm this arrays in
-                wrf%ph_stag,wrf%phb_stag,                           &
-                this%z0,                                      & ! 2D atm this arrays in
+                wrf%u3d_stag,wrf%v3d_stag,                    & ! 3D atm this arrays in
+                wrf%ph_stag,wrf%phb_stag,                     &
+                wrf%z0_stag,                                  & ! 2D atm this arrays in
                 this%uf,this%vf,this%fz0)                       ! fire this arrays out
 
         call this%interpolate_vars_atm_to_fire(wrf)
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
+
       end if If_update_atm
 
     end subroutine Handle_wrfdata_update
@@ -415,21 +409,9 @@
       allocate (this%z_at_w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
       allocate (this%dz8w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
 
-      allocate (this%z0(this%ims:this%ime, this%jms:this%jme))
-      this%z0 = DEFAULT_Z0
       allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
       allocate (this%ht(this%ims:this%ime, this%jms:this%jme))
       this%ht = DEFAULT_HT
-!      allocate (this%rainc(this%ims:this%ime, this%jms:this%jme))
-!      this%rainc = DEFAULT_RAINC
-!      allocate (this%rainnc(this%ims:this%ime, this%jms:this%jme))
-!      this%rainnc = DEFAULT_RAINNC
-!      allocate (this%t2(this%ims:this%ime, this%jms:this%jme))
-!      this%t2 = DEFAULT_T2
-!      allocate (this%q2(this%ims:this%ime, this%jms:this%jme))
-!      this%q2 = DEFAULT_Q2
-!      allocate (this%psfc(this%ims:this%ime, this%jms:this%jme))
-!      this%psfc = DEFAULT_PSFC
 
       allocate (this%c1h(this%kms:this%kme))
       this%c1h = DEFAULT_C1H
