@@ -336,6 +336,24 @@
           call wrf%Destroy_rho ()
         end if if_testcase
 
+        call wrf%interpolate_wind2fire(config_flags,               & ! flag for debug output
+                config_flags%fire_wind_height,                & ! height to interpolate to
+                wrf%ids,this%ide-1, this%kds,this%kde, this%jds,this%jde-1,                &
+                wrf%ims,this%ime, this%kms,this%kme, this%jms,this%jme,                    &
+                wrf%ips,min(this%ipe,this%ide-1), this%jps,min(this%jpe,this%jde-1), &
+                this%i_start(1),min(this%i_end(1),this%ide-1),           &
+                this%j_start(1),min(this%j_end(1),this%jde-1),           &
+                this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,                    &
+                this%ifms, this%ifme, this%jfms, this%jfme,                       &
+                this%ifps,min(this%ifpe,this%ifde-this%sr_x), this%jfps,min(this%jfpe,this%jfde-this%sr_y),      &
+                this%ifts, this%ifte, this%jfts, this%jfte,                       &
+                this%sr_x,this%sr_y,                          & ! atm/fire this ratio
+                this%u_2,this%v_2,                            & ! 3D atm this arrays in
+                this%ph_2,this%phb,                           &
+                this%z0,                              & ! 2D atm this arrays in
+                this%uah,this%vah,                            & ! 2D atm this out
+                this%uf,this%vf,this%fz0)                       ! fire this arrays out
+
         call this%interpolate_vars_atm_to_fire(wrf)
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
@@ -763,7 +781,6 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%rainc_stag+wrf%rainnc_stag,                                 &
             this%fire_rain,1)
-
 
     end subroutine Interpolate_vars_atm_to_fire
 
