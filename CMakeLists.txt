@@ -47,6 +47,9 @@ list(APPEND _wrffire_physics physics/module_fr_fire_atm.F
 # Driver
 list(APPEND _driver_files driver/advance_mod.F90
                           driver/initialize_mod.F90)
+# note that driver/fire_behavior.F90 is binded below in add_executable(...
+# that's because these lists will build the library firelib, which is 
+# used by both, standalone and exmx.  
 
 #------------------------------------------------------------------------------
 
@@ -71,17 +74,17 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 #------------------------------------------------------------------------------
 
-# configure fire behavior library
+# configure fire behavior library (used by standalone and esmx)
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
 
-# configure fire behavior executable
+# configure fire behavior executable (standalone code)
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
 add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
-# configure fire behavior nuopc cap library
+# configure fire behavior nuopc cap library (used with esmx)
 add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)

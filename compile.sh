@@ -176,19 +176,19 @@ echo $(python3 -c "import yaml")
 echo "-------------------------------------------------------"
 
 
-# build and install MyModel
+# build and install: standalone model and fire_behavior_nuopc 
 cmake -S${FIRE_DIR} -B${BUILD_DIR} \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
   -DCMAKE_MODULE_PATH="${ESMF_ESMXDIR}/Driver/cmake" 
 cmake --build ${BUILD_DIR} -v
 cmake --install ${BUILD_DIR}
 
-echo "working on patch..."
+echo "working on patch for esmx driver..."
 # patch mymodel.cmake for esmx_driver
 # to be moved to ESMX build system
 echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/fire_behavior_nuopc.cmake
 
-# build and install application
+# build and install esmx application
 cmake -S${ESMF_ESMXDIR} -Bbuild \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
   -DCMAKE_PREFIX_PATH=${INSTALL_DIR} 
