@@ -6,7 +6,7 @@ project(
   LANGUAGES Fortran CXX)
 
 # add user defined cmake modules
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
 
 # add ESMF targets
 if (NOT TARGET ESMF)
@@ -16,7 +16,7 @@ if (NOT TARGET ESMF)
   endif (NOT ESMF_FOUND)
 endif (NOT TARGET ESMF)
 
-# find_package(NetCDF REQUIRED)
+find_package(NetCDF REQUIRED)
 
 #------------------------------------------------------------------------------
 # Add source files
@@ -25,7 +25,8 @@ endif (NOT TARGET ESMF)
 list(APPEND _state_files state/state_mod.F90)
 
 list(APPEND _share_files share/proj_lc_mod.F90
-                         share/datetime_mod.F90)
+                         share/datetime_mod.F90
+                         share/constants_mod.F90)
 
 # IO
 list(APPEND _io_files io/namelist_mod.F90
@@ -33,15 +34,15 @@ list(APPEND _io_files io/namelist_mod.F90
                       io/wrf_mod.F90
 		      io/netcdf_mod.F90)
 
+
 # WRF Physics
 list(APPEND _wrffire_physics physics/module_fr_fire_atm.F
-	    		     physics/module_fr_fire_core.F
-			     physics/module_fr_fire_driver.F
+                             physics/module_fr_fire_core.F
+                             physics/module_fr_fire_driver.F
 			     physics/module_fr_fire_driver_wrf.F
 			     physics/module_fr_fire_model.F
 			     physics/module_fr_fire_phys.F
-			     physics/module_fr_fire_util.F
-			     physics/wrf_atmosphere_mod.F)
+			     physics/module_fr_fire_util.F)
 
 # Driver
 list(APPEND _driver_files driver/advance_mod.F90
@@ -58,11 +59,10 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   set(CMAKE_Fortran_FLAGS_OPT "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -fno-inline -no-ip -traceback")
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
-# elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-#   set(CMAKE_Fortran_FLAGS_OPT "-std=f2008 -ffree-form -fbacktrace -fcheck=all -finit-real=nan -fall-intrinsics -Wall -g -Og")
-#   set(CMAKE_Fortran_FLAGS_DEBUG "")
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
-
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  set(CMAKE_Fortran_FLAGS_OPT "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -Og -fcheck=all -finit-real=nan -Wall -fbacktrace")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT}")
 else()
   message(WARNING "Fortran compiler with ID ${CMAKE_Fortran_COMPILER_ID} will be used with CMake default options")
 endif()
@@ -73,6 +73,7 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
+target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
 
 # configure fire behavior executable
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
