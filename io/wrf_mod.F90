@@ -1113,7 +1113,6 @@
           u,v,                                            & ! atm grid arrays in
           ph,phb,                                         &
           z0,                                             &
-          uah,vah,                                        &
           uf,vf,z0f)                                        ! fire grid arrays out
 
       implicit none
@@ -1135,9 +1134,6 @@
           u,v,                                          & ! atm wind velocity, staggered
           ph,phb                                          ! geopotential
       real,intent(in),dimension(ims:ime,jms:jme) :: z0    ! roughness height
-      real,intent(out),dimension(ims:ime,jms:jme)::&
-          uah,                                           & ! atm wind at fire_wind_height, diagnostics
-          vah                                              !
       real,intent(out), dimension(ifms:ifme,jfms:jfme)::&
           uf,vf                                           ! wind velocity fire grid nodes
       real,intent(in),dimension(ifms:ifme,jfms:jfme)::z0f ! roughness length in fire grid
@@ -1355,15 +1351,6 @@
              itsv,itev,jtsv,jtev, & ! tile dims
              itsov,iteov,jtsov,jteov, & ! where set
              va)                           ! array
-
-      !   store the output for diagnostics
-          do j = jts,jte1
-            do i = its,ite1
-              uah(i,j)=ua(i,j)
-              vah(i,j)=va(i,j)
-            enddo
-          enddo
-
 
       !      ---------------
       !     | F | F | F | F |   Example of atmospheric and fire grid with

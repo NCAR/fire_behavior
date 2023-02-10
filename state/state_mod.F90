@@ -73,7 +73,6 @@
       real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
       real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :), allocatable :: uah, vah ! "wind at fire_wind_height" "m/s"
       real, dimension(:, :), allocatable :: emis_smoke
 
         ! New vars defined on fire grid for NUOPC coupling
@@ -350,8 +349,7 @@
                 this%sr_x,this%sr_y,                          & ! atm/fire this ratio
                 this%u_2,this%v_2,                            & ! 3D atm this arrays in
                 this%ph_2,this%phb,                           &
-                this%z0,                              & ! 2D atm this arrays in
-                this%uah,this%vah,                            & ! 2D atm this out
+                this%z0,                                      & ! 2D atm this arrays in
                 this%uf,this%vf,this%fz0)                       ! fire this arrays out
 
         call this%interpolate_vars_atm_to_fire(wrf)
@@ -511,8 +509,6 @@
       allocate (this%canqfx(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnhfx_fu(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnqfx_fu(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%uah(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%vah(this%ims:this%ime, this%jms:this%jme))
 
         ! Grid dimensions
       if_geogrid: if (use_geogrid) then
