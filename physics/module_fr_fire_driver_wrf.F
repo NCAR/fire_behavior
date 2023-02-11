@@ -8,9 +8,7 @@ module module_fr_fire_driver_wrf
 
 use module_fr_fire_driver, only : fire_driver_em
 use module_fr_fire_atm, only : fire_tendency, calc_smoke_emissions, add_fire_tracer_emissions
-use module_fr_fire_util, only : ifval, set_ideal_coord, message, interpolate_z2fire, crash, &
-                                print_2d_stats, print_3d_stats, snode, write_array_m, write_array_m3, &
-                                continue_at_boundary, interpolate_2d, print_2d_stats_vec, sum_2d_cells
+use module_fr_fire_util, only : message, crash, print_3d_stats, sum_2d_cells
   use wrf_mod, only : G
   use state_mod, only: domain, Get_ijk_from_subgrid
   use namelist_mod , only : namelist_t

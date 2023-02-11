@@ -56,93 +56,6 @@ integer, parameter:: REAL_SUM=10, REAL_MAX=20, RNRM_SUM=30, RNRM_MAX=40
 
 contains
 
-
-subroutine interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
-    ids,ide, jds,jde,                    & ! atm grid dimensions
-    ims,ime, jms,jme,                    &
-    ips,ipe,jps,jpe,                              &
-    its,ite,jts,jte,                              &
-    ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
-    ifms, ifme, jfms, jfme,                       &
-    ifts,ifte,jfts,jfte,                          &
-    ir,jr,                                        & ! atm/fire grid ratio
-    zs,                                       & ! atm grid arrays in
-    zsf,flag_z0)                                      ! fire grid arrays out
-    
-implicit none
-!*** purpose: interpolate height or any other 2d variable defined at mesh cell centers
-
-!*** arguments
-integer, intent(in)::id,                          &
-    ids,ide, jds,jde,                    & ! atm domain bounds
-    ims,ime,jms,jme,                    & ! atm memory bounds 
-    ips,ipe,jps,jpe,                              &
-    its,ite,jts,jte,                              & ! atm tile bounds
-    ifds, ifde, jfds, jfde,                       & ! fire domain bounds
-    ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-    ifts,ifte,jfts,jfte,                          & ! fire tile bounds
-    ir,jr                                         ! atm/fire grid refinement ratio
-real, intent(in), dimension(ims:ime, jms:jme):: zs  ! terrain height at atm cell centers                                        & ! terrain height  
-real,intent(out), dimension(ifms:ifme,jfms:jfme)::&
-    zsf                                             ! terrain height fire grid nodes
-integer,intent(in)::flag_z0 
-    
-    
-!*** local
-real, dimension(its-2:ite+2,jts-2:jte+2):: za      ! terrain height
-integer:: i,j,jts1,jte1,its1,ite1,jfts1,jfte1,ifts1,ifte1,itso,jtso,iteo,jteo
-
-! terrain height
-
-    jts1=max(jts-1,jds) ! lower loop limit by one less when at end of domain
-    its1=max(its-1,ids) ! ASSUMES THE HALO IS THERE if patch != domain
-    jte1=min(jte+1,jde) 
-    ite1=min(ite+1,ide)
-    do j = jts1,jte1
-        do i = its1,ite1 
-            ! copy to local array
-            za(i,j)=zs(i,j)           
-        enddo
-    enddo
-
-    call continue_at_boundary(1,1,0., & ! do x direction or y direction
-    its-2,ite+2,jts-2,jte+2,           &                ! memory dims
-    ids,ide,jds,jde, &            ! domain dims - winds defined up to +1
-    ips,ipe,jps,jpe, &            ! patch dims - winds defined up to +1
-    its1,ite1,jts1,jte1, &                ! tile dims
-    itso,jtso,iteo,jteo, &
-    za)                               ! array
-
-    ! interpolate to tile plus strip along domain boundary if at boundary
-    jfts1=snode(jfts,jfds,-1) ! lower loop limit by one less when at end of domain
-    ifts1=snode(ifts,ifds,-1)
-    jfte1=snode(jfte,jfde,+1) 
-    ifte1=snode(ifte,ifde,+1)
-                     
-    call interpolate_2d(  &
-        its-2,ite+2,jts-2,jte+2, & ! memory dims atm grid tile
-        its1-1,ite1+1,jts1-1,jte1+1, & ! where atm grid values set
-        ifms,ifme,jfms,jfme,    & ! array dims fire grid
-        ifts1,ifte1,jfts1,jfte1,  & ! dimensions fire grid tile
-        ir,jr,                  & ! refinement ratio
-        real(ids),real(jds),ifds+(ir-1)*0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-        za,                     & ! in atm grid     
-        zsf)                      ! out fire grid
-
-if (flag_z0 .eq. 1 ) then 
-  do j=jfts1,jfte1
-    do i=ifts1,ifte1
-      zsf(i,j)=max(zsf(i,j),0.001)
-    enddo
-  enddo
-endif
-
-end subroutine interpolate_z2fire
-
-!
-!****************
-!
-
   subroutine crash (msg)
 
     implicit none
@@ -235,40 +148,6 @@ end function open_text_file
 !
 !****************
 !
-
-
-subroutine set_ideal_coord( dxf,dyf, &
-                ifds,ifde,jfds,jfde,  &
-                ifms,ifme,jfms,jfme,  &
-                ifts,ifte,jfts,jfte,  &
-                fxlong,fxlat          &
-            )
-implicit none
-! arguments
-real, intent(in)::dxf,dyf
-integer, intent(in):: &
-                ifds,ifde,jfds,jfde,  &
-                ifms,ifme,jfms,jfme,  &
-                ifts,ifte,jfts,jfte
-real, intent(out),dimension(ifms:ifme,jfms:jfme)::fxlong,fxlat
-! local
-integer::i,j
-                ! could we not just as easily get something that
-                ! that looks like a lat/lon 
-                ! set fake  coordinates, in m 
-                do j=jfts,jfte
-                    do i=ifts,ifte
-                        ! uniform mesh, lower left domain corner is (0,0)
-                        fxlong(i,j)=(i-ifds+0.5)*dxf
-                        fxlat (i,j)=(j-jfds+0.5)*dyf
-                    enddo
-                enddo
-end subroutine set_ideal_coord
-
-!
-!****************
-!
-
 
 subroutine continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
     ims,ime,jms,jme, &                ! memory dims
@@ -1425,17 +1304,6 @@ else
 	ifval=j
 endif
 end function ifval
-
-! function to go beyond domain boundary if tile is next to it
-pure integer function snode(t,d,i)
-implicit none
-integer, intent(in)::t,d,i
-if(t.ne.d)then
-    snode=t
-else
-    snode=t+i
-endif
-end function snode
 
 subroutine print_chsum( id, & 
     ims,ime,kms,kme,jms,jme, &                ! memory dims

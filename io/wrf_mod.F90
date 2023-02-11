@@ -1195,9 +1195,6 @@
 
       ite1=snode(ite,ide,1)
       jte1=snode(jte,jde,1)
-      ! do this in any case to check for nans
-!      call print_3d_stats(its,ite1,kds,kde,jts,jte,ims,ime,kms,kme,jms,jme,u,'wind U in')
-!      call print_3d_stats(its,ite,kds,kde,jts,jte1,ims,ime,kms,kme,jms,jme,v,'wind V in')
 
       ! indexing
 
@@ -1424,9 +1421,6 @@
           enddo
         enddo
       endif
-
-
-!      call print_2d_stats_vec(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,uf,vf,'fire wind (m/s)')
 
       return
 
