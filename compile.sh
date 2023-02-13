@@ -7,6 +7,8 @@ usage () {
   printf "OPTIONS\n"
   printf "  --system=SYSTEM\n"
   printf "      name of machine (e.g. 'cheyenne')\n"
+  printf "  --env-skip\n"
+  printf "      do not use environment file\n"
   printf "  --env-dir=ENV_DIR\n"
   printf "      path to environment files\n"
   printf "  --env-file=ENV_FILE\n"
@@ -28,6 +30,7 @@ settings () {
   printf "Settings:\n"
   printf "\n"
   printf "  SYSTEM=${SYSTEM}\n"
+  printf "  ENV_SKIP=${ENV_SKIP}\n"
   printf "  ENV_DIR=${ENV_DIR}\n"
   printf "  ENV_FILE=${ENV_FILE}\n"
   printf "  BUILD_DIR=${BUILD_DIR}\n"
@@ -47,8 +50,9 @@ find_system () {
 #------------------------------------------------------------------------------
 
 # default settings
-FIRE_DIR=$(cd "$(dirname "$(readlink -f -n "${BASH_SOURCE[0]}" )" )" && pwd -P)
+FIRE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SYSTEM=""
+ENV_SKIP=false
 ENV_DIR="${FIRE_DIR}/env"
 ENV_FILE=""
 BUILD_DIR="${FIRE_DIR}/ufs_fire_build"
@@ -71,6 +75,9 @@ while :; do
     --system=?*) SYSTEM=${1#*=} ;;
     --system) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --system=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --env-skip) ENV_SKIP=true ;;
+    --env-skip=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --env-skip=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --env-dir=?*) ENV_DIR=${1#*=} ;;
     --env-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --env-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
@@ -118,12 +125,14 @@ if [ "${VERBOSE}" = true ] ; then
 fi
 
 # load environment
-if [ ! -f "${ENV_DIR}/${ENV_FILE}" ]; then
-  printf "ERROR: ${ENV_FILE} does not exist in ${ENV_DIR}.\n"
-  printf "\n"
-  exit 1
+if [ "${ENV_SKIP}" = false ] ; then
+  if [ ! -f "${ENV_DIR}/${ENV_FILE}" ]; then
+    printf "ERROR: ${ENV_FILE} does not exist in ${ENV_DIR}.\n"
+    printf "\n"
+    exit 1
+  fi
+  source ${ENV_DIR}/${ENV_FILE}
 fi
-source ${ENV_DIR}/${ENV_FILE}
 
 set -u
 
@@ -167,19 +176,19 @@ echo $(python3 -c "import yaml")
 echo "-------------------------------------------------------"
 
 
-# build and install MyModel
+# build and install: standalone model and fire_behavior_nuopc 
 cmake -S${FIRE_DIR} -B${BUILD_DIR} \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
   -DCMAKE_MODULE_PATH="${ESMF_ESMXDIR}/Driver/cmake" 
 cmake --build ${BUILD_DIR} -v
 cmake --install ${BUILD_DIR}
 
-echo "working on patch..."
+echo "working on patch for esmx driver..."
 # patch mymodel.cmake for esmx_driver
 # to be moved to ESMX build system
 echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/fire_behavior_nuopc.cmake
 
-# build and install application
+# build and install esmx application
 cmake -S${ESMF_ESMXDIR} -Bbuild \
   -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
   -DCMAKE_PREFIX_PATH=${INSTALL_DIR} 

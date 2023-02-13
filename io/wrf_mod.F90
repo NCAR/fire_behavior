@@ -1141,7 +1141,6 @@
 
       !*** local
       character(len=256)::msg
-      #define TDIMS its-2,ite+2,jts-2,jte+2
       real, dimension(its-2:ite+2,jts-2:jte+2):: ua,va   ! atm winds, interpolated over height, still staggered grid
       real, dimension(its-2:ite+2,kds:kde,jts-2:jte+2):: altw,altub,altvb,hgtu,hgtv ! altitudes
       integer:: i,j,k,ifts1,ifte1,jfts1,jfte1,ite1,jte1
@@ -1332,7 +1331,7 @@
           ips1 = ifval(ips.eq.ids,ips+1,ips)
 
           call continue_at_boundary(1,1,0., & ! x direction
-             TDIMS,                  &! memory dims atm grid tile
+             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
              ids+1,ide,jds,jde, &     ! domain dims - where u defined
              ips1,ipe,jps,jpe, &     ! patch dims
              itsu,iteu,jtsu,jteu, & ! tile dims - in nonextended direction one beyond if at patch boundary but not domain
@@ -1342,7 +1341,7 @@
           jps1 = ifval(jps.eq.jds,jps+1,jps)
 
           call continue_at_boundary(1,1,0., & ! y direction
-             TDIMS,                  & ! memory dims atm grid tile
+             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
              ids,ide,jds+1,jde, &      ! domain dims - where v wind defined
              ips,ipe,jps1,jpe, &        ! patch dims
              itsv,itev,jtsv,jtev, & ! tile dims
@@ -1387,7 +1386,7 @@
           ! jfte1=min(snode(jfte,jfpe,+1),jfde)
 
           call interpolate_2d(  &
-              TDIMS,                  & ! memory dims atm grid tile
+              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
               itsou,iteou,jtsou,jteou,& ! where set
               ifms,ifme,jfms,jfme,    & ! array dims fire grid
               ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to
@@ -1397,7 +1396,7 @@
               uf)                      ! out fire grid
 
           call interpolate_2d(  &
-              TDIMS,                  & ! memory dims atm grid tile
+              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
               itsov,iteov,jtsov,jteov,& ! where set
               ifms,ifme,jfms,jfme,    & ! array dims fire grid
               ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to

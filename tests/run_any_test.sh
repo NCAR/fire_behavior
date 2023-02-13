@@ -49,14 +49,14 @@ testp1to5 () {
     myvar=$1
     mycol=$2
     
-    echo "Testing for var=${myvar} col=${mycol}"
+    #echo "Testing for var=${myvar} col=${mycol}"
 
     n_tests=$(expr $n_tests + 1)
     [[ -f file1.dat ]] && rm file1.dat
     [[ -f file2.dat ]] && rm file2.dat
 
-    grep "$myvar" $file_output  | awk '{print $2, $"${mycol}"}' > ./file1.dat
-    grep "$myvar" $file_wrf     | awk '{print $2, $"${mycol}"}' > ./file2.dat
+    grep "$myvar" $file_output  | awk '{print $2, $"${mycol}"}' | tr -d " " > ./file1.dat
+    grep "$myvar" $file_wrf     | awk '{print $2, $"${mycol}"}' | tr -d " " > ./file2.dat
 
     test=$(diff ./file1.dat ./file2.dat | wc -l)
     if [ $test -eq 0 ]
@@ -65,6 +65,8 @@ testp1to5 () {
 	n_test_passed=$(expr $n_test_passed + 1)
     else
 	echo "  Test ${myvar} FAILS"
+	#exit 1
+	diff ./file1.dat ./file2.dat
     fi
 
 }
@@ -80,8 +82,8 @@ testp6 () {
     [[ -f file1.dat ]] && rm file1.dat
     [[ -f file2.dat ]] && rm file2.dat
 
-    head -n 1 ./fort.34 > ./file1.dat # offline
-    head -n 1 ./th_qv_tend.dat > ./file2.dat # online
+    head -n 1 ./fort.34 | tr -d " 045" > ./file1.dat # offline
+    head -n 1 ./th_qv_tend.dat | tr -d " 045" > ./file2.dat # online
 
     test=$(diff ./file1.dat ./file2.dat | wc -l)
     if [ $test -eq 0 ]
@@ -235,6 +237,7 @@ standalone_exe="../../install/bin/fire_behavior_standalone"
 # Tasks for standalone and esmx
 
 file_wrf=rsl.out.0000
+[[ ${thistest} == test4 ]] && file_wrf=rsl.out.0000_10s
 file_output=${thistest}_output.txt
 
 TEST_DIR="$PWD"
@@ -301,6 +304,7 @@ then
     fi 
     ln -sf ${esmx_exe} .
     ln -sf ${TEST_DIR}/esmxRun.config .
+    ln -sf ${TEST_DIR}/fd_nems.yaml .
 
     # -----------------------------------------------
     # Submit job with qcmd

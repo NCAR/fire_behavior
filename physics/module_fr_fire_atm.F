@@ -108,7 +108,7 @@ SUBROUTINE fire_tendency( &
     its,ite, kts,kte, jts,jte,   &
     grnhfx,grnqfx,canhfx,canqfx, & ! heat fluxes summed up to  atm grid
     alfg,alfc,z1can,             & ! coeffients, properties, geometry
-    zs,z_at_w,dz8w,mu,c1h,c2h,rho, &
+    z_at_w,dz8w,mu,c1h,c2h,rho, &
     rthfrten,rqvfrten)             ! theta and Qv tendencies
 
 ! This routine is atmospheric physics
@@ -128,7 +128,6 @@ SUBROUTINE fire_tendency( &
 
    REAL, INTENT(in), DIMENSION( ims:ime,jms:jme ) :: grnhfx,grnqfx  ! W/m^2
    REAL, INTENT(in), DIMENSION( ims:ime,jms:jme ) :: canhfx,canqfx  ! W/m^2
-   REAL, INTENT(in), DIMENSION( ims:ime,jms:jme ) :: zs  ! topography (m abv sealvl)
    REAL, INTENT(in), DIMENSION( ims:ime,jms:jme ) :: mu  ! dry air mass (Pa)
    REAL, INTENT(in), DIMENSION( kms:kme         ) :: c1h, c2h ! Hybrid coordinate weights
 
@@ -202,7 +201,7 @@ SUBROUTINE fire_tendency( &
 
             ! --- set z (in meters above ground)
 
-            z_w = z_at_w(i,k,j) - zs(i,j) ! should be zero when k=k_st
+            z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
 
             ! --- heat flux
 
