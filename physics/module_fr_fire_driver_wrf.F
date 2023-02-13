@@ -76,8 +76,8 @@ end subroutine fire_driver_em_init
 subroutine fire_driver_em_step (grid , config_flags               & 
             ,ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &
-            ,ips,ipe, kps,kpe, jps,jpe                              &
-            ,rho,z_at_w,dz8w ) 
+            ,ips,ipe, kps,kpe, jps,jpe)
+            
 
     ! stub to call fire_driver_em 
 
@@ -91,7 +91,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
              ids,ide, kds,kde, jds,jde                              &
             ,ims,ime, kms,kme, jms,jme                              &
             ,ips,ipe, kps,kpe, jps,jpe
-    real,dimension(ims:ime, kms:kme, jms:jme),intent(in)::rho,z_at_w,dz8w
 
     ! local
     integer :: &  ! fire mesh sizes
@@ -130,10 +129,10 @@ subroutine fire_driver_em_step (grid , config_flags               &
        call add_fire_tracer_emissions(config_flags%tracer_opt,grid%dt,grid%dx,grid%dy, &
                  ifms,ifme,jfms,jfme,    &
                  ifps,ifpe,jfps,jfpe,    &
-                 ids,ide,kds,kde,jds,jde,          &
-                 ims,ime,kms,kme,jms,jme,          &
-                 ips,ipe,kps,kpe,jps,jpe,          &
-                 rho,dz8w,                         &
+                 ids,ide,kds,kde,jds,jde,      &
+                 ims,ime,kms,kme,jms,jme,      &
+                 ips,ipe,kps,kpe,jps,jpe,      &
+                 grid%rho,grid%dz8w,           &
                  grid%burnt_area_dt,grid%fgip, &
                  grid%tracer,grid%emis_smoke,config_flags%fire_tracer_smoke)
     end if
@@ -152,9 +151,9 @@ subroutine fire_driver_em_step (grid , config_flags               &
             ids,ide-1, kds,kde, jds,jde-1, & ! domain dimensions
             ims,ime, kms,kme, jms,jme,      &
             its,ite, kts,kte, jts,jte,      & ! 
-            grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx,        & ! fluxes on atm grid 
-            config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt,                &
-            z_at_w,dz8w,grid%mut,grid%c1h,grid%c2h,rho,          &
+            grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx,            & ! fluxes on atm grid 
+            config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
+            grid%z_at_w,grid%dz8w,grid%mut,grid%c1h,grid%c2h,grid%rho,  &
             grid%rthfrten,grid%rqvfrten)                ! out
 
      enddo

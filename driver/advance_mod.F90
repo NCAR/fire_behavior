@@ -34,8 +34,8 @@
       call fire_driver_em_step (grid , config_flags & 
             ,grid%ids,grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
             ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
-            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe &
-            ,grid%rho, grid%z_at_w, grid%dz8w)
+            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
+
 
       if (config_flags%atm_model == 'test1') write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
 
