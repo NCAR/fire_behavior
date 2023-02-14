@@ -106,7 +106,10 @@ REAL,INTENT(in) :: time_start,dt            ! starting time, time step
 REAL,INTENT(in) :: fdx,fdy                  ! spacing of the fire mesh
 ! array data
 type(ignition_line_type), dimension (num_ignitions), intent(in):: ignition_line ! descriptions of ignition lines
-integer, intent(out):: ignited_tile(num_ignitions),ignitions_done
+
+integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
+integer, intent(out):: ignitions_done              ! number of isolated ignitions
+
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
     coord_xf,coord_yf                       !  node coordinates  
 real, intent(in):: unit_xf,unit_yf          !  coordinate units in m

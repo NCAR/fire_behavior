@@ -247,7 +247,6 @@ halo_fire_mag_sub
             ifps,min(ifpe,ifde-ir), jfps,min(jfpe,jfde-jr),      &
             ifts,ifte-ir, jfts,jfte-jr,                          &
             ir,jr,                                      & ! atm/fire grid ratio
-            grid%num_tiles,                             & ! atm grid tiling
             time_start,                                 &
             itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
             grid%dt,grid%dx,grid%dy,                    &
@@ -322,7 +321,6 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     ifps, ifpe, jfps, jfpe,                       & ! fire patch in - will use smaller
     ifts, ifte, jfts, jfte,                       &
     ir,jr,                                        & ! atm/fire grid ratio
-    num_tiles,                                    & ! atm grid tiling
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,dt,dx,dy,      & ! in scalars
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
@@ -374,15 +372,15 @@ integer, intent(in)::ifun,                        &
     ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
     ifts, ifte, jfts, jfte,                       & ! fire tile bounds
     ir,jr,                                        & ! atm/fire grid refinement ratio
-    nfmc,                                     & ! number of fuel moisture classes
+    nfmc,                                         & ! number of fuel moisture classes
     itimestep,                                    & ! number of this timestep
     ifuelread,                                    & ! how to initialize nfuel_cat:
-                                                       ! -1=not at all, done outside 
-                                                       ! 0=from nfuel_cat0
-                                                       ! 1=from altitude
-                                                       ! 2=from file
-    nfuel_cat0,                                   & ! fuel category to initialize everything to
-    num_tiles                                       ! number of tiles
+                                                    ! -1=not at all, done outside 
+                                                    ! 0=from nfuel_cat0
+                                                    ! 1=from altitude
+                                                    ! 2=from file
+    nfuel_cat0                                      ! fuel category to initialize everything to
+
 
 logical, intent(in)::restart
     
@@ -400,33 +398,33 @@ real, intent(in):: &
     fire_wind_height 
 
 
-integer, intent(in):: num_ignitions                 ! number of ignitions, can be 0
+integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
  
-real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(inout), dimension(ifms:ifme,jfms:jfme)::  &
     nfuel_cat                                       ! fuel data; can be also set inside (cell based, fire grid)
 
-real, intent(inout), dimension(ifms:ifme, jfms:jfme)::     &
+real, intent(inout), dimension(ifms:ifme, jfms:jfme):: &
     lfn,tign,fuel_frac,                        &     ! state: level function, ign time, fuel left
     lfn_hist,                                  &     ! PAJ: to init obs. fira perimeter
     lfn_out                                    ! fire wind velocities
 
-real, intent(inout), dimension(ifms:ifme, jfms:jfme)::     &
+real, intent(inout), dimension(ifms:ifme, jfms:jfme):: &
     lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front  ! level set function and reinitialization steps
 
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
+real, intent(out), dimension(ifms:ifme, jfms:jfme)::   &
     fire_area                                        ! fraction of each cell burning
 
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::  &
+real, intent(out), dimension(ifms:ifme, jfms:jfme)::   &
     burnt_area_dt                                        
 
 real, intent(out), dimension(ifms:ifme, jfms:jfme):: &  ! redundant arrays, for display only, fire grid
-    fgrnhfx,                                      &  ! heat flux from surface fire (W/m^2) 
-    fgrnqfx,                                      &  ! moisture flux from surface fire (W/m^2) 
-    fcanhfx,                                      &  ! heat flux from crown fire (W/m^2) 
-    fcanqfx,                                      &   ! moisture flux from crown fire (W/m^2) 
-    ros                                             ! fire rate of spread (m/s)
+    fgrnhfx,                                         &  ! heat flux from surface fire (W/m^2) 
+    fgrnqfx,                                         &  ! moisture flux from surface fire (W/m^2) 
+    fcanhfx,                                         &  ! heat flux from crown fire (W/m^2) 
+    fcanqfx,                                         &  ! moisture flux from crown fire (W/m^2) 
+    ros                                                 ! fire rate of spread (m/s)
     
 ! moisture model arguments
 logical, intent(in)::run_advance_moisture
@@ -455,8 +453,9 @@ integer :: its,ite,jts,jte, &            ! tile
     ij,i,j,k,id,pid,ite1,jte1
 character(len=128)::msg
 character(len=3)::kk
-integer::ignitions_done_tile(num_tiles),ignited_tile(num_ignitions,num_tiles)
-integer::ignitions_done,ignited_patch(num_ignitions),idex,jdex
+
+integer :: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
+integer :: ignitions_done              ! number of isolated ignitions
 
     ! PAJ:
   logical :: fire_is_real_perim
@@ -502,20 +501,19 @@ if(fire_print_file.gt.0)then
     if(itimestep.le.fire_print_file.or.mod(itimestep,fire_print_file).eq.0)pid=itimestep ! print 1-fire_print_file then every fire_print_file-th
 endif
 
-! set up fire tiles & interpolate to fire grid
+! interpolate to fire grid
 !$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
 !$OMP SCHEDULE(STATIC)
-do ij=1,num_tiles
 
-    id = ifval(pid.ne.0,pid+ij*10000,0) ! for print
+id = ifval(pid .ne. 0, pid + ij * 10000, 0) ! for print
 
-    ignitions_done_tile(ij)=0
+ignitions_done = 0
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
-    write(msg,'(a,i3,1x,a,i7,1x,a,i3)')'tile=',ij,' id=',id,' ifun=',ifun
-    call message(msg)
-    write(msg,7001)'fire tile  ','ifts',ifts,ifte,jfts,jfte
-    call message(msg)                    
+write(msg,'(a,i7,1x,a,i3)')' id=',id,' ifun=',ifun
+call message(msg)
+write(msg,7001)'fire tile  ','ifts',ifts,ifte,jfts,jfte
+call message(msg)                    
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
     ! check the tiles
@@ -524,18 +522,18 @@ do ij=1,num_tiles
 
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
-    write(msg,'(a,i6,a,2(f15.6,a))')'time step',itimestep,' at',time_start,' duration',dt,'s'
-    call message(msg)
-    7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
-    write(msg,'(a,2i9)')'refinement ratio:',ir,jr
+write(msg,'(a,i6,a,2(f15.6,a))')'time step',itimestep,' at',time_start,' duration',dt,'s'
+call message(msg)
+7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
+write(msg,'(a,2i9)')'refinement ratio:',ir,jr
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
-    if(run_advance_moisture)then
-      if(ifun.eq.3)then 
+if(run_advance_moisture)then
+   if(ifun.eq.3)then 
       
       ! one timestep of the moisture model
-          call message('advance_moisture start')
-          call advance_moisture(    &
+      call message('advance_moisture start')
+      call advance_moisture(    &
               itimestep.eq.1,             & ! initialize?
               ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
               ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
@@ -550,27 +548,27 @@ do ij=1,num_tiles
               fmc_gc,                     & ! fuel moisture fields updated, by class, assumed set to something reasonable
               fmep,                       & ! fuel moisture extended model parameters
               fmc_equi,                   &  ! fuel moisture fields updated, by class equilibrium diagnostic
-              fmc_lag                    &  ! fuel moisture fields updated, by class tendency diagnostic
-          )
-          call message('advance_moisture end')
+              fmc_lag                     &  ! fuel moisture fields updated, by class tendency diagnostic
+              )
+      call message('advance_moisture end')
 
-          call message('fuel_moisture start')
-          call fuel_moisture(                &
-          id,                                     & ! for prints and maybe file names
-          nfmc,                                &
-          ifds, ifde, jfds, jfde,         & ! fire grid dimensions
-          ifms, ifme, jfms, jfme,     &
-          ifts,ifte,jfts,jfte,                 &
-          nfuel_cat,                         & ! fuel data
-          fmc_gc,                             & ! moisture contents by class on atmospheric grid
-          fmc_g                                & ! weighted fuel moisture contents on fire grid
+      call message('fuel_moisture start')
+      call fuel_moisture(         &
+          id,                     & ! for prints and maybe file names
+          nfmc,                   &
+          ifds, ifde, jfds, jfde, & ! fire grid dimensions
+          ifms, ifme, jfms, jfme, &
+          ifts,ifte,jfts,jfte,    &
+          nfuel_cat,              & ! fuel data
+          fmc_gc,                 & ! moisture contents by class on atmospheric grid
+          fmc_g                   & ! weighted fuel moisture contents on fire grid
           )
-          call message('fuel_moisture end')
+      call message('fuel_moisture end')
 
-          ! fuel moisture may have changed, reset the precomputed ros parameters
-          ! uses nfuel_cat to set the other fuel data arrays
-          ! needs zsf on halo width 1 to compute the terrain gradient
-          call set_fire_params(    &       ! also on restart
+      ! fuel moisture may have changed, reset the precomputed ros parameters
+      ! uses nfuel_cat to set the other fuel data arrays
+      ! needs zsf on halo width 1 to compute the terrain gradient
+      call set_fire_params(        &       ! also on restart
               ifds,ifde,jfds,jfde, &
               ifms,ifme,jfms,jfme, &
               ifts,ifte,jfts,jfte, &
@@ -578,13 +576,13 @@ do ij=1,num_tiles
               nfuel_cat,fuel_time, &
               fp)
 
-      endif
-    endif
+   endif
+endif
 
 !   the following executes in any case
 
-    if(fire_run)then
-      call fire_model (id,ifun,restart,need_lfn_update,  &
+if(fire_run)then
+   call fire_model (id,ifun,restart,need_lfn_update,  &
         num_ignitions,                          & ! switches
         ifuelread,nfuel_cat0,                   & ! initialize fuel categories
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
@@ -594,24 +592,24 @@ do ij=1,num_tiles
         time_start,dt,                          & ! time and increment
         dxf,dyf,                                & ! fire mesh spacing
         ignition_line,                          & ! description of ignition lines
-        ignitions_done_tile(ij),ignited_tile(1,ij),  &
-        fxlong,fxlat,unit_fxlong,unit_fxlat,      & ! fire mesh coordinates
-        lfn,                                     & ! state: level function
-        lfn_hist,                                & ! PAJ: to init obs fire perimeter
-        fire_is_real_perim,                      & ! PAJ: to init obs fire perimeter
+        ignitions_done,ignited_tile,            &
+        fxlong,fxlat,unit_fxlong,unit_fxlat,    & ! fire mesh coordinates
+        lfn,                                    & ! state: level function
+        lfn_hist,                               & ! PAJ: to init obs fire perimeter
+        fire_is_real_perim,                     & ! PAJ: to init obs fire perimeter
         lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front,  & ! state
-        lfn_out,tign,fuel_frac,                     & ! state: ign time, fuel left
+        lfn_out,tign,fuel_frac,                 & ! state: ign time, fuel left
         fire_area,                              & ! output: fraction of cell burning
-        burnt_area_dt,                              & 
+        burnt_area_dt,                          & 
         fgrnhfx,fgrnqfx,                        & ! output: heat fluxes
         ros,                                    & ! output: rate of spread for display
         nfuel_cat,                              & ! fuel data per point 
         fuel_time,                              & ! save derived internal data
-        fp                                       & ! fire coefficients
-    )
+        fp                                      & ! fire coefficients
+        )
 
-  endif ! fire_run
-enddo ! tiles
+endif ! fire_run
+
 !$OMP END PARALLEL DO
 
 #ifdef DEBUG_OUT
@@ -623,22 +621,14 @@ endif
 #endif
 
 if (ifun.eq.3)then
-    ignitions_done=ignitions_done_tile(1) ! all should be the same
+
     do i=1,ignitions_done
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
         write(msg,'(2(a,i4,1x))')'fire_driver_phys: checking ignition ',i,' of ',ignitions_done
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
         call message(msg)
-        ignited_patch(i)=0
-        do ij=1,num_tiles
-            ignited_patch(i)=ignited_patch(i)+ignited_tile(i,ij)
-        enddo
-#ifdef DM_PARALLEL
-        call message('fire_driver_phys: checking ignitions, collect counts')
-        call wrf_dm_maxval(ignited_patch(i),idex,jdex)
-        call message('fire_driver_phys: collected')
-#endif
-        if(ignited_patch(i).eq.0)then
+        if(ignited_tile(i) .EQ. 0)then
+           ! ignition is done but zero gridpts were ignited
             call crash('fire_driver_phys: Ignition failed, no nodes ignited. Bad coordinates?')
         endif
     enddo
