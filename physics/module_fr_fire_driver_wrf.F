@@ -123,20 +123,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
  
     call sum_2d_fire_vars (grid, config_flags)
 
-    if (config_flags%tracer_opt.eq.3)then
-       call calc_smoke_emissions(grid,config_flags,ifts,ifte,jfts,jfte)
-
-       call add_fire_tracer_emissions(config_flags%tracer_opt,grid%dt,grid%dx,grid%dy, &
-                 ifms,ifme,jfms,jfme,    &
-                 ifps,ifpe,jfps,jfpe,    &
-                 ids,ide,kds,kde,jds,jde,      &
-                 ims,ime,kms,kme,jms,jme,      &
-                 ips,ipe,kps,kpe,jps,jpe,      &
-                 grid%rho,grid%dz8w,           &
-                 grid%burnt_area_dt,grid%fgip, &
-                 grid%tracer,grid%emis_smoke,config_flags%fire_tracer_smoke)
-    end if
-
     ! --- add heat and moisture fluxes to tendency variables by postulated decay
     do ij=1,grid%num_tiles
        ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly

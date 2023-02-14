@@ -32,6 +32,7 @@
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
     contains
+      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
@@ -83,6 +84,61 @@
     end interface wrf_t
 
   contains
+
+    subroutine Add_fire_tracer_emissions(    &
+           this,                             &
+           ifms,ifme,jfms,jfme,              &
+           ifts,ifte,jtfs,jfte,              &
+           ids,ide,kds,kde,jds,jde,          &
+           ims,ime,kms,kme,jms,jme,          &
+           its,ite,kts,kte,jts,jte,          &
+           rho,dz8w,                         &
+           burnt_area_dt,fgip,               &
+           tracer,emis)
+
+      implicit none
+
+      class (wrf_t), intent(in out) :: this
+      integer, intent(in) :: ifms,ifme,jfms,jfme,  &
+                          ifts,ifte,jtfs,jfte,     &
+                          ids,ide,kds,kde,jds,jde, &
+                          ims,ime,kms,kme,jms,jme, &
+                          its,ite,kts,kte,jts,jte
+      real, intent(in) :: rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
+      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: burnt_area_dt,fgip,emis
+      real, intent(inout) :: tracer(ims:ime,kms:kme,jms:jme)
+
+      integer :: isz1,jsz1,isz2,jsz2,ir,jr
+      integer :: i,j,ibase,jbase,i_f,ioff,j_f,joff
+      real :: avgw
+
+
+      isz1 = ite-its+1
+      jsz1 = jte-jts+1
+      isz2 = ifte-ifts+1
+      jsz2 = jfte-jtfs+1
+      ir=isz2/isz1
+      jr=jsz2/jsz1
+      avgw = 1.0/(ir*jr)
+
+      do j=max(jds+1,jts),min(jte,jde-2)
+        jbase=jtfs+jr*(j-jts)
+        do i=max(ids+1,its),min(ite,ide-2)
+          ibase=ifts+ir*(i-its)
+          do joff=0,jr-1
+            j_f=joff+jbase
+            do ioff=0,ir-1
+              i_f=ioff+ibase
+              if (num_tracer >0) then
+                tracer(i,kts,j)=tracer(i,kts,j) &
+                  + (avgw*emis(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j))) ! g_smoke/kg_air
+              endif
+            enddo
+          enddo
+        enddo
+      enddo
+
+    end subroutine Add_fire_tracer_emissions
 
     subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
           ims,ime,jms,jme, &                ! memory dims
