@@ -36,9 +36,6 @@
             ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
             ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
 
-
-      if (config_flags%atm_model == 'test1') write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
-
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
       call grid%datetime_now%Print_datetime ()

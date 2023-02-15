@@ -16,4 +16,4 @@ clean:
   # Dependencies
 geogrid_mod.o: netcdf_mod.o
 
-wrf_mod.o: ../share/datetime_mod.o ../share/proj_lc_mod.o netcdf_mod.o geogrid_mod.o namelist_mod.o
+wrf_mod.o: ../share/datetime_mod.o ../share/proj_lc_mod.o ../share/constants_mod.o netcdf_mod.o geogrid_mod.o namelist_mod.o

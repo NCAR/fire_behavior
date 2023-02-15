@@ -5,6 +5,7 @@
     use proj_lc_mod, only : proj_lc_t
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
+    use constants_mod, only : CP, XLV
 
     implicit none
 
@@ -50,6 +51,7 @@
       procedure, public :: Destroy_v3d => Destroy_meridional_wind
       procedure, public :: Destroy_z0 => Destroy_z0
       procedure, public :: Destroy_z_at_w => Destroy_height_agl_at_walls
+      procedure, public :: Fire_tendency => Fire_tendency
       procedure, public :: Get_datetime_index => Get_datetime_index
       procedure, public :: Get_dz8w => Get_distance_between_vertical_layers
       procedure, public :: Get_latlons => Get_latlons
@@ -411,6 +413,150 @@
       if (allocated(this%z_at_w)) deallocate (this%z_at_w)
 
     end subroutine Destroy_height_agl_at_walls
+
+    subroutine Fire_tendency(this,   &
+        ids,ide, kds,kde, jds,jde,   & ! dimensions
+        ims,ime, kms,kme, jms,jme,   &
+        its,ite, kts,kte, jts,jte,   &
+        grnhfx,grnqfx,canhfx,canqfx, & ! heat fluxes summed up to  atm grid
+        alfg,alfc,z1can,             & ! coeffients, properties, geometry
+        z_at_w,dz8w,mu,c1h,c2h,rho,  &
+        rthfrten,rqvfrten)             ! theta and Qv tendencies
+
+    ! This routine is atmospheric physics
+    ! it does NOT go into module_fr_fire_phys because it is not related to fire physical processes
+
+    ! --- this routine takes fire generated heat and moisture fluxes and
+    !     calculates their influence on the theta and water vapor
+    ! --- note that these tendencies are valid at the Arakawa-A location
+
+      implicit none
+
+    ! --- incoming variables
+
+      class (wrf_t), intent(in out) :: this
+      integer, intent(in) :: ids,ide, kds,kde, jds,jde, &
+                               ims,ime, kms,kme, jms,jme, &
+                               its,ite, kts,kte, jts,jte
+
+      real, intent(in), dimension( ims:ime,jms:jme ) :: grnhfx,grnqfx  ! w/m^2
+      real, intent(in), dimension( ims:ime,jms:jme ) :: canhfx,canqfx  ! w/m^2
+      real, intent(in), dimension( ims:ime,jms:jme ) :: mu  ! dry air mass (pa)
+      real, intent(in), dimension( kms:kme         ) :: c1h, c2h ! hybrid coordinate weights
+
+      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: z_at_w ! m abv sealvl
+      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: dz8w   ! dz across w-lvl
+      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: rho    ! density
+
+      real, intent(in) :: alfg ! extinction depth surface fire heat (m)
+      real, intent(in) :: alfc ! extinction depth crown  fire heat (m)
+      real, intent(in) :: z1can    ! height of crown fire heat release (m)
+
+    ! --- outgoing variables
+
+      real, intent(out), dimension( ims:ime,kms:kme,jms:jme ) ::   &
+           rthfrten, & ! theta tendency from fire (in mass units)
+           rqvfrten    ! Qv tendency from fire (in mass units)
+    ! --- local variables
+
+      integer :: i,j,k
+      integer :: i_st,i_en, j_st,j_en, k_st,k_en
+
+      real :: cp_i
+      real :: rho_i
+      real :: xlv_i
+      real :: z_w
+      real :: fact_g, fact_c
+      real :: alfg_i, alfc_i
+
+      real, dimension( its:ite,kts:kte,jts:jte ) :: hfx,qfx
+
+
+      do j=jts,jte
+        do k=kts,min(kte+1,kde)
+          do i=its,ite
+            rthfrten(i,k,j)=0.
+            rqvfrten(i,k,j)=0.
+          enddo
+        enddo
+      enddo
+
+    ! --- set some local constants
+
+      cp_i = 1./cp     ! inverse of specific heat
+      xlv_i = 1./xlv   ! inverse of latent heat
+      alfg_i = 1./alfg
+      alfc_i = 1./alfc
+
+    ! --- set loop indicies : note that
+
+      i_st = MAX(its,ids+1)
+      i_en = MIN(ite,ide-1)
+      k_st = kts
+      k_en = MIN(kte,kde-1)
+      j_st = MAX(jts,jds+1)
+      j_en = MIN(jte,jde-1)
+
+    ! --- distribute fluxes
+
+      do j = j_st,j_en
+        do k = k_st,k_en
+          do i = i_st,i_en
+
+            ! --- set z (in meters above ground)
+
+            z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
+
+            ! --- heat flux
+
+            fact_g = cp_i * EXP( - alfg_i * z_w )
+            if ( z_w < z1can ) then
+                   fact_c = cp_i
+            else
+                   fact_c = cp_i * EXP( - alfc_i * (z_w - z1can) )
+            end if
+            hfx(i,k,j) = fact_g * grnhfx(i,j) + fact_c * canhfx(i,j)
+
+    !!            write(msg,2)i,k,j,z_w,grnhfx(i,j),hfx(i,k,j)
+    !!2           format('hfx:',3i4,6e11.3)
+    !!            call message(msg)
+
+            ! --- vapor flux
+
+            fact_g = xlv_i * EXP( - alfg_i * z_w )
+            if (z_w < z1can) then
+                   fact_c = xlv_i
+            else
+                   fact_c = xlv_i * EXP( - alfc_i * (z_w - z1can) )
+            end if
+            qfx(i,k,j) = fact_g * grnqfx(i,j) + fact_c * canqfx(i,j)
+
+
+          end do
+        end do
+      end do
+
+    ! --- add flux divergence to tendencies
+    !
+    !   multiply by dry air mass (mu) to eliminate the need to
+    !   call sr. calculate_phy_tend (in dyn_em/module_em.F)
+
+      do j = j_st,j_en
+        do k = k_st,k_en-1
+          do i = i_st,i_en
+
+            rho_i = 1./rho(i,k,j)
+
+            rthfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (hfx(i,k+1,j)-hfx(i,k,j)) / dz8w(i,k,j)
+            rqvfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (qfx(i,k+1,j)-qfx(i,k,j)) / dz8w(i,k,j)
+
+          end do
+        end do
+      end do
+
+      return
+
+    end subroutine Fire_tendency
 
     function Get_datetime_index (this, datetime) result (return_value)
 

@@ -121,34 +121,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
             ,ifts,ifte, jfts,jfte                                   &
             )
  
-    call sum_2d_fire_vars (grid, config_flags)
-
-    ! --- add heat and moisture fluxes to tendency variables by postulated decay
-    do ij=1,grid%num_tiles
-       ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly
-       its = grid%i_start(ij)             ! start atmospheric tile in i
-       ite = min(grid%i_end(ij),ide-1)    ! end atmospheric tile in i
-       jts = grid%j_start(ij)             ! start atmospheric tile in j
-       jte = min(grid%j_end(ij),jde-1)    ! end atmospheric tile in j
-       kts=kds
-       kte=kde
-
-       call fire_tendency(                 &
-            ids,ide-1, kds,kde, jds,jde-1, & ! domain dimensions
-            ims,ime, kms,kme, jms,jme,      &
-            its,ite, kts,kte, jts,jte,      & ! 
-            grid%grnhfx,grid%grnqfx,grid%canhfx,grid%canqfx,            & ! fluxes on atm grid 
-            config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
-            grid%z_at_w,grid%dz8w,grid%mut,grid%c1h,grid%c2h,grid%rho,  &
-            grid%rthfrten,grid%rqvfrten)                ! out
-
-     enddo
-
-       ! debug print to compare
-
-       call print_3d_stats(its,ite,kts,kte,jts,jte,ims,ime,kms,kme,jms,jme,grid%rthfrten,'fire_driver_phys:rthfrten')
-       call print_3d_stats(its,ite,kts,kte,jts,jte,ims,ime,kms,kme,jms,jme,grid%rqvfrten,'fire_driver_phys:rqvfrten')
-
     call message('fire_driver_em_step: FIRE step complete')
             
 end subroutine fire_driver_em_step
