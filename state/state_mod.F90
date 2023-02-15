@@ -123,13 +123,9 @@
         ! 4D
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
-      real, dimension(:, :, :), allocatable :: rho    ! "DENSITY"         "Kg m-3"
-      real, dimension(:, :, :), allocatable :: z_at_w ! Height agl at walls "m"  ??
-      real, dimension(:, :, :), allocatable :: dz8w   ! Distance between vertical layers "m"
         ! 2D
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-      real, dimension(:, :), allocatable :: mut
         ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
       real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
@@ -250,53 +246,7 @@
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
-        If_testcase: if (present (testcase) .and. (this%datetime_now == this%datetime_start)) then
-          this%rho = wrf%rho_stag
-          this%z_at_w = wrf%z_at_w_stag
-          this%dz8w = wrf%dz8w_stag
-           ! 2D arrays
-          this%mut = wrf%mut_stag
-        else
-          call wrf%Update_atm_state (this%datetime_now)
-
-            ! Update MUT
-          call wrf%Get_mut (this%datetime_now)
-          this%mut(this%ids:this%ide - 1, this%jds:this%jde - 1) = wrf%mut(:, :)
-          call wrf%Destroy_mut ()
-
-            ! DZ8W
-          call wrf%Get_dz8w (this%datetime_now)
-          do k = this%kds, this%kde - 1
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide - 1
-                this%dz8w(i, k, j) = wrf%dz8w(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_dz8w ()
-
-            ! Z_AT_W
-          call wrf%Get_z_at_w (this%datetime_now)
-          do k = this%kds, this%kde
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide - 1
-                this%z_at_w(i, k, j) = wrf%z_at_w(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_z_at_w ()
-
-            ! RHO
-          call wrf%Get_rho (this%datetime_now)
-          do k = this%kds, this%kde - 1
-            do j = this%jds, this%jde - 1
-              do i = this%ids, this%ide - 1
-                this%rho(i, k, j) = wrf%rho(i, j, k)
-              end do
-            end do
-          end do
-          call wrf%Destroy_rho ()
-        end if if_testcase
+        if (.not. present(testcase)) call wrf%Update_atm_state (this%datetime_now)
 
         call wrf%interpolate_wind2fire(config_flags,                            & ! flag for debug output
                 config_flags%fire_wind_height,                                  & ! height to interpolate to
@@ -426,12 +376,6 @@
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
-
-      allocate (this%rho(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%z_at_w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%dz8w(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-
-      allocate (this%mut(this%ims:this%ime, this%jms:this%jme))
 
       allocate (this%c1h(this%kms:this%kme))
       this%c1h = DEFAULT_C1H
@@ -872,8 +816,6 @@
              this%rthfrten,this%rqvfrten)                ! out
       enddo
 
-      if (config_flags%atm_model == 'test1') write (93, *) this%rthfrten(42, 1, 42), this%rqvfrten(42, 1, 42)
-
       if (config_flags%tracer_opt.eq.3) then
         call calc_smoke_emissions(this,config_flags, &
                this%ifts,this%ifte,this%jfts,this%jfte)
@@ -884,7 +826,7 @@
                   wrf%ids,wrf%ide,wrf%kds,wrf%kde,wrf%jds,wrf%jde, &
                   wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
                   wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
-                  this%rho,this%dz8w,                              &
+                  wrf%rho_stag,wrf%dz8w_stag,                      &
                   this%burnt_area_dt,this%fgip,                    &
                   this%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
       end if
