@@ -92,11 +92,7 @@
       end if
 
         ! Fire init
-      call fire_driver_em_init (grid , config_flags                        &
-            ,grid%ids, grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
-            ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme  &
-            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe  &
-            ,grid%its, grid%ite, grid%kts, grid%kte, grid%jts, grid%jte)
+      call fire_driver_em_init (grid, config_flags)
 
       if (DEBUG_LOCAL .and. config_flags%fire_fuel_read == -1) then
           ! print lat/lons

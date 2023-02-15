@@ -31,10 +31,7 @@
 
       grid%itimestep = grid%itimestep + 1
 
-      call fire_driver_em_step (grid , config_flags & 
-            ,grid%ids,grid%ide, grid%kds, grid%kde, grid%jds, grid%jde  &
-            ,grid%ims, grid%ime, grid%kms, grid%kme, grid%jms, grid%jme &
-            ,grid%ips, grid%ipe, grid%kps, grid%kpe, grid%jps, grid%jpe)
+      call fire_driver_em_step (grid, config_flags)
 
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
