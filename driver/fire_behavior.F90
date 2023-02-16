@@ -24,7 +24,7 @@
       call Advance_state (grid, config_flags)
       call grid%Handle_output (config_flags)
       call grid%Provide_atm_feedback (atm_state, config_flags)
-      if (config_flags%atm_model == 'test1') write (34, *) grid%rthfrten(42, 1, 42), grid%rqvfrten(42, 1, 42)
+      if (config_flags%atm_model == 'test1') write (34, *) atm_state%rthfrten(42, 1, 42), atm_state%rqvfrten(42, 1, 42)
       if (config_flags%atm_model == 'wrfdata') Call grid%Handle_wrfdata_update (atm_state, config_flags)
     end do
 

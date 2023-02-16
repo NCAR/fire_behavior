@@ -23,10 +23,17 @@
         ! 4D
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
-      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
+        ! 2D
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
+      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
+        ! feedback to atm
+      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
+      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
+      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
+      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
+
       integer :: bottom_top, bottom_top_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
@@ -1130,13 +1137,15 @@
       allocate (return_value%psfc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%psfc_stag = DEFAULT_PSFC
 
-!      allocate (return_value%c1h(return_value%kms:return_value%kme))
-!      return_value%c1h = DEFAULT_C1H
-!      allocate (return_value%c2h(return_value%kms:return_value%kme))
-!      return_value%c2h = DEFAULT_C2H
-!
-!      allocate (return_value%rthfrten(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-!      allocate (return_value%rqvfrten(return_value%ims:return_value%ime, return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      allocate (return_value%c1h(return_value%kms:return_value%kme))
+      return_value%c1h = DEFAULT_C1H
+      allocate (return_value%c2h(return_value%kms:return_value%kme))
+      return_value%c2h = DEFAULT_C2H
+
+      allocate (return_value%rthfrten(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+      allocate (return_value%rqvfrten(return_value%ims:return_value%ime, &
+                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
 
         ! Grid dimensions
 !      if_geogrid: if (use_geogrid) then

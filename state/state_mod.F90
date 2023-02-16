@@ -126,11 +126,6 @@
         ! 2D
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
-        ! feedback to atm
-      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
-      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
-      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
-      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
 
         ! Fire vars in the atm grid
       real, dimension(:, :), allocatable :: rain_old ! "previous value of accumulated rain" "mm"
@@ -283,7 +278,7 @@
       type (geogrid_t), intent (in), optional :: geogrid
 
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
-          DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
+          DEFAULT_DZDYF = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
@@ -376,14 +371,6 @@
 
         ! Atmosphere vars
       allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
-
-      allocate (this%c1h(this%kms:this%kme))
-      this%c1h = DEFAULT_C1H
-      allocate (this%c2h(this%kms:this%kme))
-      this%c2h = DEFAULT_C2H
-
-      allocate (this%rthfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
-      allocate (this%rqvfrten(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme))
 
         ! Fire vars
       allocate (this%rain_old(this%ims:this%ime, this%jms:this%jme))
@@ -812,8 +799,8 @@
              wrf%its,wrf%ite, wrf%kts,wrf%kte, wrf%jts,wrf%jte,     & !
              this%grnhfx,this%grnqfx,this%canhfx,this%canqfx,       & ! fluxes on atm this
              config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
-             wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,this%c1h,this%c2h,wrf%rho_stag,  &
-             this%rthfrten,this%rqvfrten)                ! out
+             wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,wrf%c1h,wrf%c2h,wrf%rho_stag,  &
+             wrf%rthfrten,wrf%rqvfrten)                ! out
       enddo
 
       if (config_flags%tracer_opt.eq.3) then
