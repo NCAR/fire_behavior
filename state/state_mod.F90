@@ -120,9 +120,6 @@
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
         ! Atmosphere
-        ! 4D
-      real, dimension(:, :, :, :), allocatable :: tracer
-        ! 3D
         ! 2D
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
@@ -368,9 +365,6 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
-
-        ! Atmosphere vars
-      allocate (this%tracer(this%ims:this%ime, this%kms:this%kme, this%jms:this%jme, NUM_TRACER))
 
         ! Fire vars
       allocate (this%rain_old(this%ims:this%ime, this%jms:this%jme))
@@ -815,7 +809,7 @@
                   wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
                   wrf%rho_stag,wrf%dz8w_stag,                      &
                   this%burnt_area_dt,this%fgip,                    &
-                  this%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
+                  wrf%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
       end if
 
     end subroutine Provide_atm_feedback
