@@ -60,7 +60,6 @@ contains
 subroutine interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
     ids,ide, jds,jde,                    & ! atm grid dimensions
     ims,ime, jms,jme,                    &
-    ips,ipe,jps,jpe,                              &
     its,ite,jts,jte,                              &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
@@ -76,7 +75,6 @@ implicit none
 integer, intent(in)::id,                          &
     ids,ide, jds,jde,                    & ! atm domain bounds
     ims,ime,jms,jme,                    & ! atm memory bounds 
-    ips,ipe,jps,jpe,                              &
     its,ite,jts,jte,                              & ! atm tile bounds
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds

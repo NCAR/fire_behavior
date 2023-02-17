@@ -256,7 +256,6 @@ subroutine calc_fxlat_fxlong (grid, config_flags)
         call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
             grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
             grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
             grid%its,grid%ite,grid%jts,grid%jte,                              &
             grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
             grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -268,7 +267,6 @@ subroutine calc_fxlat_fxlong (grid, config_flags)
         call interpolate_z2fire(id,                 & ! for debug output, <= 0 no output
             grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
             grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
             grid%its,grid%ite,grid%jts,grid%jte,                              &
             grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
             grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -307,7 +305,6 @@ subroutine calc_fz0 (grid, config_flags)
             call interpolate_z2fire(id,             &
                 grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
                 grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-                grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
                 grid%its,grid%ite,grid%jts,grid%jte,                              &
                 grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
                 grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -320,7 +317,6 @@ subroutine calc_fz0 (grid, config_flags)
         call interpolate_z2fire(id,                       &
             grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
             grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-            grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
             grid%its,grid%ite,grid%jts,grid%jte,                              &
             grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
             grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -353,7 +349,6 @@ subroutine interpolate_vars_for_fmc_model (grid, config_flags)
     call interpolate_z2fire(id,             &
         grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
         grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
         grid%its,grid%ite,grid%jts,grid%jte,                              &
         grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
         grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -365,7 +360,6 @@ subroutine interpolate_vars_for_fmc_model (grid, config_flags)
     call interpolate_z2fire(id,             &
         grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
         grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
         grid%its,grid%ite,grid%jts,grid%jte,                              &
         grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
         grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -377,7 +371,6 @@ subroutine interpolate_vars_for_fmc_model (grid, config_flags)
     call interpolate_z2fire(id,             &
         grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
         grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
         grid%its,grid%ite,grid%jts,grid%jte,                              &
         grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
         grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -389,7 +382,6 @@ subroutine interpolate_vars_for_fmc_model (grid, config_flags)
     call interpolate_z2fire(id,             &
         grid%ids,grid%ide,  grid%jds,grid%jde,                    & ! atm grid dimensions
         grid%ims,grid%ime,  grid%jms,grid%jme,                    &
-        grid%ips,grid%ipe,grid%jps,grid%jpe,                              &
         grid%its,grid%ite,grid%jts,grid%jte,                              &
         grid%ifds, grid%ifde, grid%jfds, grid%jfde,                       & ! fire grid dimensions
         grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
@@ -426,7 +418,6 @@ subroutine interpolate_winds2fire (grid, config_flags)
             grid%j_start(1),min(grid%j_end(1),grid%jde-1),           &
             grid%ifds,grid%ifde-grid%sr_x, grid%jfds,grid%jfde-grid%sr_y,                    &
             grid%ifms, grid%ifme, grid%jfms, grid%jfme,                       &
-            grid%ifps,min(grid%ifpe,grid%ifde-grid%sr_x), grid%jfps,min(grid%jfpe,grid%jfde-grid%sr_y),      &
             grid%ifts, grid%ifte, grid%jfts, grid%jfte,                       &
             grid%sr_x,grid%sr_y,                          & ! atm/fire grid ratio
             grid%u_frame, grid%v_frame,                   & ! velocity frame correction
@@ -448,7 +439,6 @@ subroutine interpolate_atm2fire(config_flags, id, & ! for debug output, <= 0 no 
     its,ite,jts,jte,                              &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
-    ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
     ifts,ifte,jfts,jfte,                          &
     ir,jr,                                        & ! atm/fire grid ratio
     u_frame, v_frame,                             & ! velocity frame correction
@@ -472,7 +462,6 @@ integer, intent(in)::                             &
     its,ite,jts,jte,                              & ! atm tile bounds
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-    ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
     ifts,ifte,jfts,jfte,                          & ! fire tile bounds
     ir,jr                                         ! atm/fire grid refinement ratio
 real, intent(in):: u_frame, v_frame                 ! velocity frame correction
