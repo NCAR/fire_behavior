@@ -1271,7 +1271,6 @@ end subroutine
 subroutine prop_ls_rk3(id,               &             
                 ifds,ifde,jfds,jfde,     &                 
                 ifms,ifme,jfms,jfme,     &                    
-                ifps,ifpe,jfps,jfpe,     &            
                 ifts,ifte,jfts,jfte,     &                    
                 ts,dt,dx,dy,             &                     
                 tbound,                  &                  
@@ -1347,7 +1346,7 @@ implicit none
 !*** calls
 !
 
-integer,intent(in)::id,ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte,ifps,ifpe,jfps,jfpe 
+integer,intent(in)::id,ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0 
 real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
@@ -1399,7 +1398,6 @@ call message(msg)
     if(id1.ne.0)id1=id1+1000
     call tend_ls(id1,    &
     ifds,ifde,jfds,jfde, &                       ! domain dims 
-    ifps,ifpe,jfps,jfpe, &                       ! patch dims
     ifts,ifte,jfts,jfte, &                       ! tile dims
     ifms,ifme,jfms,jfme, &                       ! memory dims
     ts,dt,dx,dy,         &                       ! scalars in
@@ -1426,7 +1424,6 @@ call message(msg)
     if(id1.ne.0)id1=id1+1000
     call tend_ls(id1,    &
     ifds,ifde,jfds,jfde, &                     
-    ifps,ifpe,jfps,jfpe, &                    
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &               
     ts+dt,dt,dx,dy,      &                  
@@ -1453,7 +1450,6 @@ call message(msg)
     if(id1.ne.0)id1=id1+1000
     call tend_ls(id1,    &
     ifds,ifde,jfds,jfde, &                      
-    ifps,ifpe,jfps,jfpe, &                     
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &                 
     ts+dt,dt,dx,dy,      &                  
@@ -1501,7 +1497,6 @@ subroutine reinit_ls_rk3(id,                       &
                 ifts,ifte,jfts,jfte,               &                     
                 ifms,ifme,jfms,jfme,               &                     
                 ifds,ifde,jfds,jfde,               &                     
-                ifps,ifpe,jfps,jfpe,               &                      
                 ts,dt,dx,dy,                       &                    
                 lfn_in,                            & 
                 lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3, & 
@@ -1531,7 +1526,7 @@ implicit none
 !*** purpose: reinitialize the level-set function
 
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,id 
-integer,intent(in)::ifds,ifde,jfds,jfde,ifps,ifpe,jfps,jfpe  
+integer,intent(in)::ifds,ifde,jfds,jfde
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_out
@@ -1565,7 +1560,6 @@ threshold_HLu=fire_lsm_band_ngp*dx
     call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
     ifms,ifme,jfms,jfme, &                             ! memory dims
     ifds,ifde,jfds,jfde, &                             ! domain
-    ifps,ifpe,jfps,jfpe, &                             ! patch
     ifts,ifte,jfts,jfte, &                             ! tile
     itso,iteo,jtso,jteo, &                             ! where set now
     lfn_s3) 
@@ -1589,7 +1583,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     call continue_at_boundary(1,1,fire_lfn_ext_up, & 
     ifms,ifme,jfms,jfme, &                          
     ifds,ifde,jfds,jfde, &                           
-    ifps,ifpe,jfps,jfpe, &                           
     ifts,ifte,jfts,jfte, &                           
     itso,iteo,jtso,jteo, &               
     lfn_s1) 
@@ -1610,7 +1603,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     call continue_at_boundary(1,1,fire_lfn_ext_up, &  
     ifms,ifme,jfms,jfme, &              
     ifds,ifde,jfds,jfde, &                 
-    ifps,ifpe,jfps,jfpe, &                 
     ifts,ifte,jfts,jfte, &               
     itso,iteo,jtso,jteo, & 
     lfn_s2) 
@@ -1631,7 +1623,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     call continue_at_boundary(1,1,fire_lfn_ext_up, &  
     ifms,ifme,jfms,jfme, &              
     ifds,ifde,jfds,jfde, &                  
-    ifps,ifpe,jfps,jfpe, &                
     ifts,ifte,jfts,jfte, &              
     itso,iteo,jtso,jteo, &           
     lfn_s3) 
@@ -1875,7 +1866,6 @@ end subroutine calc_flame_length
 
 subroutine tend_ls( id, &
     ids,ide,jds,jde,    &              ! domain - nodes where lfn defined
-    ips,ipe,jps,jpe,    &              ! patch - nodes owned by this process 
     its,ite,jts,jte,    &              ! region - nodes where tend computed
     ims,ime,jms,jme,    &              ! memory dims for ros 
     t,dt,dx,dy,         &              ! scalars in
@@ -1892,7 +1882,7 @@ implicit none
 !*** arguments
 integer,intent(in)::id 
 integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
-integer, intent(in)::ids,ide,jds,jde,ips,ipe,jps,jpe 
+integer, intent(in)::ids,ide,jds,jde
 real,intent(in)::t                                 ! time
 real,intent(in)::dt,dx,dy                          ! mesh step
 real,dimension(ims:ime,jms:jme),intent(inout)::lfn ! level set function 
@@ -1935,7 +1925,6 @@ threshold_AV=fire_viscosity_ngp*dx
     call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
     ims,ime,jms,jme, &                                 ! memory dims
     ids,ide,jds,jde, &                                 ! domain
-    ips,ipe,jps,jpe, &                                 ! patch
     its,ite,jts,jte, &                                 ! tile
     itso,iteo,jtso,jteo, &                             ! where set now
     lfn)                                               ! field 

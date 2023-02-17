@@ -44,7 +44,6 @@ subroutine fire_driver_em ( grid , config_flags                    &
             , ir, jr                                                &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
-            ,ifps,ifpe, jfps,jfpe                                   &
             ,ifts,ifte, jfts,jfte                                   &
             )
 
@@ -68,7 +67,6 @@ halo_fire_mag_sub
     integer, intent(in):: &
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
-             ifps,ifpe, jfps,jfpe,                                   &
              ifts,ifte, jfts,jfte
 
 !*** local
@@ -243,7 +241,6 @@ halo_fire_mag_sub
             fire_ifun, need_lfn_update,                                                         &
             ifds,ifde-ir, jfds,jfde-jr,                                                         &
             ifms,ifme, jfms,jfme,                                                               &
-            ifps,min(ifpe,ifde-ir), jfps,min(jfpe,jfde-jr),                                     &
             ifts,ifte-ir, jfts,jfte-jr,                                                         &
             time_start,                                                                         &
             itimestep, restart, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
@@ -318,7 +315,6 @@ end subroutine fire_driver_em
 subroutine fire_driver_phys (ifun,need_lfn_update,    &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
-    ifps, ifpe, jfps, jfpe,                       & ! fire patch in - will use smaller
     ifts, ifte, jfts, jfte,                       &
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,       &
@@ -371,7 +367,6 @@ implicit none
 integer, intent(in)::ifun,                        &
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-    ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
     ifts, ifte, jfts, jfte,                       & ! fire tile bounds
     nfmc,                                         & ! number of fuel moisture classes
     itimestep,                                    & ! number of this timestep
@@ -470,15 +465,9 @@ write(msg,7001)'fire domain     ','ifds',ifds,ifde,jfds,jfde
 call message(msg)                    
 write(msg,7001)'fire memory     ','ifms',ifms,ifme,jfms,jfme
 call message(msg)                    
-write(msg,7001)'fire patch      ','ifps',ifps,ifpe,jfps,jfpe
-call message(msg)                    
 write(msg,7001)'fire tile       ','ifts',ifts,ifte,jfts,jfte
 call message(msg)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-
-! check mesh dimensions
-call check_mesh_2dim(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme) ! check if fire patch fits in fire array
-call check_mesh_2dim(ifps,ifpe,jfps,jfpe,ifds,ifde,jfds,jfde) ! check if fire patch fits in fire domain
 
 !$OMP SINGLE
 ! init rest of fuel tables with derived constants
@@ -510,7 +499,6 @@ call message(msg)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
     ! check the tiles
-    call check_mesh_2dim(ifts,ifte,jfts,jfte,ifps,ifpe,jfps,jfpe)         ! check if fire tile fits in fire patch
     call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
 
 
@@ -579,7 +567,6 @@ if(fire_run)then
         ifuelread,nfuel_cat0,                   & ! initialize fuel categories
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
-        ifps,ifpe,jfps,jfpe,                    &
         ifts,ifte,jfts,jfte,                    & ! fire patch dims
         time_start,dt,                          & ! time and increment
         dxf,dyf,                                & ! fire mesh spacing
@@ -607,7 +594,7 @@ endif ! fire_run
 #ifdef DEBUG_OUT
 if(ifun.eq.1)then
     if(pid.ne.0)then
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%zsf,'zsf',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%zsf,'zsf',pid)
     endif
 endif
 #endif
@@ -625,12 +612,12 @@ if (ifun.eq.3)then
         endif
     enddo
 
- call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vx,'uf')
- call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fp%vy,'vf')
+ call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vx,'uf')
+ call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vy,'vf')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
     endif
 #endif
 endif
@@ -638,20 +625,20 @@ endif
 if(ifun.eq.5)then
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,lfn,'lfn',pid)
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,tign,'tign',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,lfn,'lfn',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,tign,'tign',pid)
     endif
 #endif
 endif
 
 if(ifun.eq.6)then
-    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnhfx,'fgrnhfx')
-    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifps,ifpe,1,1,jfps,jfpe,0,0,0,fgrnqfx,'fgrnqfx')
+    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnhfx,'fgrnhfx')
+    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnqfx,'fgrnqfx')
 #ifdef DEBUG_OUT
     if(pid.gt.0)then
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fuel_frac,'fuel_frac',pid)
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnhfx,'fgrnhfx',pid)
-        call write_array_m(ifps,ifpe,jfps,jfpe,ifms,ifme,jfms,jfme,fgrnqfx,'fgrnqfx',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fuel_frac,'fuel_frac',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnhfx,'fgrnhfx',pid)
+        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnqfx,'fgrnqfx',pid)
     endif
 #endif
 endif

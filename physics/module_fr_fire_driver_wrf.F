@@ -73,7 +73,6 @@ subroutine fire_driver_em_init (grid , config_flags               &
             ,grid%sr_x, grid%sr_y                                   &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
-            ,ifps,ifpe, jfps,jfpe                                   &
             ,ifts,ifte, jfts,jfte                                   &
             ) 
 
@@ -133,7 +132,6 @@ subroutine fire_driver_em_step (grid , config_flags               &
             ,grid%sr_x, grid%sr_y                                   &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
-            ,ifps,ifpe, jfps,jfpe                                   &
             ,ifts,ifte, jfts,jfte                                   &
             )
  
@@ -748,7 +746,6 @@ endif
     call continue_at_boundary(1,1,0., & ! x direction
        TDIMS,                  &! memory dims atm grid tile
        ids+1,ide,jds,jde, &     ! domain dims - where u defined
-       ips1,ipe,jps,jpe, &     ! patch dims
        itsu,iteu,jtsu,jteu, & ! tile dims - in nonextended direction one beyond if at patch boundary but not domain
        itsou,iteou,jtsou,jteou, & ! out, where set
        ua)                           ! array
@@ -758,7 +755,6 @@ endif
     call continue_at_boundary(1,1,0., & ! y direction
        TDIMS,                  & ! memory dims atm grid tile
        ids,ide,jds+1,jde, &      ! domain dims - where v wind defined
-       ips,ipe,jps1,jpe, &        ! patch dims
        itsv,itev,jtsv,jtev, & ! tile dims
        itsov,iteov,jtsov,jteov, & ! where set
        va)                           ! array
