@@ -128,8 +128,9 @@ subroutine fire_driver_em_step (grid , config_flags               &
     call interpolate_winds2fire (grid, config_flags)
     call interpolate_vars_for_fmc_model (grid, config_flags)
 
-    call fire_driver_em ( grid , config_flags               & 
-            ,3,6,fire_test_steps                                &
+    call fire_driver_em ( grid , config_flags                       & 
+            ,3,6,fire_test_steps                                    &
+            ,grid%sr_x, grid%sr_y                                   &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &

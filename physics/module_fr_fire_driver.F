@@ -464,8 +464,6 @@ integer :: ignitions_done              ! number of isolated ignitions
 !*** executable
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,2f15.6)')'atmosphere mesh step:',dx,dy
-call message(msg)
 write(msg,'(a,2f15.6)')'fire mesh step:      ',dxf,dyf
 call message(msg)
 write(msg,7001)'fire domain     ','ifds',ifds,ifde,jfds,jfde
@@ -520,7 +518,6 @@ call message(msg)
 write(msg,'(a,i6,a,2(f15.6,a))')'time step',itimestep,' at',time_start,' duration',dt,'s'
 call message(msg)
 7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
-write(msg,'(a,2i9)')'refinement ratio:',ir,jr
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
 if(run_advance_moisture)then
