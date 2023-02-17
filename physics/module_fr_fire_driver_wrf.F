@@ -70,6 +70,7 @@ subroutine fire_driver_em_init (grid , config_flags               &
 
     call fire_driver_em ( grid , config_flags               & 
             ,1,2,0                        & ! ifun start, end, test steps
+            ,grid%sr_x, grid%sr_y                                   &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &

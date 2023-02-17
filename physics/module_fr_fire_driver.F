@@ -41,6 +41,7 @@ contains
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
             ,fire_ifun_start,fire_ifun_end,tsteps                   &
+            , ir, jr                                                &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifps,ifpe, jfps,jfpe                                   &
@@ -63,6 +64,7 @@ halo_fire_mag_sub
     TYPE(domain) , TARGET :: grid                             ! state 
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
     integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
+    integer, intent(in)::     ir, jr ! refinement ratio - previously grid%sr_x
     integer, intent(in):: &
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
@@ -73,7 +75,7 @@ halo_fire_mag_sub
     INTEGER:: fire_num_ignitions
     integer, parameter::fire_max_ignitions=5
     TYPE(ignition_line_type), DIMENSION(fire_max_ignitions):: ignition_line
-    integer::fire_ifun,ir,jr,istep,itimestep
+    integer::fire_ifun,istep,itimestep
     logical::need_lfn_update,restart
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
@@ -112,9 +114,6 @@ halo_fire_mag_sub
     ! copy configuration flags to fire internal structures
     call set_flags(config_flags)
 
-    ! refinement r
-    ir=grid%sr_x ! refinement ratio
-    jr=grid%sr_y
     itimestep=grid%itimestep
     restart=config_flags%restart
 
@@ -241,48 +240,49 @@ halo_fire_mag_sub
         
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
-            fire_ifun,need_lfn_update,                  &
-            ifds,ifde-ir, jfds,jfde-jr,                    &
-            ifms,ifme, jfms,jfme,                    &
-            ifps,min(ifpe,ifde-ir), jfps,min(jfpe,jfde-jr),      &
-            ifts,ifte-ir, jfts,jfte-jr,                          &
-            ir,jr,                                      & ! atm/fire grid ratio
-            time_start,                                 &
-            itimestep,restart,config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &  ! in scalars
-            grid%dt,grid%dx,grid%dy,                    &
-            grid%unit_fxlong,grid%unit_fxlat,                           & ! coordinates of grid center
-            config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
-            config_flags%fire_wind_height,              &  ! height of wind input to fire spread formula
-            fire_num_ignitions,                                & 
-            grid%fire_ignition_longlat,      &
-            ignition_line,              &
-            grid%lfn, &
-            grid%lfn_hist, &  ! PAJ: to initialize fire perimeter from obs
-            config_flags%fire_is_real_perim,  & ! PAJ: use obs fire perimeter. 
-            grid%lfn_0,grid%lfn_1,grid%lfn_2,grid%lfn_s0,grid%lfn_s1,grid%lfn_s2,grid%lfn_s3,grid%flame_length,grid%ros_front, & 
-            grid%tign_g,grid%fuel_frac,          & ! state arrays, fire grid
-            grid%fire_area,                               & ! redundant, for display, fire grid
-            grid%burnt_area_dt,                               & ! redundant, for display
-            lfn_out,                                      & ! work - one timestep    
-            grid%fgrnhfx,grid%fgrnqfx,grid%fcanhfx,grid%fcanqfx, & ! out redundant arrays, atm grid
-            grid%ros,                                   & ! rate of spread
-            grid%fxlong,grid%fxlat,grid%fz0,                           &       
-            grid%nfuel_cat,                               & ! input, or internal for safekeeping
-            grid%fuel_time,                      & 
-            config_flags%nfmc,         & ! moisture model variables start
-            run_advance_moisture,dt_moisture,     &    ! moisture model control
-            config_flags%fmep_decay_tlag,                               & ! moisture extended model assim. diffs decay time lag
-            grid%fire_rain,                       & ! accumulated rain from different sources
-            grid%fire_t2, grid%fire_q2, grid%fire_psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
-            grid%fire_rain_old,                   & ! previous value of accumulated rain
-            grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old,   & ! previous values of the atmospheric state at surface
-            grid%fire_rh_fire,                    & ! relative humidity, diagnostics
-            grid%fmc_gc,                      & ! fuel moisture fields updated, by class, assumed set to something reasonable
-            grid%fmep,                      & ! fuel moisture extended model parameters
-            grid%fmc_equi,                      & ! fuel moisture fields updated, by class, equilibrium diagnostic 
-            grid%fmc_lag,                      & ! fuel moisture fields updated, by class, tendency diagnostic
-            fp%fmc_g , &                             !  write-only alias. need to exit before using fp again
-            fp &
+            fire_ifun, need_lfn_update,                                                         &
+            ifds,ifde-ir, jfds,jfde-jr,                                                         &
+            ifms,ifme, jfms,jfme,                                                               &
+            ifps,min(ifpe,ifde-ir), jfps,min(jfpe,jfde-jr),                                     &
+            ifts,ifte-ir, jfts,jfte-jr,                                                         &
+            time_start,                                                                         &
+            itimestep, restart, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
+            grid%dt, grid%dxf, grid%dyf,                                                        &
+            grid%unit_fxlong, grid%unit_fxlat,                                                  & ! coordinates of grid center
+            config_flags%fire_ext_grnd, config_flags%fire_ext_crwn, config_flags%fire_crwn_hgt, &
+            config_flags%fire_wind_height,                                                      &  ! height of wind input to fire spread formula
+            fire_num_ignitions,                                                                 & 
+            grid%fire_ignition_longlat,                                                         &
+            ignition_line,                                                                      &
+            grid%lfn,                                                                           &
+            grid%lfn_hist,                                                                      &  ! PAJ: to initialize fire perimeter from obs
+            config_flags%fire_is_real_perim,                                                    & ! PAJ: use obs fire perimeter. 
+            grid%lfn_0, grid%lfn_1, grid%lfn_2,                                                 &
+            grid%lfn_s0, grid%lfn_s1, grid%lfn_s2, grid%lfn_s3,                                 &
+            grid%flame_length, grid%ros_front,                                                  & 
+            grid%tign_g, grid%fuel_frac,                                                        & ! state arrays, fire grid
+            grid%fire_area,                                                                     & ! redundant, for display, fire grid
+            grid%burnt_area_dt,                                                                 & ! redundant, for display
+            lfn_out,                                                                            & ! work - one timestep    
+            grid%fgrnhfx, grid%fgrnqfx, grid%fcanhfx, grid%fcanqfx,                             & ! out redundant arrays, atm grid
+            grid%ros,                                                                           & ! rate of spread
+            grid%fxlong, grid%fxlat, grid%fz0,                                                  &       
+            grid%nfuel_cat,                                                                     & ! input, or internal for safekeeping
+            grid%fuel_time,                                                                     & 
+            config_flags%nfmc,                                                                  & ! moisture model variables start
+            run_advance_moisture, dt_moisture,                                                  &    ! moisture model control
+            config_flags%fmep_decay_tlag,                                                       & ! moisture extended model assim. diffs decay time lag
+            grid%fire_rain,                                                                     & ! accumulated rain from different sources
+            grid%fire_t2, grid%fire_q2, grid%fire_psfc,                                         & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
+            grid%fire_rain_old,                                                                 & ! previous value of accumulated rain
+            grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old,                             & ! previous values of the atmospheric state at surface
+            grid%fire_rh_fire,                                                                  & ! relative humidity, diagnostics
+            grid%fmc_gc,                                                                        & ! fuel moisture fields updated, by class, assumed set to something reasonable
+            grid%fmep,                                                                          & ! fuel moisture extended model parameters
+            grid%fmc_equi,                                                                      & ! fuel moisture fields updated, by class, equilibrium diagnostic 
+            grid%fmc_lag,                                                                       & ! fuel moisture fields updated, by class, tendency diagnostic
+            fp%fmc_g ,                                                                          &                             !  write-only alias. need to exit before using fp again
+            fp                                                                                  &
         )
 
    
@@ -320,42 +320,44 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     ifms, ifme, jfms, jfme,                       &
     ifps, ifpe, jfps, jfpe,                       & ! fire patch in - will use smaller
     ifts, ifte, jfts, jfte,                       &
-    ir,jr,                                        & ! atm/fire grid ratio
     time_start,                                   & ! start of the timestep
-    itimestep,restart,ifuelread,nfuel_cat0,dt,dx,dy,      & ! in scalars
+    itimestep,restart,ifuelread,nfuel_cat0,       &
+    dt,dxf,dyf,                                   & ! in scalars
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
     fire_wind_height,                             & ! for vertical wind interpolation
     num_ignitions,                                & 
     ignition_longlat,                             &
     ignition_line,                                &
-    lfn,                                      &
-    lfn_hist,                                      & ! PAJ to init perimeter from obs
-    fire_is_real_perim,                            & ! PAJ to init perimeter from obs
-    lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front, & 
-    tign,fuel_frac,                           & ! state arrays, fire grid
+    lfn,                                          &
+    lfn_hist,                                     & ! PAJ to init perimeter from obs
+    fire_is_real_perim,                           & ! PAJ to init perimeter from obs
+    lfn_0,lfn_1,lfn_2,                            &
+    lfn_s0,lfn_s1,lfn_s2,lfn_s3,                  &
+    flame_length,ros_front,                       & 
+    tign,fuel_frac,                               & ! state arrays, fire grid
     fire_area,                                    & ! redundant state, fire grid
-    burnt_area_dt,                                    & ! redundant state, fire grid
+    burnt_area_dt,                                & ! redundant state, fire grid
     lfn_out,                                      & ! out level set function    
     fgrnhfx,fgrnqfx,fcanhfx,fcanqfx,              & ! out redundant arrays, fire grid
     ros,                                          &
-    fxlong,fxlat,fz0,                                 & 
+    fxlong,fxlat,fz0,                             & 
     nfuel_cat,                                    & ! in array, data, fire grid, or constant internal
-    fuel_time,                                & ! save constant internal data, fire grid
-    nfmc,                                     & ! number of fuel moisture classes
-    run_advance_moisture,dt_moisture,& ! moisture model control
+    fuel_time,                                    & ! save constant internal data, fire grid
+    nfmc,                                         & ! number of fuel moisture classes
+    run_advance_moisture,dt_moisture,             & ! moisture model control
     fmep_decay_tlag,                              & ! moist. extended model assim. diffs time lag
-    fire_rain,              & ! accumulated rain from different sources
-    fire_t2, fire_q2, fire_psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
-    fire_rain_old,                   & ! previous value of accumulated rain
-    fire_t2_old, fire_q2_old, fire_psfc_old,   & ! previous values of the atmospheric state at surface
-    fire_rh_fire,                    & ! relative humidity, diagnostics
-    fmc_gc,                    &  ! fuel moisture fields updated, by class, assumed set to something reasonable
-    fmep,                       &  ! fuel moisture extended model parameters
-    fmc_equi,                    &  ! fuel moisture fields updated, by class equilibrium diagnostic
-    fmc_lag,                    &  ! fuel moisture fields updated, by class tendency diagnostic
-    fmc_g, &                          ! fuel moisture, alias of fp%fmc_g
-    fp & ! fire params
+    fire_rain,                                    & ! accumulated rain from different sources
+    fire_t2, fire_q2, fire_psfc,                  & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
+    fire_rain_old,                                & ! previous value of accumulated rain
+    fire_t2_old, fire_q2_old, fire_psfc_old,      & ! previous values of the atmospheric state at surface
+    fire_rh_fire,                                 & ! relative humidity, diagnostics
+    fmc_gc,                                       &  ! fuel moisture fields updated, by class, assumed set to something reasonable
+    fmep,                                         &  ! fuel moisture extended model parameters
+    fmc_equi,                                     &  ! fuel moisture fields updated, by class equilibrium diagnostic
+    fmc_lag,                                      &  ! fuel moisture fields updated, by class tendency diagnostic
+    fmc_g,                                        &                          ! fuel moisture, alias of fp%fmc_g
+    fp                                            & ! fire params
     )
 
 #ifdef DM_PARALLEL
@@ -371,7 +373,6 @@ integer, intent(in)::ifun,                        &
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
     ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
     ifts, ifte, jfts, jfte,                       & ! fire tile bounds
-    ir,jr,                                        & ! atm/fire grid refinement ratio
     nfmc,                                         & ! number of fuel moisture classes
     itimestep,                                    & ! number of this timestep
     ifuelread,                                    & ! how to initialize nfuel_cat:
@@ -390,7 +391,7 @@ logical, intent(out)::need_lfn_update
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
     dt,                                           & ! time step
-    dx,dy,                                        & ! atm grid step
+    dxf, dyf,                                     & ! fire grid step (spacing)
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_crwn_hgt,                                & ! lowest height crown fire heat is released (m)
     fire_ext_grnd,                                & ! extinction depth of surface fire heat flux (m)
@@ -448,7 +449,7 @@ real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params ar
 type(fire_params),intent(inout)::fp
     
 !*** local
-real :: dxf,dyf,latm, s
+real :: s
 integer :: its,ite,jts,jte, &            ! tile
     ij,i,j,k,id,pid,ite1,jte1
 character(len=128)::msg
@@ -461,12 +462,6 @@ integer :: ignitions_done              ! number of isolated ignitions
   logical :: fire_is_real_perim
 
 !*** executable
-
-! fire mesh step
-dxf=dx/ir
-dyf=dy/jr
-
-
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
 write(msg,'(a,2f15.6)')'atmosphere mesh step:',dx,dy
