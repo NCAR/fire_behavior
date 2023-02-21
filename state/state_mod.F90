@@ -124,12 +124,6 @@
       real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
       real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
 
-        ! Fire vars in the atm grid
-      real, dimension(:, :), allocatable :: rain_old ! "previous value of accumulated rain" "mm"
-      real, dimension(:, :), allocatable :: t2_old   ! "previous value of air temperature at 2m" "K"
-      real, dimension(:, :), allocatable :: q2_old   ! "previous value of 2m specific humidity" "kg/kg"
-      real, dimension(:, :), allocatable :: psfc_old ! "previous value of surface pressure" "Pa"
-      real, dimension(:, :), allocatable :: rh_fire  ! "relative humidity at the surface" "1"
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
@@ -365,13 +359,6 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
-
-        ! Fire vars
-      allocate (this%rain_old(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%t2_old(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%q2_old(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%psfc_old(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%rh_fire(this%ims:this%ime, this%jms:this%jme))
 
       allocate (this%avg_fuel_frac(this%ims:this%ime, this%jms:this%jme))
       allocate (this%grnhfx(this%ims:this%ime, this%jms:this%jme))
