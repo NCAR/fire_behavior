@@ -119,10 +119,6 @@
       real :: dxf, dyf
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
-        ! Atmosphere
-        ! 2D
-      real, dimension(:, :), allocatable :: xlat     ! "LATITUDE, SOUTH IS NEGATIVE"   "degree_north"
-      real, dimension(:, :), allocatable :: xlong    ! "LONGITUDE, WEST IS NEGATIVE" "degree_east"
 
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
@@ -479,8 +475,6 @@
 
       this%dt = config_flags%dt
 
-      allocate (this%xlat(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%xlong(this%ims:this%ime, this%jms:this%jme))
       allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -489,10 +483,6 @@
       this%emis_smoke = 0.0
 
       if_geogrid2d: if (use_geogrid) then
-        this%xlat = 0.0
-        this%xlat(this%ids:this%ide - 1, this%jds:this%jde - 1) = geogrid%xlat
-        this%xlong = 0.0
-        this%xlong(this%ids:this%ide - 1, this%jds:this%jde - 1) = geogrid%xlong
         this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
         this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
         this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
@@ -573,7 +563,6 @@
                   this%ifms,this%ifme,this%jfms,this%jfme,  &
                   this%ifts,this%ifte,this%jfts,this%jfte,  &
                   this%fxlong,this%fxlat)
-
           else
               ! assume halo xlong xlat
               ! interpolate nodal coordinates
@@ -582,7 +571,7 @@
                 this%ifms, this%ifme, this%jfms, this%jfme,  &
                 this%ifts,this%ifte,this%jfts,this%jfte,     &
                 this%sr_x,this%sr_y,                         & ! atm/fire this ratio
-                this%xlat,                                 &
+                wrf%xlat,                                    &
                 this%fxlat,0)
 
             call wrf%interpolate_z2fire(                    &
@@ -590,7 +579,7 @@
                 this%ifms, this%ifme, this%jfms, this%jfme,  &
                 this%ifts,this%ifte,this%jfts,this%jfte,     &
                 this%sr_x,this%sr_y,                         & ! atm/fire this ratio
-                this%xlong,                                 &
+                wrf%xlong,                                   &
                 this%fxlong,0)
           end if
 
@@ -825,6 +814,8 @@
         nz = 0
       end if
 
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlat', this%fxlat(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlong', this%fxlong(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))

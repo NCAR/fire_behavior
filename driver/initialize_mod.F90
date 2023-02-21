@@ -24,15 +24,18 @@
       type (geogrid_t) :: geogrid
 
 
-      if (config_flags%atm_model == 'wrfdata') geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-
       select case (config_flags%atm_model)
         case ('test1')
           atm_state = wrf_t (config_flags=config_flags)
           call atm_state%Load_atmosphere_test1 (config_flags)
 
         case ('wrfdata_legacy')
-          atm_state = wrf_t (config_flags=config_flags)
+          if (config_flags%fire_fuel_read == -1) then
+            geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+            atm_state = wrf_t (config_flags=config_flags, geogrid=geogrid)
+          else
+            atm_state = wrf_t (config_flags=config_flags)
+          end if
           call atm_state%Read_wrf_input()
 
         case ('wrfdata')
@@ -107,13 +110,13 @@
         close (unit_out)
         close (unit_out2)
 
-        open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
-        do j = 1, grid%jde - 1
-          do i = 1, grid%ide - 1
-            write (unit_out, *) grid%xlong(i, j), grid%xlat(i, j)
-          end do
-        end do
-        close (unit_out)
+!        open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
+!        do j = 1, grid%jde - 1
+!          do i = 1, grid%ide - 1
+!            write (unit_out, *) grid%xlong(i, j), grid%xlat(i, j)
+!          end do
+!        end do
+!        close (unit_out)
 
         open (newunit = unit_out, file = 'wrf_latlons_fire.dat')
         do j = 1, grid%jfde
