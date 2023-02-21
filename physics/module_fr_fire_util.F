@@ -152,7 +152,6 @@ end function open_text_file
 subroutine continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
     ims,ime,jms,jme, &                ! memory dims
     ids,ide,jds,jde, &                ! domain dims
-    ips,ipe,jps,jpe, &                ! patch dims
     its,ite,jts,jte, &                ! tile dims
     itso,iteo,jtso,jteo, &            ! tile dims where set
     lfn)                              ! array
@@ -162,10 +161,9 @@ implicit none
 !*** arguments
 integer, intent(in)::ix,iy              ! not 0 = do x or y (1 or 2) direction
 real,intent(in)::bias                   ! 0=none, 1.=max
-integer, intent(in)::ims,ime,jms,jme, &                ! memory dims
-    ids,ide,jds,jde, &                ! domain dims
-    ips,ipe,jps,jpe, &                ! patch dims
-    its,ite,jts,jte                   ! tile dims
+integer, intent(in)::ims,ime,jms,jme, & ! memory dims
+    ids,ide,jds,jde,                  & ! domain dims
+    its,ite,jts,jte                     ! tile dims
 integer, intent(out)::itso,jtso,iteo,jteo ! where set
 real,intent(inout),dimension(ims:ime,jms:jme)::lfn
 !*** local
@@ -189,10 +187,10 @@ its1=its
 jts1=jts
 ite1=ite
 jte1=jte
-if(its.eq.ips.and..not.its.eq.ids)its1=its-halo
-if(jts.eq.jps.and..not.jts.eq.jds)jts1=jts-halo
-if(ite.eq.ipe.and..not.ite.eq.ide)ite1=ite+halo
-if(jte.eq.jpe.and..not.jte.eq.jde)jte1=jte+halo
+if(.not.its.eq.ids)its1=its-halo
+if(.not.jts.eq.jds)jts1=jts-halo
+if(.not.ite.eq.ide)ite1=ite+halo
+if(.not.jte.eq.jde)jte1=jte+halo
 !$OMP CRITICAL(FIRE_UTIL_CRIT)
 write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias 
 call message(msg)

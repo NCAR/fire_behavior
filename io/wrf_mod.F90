@@ -153,7 +153,6 @@
     subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
           ims,ime,jms,jme, &                ! memory dims
           ids,ide,jds,jde, &                ! domain dims
-          ips,ipe,jps,jpe, &                ! patch dims
           its,ite,jts,jte, &                ! tile dims
           itso,iteo,jtso,jteo, &            ! tile dims where set
           lfn)
@@ -166,7 +165,6 @@
       real, intent(in) :: bias                   ! 0=none, 1.=max
       integer, intent(in) :: ims,ime,jms,jme, &  ! memory dims
                              ids,ide,jds,jde, &  ! domain dims
-                             ips,ipe,jps,jpe, &  ! patch dims
                              its,ite,jts,jte     ! tile dims
       integer, intent(out) :: itso,jtso,iteo,jteo  ! where set
       real, intent(inout), dimension(ims:ime,jms:jme) :: lfn
@@ -191,10 +189,10 @@
       jts1 = jts
       ite1 = ite
       jte1 = jte
-      if(its.eq.ips.and..not.its.eq.ids)its1=its-halo
-      if(jts.eq.jps.and..not.jts.eq.jds)jts1=jts-halo
-      if(ite.eq.ipe.and..not.ite.eq.ide)ite1=ite+halo
-      if(jte.eq.jpe.and..not.jte.eq.jde)jte1=jte+halo
+      if(.not.its.eq.ids)its1=its-halo
+      if(.not.jts.eq.jds)jts1=jts-halo
+      if(.not.ite.eq.ide)ite1=ite+halo
+      if(.not.jte.eq.jde)jte1=jte+halo
       !$OMP CRITICAL(FIRE_UTIL_CRIT)
       write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias
 !      call message(msg)
@@ -1326,7 +1324,6 @@
           its,ite,jts,jte,                                &
           ifds, ifde, jfds, jfde,                         & ! fire grid dimensions
           ifms, ifme, jfms, jfme,                         &
-          ifps, ifpe, jfps, jfpe,                         & ! fire patch bounds
           ifts,ifte,jfts,jfte,                            &
           ir,jr,                                          & ! atm/fire grid ratio
           u,v,                                            & ! atm grid arrays in
@@ -1346,7 +1343,6 @@
           its,ite,jts,jte,                              & ! atm tile bounds
           ifds, ifde, jfds, jfde,                       & ! fire domain bounds
           ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-          ifps, ifpe, jfps, jfpe,                       & ! fire patch bounds
           ifts,ifte,jfts,jfte,                          & ! fire tile bounds
           ir,jr                                         ! atm/fire grid refinement ratio
       real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::&
@@ -1552,7 +1548,6 @@
           call continue_at_boundary(1,1,0., & ! x direction
              its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
              ids+1,ide,jds,jde, &     ! domain dims - where u defined
-             ips1,ipe,jps,jpe, &     ! patch dims
              itsu,iteu,jtsu,jteu, & ! tile dims - in nonextended direction one beyond if at patch boundary but not domain
              itsou,iteou,jtsou,jteou, & ! out, where set
              ua)                           ! array
@@ -1562,7 +1557,6 @@
           call continue_at_boundary(1,1,0., & ! y direction
              its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
              ids,ide,jds+1,jde, &      ! domain dims - where v wind defined
-             ips,ipe,jps1,jpe, &        ! patch dims
              itsv,itev,jtsv,jtev, & ! tile dims
              itsov,iteov,jtsov,jteov, & ! where set
              va)                           ! array
@@ -1688,7 +1682,6 @@
         call continue_at_boundary(1,1,0., & ! do x direction or y direction
         this%its-2,this%ite+2,this%jts-2,this%jte+2,           &                ! memory dims
         this%ids,this%ide,this%jds,this%jde, &            ! domain dims - winds defined up to +1
-        this%ips,this%ipe,this%jps,this%jpe, &            ! patch dims - winds defined up to +1
         its1,ite1,jts1,jte1, &                ! tile dims
         itso,jtso,iteo,jteo, &
         za)                               ! array

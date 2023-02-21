@@ -239,7 +239,6 @@
                 this%j_start(1),min(this%j_end(1),this%jde-1),                  &
                 this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,   &
                 this%ifms, this%ifme, this%jfms, this%jfme,                     &
-                this%ifps,min(this%ifpe,this%ifde-this%sr_x), this%jfps,min(this%jfpe,this%jfde-this%sr_y), &
                 this%ifts, this%ifte, this%jfts, this%jfte,   &
                 this%sr_x,this%sr_y,                          & ! atm/fire this ratio
                 wrf%u3d_stag,wrf%v3d_stag,                    & ! 3D atm this arrays in

@@ -18,7 +18,6 @@ subroutine fire_model (                    &
     ifuelread,nfuel_cat0,                   & ! initialize fuel categories
     ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
     ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
-    ifps,ifpe,jfps,jfpe,                    & ! patch - nodes owned by this process
     ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
     time_start,dt,                          & ! time and increment
     fdx,fdy,                                & ! fire mesh spacing,
@@ -98,15 +97,17 @@ logical, intent(out)::need_lfn_update       ! if true, halo update on lfn afterw
 ! scalar data
 integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifuelread,nfuel_cat0 ! for set_fire_params
-integer, intent(in) :: ifds,ifde,jfds,jfde,&  ! fire domain bounds
-        ifps,ifpe,jfps,jfpe                ! patch - nodes owned by this process
+integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
 integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
 REAL,INTENT(in) :: time_start,dt            ! starting time, time step
 REAL,INTENT(in) :: fdx,fdy                  ! spacing of the fire mesh
 ! array data
 type(ignition_line_type), dimension (num_ignitions), intent(in):: ignition_line ! descriptions of ignition lines
-integer, intent(out):: ignited_tile(num_ignitions),ignitions_done
+
+integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
+integer, intent(out):: ignitions_done              ! number of isolated ignitions
+
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
     coord_xf,coord_yf                       !  node coordinates  
 real, intent(in):: unit_xf,unit_yf          !  coordinate units in m
@@ -258,7 +259,6 @@ elseif (ifun.eq.4) then  ! do the timestep
          call prop_ls_rk3(id,                           &
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
-             ifps,ifpe,jfps,jfpe,                       &          
              ifts,ifte,jfts,jfte,                       &
              time_start,dt,fdx,fdy,tbound,              &
              lfn,                                       &
@@ -283,7 +283,6 @@ elseif (ifun.eq.4) then  ! do the timestep
                           ifts,ifte,jfts,jfte,                       &                  
                           ifms,ifme,jfms,jfme,                       &                     
                           ifds,ifde,jfds,jfde,                       &                     
-                          ifps,ifpe,jfps,jfpe,                       &                     
                           time_start,dt,fdx,fdy,                     &               
                           lfn,                                       &
                           lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,         &
