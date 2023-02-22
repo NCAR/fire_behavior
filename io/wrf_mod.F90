@@ -32,8 +32,15 @@
         ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
       real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
-      real, dimension (:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
-      real, dimension (:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
+      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
+      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
+      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
+      real, dimension(:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
+      real, dimension(:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
 
       integer :: bottom_top, bottom_top_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
@@ -1148,6 +1155,15 @@
 
       allocate (return_value%xlat(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%xlong(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+
+      allocate (return_value%avg_fuel_frac(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%grnhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%grnqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%canhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%canqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%grnhfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      allocate (return_value%grnqfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+
 
         ! Grid dimensions
       if_geogrid: if (use_geogrid) then

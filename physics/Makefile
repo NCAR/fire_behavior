@@ -26,8 +26,6 @@ module_fr_fire_driver_wrf.o: module_fr_fire_driver.o module_fr_fire_atm.o module
 module_fr_fire_driver.o: module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o module_fr_fire_model.o \
 	../io/namelist_mod.o ../state/state_mod.o
 
-module_fr_fire_atm.o: module_fr_fire_util.o ../state/state_mod.o ../io/namelist_mod.o ../share/constants_mod.o
-
 module_fr_fire_model.o: module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o \
 	../io/namelist_mod.o ../state/state_mod.o
 

@@ -66,13 +66,13 @@
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
-      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
-      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
+!      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
+!      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
+!      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
+!      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
+!      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
+!      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
+!      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: emis_smoke
 
         ! New vars defined on fire grid for NUOPC coupling
@@ -338,14 +338,6 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
-
-      allocate (this%avg_fuel_frac(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%grnhfx(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%grnqfx(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%canhfx(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%canqfx(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%grnhfx_fu(this%ims:this%ime, this%jms:this%jme))
-      allocate (this%grnqfx_fu(this%ims:this%ime, this%jms:this%jme))
 
         ! Grid dimensions
       if_geogrid: if (use_geogrid) then
@@ -750,7 +742,7 @@
              wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1, & ! domain dimensions
              wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,     &
              wrf%its,wrf%ite, wrf%kts,wrf%kte, wrf%jts,wrf%jte,     & !
-             this%grnhfx,this%grnqfx,this%canhfx,this%canqfx,       & ! fluxes on atm this
+             wrf%grnhfx,wrf%grnqfx,wrf%canhfx,wrf%canqfx,           & ! fluxes on atm wrf
              config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
              wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,wrf%c1h,wrf%c2h,wrf%rho_stag,  &
              wrf%rthfrten,wrf%rqvfrten)                ! out
@@ -944,7 +936,7 @@
       implicit none
 
       class (domain), intent(in out) :: this          ! fire state
-      type (wrf_t), intent(in) :: atm                 ! atm state
+      type (wrf_t), intent(in out) :: atm                 ! atm state
       type (namelist_t), intent(in) :: config_flags   ! namelist
 
       real :: s
@@ -957,21 +949,21 @@
             this%fuel_frac,                           &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
-            this%avg_fuel_frac)
+            atm%avg_fuel_frac)
       call sum_2d_cells(                              &
             this%ifms,this%ifme, this%jfms,this%jfme, &
             this%ifts,this%ifte, this%jfts,this%jfte, &
             this%fgrnhfx,                             &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
-            this%grnhfx)
+            atm%grnhfx)
       call sum_2d_cells(                              &
             this%ifms,this%ifme, this%jfms,this%jfme, &
             this%ifts,this%ifte, this%jfts,this%jfte, &
             this%fgrnqfx,                             &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
-            this%grnqfx)
+            atm%grnqfx)
 
       write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback
 
@@ -979,15 +971,15 @@
       do j=this%jts,this%jte
         do i=this%its,this%ite
           ! DME heat fluxes contribution for the case wiythout feedback
-          this%grnhfx_fu(i,j)=this%grnhfx(i,j)*s
-          this%grnqfx_fu(i,j)=this%grnqfx(i,j)*s
+          atm%grnhfx_fu(i,j)=atm%grnhfx(i,j)*s
+          atm%grnqfx_fu(i,j)=atm%grnqfx(i,j)*s
           ! scale surface fluxes to get the averages
-          this%avg_fuel_frac(i,j)=this%avg_fuel_frac(i,j)*s
-          this%grnhfx(i,j)=config_flags%fire_atm_feedback*this%grnhfx(i,j)*s
-          this%grnqfx(i,j)=config_flags%fire_atm_feedback*this%grnqfx(i,j)*s
+          atm%avg_fuel_frac(i,j)=atm%avg_fuel_frac(i,j)*s
+          atm%grnhfx(i,j)=config_flags%fire_atm_feedback*atm%grnhfx(i,j)*s
+          atm%grnqfx(i,j)=config_flags%fire_atm_feedback*atm%grnqfx(i,j)*s
           ! we do not have canopy fluxes yet...
-          this%canhfx(i,j)=0
-          this%canqfx(i,j)=0
+          atm%canhfx(i,j)=0
+          atm%canqfx(i,j)=0
         enddo
       enddo
 
