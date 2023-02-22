@@ -117,8 +117,6 @@
                  ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
       real :: dxf, dyf
-      integer :: num_tiles
-      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
 
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
@@ -235,8 +233,8 @@
                 wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1,          &
                 wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,              &
                 wrf%ips,min(wrf%ipe,wrf%ide-1), wrf%jps,min(wrf%jpe,wrf%jde-1), &
-                this%i_start(1),min(this%i_end(1),this%ide-1),                  &
-                this%j_start(1),min(this%j_end(1),this%jde-1),                  &
+                wrf%i_start(1),min(wrf%i_end(1),wrf%ide-1),                     &
+                wrf%j_start(1),min(wrf%j_end(1),wrf%jde-1),                     &
                 this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,   &
                 this%ifms, this%ifme, this%jfms, this%jfme,                     &
                 this%ifts, this%ifte, this%jfts, this%jfte,   &
@@ -263,11 +261,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in), optional :: geogrid
 
-      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
-          DEFAULT_DZDYF = 0.0
-        ! Atm vars needed by the fuel moisture model
-      real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
-          DEFAULT_RAINNC = 0.0
+      real, parameter :: DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0
       logical :: use_geogrid
 
 
@@ -332,16 +326,6 @@
       this%kte = config_flags%kde
       this%jts = config_flags%jds
       this%jte = config_flags%jde
-
-      this%num_tiles = 1
-      allocate (this%i_start(this%num_tiles))
-      this%i_start = this%ids
-      allocate (this%i_end(this%num_tiles))
-      this%i_end = this%ide
-      allocate (this%j_start(this%num_tiles))
-      this%j_start = this%jds
-      allocate (this%j_end(this%num_tiles))
-      this%j_end = this%jde
 
         ! Datetimes
       this%datetime_start = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
@@ -734,7 +718,7 @@
 !      write (OUTPUT_UNIT, *) 'shape phb = ', shape (this%phb)
 !      write (OUTPUT_UNIT, *) 'shape u_2 = ', shape (this%u_2)
 !      write (OUTPUT_UNIT, *) 'shape v_2 = ', shape (this%v_2)
-      write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
+!      write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
 
     end subroutine Print_domain
 
@@ -753,12 +737,12 @@
       call this%sum_2d_fire_vars (wrf, config_flags)
 
         ! --- add heat and moisture fluxes to tendency variables by postulated decay
-      do ij=1,this%num_tiles
+      do ij=1,wrf%num_tiles
         ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly
-        its = this%i_start(ij)             ! start atmospheric tile in i
-        ite = min(this%i_end(ij),wrf%ide-1)    ! end atmospheric tile in i
-        jts = this%j_start(ij)             ! start atmospheric tile in j
-        jte = min(this%j_end(ij),wrf%jde-1)    ! end atmospheric tile in j
+        its = wrf%i_start(ij)             ! start atmospheric tile in i
+        ite = min(wrf%i_end(ij),wrf%ide-1)    ! end atmospheric tile in i
+        jts = wrf%j_start(ij)             ! start atmospheric tile in j
+        jte = min(wrf%j_end(ij),wrf%jde-1)    ! end atmospheric tile in j
         kts = wrf%kds
         kte = wrf%kde
 

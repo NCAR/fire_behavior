@@ -1026,7 +1026,6 @@
         call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
       end if
 
-
       if_use_config_flags: if (use_config_flags) then
         ! Domain dimensions
       if (use_geogrid) then
@@ -1060,6 +1059,7 @@
         return_value%jds = config_flags%jds
         return_value%jde = config_flags%jde
       end if
+
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
@@ -1145,6 +1145,7 @@
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       allocate (return_value%rqvfrten(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+
       allocate (return_value%xlat(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%xlong(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
 
