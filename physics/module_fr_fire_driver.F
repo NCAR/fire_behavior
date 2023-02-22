@@ -41,7 +41,6 @@ contains
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
             ,fire_ifun_start,fire_ifun_end,tsteps                   &
-            , ir, jr                                                &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifts,ifte, jfts,jfte                                   &
@@ -63,7 +62,6 @@ halo_fire_mag_sub
     TYPE(domain) , TARGET :: grid                             ! state 
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
     integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
-    integer, intent(in)::     ir, jr ! refinement ratio - previously grid%sr_x
     integer, intent(in):: &
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
@@ -239,9 +237,9 @@ halo_fire_mag_sub
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
             fire_ifun, need_lfn_update,                                                         &
-            ifds,ifde-ir, jfds,jfde-jr,                                                         &
+            ifds,ifde, jfds,jfde,                                                         &
             ifms,ifme, jfms,jfme,                                                               &
-            ifts,ifte-ir, jfts,jfte-jr,                                                         &
+            ifts,ifte, jfts,jfte,                                                         &
             time_start,                                                                         &
             itimestep, restart, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
             grid%dt, grid%dxf, grid%dyf,                                                        &

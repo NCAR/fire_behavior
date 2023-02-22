@@ -31,10 +31,9 @@ subroutine fire_driver_em_init (grid , config_flags)
 
     call fire_driver_em (grid, config_flags            &
             ,1,2,0                                     & ! ifun start, end, test steps
-            ,grid%sr_x, grid%sr_y                      &
-            ,grid%ifds,grid%ifde, grid%jfds,grid%jfde  &
+            ,grid%ifds,grid%ifde - grid%sr_x, grid%jfds,grid%jfde - grid%sr_y &
             ,grid%ifms,grid%ifme, grid%jfms,grid%jfme  &
-            ,grid%ifts,grid%ifte, grid%jfts,grid%jfte  &
+            ,grid%ifts,grid%ifte - grid%sr_x, grid%jfts,grid%jfte - grid%sr_y  &
             )
 
     call message ('fire_driver_em_init: FIRE initialization complete')
@@ -58,10 +57,9 @@ subroutine fire_driver_em_step (grid, config_flags)
 
     call fire_driver_em (grid, config_flags            &
             ,3,6,fire_test_steps                       &
-            ,grid%sr_x, grid%sr_y                      &
-            ,grid%ifds,grid%ifde, grid%jfds,grid%jfde  &
+            ,grid%ifds,grid%ifde - grid%sr_x, grid%jfds,grid%jfde - grid%sr_y  &
             ,grid%ifms,grid%ifme, grid%jfms,grid%jfme  &
-            ,grid%ifts,grid%ifte, grid%jfts,grid%jfte  &
+            ,grid%ifts,grid%ifte - grid%sr_x, grid%jfts,grid%jfte - grid%sr_y  &
             )
 
     call message('fire_driver_em_step: FIRE step complete')
