@@ -13,7 +13,7 @@
     type :: geogrid_t
       real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong
       real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, true_lat_1 = 0.0, true_lat_2 = 0.0, stand_lon = 0.0
-      integer :: ids = 1, jds = 1, ide, jde = 0, sr_x = 0, sr_y = 0, map_proj = 0
+      integer :: ids = 1, jds = 1, ide, jde = 0, ifds = 1, jfds = 1, ifde = 0, jfde = 0, sr_x = 0, sr_y = 0, map_proj = 0
     contains
       procedure, public :: Print => Print_geogrid
     end type geogrid_t
@@ -60,6 +60,12 @@
 
       call Get_netcdf_dim (trim (file_name), 'west_east_stag', att_int32)
       return_value%ide = att_int32
+
+      call Get_netcdf_dim (trim (file_name), 'south_north_subgrid', att_int32)
+      return_value%jfde = att_int32
+
+      call Get_netcdf_dim (trim (file_name), 'west_east_subgrid', att_int32)
+      return_value%ifde = att_int32
 
       call Get_netcdf_att (trim (file_name), 'global', 'DX', att_real32)
       return_value%dx = att_real32

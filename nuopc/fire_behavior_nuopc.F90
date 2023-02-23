@@ -444,7 +444,7 @@ module fire_behavior_nuopc
      ! importable field on Grid: inst_zonal_wind_levels
      field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=fire_grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde - 1/), &
+       ungriddedUBound=(/grid%kfde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -462,7 +462,7 @@ module fire_behavior_nuopc
      ! importable field on Grid: inst_zonal_wind_levels
      field = ESMF_FieldCreate(name="inst_merid_wind_levels", grid=fire_grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde - 1/), &
+       ungriddedUBound=(/grid%kfde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -479,7 +479,7 @@ module fire_behavior_nuopc
      ! importable field on Grid: inst_geop_levels
      field = ESMF_FieldCreate(name="inst_geop_levels", grid=fire_grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde - 1/), &
+       ungriddedUBound=(/grid%kfde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -496,7 +496,7 @@ module fire_behavior_nuopc
 !     ! importable field on Grid: inst_geop_interface
 !     field = ESMF_FieldCreate(name="inst_geop_interface", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
+!       ungriddedUBound=(/grid%kfde/), &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
 !     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
 !       line=__LINE__, &
@@ -511,7 +511,7 @@ module fire_behavior_nuopc
 !     ! importable field on Grid: inst_pres_interface
 !     field = ESMF_FieldCreate(name="inst_pres_interface", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
+!       ungriddedUBound=(/grid%kfde/), &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
 !     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
 !       line=__LINE__, &
@@ -526,7 +526,7 @@ module fire_behavior_nuopc
      ! importable field on Grid: inst_pres_levels
      field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kde - 1/), &
+       ungriddedUBound=(/grid%kfde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -543,7 +543,7 @@ module fire_behavior_nuopc
 !     ! importable field on Grid: inst_temp_levels
 !     field = ESMF_FieldCreate(name="inst_temp_levels", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde - 1/), &
+!       ungriddedUBound=(/grid%kfde - 1/), &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
 !     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
 !       line=__LINE__, &
@@ -558,7 +558,7 @@ module fire_behavior_nuopc
 !     ! importable field on Grid: sphum
 !     field = ESMF_FieldCreate(name="sphum", grid=fire_grid, &
 !       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kde/), &
+!       ungriddedUBound=(/grid%kfde/), &
 !       typekind=ESMF_TYPEKIND_R8, rc=rc)
 !     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
 !       line=__LINE__, &
@@ -816,10 +816,10 @@ module fire_behavior_nuopc
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
     grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
-    grid%fire_u3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
-    grid%fire_v3d(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
-    grid%fire_ph(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
-    grid%fire_pres(1:grid%nx,1:grid%ny,1:grid%kde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+    grid%fire_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()

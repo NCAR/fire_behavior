@@ -92,6 +92,7 @@
       procedure, public :: Interpolate_z2fire => Interpolate_z2fire
       procedure, public :: Interpolate_wind2fire => Interpolate_wind2fire
       procedure, public :: Load_atmosphere_test1 => Load_atmosphere_test1
+      procedure, public :: Print_domain => Print_domain
       procedure, public :: Read_wrf_input => Read_wrf_input
       procedure, public :: Update_atm_state => Update_atm_state
     end type wrf_t
@@ -1091,6 +1092,8 @@
       return_value%jts = config_flags%jds
       return_value%jte = config_flags%jde
 
+      call return_value%Print_domain()
+
       return_value%num_tiles = 1
       allocate (return_value%i_start(return_value%num_tiles))
       return_value%i_start = return_value%ids
@@ -1800,6 +1803,34 @@
       if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_atmosphere_test1'
 
     end subroutine Load_atmosphere_test1
+
+    subroutine Print_domain (this)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
+      implicit none
+
+      class (wrf_t), intent(in out) :: this
+
+
+      write (OUTPUT_UNIT, *) ''
+      write (OUTPUT_UNIT, *) 'ids = ', this%ids, 'ide = ', this%ide
+      write (OUTPUT_UNIT, *) 'jds = ', this%jds, 'jde = ', this%jde
+      write (OUTPUT_UNIT, *) 'kds = ', this%kds, 'kde = ', this%kde
+
+      write (OUTPUT_UNIT, *) 'ims = ', this%ims, 'ime = ', this%ime
+      write (OUTPUT_UNIT, *) 'jms = ', this%jms, 'jme = ', this%jme
+      write (OUTPUT_UNIT, *) 'kms = ', this%kms, 'kme = ', this%kme
+
+      write (OUTPUT_UNIT, *) 'ips = ', this%ips, 'ipe = ', this%ipe
+      write (OUTPUT_UNIT, *) 'jps = ', this%jps, 'jpe = ', this%jpe
+      write (OUTPUT_UNIT, *) 'kps = ', this%kps, 'kpe = ', this%kpe
+
+      write (OUTPUT_UNIT, *) 'its = ', this%its, 'ite = ', this%ite
+      write (OUTPUT_UNIT, *) 'jts = ', this%jts, 'jte = ', this%jte
+      write (OUTPUT_UNIT, *) 'kts = ', this%kts, 'kte = ', this%kte
+
+    end subroutine Print_domain
 
     subroutine Read_wrf_input (this)
 

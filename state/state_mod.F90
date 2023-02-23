@@ -12,7 +12,7 @@
 
     private
 
-    public :: domain, P_FIRE_SMOKE, NUM_TRACER, Get_ijk_from_subgrid
+    public :: domain, P_FIRE_SMOKE, NUM_TRACER
 
     integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, P_FIRE_SMOKE = 1
     integer, parameter :: N_POINTS_IN_HALO = 5
@@ -66,13 +66,6 @@
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
-!      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
-!      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
-!      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
-!      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
-!      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
-!      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
-!      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: emis_smoke
 
         ! New vars defined on fire grid for NUOPC coupling
@@ -111,8 +104,6 @@
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
-      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
-                 its, ite, jts, jte, kts, kte
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
                  ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
@@ -261,6 +252,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in), optional :: geogrid
 
+      integer :: ims0, ime0, jms0, jme0, ids0, ide0, jds0, jde0
       real, parameter :: DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0
       logical :: use_geogrid
 
@@ -273,59 +265,66 @@
 
         ! Domain dimensions
       if (use_geogrid) then
-        if (geogrid%ids == config_flags%ids) then
-          this%ids = config_flags%ids
-        else
-          write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%ide == config_flags%ide) then
-          this%ide = config_flags%ide
-        else
-          write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%jds == config_flags%jds) then
-          this%jds = config_flags%jds
-        else
-          write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%jde == config_flags%jde) then
-          this%jde = config_flags%jde
-        else
-          write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
-          stop
-        end if
+        ids0 = geogrid%ifds
+        ide0 = geogrid%ifde
+        jds0 = geogrid%jfds
+        jde0 = geogrid%jfde
+
+        this%ifds = ids0
+        this%ifde = ide0
+        this%ifms = ids0 - N_POINTS_IN_HALO * config_flags%sr_x
+        this%ifme = ide0 + N_POINTS_IN_HALO * config_flags%sr_x
+        this%ifps = ids0
+        this%ifpe = ide0
+        this%ifts = ids0
+        this%ifte = ide0
+
+        this%jfds = jds0
+        this%jfde = jde0
+        this%jfms = jds0 - N_POINTS_IN_HALO * config_flags%sr_y
+        this%jfme = jde0 + N_POINTS_IN_HALO * config_flags%sr_y
+        this%jfps = jds0
+        this%jfpe = jde0
+        this%jfts = jds0
+        this%jfte = jde0
       else
-        this%ids = config_flags%ids
-        this%ide = config_flags%ide
-        this%jds = config_flags%jds
-        this%jde = config_flags%jde
+        ids0 = config_flags%ids
+        ide0 = config_flags%ide
+        jds0 = config_flags%jds
+        jde0 = config_flags%jde
+
+        ims0 = ids0 - N_POINTS_IN_HALO
+        ime0 = ide0 + N_POINTS_IN_HALO
+        jms0 = jds0 - N_POINTS_IN_HALO
+        jme0 = jde0 + N_POINTS_IN_HALO
+
+        this%ifds = config_flags%ids
+        this%ifde = config_flags%ide * config_flags%sr_x
+        this%ifms = (ims0 - 1) * config_flags%sr_x + 1
+        this%ifme = ime0 * config_flags%sr_x
+        this%ifps = (config_flags%ids - 1) * config_flags%sr_x + 1
+        this%ifpe = config_flags%ide * config_flags%sr_x
+        this%ifts = (config_flags%ids - 1) * config_flags%sr_x + 1
+        this%ifte = (config_flags%ide - config_flags%ids + 1) * config_flags%sr_x + config_flags%ids - 1
+
+        this%jfds = config_flags%jds
+        this%jfde = config_flags%jde * config_flags%sr_y
+        this%jfms = (jms0 - 1) * config_flags%sr_y + 1
+        this%jfme = jme0 * config_flags%sr_y
+        this%jfps = (config_flags%jds - 1) * config_flags%sr_y + 1
+        this%jfpe = config_flags%jde * config_flags%sr_y
+        this%jfts = (config_flags%jds - 1) * config_flags%sr_y + 1
+        this%jfte = (config_flags%jde - config_flags%jds + 1) * config_flags%sr_y + config_flags%jds - 1
       end if
-      this%kds = config_flags%kds
-      this%kde = config_flags%kde
 
-      this%ims = config_flags%ids - N_POINTS_IN_HALO
-      this%ime = config_flags%ide + N_POINTS_IN_HALO
-      this%kms = config_flags%kds
-      this%kme = config_flags%kde
-      this%jms = config_flags%jds - N_POINTS_IN_HALO
-      this%jme = config_flags%jde + N_POINTS_IN_HALO
-
-      this%ips = config_flags%ids
-      this%ipe = config_flags%ide
-      this%kps = config_flags%kds
-      this%kpe = config_flags%kde
-      this%jps = config_flags%jds
-      this%jpe = config_flags%jde
-
-      this%its = config_flags%ids
-      this%ite = config_flags%ide
-      this%kts = config_flags%kds
-      this%kte = config_flags%kde
-      this%jts = config_flags%jds
-      this%jte = config_flags%jde
+      this%kfds = config_flags%kds
+      this%kfde = config_flags%kde
+      this%kfms = config_flags%kds
+      this%kfme = config_flags%kde
+      this%kfps = config_flags%kds
+      this%kfpe = config_flags%kde
+      this%kfts = config_flags%kds
+      this%kfte = config_flags%kde
 
         ! Datetimes
       this%datetime_start = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
@@ -380,10 +379,7 @@
         this%dyf = config_flags%dy / this%sr_y
       end if if_geogrid
 
-        ! Fire grid
-      call Get_ijk_from_subgrid (this, this%ifds, this%ifde, this%jfds, this%jfde, this%kfds, this%kfde, &
-          this%ifms, this%ifme, this%jfms, this%jfme, this%kfms, this%kfme, this%ifps, this%ifpe, this%jfps, &
-          this%jfpe, this%kfps, this%kfpe, this%ifts, this%ifte, this%jfts, this%jfte, this%kfts, this%kfte)
+      call this%Print()
 
       this%nx = this%ifde
       this%ny = this%jfde
@@ -602,61 +598,6 @@
 
     end subroutine Interpolate_vars_atm_to_fire
 
-    subroutine Get_ijk_from_subgrid (  grid ,                &
-                           ids0, ide0, jds0, jde0, kds0, kde0,    &
-                           ims0, ime0, jms0, jme0, kms0, kme0,    &
-                           ips0, ipe0, jps0, jpe0, kps0, kpe0,    &
-                           its0, ite0, jts0, jte0, kts0, kte0     )
-
-    ! return the values for subgrid whose refinement is in grid%sr
-    ! note when using this routine, it does not affect K. For K
-    ! (vertical), it just returns what get_ijk_from_grid does
-
-      type (domain), intent (in) :: grid
-      integer, intent(out) ::                                 &
-                       ids0, ide0, jds0, jde0, kds0, kde0,    &
-                       ims0, ime0, jms0, jme0, kms0, kme0,    &
-                       ips0, ipe0, jps0, jpe0, kps0, kpe0,    &
-                       its0, ite0, jts0, jte0, kts0, kte0
-        ! Local
-      integer ::                              &
-                ids, ide, jds, jde, kds, kde, &
-                ims, ime, jms, jme, kms, kme, &
-                ips, ipe, jps, jpe, kps, kpe, &
-                its, ite, jts, jte, kts, kte
-
-
-      ids0 = grid%ids
-      ide0 = grid%ide * grid%sr_x
-      ims0 = (grid%ims - 1) * grid%sr_x + 1
-      ime0 = grid%ime * grid%sr_x
-      ips0 = (grid%ips - 1) * grid%sr_x + 1
-      ipe0 = grid%ipe * grid%sr_x
-      its0 = (grid%its - 1) * grid%sr_x + 1
-      ite0 = (grid%ite - grid%ids + 1) * grid%sr_x + ids0 - 1
-
-      jds0 = grid%jds
-      jde0 = grid%jde * grid%sr_y
-      jms0 = (grid%jms - 1) * grid%sr_y + 1
-      jme0 = grid%jme * grid%sr_y
-      jps0 = (grid%jps - 1) * grid%sr_y + 1
-      jpe0 = grid%jpe * grid%sr_y
-      jts0 = (grid%jts - 1) * grid%sr_y + 1
-      jte0 = (grid%jte - grid%jds + 1) * grid%sr_y + jds0 - 1
-
-      kds0 = grid%kds
-      kde0 = grid%kde
-      kms0 = grid%kms
-      kme0 = grid%kme
-      kps0 = grid%kps
-      kpe0 = grid%kpe
-      kts0 = grid%kts
-      kte0 = grid%kte
-
-      return
-
-    end subroutine Get_ijk_from_subgrid
-
     subroutine Print_domain (this)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -664,24 +605,6 @@
       implicit none
 
       class (domain), intent(in out) :: this
-
-
-      write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'ids = ', this%ids, 'ide = ', this%ide
-      write (OUTPUT_UNIT, *) 'jds = ', this%jds, 'jde = ', this%jde
-      write (OUTPUT_UNIT, *) 'kds = ', this%kds, 'kde = ', this%kde
-
-      write (OUTPUT_UNIT, *) 'ims = ', this%ims, 'ime = ', this%ime
-      write (OUTPUT_UNIT, *) 'jms = ', this%jms, 'jme = ', this%jme
-      write (OUTPUT_UNIT, *) 'kms = ', this%kms, 'kme = ', this%kme
-
-      write (OUTPUT_UNIT, *) 'ips = ', this%ips, 'ipe = ', this%ipe
-      write (OUTPUT_UNIT, *) 'jps = ', this%jps, 'jpe = ', this%jpe
-      write (OUTPUT_UNIT, *) 'kps = ', this%kps, 'kpe = ', this%kpe
-
-      write (OUTPUT_UNIT, *) 'its = ', this%its, 'ite = ', this%ite
-      write (OUTPUT_UNIT, *) 'jts = ', this%jts, 'jte = ', this%jte
-      write (OUTPUT_UNIT, *) 'kts = ', this%kts, 'kte = ', this%kte
 
 
       write (OUTPUT_UNIT, *) ''
@@ -706,11 +629,6 @@
       write (OUTPUT_UNIT, *) 'kfts = ', this%kfts, 'kfte = ', this%kfte
 
       write (OUTPUT_UNIT, *) ''
-!      write (OUTPUT_UNIT, *) 'shape ph_2 = ', shape (this%ph_2)
-!      write (OUTPUT_UNIT, *) 'shape phb = ', shape (this%phb)
-!      write (OUTPUT_UNIT, *) 'shape u_2 = ', shape (this%u_2)
-!      write (OUTPUT_UNIT, *) 'shape v_2 = ', shape (this%v_2)
-!      write (OUTPUT_UNIT, *) 'shape i_start = ', shape (this%i_start)
 
     end subroutine Print_domain
 
@@ -968,8 +886,8 @@
       write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback
 
       s = 1./(this%sr_x*this%sr_y)
-      do j=this%jts,this%jte
-        do i=this%its,this%ite
+      do j=atm%jts,atm%jte
+        do i=atm%its,atm%ite
           ! DME heat fluxes contribution for the case wiythout feedback
           atm%grnhfx_fu(i,j)=atm%grnhfx(i,j)*s
           atm%grnqfx_fu(i,j)=atm%grnqfx(i,j)*s
