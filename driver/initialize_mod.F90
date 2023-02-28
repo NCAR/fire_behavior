@@ -110,13 +110,15 @@
         close (unit_out)
         close (unit_out2)
 
-!        open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
-!        do j = 1, grid%jde - 1
-!          do i = 1, grid%ide - 1
-!            write (unit_out, *) grid%xlong(i, j), grid%xlat(i, j)
-!          end do
-!        end do
-!        close (unit_out)
+        if (present (wrf)) then
+          open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
+          do j = 1, wrf%jde - 1
+            do i = 1, wrf%ide - 1
+              write (unit_out, *) wrf%xlong(i, j), wrf%xlat(i, j)
+            end do
+          end do
+          close (unit_out)
+        end if
 
         open (newunit = unit_out, file = 'wrf_latlons_fire.dat')
         do j = 1, grid%jfde
