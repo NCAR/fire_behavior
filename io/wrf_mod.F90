@@ -1108,7 +1108,7 @@
       allocate (return_value%tracer(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme, &
                 NUM_TRACER))
-
+      return_value%tracer = 0.0
       allocate (return_value%ph_stag(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%ph_stag = 0.0
