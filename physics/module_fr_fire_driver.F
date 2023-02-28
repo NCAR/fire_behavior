@@ -242,7 +242,7 @@ halo_fire_mag_sub
             ifts,ifte, jfts,jfte,                                                         &
             time_start,                                                                         &
             itimestep, restart, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
-            grid%dt, grid%dxf, grid%dyf,                                                        &
+            grid%dt, grid%dx, grid%dy,                                                          &
             grid%unit_fxlong, grid%unit_fxlat,                                                  & ! coordinates of grid center
             config_flags%fire_ext_grnd, config_flags%fire_ext_crwn, config_flags%fire_crwn_hgt, &
             config_flags%fire_wind_height,                                                      &  ! height of wind input to fire spread formula
@@ -316,7 +316,7 @@ subroutine fire_driver_phys (ifun,need_lfn_update,    &
     ifts, ifte, jfts, jfte,                       &
     time_start,                                   & ! start of the timestep
     itimestep,restart,ifuelread,nfuel_cat0,       &
-    dt,dxf,dyf,                                   & ! in scalars
+    dt,dx,dy,                                     & ! in scalars
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
     fire_wind_height,                             & ! for vertical wind interpolation
@@ -384,7 +384,7 @@ logical, intent(out)::need_lfn_update
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
     dt,                                           & ! time step
-    dxf, dyf,                                     & ! fire grid step (spacing)
+    dx, dy,                                       & ! fire grid step (spacing)
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_crwn_hgt,                                & ! lowest height crown fire heat is released (m)
     fire_ext_grnd,                                & ! extinction depth of surface fire heat flux (m)
@@ -457,7 +457,7 @@ integer :: ignitions_done              ! number of isolated ignitions
 !*** executable
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,2f15.6)')'fire mesh step:      ',dxf,dyf
+write(msg,'(a,2f15.6)')'fire mesh step:      ',dx,dy
 call message(msg)
 write(msg,7001)'fire domain     ','ifds',ifds,ifde,jfds,jfde
 call message(msg)                    
@@ -550,7 +550,7 @@ if(run_advance_moisture)then
               ifds,ifde,jfds,jfde, &
               ifms,ifme,jfms,jfme, &
               ifts,ifte,jfts,jfte, &
-              dxf,dyf,nfuel_cat0,  &
+              dx,dy,nfuel_cat0,    &
               nfuel_cat,fuel_time, &
               fp)
 
@@ -567,7 +567,7 @@ if(fire_run)then
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
         ifts,ifte,jfts,jfte,                    & ! fire patch dims
         time_start,dt,                          & ! time and increment
-        dxf,dyf,                                & ! fire mesh spacing
+        dx,dy,                                  & ! fire mesh spacing
         ignition_line,                          & ! description of ignition lines
         ignitions_done,ignited_tile,            &
         fxlong,fxlat,unit_fxlong,unit_fxlat,    & ! fire mesh coordinates

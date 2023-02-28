@@ -107,8 +107,6 @@
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
                  ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
-      real :: dxf, dyf
-
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
@@ -342,41 +340,27 @@
       if_geogrid: if (use_geogrid) then
         this%cen_lat = geogrid%cen_lat
         this%cen_lon = geogrid%cen_lon
-        if (geogrid%dx == config_flags%dx) then
-          this%dx = geogrid%dx
-        else
-          write (ERROR_UNIT, *) 'dx in namelist and in geogrid differ'
-          stop
-        end if
-        if (geogrid%dy == config_flags%dy) then
-          this%dy = geogrid%dy
-        else
-          write (ERROR_UNIT, *) 'dy in namelist and in geogrid differ'
-          stop
-        end if
         if (geogrid%sr_x == config_flags%sr_x) then
           this%sr_x = geogrid%sr_x
-          this%dxf = config_flags%dx / this%sr_x
+          this%dx = config_flags%dx / this%sr_x
         else
           write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
           stop
         end if
         if (geogrid%sr_y == config_flags%sr_y) then
           this%sr_y = geogrid%sr_y
-          this%dyf = config_flags%dy / this%sr_y
+          this%dy = config_flags%dy / this%sr_y
         else
           write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
           stop
         end if
       else
         ! we need to initialize nx, ny here
-        this%dx = config_flags%dx
-        this%dy = config_flags%dy
         this%dt = config_flags%dt
         this%sr_x = config_flags%sr_x
         this%sr_y = config_flags%sr_y
-        this%dxf = config_flags%dx / this%sr_x
-        this%dyf = config_flags%dy / this%sr_y
+        this%dx = config_flags%dx / this%sr_x
+        this%dy = config_flags%dy / this%sr_y
       end if if_geogrid
 
       call this%Print()
@@ -486,7 +470,7 @@
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = this%dxf, dy = this%dyf, &
+      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = this%dx, dy = this%dy, &
           standard_lon = standard_lon , true_lat_1 = true_lat_1 , true_lat_2 = true_lat_2 , &
           nx = this%nx, ny = this%ny)
 
@@ -529,7 +513,7 @@
               ! initializing a nested domain (before, fxlong & fxlat where not
               ! assigned, they were supposed to be set by a mod in WPS
               ! but here we use standard WPS therefore were zero and fire does not ignite)
-            call set_ideal_coord( this%dxf,this%dyf, &
+            call set_ideal_coord( this%dx,this%dy,          &
                   this%ifds,this%ifde,this%jfds,this%jfde,  &
                   this%ifms,this%ifme,this%jfms,this%jfme,  &
                   this%ifts,this%ifte,this%jfts,this%jfte,  &
@@ -730,7 +714,7 @@
 
     end subroutine Save_state
 
-    subroutine set_ideal_coord(dxf,dyf,   &
+    subroutine set_ideal_coord(dx,dy,     &
                     ifds,ifde,jfds,jfde,  &
                     ifms,ifme,jfms,jfme,  &
                     ifts,ifte,jfts,jfte,  &
@@ -738,7 +722,7 @@
 
     implicit none
 
-    real, intent(in) :: dxf,dyf
+    real, intent(in) :: dx,dy
     integer, intent(in) :: &
                     ifds,ifde,jfds,jfde,  &
                     ifms,ifme,jfms,jfme,  &
@@ -754,8 +738,8 @@
       do j=jfts,jfte
           do i=ifts,ifte
               ! uniform mesh, lower left domain corner is (0,0)
-              fxlong(i,j)=(i-ifds+0.5)*dxf
-              fxlat (i,j)=(j-jfds+0.5)*dyf
+              fxlong(i,j)=(i-ifds+0.5)*dx
+              fxlat (i,j)=(j-jfds+0.5)*dy
           enddo
       enddo
 
