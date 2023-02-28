@@ -52,9 +52,6 @@ subroutine fire_driver_em_step (grid, config_flags)
 
     call message('fire_driver_em_step: FIRE step start')
 
-      ! PAJM: These calls only necessary if the atm state has been updated
-      ! So we are doing the interpolation more than needed
-
     call fire_driver_em (grid, config_flags            &
             ,3,6,fire_test_steps                       &
             ,grid%ifds,grid%ifde - grid%sr_x, grid%jfds,grid%jfde - grid%sr_y  &
