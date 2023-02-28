@@ -18,6 +18,8 @@
     integer, parameter :: N_POINTS_IN_HALO = 5
 
     type :: state_fire_t
+      integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
+                 ifts, ifte, jfts, jfte, kfts, kfte
 !      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
@@ -104,8 +106,6 @@
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
-      integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
-                 ifps, ifpe, jfps, jfpe, kfps, kfpe, ifts, ifte, jfts, jfte, kfts, kfte
       integer :: sr_x = 0, sr_y = 0
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
@@ -272,8 +272,6 @@
         this%ifde = ide0
         this%ifms = ids0 - N_POINTS_IN_HALO * config_flags%sr_x
         this%ifme = ide0 + N_POINTS_IN_HALO * config_flags%sr_x
-        this%ifps = ids0
-        this%ifpe = ide0
         this%ifts = ids0
         this%ifte = ide0
 
@@ -281,8 +279,6 @@
         this%jfde = jde0
         this%jfms = jds0 - N_POINTS_IN_HALO * config_flags%sr_y
         this%jfme = jde0 + N_POINTS_IN_HALO * config_flags%sr_y
-        this%jfps = jds0
-        this%jfpe = jde0
         this%jfts = jds0
         this%jfte = jde0
       else
@@ -300,8 +296,6 @@
         this%ifde = config_flags%ide * config_flags%sr_x
         this%ifms = (ims0 - 1) * config_flags%sr_x + 1
         this%ifme = ime0 * config_flags%sr_x
-        this%ifps = (config_flags%ids - 1) * config_flags%sr_x + 1
-        this%ifpe = config_flags%ide * config_flags%sr_x
         this%ifts = (config_flags%ids - 1) * config_flags%sr_x + 1
         this%ifte = (config_flags%ide - config_flags%ids + 1) * config_flags%sr_x + config_flags%ids - 1
 
@@ -309,8 +303,6 @@
         this%jfde = config_flags%jde * config_flags%sr_y
         this%jfms = (jms0 - 1) * config_flags%sr_y + 1
         this%jfme = jme0 * config_flags%sr_y
-        this%jfps = (config_flags%jds - 1) * config_flags%sr_y + 1
-        this%jfpe = config_flags%jde * config_flags%sr_y
         this%jfts = (config_flags%jds - 1) * config_flags%sr_y + 1
         this%jfte = (config_flags%jde - config_flags%jds + 1) * config_flags%sr_y + config_flags%jds - 1
       end if
@@ -319,8 +311,6 @@
       this%kfde = config_flags%kde
       this%kfms = config_flags%kds
       this%kfme = config_flags%kde
-      this%kfps = config_flags%kds
-      this%kfpe = config_flags%kde
       this%kfts = config_flags%kds
       this%kfte = config_flags%kde
 
@@ -604,10 +594,6 @@
       write (OUTPUT_UNIT, *) 'jfms = ', this%jfms, 'jfme = ', this%jfme
       write (OUTPUT_UNIT, *) 'kfms = ', this%kfms, 'kfme = ', this%kfme
 
-      write (OUTPUT_UNIT, *) 'ifps = ', this%ifps, 'ifpe = ', this%ifpe
-      write (OUTPUT_UNIT, *) 'jfps = ', this%jfps, 'jfpe = ', this%jfpe
-      write (OUTPUT_UNIT, *) 'kfps = ', this%kfps, 'kfpe = ', this%kfpe
-
       write (OUTPUT_UNIT, *) 'ifts = ', this%ifts, 'ifte = ', this%ifte
       write (OUTPUT_UNIT, *) 'jfts = ', this%jfts, 'jfte = ', this%jfte
       write (OUTPUT_UNIT, *) 'kfts = ', this%kfts, 'kfte = ', this%kfte
@@ -656,7 +642,7 @@
 
         call wrf%add_fire_tracer_emissions(                        &
                   this%ifms,this%ifme,this%jfms,this%jfme,         &
-                  this%ifps,this%ifpe,this%jfps,this%jfpe,         &
+                  this%ifts,this%ifte,this%jfts,this%jfte,         &
                   wrf%ids,wrf%ide,wrf%kds,wrf%kde,wrf%jds,wrf%jde, &
                   wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
                   wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
