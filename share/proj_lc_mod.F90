@@ -16,6 +16,7 @@
       integer :: nx, ny
     contains
       procedure, public :: Calc_latlon => Calc_lc_latlon_at_ij
+      procedure, public :: Calc_ij => Calc_lc_ij_from_latlon
     end type proj_lc_t
 
     interface proj_lc_t
@@ -42,6 +43,40 @@
       end if
 
     end subroutine Calc_lc_cone
+
+    pure subroutine Calc_lc_ij_from_latlon (this, lat, lon, i, j)
+
+      implicit none
+
+      class (proj_lc_t), intent (in) :: this
+      real, intent (in) :: lat, lon
+      real, intent (out) :: i, j
+
+      real :: arg, deltalon, tl1r, rm, ctl1r, rebydx
+
+
+      deltalon = lon - this%standard_lon
+      if (deltalon > 180.0) deltalon = deltalon - 360.0
+      if (deltalon < -180.0) deltalon = deltalon + 360.0
+
+      tl1r = this%true_lat_1 * DEG_TO_RAD
+      ctl1r = cos (tl1r)
+
+      rebydx = this%r_earth / this%dx
+
+      rm = rebydx * ctl1r / this%cone_factor * &
+          (tan ((90.0 * this%hemi - lat) * DEG_TO_RAD / 2.0) / &
+          tan ((90.0 * this%hemi - this%true_lat_1) * DEG_TO_RAD / 2.0)) ** this%cone_factor
+
+      arg = this%cone_factor * (deltalon * DEG_TO_RAD)
+
+      i = this%pole_i + this%hemi * rm * sin (arg)
+      i = this%hemi * i
+
+      j = this%pole_j - rm * cos (arg)
+      j = this%hemi * j
+
+    end subroutine Calc_lc_ij_from_latlon
 
     subroutine Calc_lc_latlon_at_ij (this, i, j, lat, lon)
 

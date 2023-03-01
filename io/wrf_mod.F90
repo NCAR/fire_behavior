@@ -47,6 +47,8 @@
                  its, ite, jts, jte, kts, kte
       integer :: num_tiles
       integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
+        ! projection
+      real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
       procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
@@ -76,6 +78,7 @@
       procedure, public :: Get_pres => Get_pressure_levels
       procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
       procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
+      procedure, public :: Get_projection => Get_projection
       procedure, public :: Get_rainc => Get_rain_convective
       procedure, public :: Get_rainnc => Get_rain_non_convective
       procedure, public :: Get_rain => Get_rain
@@ -89,6 +92,7 @@
       procedure, public :: Get_v3d_stag => Get_meridional_wind_stag_3d
       procedure, public :: Get_z0 => Get_z0
       procedure, public :: Get_z_at_w => Get_height_agl_at_walls
+      procedure, public :: Interp_var2grid_nearest => Interp_var2grid_nearest
       procedure, public :: Interpolate_z2fire => Interpolate_z2fire
       procedure, public :: Interpolate_wind2fire => Interpolate_wind2fire
       procedure, public :: Load_atmosphere_test1 => Load_atmosphere_test1
@@ -810,6 +814,31 @@
 
     end subroutine Get_mut
 
+    function Get_projection (this) result (return_value)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (wrf_t), intent (in) :: this
+      type (proj_lc_t) :: return_value
+
+      integer :: nx, ny
+
+
+      if (allocated (this%lats)) then
+        nx = size (this%lats, dim = 1)
+        ny = size (this%lats, dim = 2)
+      else
+        write (ERROR_UNIT, *) 'lats array needs to be initialized to get the WRF projection'
+      end if
+
+      return_value = proj_lc_t (cen_lat = this%cen_lat , cen_lon = this%cen_lon, &
+          dx = this%dx, dy = this%dy, standard_lon = this%stand_lon , true_lat_1 = this%truelat1 , true_lat_2 = this%truelat2, &
+          nx = nx, ny = ny)
+
+    end function Get_projection
+
     subroutine Get_specific_humidity_2m (this, datetime)
 
       implicit none
@@ -989,7 +1018,8 @@
 
     function Wrf_t_const (file_name, config_flags, geogrid) result (return_value)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, REAL32
+
       implicit none
 
       character (len = *), intent (in), optional :: file_name
@@ -1005,6 +1035,7 @@
 
       logical :: use_geogrid, use_config_flags, use_file
       integer, parameter :: N_POINTS_IN_HALO = 5
+      real (kind = REAL32) :: att_real32
 
 
       use_file = .false.
@@ -1025,9 +1056,33 @@
 
       if (use_file) then
         return_value%file_name = trim (file_name)
-          ! Centers
+
+          ! Init projection
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LAT', att_real32)
+        return_value%cen_lat = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LON', att_real32)
+        return_value%cen_lon = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT1', att_real32)
+        return_value%truelat1 = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT2', att_real32)
+        return_value%truelat2 = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'STAND_LON', att_real32)
+        return_value%stand_lon = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'DX', att_real32)
+        return_value%dx = att_real32
+
+        call Get_netcdf_att (trim (return_value%file_name), 'global', 'DY', att_real32)
+        return_value%dy = att_real32
+
+          ! latlon at mass points
         call return_value%Get_latlons ()
-          ! Corners
+
+          ! latlon at corners
         call return_value%Get_latcloncs ()
 
         call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
@@ -1335,6 +1390,102 @@
       endif
 
     end function ifval
+
+    subroutine Interp_var2grid_nearest (this, lats_in, lons_in, var_name, vals_out)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (wrf_t), intent(in) :: this
+      real, dimension(:, :), intent(in) :: lats_in, lons_in
+      character (len = *), intent (in) :: var_name
+      real, dimension(:, :), allocatable, intent(out) :: vals_out
+
+      logical, parameter :: OUTPUT_LATLON_CHECK = .true.
+      real, parameter :: DEFAULT_INIT = 0.0
+      real, dimension(:, :), allocatable :: ds, var_wrf
+      real :: d, i_real, j_real
+      type (proj_lc_t) :: proj
+      integer :: nx, ny, nx_wrf, ny_wrf, i, j, i_wrf, j_wrf
+
+
+        ! Init
+      nx_wrf = this%ide - 1
+      ny_wrf = this%jde - 1
+      nx = size (lats_in, dim = 1)
+      ny = size (lats_in, dim = 2)
+
+      if (allocated (vals_out)) deallocate (vals_out)
+      allocate (vals_out(nx, ny))
+      vals_out = DEFAULT_INIT
+
+      allocate (ds(nx, ny))
+      ds = huge (d)
+
+      proj = this%Get_projection ()
+
+      select case (var_name)
+        case ('xlat')
+          var_wrf = this%xlat
+
+        case ('xlong')
+          var_wrf = this%xlong
+
+        case ('t2')
+          var_wrf = this%t2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case default
+          write (ERROR_UNIT, *) 'Unknown variable name to interpolate'
+          stop
+      end select
+
+      if (OUTPUT_LATLON_CHECK) call Write_latlon_check ()
+
+        ! Algorithm
+      do j = 1, ny
+        do i = 1, nx
+          call proj%Calc_ij (lats_in(i, j), lons_in(i, j), i_real, j_real)
+          i_wrf = min (max (1, nint (i_real)), nx_wrf)
+          j_wrf = min (max (1, nint (j_real)), ny_wrf)
+          d = (this%xlat(i_wrf, j_wrf) - lats_in(i, j)) ** 2 + (this%xlong(i_wrf, j_wrf) - lons_in(i, j)) ** 2
+          if (d < ds(i, j)) then
+            vals_out(i, j) = var_wrf(i_wrf, j_wrf)
+            ds(i, j) = d
+          end if
+        end do
+      end do
+
+    contains
+
+      subroutine Write_latlon_check ()
+
+        implicit none
+
+        real :: lat_test, lon_test
+        integer :: i, j, unit1, unit2
+
+
+        open (newunit = unit1, file = 'latlons_wrf_and_wrfbis.dat')
+        do j = this%jds, this%jde - 1
+          do i = this%ids, this%ide - 1
+            call proj%Calc_latlon (real(i), real(j), lat_test, lon_test)
+            write (unit1, *) i, j, this%xlat(i, j), this%xlong(i, j), lat_test, lon_test
+          end do
+        end do
+        close (unit1)
+
+        open (newunit = unit2, file = 'latlons_fire.dat')
+        do j = 1, ny
+          do i = 1, nx
+            write (unit2, *) i, j, lats_in(i, j), lons_in(i, j)
+          end do
+        end do
+        close (unit2)
+
+      end subroutine Write_latlon_check
+
+    end subroutine Interp_var2grid_nearest
 
     subroutine Interpolate_wind2fire(this, config_flags,  & ! for debug output, <= 0 no output
           fire_wind_height,                               & ! interpolation height

@@ -65,6 +65,7 @@
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fxlong ! "longitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fxlat ! "latitude of midpoints of fire cells" "degrees"
+      real, dimension(:, :), allocatable :: test
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
@@ -413,6 +414,9 @@
       allocate (this%fire_ph(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
       allocate (this%fire_pres(this%ifms:this%ifme, this%jfms:this%jfme, this%kfms:this%kfme))
 
+      allocate (this%test(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%test = 0.0
+
       allocate (this%fmc_gc(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
       allocate (this%fmc_equi(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
       allocate (this%fmc_lag(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
@@ -493,6 +497,9 @@
         class (domain), intent(in out) :: this          ! fire state
         type (wrf_t), intent(in) :: wrf                 ! atm state
 
+        real, dimension(:, :), allocatable :: var2d
+
+
         If_testcase: if (this%datetime_now == this%datetime_start) then
 
           if (this%fire_ignition_longlat == 0) then
@@ -518,6 +525,7 @@
                 this%sr_x,this%sr_y,                         & ! atm/fire this ratio
                 wrf%xlat,                                    &
                 this%fxlat,0)
+
 
             call wrf%interpolate_z2fire(                    &
                 this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
@@ -545,6 +553,12 @@
             this%sr_x,this%sr_y,                         & ! atm/fire this ratio
             wrf%t2_stag,                                 &
             this%fire_t2,1)
+
+          ! Alternative interpolation in testing mode (no impact on the fire evolution)
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
+            this%test(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+            deallocate (var2d)
 
          call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
@@ -676,6 +690,8 @@
       else
         nz = 0
       end if
+
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'test', this%test(1:this%nx, 1:this%ny))
 
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlat', this%fxlat(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlong', this%fxlong(1:this%nx, 1:this%ny))

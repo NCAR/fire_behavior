@@ -195,3 +195,8 @@ fi
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
 rm -f ./wrf.nc
 
+  # OUTPUT_LATLON_CHECK is true
+  # Check we are doing the projections right
+# ./test4/gn_latlons_proj_check.s latlons_wrf_and_wrfbis.dat latlons_fire.dat
+# rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
+
