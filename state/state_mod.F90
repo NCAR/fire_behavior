@@ -555,10 +555,10 @@
             this%fire_t2,1)
 
           ! Alternative interpolation in testing mode (no impact on the fire evolution)
-        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
-            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
-            this%test(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
-            deallocate (var2d)
+!        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+!            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
+!            this%test(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+!            deallocate (var2d)
 
          call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
