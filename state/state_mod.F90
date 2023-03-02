@@ -107,7 +107,6 @@
     end type state_fire_t
 
     type, extends (state_fire_t) :: domain
-      integer :: sr_x = 0, sr_y = 0
     contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
@@ -225,10 +224,10 @@
                 wrf%ips,min(wrf%ipe,wrf%ide-1), wrf%jps,min(wrf%jpe,wrf%jde-1), &
                 wrf%i_start(1),min(wrf%i_end(1),wrf%ide-1),                     &
                 wrf%j_start(1),min(wrf%j_end(1),wrf%jde-1),                     &
-                this%ifds,this%ifde-this%sr_x, this%jfds,this%jfde-this%sr_y,   &
+                this%ifds,this%ifde-wrf%sr_x, this%jfds,this%jfde-wrf%sr_y,     &
                 this%ifms, this%ifme, this%jfms, this%jfme,                     &
                 this%ifts, this%ifte, this%jfts, this%jfte,   &
-                this%sr_x,this%sr_y,                          & ! atm/fire this ratio
+                wrf%sr_x,wrf%sr_y,                            & ! atm/fire this ratio
                 wrf%u3d_stag,wrf%v3d_stag,                    & ! 3D atm this arrays in
                 wrf%ph_stag,wrf%phb_stag,                     &
                 wrf%z0_stag,                                  & ! 2D atm this arrays in
@@ -331,27 +330,21 @@
       if_geogrid: if (use_geogrid) then
         this%cen_lat = geogrid%cen_lat
         this%cen_lon = geogrid%cen_lon
-        if (geogrid%sr_x == config_flags%sr_x) then
-          this%sr_x = geogrid%sr_x
-          this%dx = config_flags%dx / this%sr_x
+        if (geogrid%sr_y == config_flags%sr_y) then
+          this%dx = config_flags%dx / geogrid%sr_x
         else
           write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
           stop
         end if
         if (geogrid%sr_y == config_flags%sr_y) then
-          this%sr_y = geogrid%sr_y
-          this%dy = config_flags%dy / this%sr_y
+          this%dy = config_flags%dy / geogrid%sr_y
         else
           write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
           stop
         end if
       else
-        ! we need to initialize nx, ny here
-        this%dt = config_flags%dt
-        this%sr_x = config_flags%sr_x
-        this%sr_y = config_flags%sr_y
-        this%dx = config_flags%dx / this%sr_x
-        this%dy = config_flags%dy / this%sr_y
+        this%dx = config_flags%dx / config_flags%sr_x
+        this%dy = config_flags%dy / config_flags%sr_y
       end if if_geogrid
 
       call this%Print()
@@ -522,7 +515,7 @@
                 this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
                 this%ifms, this%ifme, this%jfms, this%jfme,  &
                 this%ifts,this%ifte,this%jfts,this%jfte,     &
-                this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+                wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
                 wrf%xlat,                                    &
                 this%fxlat,0)
 
@@ -531,7 +524,7 @@
                 this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
                 this%ifms, this%ifme, this%jfms, this%jfme,  &
                 this%ifts,this%ifte,this%jfts,this%jfte,     &
-                this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+                wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
                 wrf%xlong,                                   &
                 this%fxlong,0)
           end if
@@ -540,7 +533,7 @@
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
             this%ifts,this%ifte,this%jfts,this%jfte,     &
-            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
             wrf%z0_stag,                                 &
             this%fz0,1)
 
@@ -550,7 +543,7 @@
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
             this%ifts,this%ifte,this%jfts,this%jfte,     &
-            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
             wrf%t2_stag,                                 &
             this%fire_t2,1)
 
@@ -567,7 +560,7 @@
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
             this%ifts,this%ifte,this%jfts,this%jfte,     &
-            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
             wrf%q2_stag,                                 &
             this%fire_q2,1)
 
@@ -575,7 +568,7 @@
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
             this%ifts,this%ifte,this%jfts,this%jfte,     &
-            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
             wrf%psfc_stag,                                 &
             this%fire_psfc,1)
 
@@ -583,7 +576,7 @@
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
             this%ifms, this%ifme, this%jfms, this%jfme,  &
             this%ifts,this%ifte,this%jfts,this%jfte,     &
-            this%sr_x,this%sr_y,                         & ! atm/fire this ratio
+            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
             wrf%rainc_stag+wrf%rainnc_stag,                                 &
             this%fire_rain,1)
 
@@ -599,10 +592,7 @@
 
 
       write (OUTPUT_UNIT, *) ''
-      write (OUTPUT_UNIT, *) 'sr_x = ', this%sr_x
-      write (OUTPUT_UNIT, *) 'sr_y = ', this%sr_y
 
-      write (OUTPUT_UNIT, *) ''
       write (OUTPUT_UNIT, *) 'ifds = ', this%ifds, 'ifde = ', this%ifde
       write (OUTPUT_UNIT, *) 'jfds = ', this%jfds, 'jfde = ', this%jfde
       write (OUTPUT_UNIT, *) 'kfds = ', this%kfds, 'kfde = ', this%kfde
@@ -874,7 +864,7 @@
 
       write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback
 
-      s = 1./(this%sr_x*this%sr_y)
+      s = 1./(atm%sr_x*atm%sr_y)
       do j=atm%jts,atm%jte
         do i=atm%its,atm%ite
           ! DME heat fluxes contribution for the case wiythout feedback
