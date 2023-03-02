@@ -352,11 +352,7 @@
       this%nx = this%ifde
       this%ny = this%jfde
 
-      if (use_geogrid) then
-        call Init_latlons_fire (this, geogrid%cen_lat, geogrid%cen_lon, geogrid%stand_lon, &
-                           geogrid%true_lat_1, geogrid%true_lat_2)
-        ! what if it is not geogrid
-      end if
+      if (use_geogrid) call Init_latlons_fire (this, geogrid)
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -439,17 +435,18 @@
 
     end subroutine Init_domain
 
-    subroutine Init_latlons_fire (this, cen_lat, cen_lon, standard_lon, &
-                           true_lat_1, true_lat_2)
+    subroutine Init_latlons_fire (this, geogrid)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
       implicit none
 
       class (domain), intent (in out) :: this
-      real, intent(in) :: cen_lat, cen_lon, standard_lon, &
-                          true_lat_1, true_lat_2
-        ! Local
+      type (geogrid_t), intent(in) :: geogrid
+
+      integer, parameter :: METHOD = 1
       type (proj_lc_t) :: proj
-      integer :: i, j
+      integer :: i, j, nx, ny
 
 
       allocate (this%lons(this%nx, this%ny))
@@ -457,9 +454,21 @@
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = this%dx, dy = this%dy, &
-          standard_lon = standard_lon , true_lat_1 = true_lat_1 , true_lat_2 = true_lat_2 , &
-          nx = this%nx, ny = this%ny)
+      select case (METHOD)
+        case (1)
+          nx = this%nx
+          ny = this%ny
+        case (2)
+          nx = this%nx - geogrid%sr_x
+          ny = this%ny - geogrid%sr_y
+        case default
+          write (ERROR_UNIT, *) 'Method to generate fire grid does not exist'
+          stop
+      end select
+
+      proj = proj_lc_t (cen_lat = geogrid%cen_lat , cen_lon = geogrid%cen_lon, dx = this%dx, dy = this%dy, &
+          standard_lon = geogrid%stand_lon , true_lat_1 = geogrid%true_lat_1 , true_lat_2 = geogrid%true_lat_2 , &
+          nx = nx, ny = ny)
 
       do j = 1, this%ny
         do i = 1, this%nx
