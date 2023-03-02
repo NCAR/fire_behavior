@@ -815,21 +815,27 @@
 
     end subroutine Get_mut
 
-    function Get_projection (this) result (return_value)
+    function Get_projection (this, stagger) result (return_value)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
       implicit none
 
       class (wrf_t), intent (in) :: this
+      logical, intent (in), optional :: stagger
       type (proj_lc_t) :: return_value
 
-      integer :: nx, ny
+      integer :: nx, ny, offset
 
+
+      offset = 0
+      if (present (stagger)) then
+        offset = 1
+      end if
 
       if (allocated (this%lats)) then
-        nx = size (this%lats, dim = 1)
-        ny = size (this%lats, dim = 2)
+        nx = size (this%lats, dim = 1) + offset
+        ny = size (this%lats, dim = 2) + offset
       else
         write (ERROR_UNIT, *) 'lats array needs to be initialized to get the WRF projection'
       end if
@@ -1280,30 +1286,11 @@
       class (wrf_t), intent (in out) :: this
       type (proj_lc_t) :: proj
 
+      logical, parameter :: OUTPUT_LATLON_CHECK = .false.
       real (kind = REAL32) :: att_real32
       real :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       integer :: nx, ny, i, j
 
-      call Get_netcdf_att (trim (this%file_name), 'global', 'CEN_LAT', att_real32)
-      cen_lat = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'CEN_LON', att_real32)
-      cen_lon = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'TRUELAT1', att_real32)
-      truelat1 = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'TRUELAT2', att_real32)
-      truelat2 = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'STAND_LON', att_real32)
-      stand_lon = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'DX', att_real32)
-      dx = att_real32
-
-      call Get_netcdf_att (trim (this%file_name), 'global', 'DY', att_real32)
-      dy = att_real32
 
       nx = size (this%lats, dim = 1) + 1
       ny = size (this%lats, dim = 2) + 1
@@ -1311,15 +1298,42 @@
       allocate (this%lats_c(nx, ny))
       allocate (this%lons_c(nx, ny))
 
-      proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = dx, dy = dy, &
-          standard_lon = stand_lon , true_lat_1 = truelat1 , true_lat_2 = truelat2 , &
-          nx = nx, ny = ny)
+      proj = this%Get_projection (stagger = .true.)
 
       do j = 1, ny
         do i = 1, nx
           call proj%Calc_latlon (i = real (i), j = real (j), lat = this%lats_c(i, j), lon = this%lons_c(i, j))
         end do
       end do
+
+      if (OUTPUT_LATLON_CHECK) call Write_latlon_check ()
+
+    contains
+
+      subroutine Write_latlon_check ()
+
+        implicit none
+
+        integer :: i, j, unit1, unit2
+
+
+        open (newunit = unit1, file = "latlons_wrf_mass.dat")
+        do j = 1,  size (this%lats, dim = 2)
+          do i = 1,  size (this%lats, dim = 1)
+            write (unit1, *) i, j, this%lats(i, j), this%lons(i, j)
+          end do
+        end do
+        close (unit1)
+
+        open (newunit = unit2, file = "latlons_wrf_corners_estimated.dat")
+        do j = 1,  size (this%lats, dim = 2) + 1
+          do i = 1,  size (this%lats, dim = 1) + 1
+            write (unit2, *) i, j, this%lats_c(i, j), this%lons_c(i, j)
+          end do
+        end do
+        close (unit2)
+
+      end subroutine Write_latlon_check
 
     end subroutine Get_latcloncs
 
