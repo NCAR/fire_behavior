@@ -92,6 +92,14 @@
         case default
           write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
       end select
+      else
+        if (allocated (grid%lats)) then
+         grid%fxlat = grid%lats
+         grid%fxlong = grid%lons
+        else
+          write (ERROR_UNIT, *) 'fxlat, fxlong are not assigned'
+          stop
+        end if
       end if
 
         ! Fire init
