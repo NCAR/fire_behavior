@@ -16,6 +16,18 @@ module module_fr_fire_util
 ! 3. add a line in Registry.EM to define the variable and set default value
 ! 4. add the variable and value in namelist.input
 
+private
+
+public :: fire_advection, fire_fmc_read, fire_print_msg, open_text_file, message, &
+          fire_grows_only, fire_lfn_ext_up, fire_lsm_band_ngp, fire_slope_factor, &
+          fire_upwind_split, fire_upwinding, fire_viscosity, fire_viscosity_band, &
+          fire_viscosity_bg, fire_viscosity_ngp, boundary_guard, fire_upwinding_reinit, &
+          fire_lsm_reinit_iter, fuel_left_irl, fuel_left_jrl, fuel_left_method, &
+          fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
+          real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_atm_feedback, &
+          fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_print_file, fire_test_steps, &
+          ifval, crash, check_mesh_2dim, write_array_m, print_chsum, print_2d_stats, &
+          continue_at_boundary
 
 integer,save::          &
  fire_print_msg=2,      &  ! print FIRE progress

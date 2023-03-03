@@ -2,7 +2,8 @@
 module module_fr_fire_phys
 
 use constants_mod, only : XLV
-use module_fr_fire_util
+use module_fr_fire_util, only: fire_advection, fire_fmc_read, fire_print_msg, open_text_file, message, &
+                               crash, check_mesh_2dim, print_2d_stats
 
 PRIVATE
 

@@ -7,7 +7,12 @@
 module module_fr_fire_core
 
 use module_fr_fire_phys, only: fire_params , fire_ros
-use module_fr_fire_util
+use module_fr_fire_util, only: fire_grows_only, fire_lfn_ext_up, fire_lsm_band_ngp, fire_slope_factor, &
+                               fire_upwind_split, fire_upwinding, fire_viscosity, fire_viscosity_band, &
+                               fire_viscosity_bg, fire_viscosity_ngp, boundary_guard, fire_upwinding_reinit, &
+                               fire_lfn_ext_up, fire_lsm_reinit_iter, fuel_left_irl, fuel_left_jrl, &
+                               fuel_left_method, fire_print_msg, continue_at_boundary, crash, print_2d_stats, &
+                               message
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 

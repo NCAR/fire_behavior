@@ -4,7 +4,9 @@
 module module_fr_fire_model
 
 use module_fr_fire_core
-use module_fr_fire_util
+use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
+                               real_max, real_sum, rnrm_max, rnrm_sum, fun_real, message, print_2d_stats, &
+                               write_array_m, crash, check_mesh_2dim, fire_print_msg
 use module_fr_fire_phys
 
 contains
