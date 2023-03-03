@@ -444,9 +444,10 @@
       class (domain), intent (in out) :: this
       type (geogrid_t), intent(in) :: geogrid
 
-      integer, parameter :: METHOD = 1
+      real, parameter :: OFFSET = 0.5
       type (proj_lc_t) :: proj
       integer :: i, j, nx, ny
+      real :: i_atm, j_atm, offset_corners_x, offset_corners_y
 
 
       allocate (this%lons(this%nx, this%ny))
@@ -454,41 +455,39 @@
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      select case (METHOD)
-        case (1)
-          nx = this%nx
-          ny = this%ny
-        case (2)
-          nx = this%nx - geogrid%sr_x
-          ny = this%ny - geogrid%sr_y
-        case default
-          write (ERROR_UNIT, *) 'Method to generate fire grid does not exist'
-          stop
-      end select
+      proj = geogrid%Get_atm_proj ()
 
-      proj = proj_lc_t (cen_lat = geogrid%cen_lat , cen_lon = geogrid%cen_lon, dx = this%dx, dy = this%dy, &
-          standard_lon = geogrid%stand_lon , true_lat_1 = geogrid%true_lat_1 , true_lat_2 = geogrid%true_lat_2 , &
-          nx = nx, ny = ny)
+      offset_corners_x = (1.0 / real (geogrid%sr_x)) / 2.0
+      offset_corners_y = (1.0 / real (geogrid%sr_y)) / 2.0
 
       do j = 1, this%ny
         do i = 1, this%nx
-          call proj%Calc_latlon (i = real (i), j = real (j), lat = this%lats(i, j), lon = this%lons(i, j))
-          call proj%Calc_latlon (i = real (i) - 0.5, j = real (j) - 0.5, lat = this%lats_c(i, j), lon = this%lons_c(i, j))
+          i_atm = (i - OFFSET) / geogrid%sr_x + OFFSET
+          j_atm = (j - OFFSET) / geogrid%sr_y + OFFSET
+          call proj%Calc_latlon (i = i_atm, j = j_atm, lat = this%lats(i, j), lon = this%lons(i, j))
+          call proj%Calc_latlon (i = i_atm - offset_corners_x, j = j_atm - offset_corners_y, &
+              lat = this%lats_c(i, j), lon = this%lons_c(i, j))
         end do
       end do
 
       do j = 1, this%ny
-        call proj%Calc_latlon (i = real (this%nx) + 0.5, j = real (j) - 0.5, lat = this%lats_c(this%nx + 1, j), &
-            lon = this%lons_c(this%nx + 1, j))
+        i_atm = (this%nx - OFFSET) / geogrid%sr_x + OFFSET
+        j_atm = (j - OFFSET) / geogrid%sr_y + OFFSET
+        call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm - offset_corners_y, &
+            lat = this%lats_c(this%nx + 1, j), lon = this%lons_c(this%nx + 1, j))
       end do
 
       do i = 1, this%nx
-        call proj%Calc_latlon (i = real (i) - 0.5, j = real (this%ny) + 0.5, lat = this%lats_c(i, this%ny + 1), &
-            lon = this%lons_c(i, this%ny + 1))
+        i_atm = (i - OFFSET) / geogrid%sr_x + OFFSET
+        j_atm = (this%ny - OFFSET) / geogrid%sr_y + OFFSET
+        call proj%Calc_latlon (i = i_atm - offset_corners_x, j = j_atm + offset_corners_y, &
+            lat = this%lats_c(i, this%ny + 1), lon = this%lons_c(i, this%ny + 1))
       end do
 
-      call proj%Calc_latlon (i = real (this%nx) + 0.5, j = real (this%ny) + 0.5, lat = this%lats_c(this%nx + 1, this%ny + 1), &
-          lon = this%lons_c(this%nx + 1, this%ny + 1))
+      i_atm = (this%nx - OFFSET) / geogrid%sr_x + OFFSET
+      j_atm = (this%ny - OFFSET) / geogrid%sr_y + OFFSET
+      call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm + offset_corners_y, &
+          lat = this%lats_c(this%nx + 1, this%ny + 1), lon = this%lons_c(this%nx + 1, this%ny + 1))
 
     end subroutine Init_latlons_fire
 

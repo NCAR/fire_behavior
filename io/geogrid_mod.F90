@@ -3,6 +3,7 @@
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
+    use proj_lc_mod, only : proj_lc_t
 
     implicit none
 
@@ -16,6 +17,7 @@
       integer :: ids = 1, jds = 1, ide, jde = 0, ifds = 1, jfds = 1, ifde = 0, jfde = 0, sr_x = 0, sr_y = 0, map_proj = 0
     contains
       procedure, public :: Print => Print_geogrid
+      procedure, public :: Get_atm_proj => Get_atm_proj
     end type geogrid_t
 
     interface geogrid_t
@@ -106,6 +108,35 @@
       return_value%sr_y = att_int32
 
     end function Geogrid_t_const
+
+    function Get_atm_proj (this) result (return_value)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (geogrid_t), intent (in) :: this
+      type (proj_lc_t) :: return_value
+
+      integer :: nx, ny
+
+
+!      if (allocated (this%lats)) then
+!        nx = size (this%lats, dim = 1) + offset
+!        ny = size (this%lats, dim = 2) + offset
+!      else
+!        write (ERROR_UNIT, *) 'lats array needs to be initialized to get the WRF projection'
+!      end if
+
+!      print *, shape (this%xlat)
+!      print *, shape (this%xlong)
+!      print *, 'ide, jde = ', this%ide, this%jde
+
+      return_value = proj_lc_t (cen_lat = this%cen_lat , cen_lon = this%cen_lon, &
+          dx = this%dx, dy = this%dy, standard_lon = this%stand_lon, true_lat_1 = this%true_lat_1, &
+          true_lat_2 = this%true_lat_2, nx = this%ide - 1, ny = this%jde - 1)
+
+    end function Get_atm_proj
 
     subroutine Print_geogrid (this)
 
