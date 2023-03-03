@@ -22,7 +22,7 @@ use module_fr_fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats
 use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
                                fire_print_file, fire_test_steps, ifval, fire_advection, fire_fmc_read, &
-                               crash, check_mesh_2dim, write_array_m, print_chsum
+                               Crash, Check_mesh_2dim, Write_array_m, Print_chsum
 use module_fr_fire_core, only: ignition_line_type
 
 USE state_mod, only: domain
