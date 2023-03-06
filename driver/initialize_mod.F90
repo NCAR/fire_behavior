@@ -94,8 +94,8 @@
       end select
       else
         if (allocated (grid%lats)) then
-         grid%fxlat = grid%lats
-         grid%fxlong = grid%lons
+         grid%fxlat(grid%ifds:grid%ifde, grid%jfds:grid%jfde) = grid%lats
+         grid%fxlong(grid%ifds:grid%ifde, grid%jfds:grid%jfde) = grid%lons
         else
           write (ERROR_UNIT, *) 'fxlat, fxlong are not assigned'
           stop
