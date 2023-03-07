@@ -108,7 +108,7 @@
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_latlons_fire => Init_latlons_fire
       procedure, public :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
-      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
+!      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
       procedure, public :: Print => Print_domain
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure :: sum_2d_fire_vars => Sum_2d_fire_vars
