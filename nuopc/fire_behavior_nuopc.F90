@@ -784,6 +784,7 @@ module fire_behavior_nuopc
     ! type(ESMF_TimeInterval)     :: timeStep
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
+    integer                     :: i, j
     character(len=160)          :: msgString
 
     rc = ESMF_SUCCESS
@@ -821,6 +822,20 @@ module fire_behavior_nuopc
     grid%fire_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     grid%fire_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
+
+    print *, 'fire_u3d', size(grid%fire_u3d, dim=1), size(grid%fire_u3d, dim=2), size(grid%fire_u3d, dim=3)
+    print *, 'fire_u3d', grid%fire_u3d(10,10,:)
+    
+    do j = 1, grid%jfde
+      do i = 1, grid%ifde
+        call grid%Interpolate_wind3d (config_flags,  & ! for debug output, <= 0 no output
+            config_flags%fire_wind_height,         & ! interpolation height
+            grid%ifds, grid%ifde, grid%kfds, grid%kfde, grid%jfds, grid%jfde,    & ! fire grid dimensions
+            grid%fire_u3d(i,j,:),grid%fire_v3d(i,j,:),             & ! atm grid arrays in
+            grid%fire_ph(i,j,:),                          &
+            grid%uf(i,j),grid%vf(i,j),grid%fz0(i,j))
+      enddo
+    enddo
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
