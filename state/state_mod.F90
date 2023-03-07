@@ -615,8 +615,7 @@
       character(len=256)::msg
       real, dimension(kfds:kfde):: altw, hgt
       integer:: k
-      integer::kdmax,its1,jts1
-      integer::itsou,iteou,jtsou,jteou,itsov,iteov,jtsov,jteov
+      integer::kdmax
       real:: ground,loght,loglast,logz0,logfwh,ht
       real::r_nan
       integer::i_nan
@@ -660,10 +659,6 @@
       ! but because we care about the fire way in the inside it does not matter
       ! if the fire gets close to domain boundary the simulation is over anyway
 
-
-      ! indexing
-
-
       kdmax=kfde-1   ! max layer to interpolate from, can be less
       do k = kfds,kdmax+1
         altw(k) = phl(k) / G             ! altitude of the bottom w-point
@@ -682,55 +677,53 @@
         fire_wind_height_local = fire_wind_height
       endif
 
-          ! interpolate u, staggered in X
+       ! interpolate u
+      if(fire_wind_height_local > z0f)then
+        do k=kfds,kdmax
+          ht = hgt(k)      ! height of this m point above the ground
+          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
+            loght = log(ht)
+            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
+              logz0 = log(z0f)
+              u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
+            else                           ! log linear interpolation
+              loglast=log(hgt(k-1))
+              u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+            endif
+            goto 10
+          endif
+          if(k.eq.kdmax)then                 ! last layer, still not high enough
+            u2d=u3d(k)
+          endif
+        enddo
+      10 continue
+      else  ! roughness higher than the fire wind height
+        u2d=0.
+      endif
 
-              if(fire_wind_height_local > z0f)then
-                do k=kfds,kdmax
-                  ht = hgt(k)      ! height of this m point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(z0f)
-                      u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgt(k-1))
-                      u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 10
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    u2d=u3d(k)
-                  endif
-                enddo
-      10        continue
-              else  ! roughness higher than the fire wind height
-                u2d=0.
-              endif
-
-          ! interpolate v, staggered in Y
-
-              if(fire_wind_height_local > z0f)then       !
-                do k=kfds,kdmax
-                  ht = hgt(k)      ! height of this u point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(z0f)
-                      v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgt(k-1))
-                      v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 11
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    v2d=v3d(k)
-                  endif
-                enddo
-      11        continue
-              else  ! roughness higher than the fire wind height
-                v2d=0.
-              endif
+       ! interpolate v
+      if(fire_wind_height_local > z0f)then       !
+        do k=kfds,kdmax
+          ht = hgt(k)      ! height of this u point above the ground
+          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
+            loght = log(ht)
+            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
+              logz0 = log(z0f)
+              v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
+            else                           ! log linear interpolation
+              loglast=log(hgt(k-1))
+              v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+            endif
+            goto 11
+          endif
+          if(k.eq.kdmax)then                 ! last layer, still not high enough
+            v2d=v3d(k)
+          endif
+        enddo
+        11 continue
+      else  ! roughness higher than the fire wind height
+        v2d=0.
+      endif
 
       ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
       if (config_flags%fire_lsm_zcoupling) then
