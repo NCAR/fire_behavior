@@ -657,19 +657,14 @@
       type (datetime_t), intent (in) :: datetime
 
       real, dimension(:, :, :, :), allocatable :: var4d, var4d2
-      real, dimension(:, :, :), allocatable :: temp
       integer :: nt, nlevels
 
 
       nt = this%Get_datetime_index (datetime)
       call Get_netcdf_var (trim (this%file_name), 'PH', var4d)
       call Get_netcdf_var (trim (this%file_name), 'PHB', var4d2)
-      temp = var4d(:, :, :, nt) + var4d(:, :, :, nt)
+      this%phl = var4d(:, :, :, nt) + var4d2(:, :, :, nt)
       deallocate (var4d, var4d2)
-
-      nlevels = size (temp, dim = 3)
-      this%phl = (temp(:, :, 2:nlevels) + temp(:, :, 1:nlevels - 1)) / 2.0
-      deallocate (temp)
 
     end subroutine Get_geopotential_levels
 
