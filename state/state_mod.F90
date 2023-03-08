@@ -108,7 +108,7 @@
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_latlons_fire => Init_latlons_fire
       procedure, public :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
-!      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
+      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
       procedure, public :: Print => Print_domain
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure :: sum_2d_fire_vars => Sum_2d_fire_vars
@@ -583,155 +583,155 @@
 
     end subroutine Interpolate_vars_atm_to_fire
 
-    ! subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
-    !       fire_wind_height,                               & ! interpolation height
-    !       ifds, ifde, kfds, kfde, jfds, jfde,             & ! fire grid dimensions
-    !       u3d,v3d,                                        & ! atm grid arrays in
-    !       phl,                                            &
-    !       u2d,v2d,z0f)                                      ! fire grid arrays out
+    subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
+          fire_wind_height,                               & ! interpolation height
+          ifds, ifde, kfds, kfde, jfds, jfde,             & ! fire grid dimensions
+          u3d,v3d,                                        & ! atm grid arrays in
+          phl,                                            &
+          u2d,v2d,z0f)                                      ! fire grid arrays out
 
-    !   implicit none
+      implicit none
 
-    !   class (domain), intent(in) :: this
-    !   type (namelist_t), intent(in) :: config_flags
-    !   real, intent(in) :: fire_wind_height                  ! height above the terrain for vertical interpolation
-    !   integer, intent(in) ::                              &
-    !       ifds,ifde, kfds,kfde, jfds,jfde ! fire domain bounds
+      class (domain), intent(in) :: this
+      type (namelist_t), intent(in) :: config_flags
+      real, intent(in) :: fire_wind_height                  ! height above the terrain for vertical interpolation
+      integer, intent(in) ::                              &
+          ifds,ifde, kfds,kfde, jfds,jfde ! fire domain bounds
 
-    !   real,intent(in)::u3d(:),v3d(:), & ! atm wind velocity, staggered
-    !       phl(:)                                   ! geopotential
-    !   real,intent(out):: u2d,v2d    ! wind velocity fire grid nodes
-    !   real,intent(in):: z0f          ! roughness length in fire grid
+      real,intent(in)::u3d(:),v3d(:), & ! atm wind velocity, staggered
+          phl(:)                                   ! geopotential
+      real,intent(out):: u2d,v2d    ! wind velocity fire grid nodes
+      real,intent(in):: z0f          ! roughness length in fire grid
 
-    !   !*** local
-    !   character(len=256)::msg
-    !   real, dimension(kfds:kfde):: altw, hgt
-    !   integer:: k
-    !   integer::kdmax
-    !   real:: ground,loght,loglast,logz0,logfwh,ht
-    !   real::r_nan
-    !   integer::i_nan
-    !   equivalence (i_nan,r_nan)
-    !   real::fire_wind_height_local,z0fc
-    !   real::ust_d,wsf,wsf1,uf_temp,vf_temp
-    !   real,parameter::vk_kappa=0.4
+      !*** local
+      character(len=256)::msg
+      real, dimension(kfds:kfde-1):: altw, hgt
+      integer:: k
+      integer::kdmax
+      real:: ground,loght,loglast,logz0,logfwh,ht
+      real::r_nan
+      integer::i_nan
+      equivalence (i_nan,r_nan)
+      real::fire_wind_height_local,z0fc
+      real::ust_d,wsf,wsf1,uf_temp,vf_temp
+      real,parameter::vk_kappa=0.4
 
-    !   !*** executable
-    !   ! debug init local arrays
-    !   i_nan=2147483647
-    !   u2d=r_nan
-    !   v2d=r_nan
-    !   altw=r_nan
-    !   hgt=r_nan
+      !*** executable
+      ! debug init local arrays
+      i_nan=2147483647
+      u2d=r_nan
+      v2d=r_nan
+      altw=r_nan
+      hgt=r_nan
 
-    !   !                            ^ j
-    !   !        ------------        |
-    !   !        |          |         ----> i
-    !   !        u    p     |
-    !   !        |          |    nodes in cell (i,j)
-    !   !        ------v-----    view from top
-    !   !
-    !   !             v(ide,jde+1)
-    !   !            -------x------
-    !   !            |            |
-    !   !            |            |
-    !   ! u(ide,jde) x      x     x u(ide+1,jde)
-    !   !            | p(ide,hde) |
-    !   !            |            |   p=ph,phb,z0,...
-    !   !            -------x------
-    !   !              v(ide,jde)
-    !   !
-    !   ! staggered values set u(ids:ide+1,jds:jde) v(ids:ide,jds:jde+1)
-    !   ! p=ph+phb set at (ids:ide,jds:jde)
-    !   ! location of u(i,j) needs p(i-1,j) and p(i,j)
-    !   ! location of v(i,j) needs p(i,j-1) and p(i,j)
-    !   ! *** NOTE need HALO in ph, phb
-    !   ! so we can compute only u(ids+1:ide,jds:jde) v(ids:ide,jds+1,jde)
-    !   ! unless we extend p at the boundary
-    !   ! but because we care about the fire way in the inside it does not matter
-    !   ! if the fire gets close to domain boundary the simulation is over anyway
+      !                            ^ j
+      !        ------------        |
+      !        |          |         ----> i
+      !        u    p     |
+      !        |          |    nodes in cell (i,j)
+      !        ------v-----    view from top
+      !
+      !             v(ide,jde+1)
+      !            -------x------
+      !            |            |
+      !            |            |
+      ! u(ide,jde) x      x     x u(ide+1,jde)
+      !            | p(ide,hde) |
+      !            |            |   p=ph,phb,z0,...
+      !            -------x------
+      !              v(ide,jde)
+      !
+      ! staggered values set u(ids:ide+1,jds:jde) v(ids:ide,jds:jde+1)
+      ! p=ph+phb set at (ids:ide,jds:jde)
+      ! location of u(i,j) needs p(i-1,j) and p(i,j)
+      ! location of v(i,j) needs p(i,j-1) and p(i,j)
+      ! *** NOTE need HALO in ph, phb
+      ! so we can compute only u(ids+1:ide,jds:jde) v(ids:ide,jds+1,jde)
+      ! unless we extend p at the boundary
+      ! but because we care about the fire way in the inside it does not matter
+      ! if the fire gets close to domain boundary the simulation is over anyway
 
-    !   kdmax=kfde-1   ! max layer to interpolate from, can be less
-    !   do k = kfds,kdmax+1
-    !     altw(k) = phl(k) / G             ! altitude of the bottom w-point
-    !   enddo
+      kdmax=kfde-2   ! max layer to interpolate from, can be less
+      do k = kfds,kdmax+1
+        altw(k) = phl(k) / G             ! altitude of the bottom w-point
+      enddo
 
-    !   do k = kfds,kdmax
-    !     hgt(k) = 0.5 * (altw(k)+ altw(k+1)) - altw(kfds) ! height of the mass point above the ground
-    !   enddo
+      do k = kfds,kdmax
+        hgt(k) = 0.5 * (altw(k)+ altw(k+1)) - altw(kfds) ! height of the mass point above the ground
+      enddo
 
-    !   ! DME
-    !   if (config_flags%fire_lsm_zcoupling) then
-    !     logfwh = log(config_flags%fire_lsm_zcoupling_ref)
-    !     fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
-    !   else
-    !     logfwh = log(fire_wind_height)
-    !     fire_wind_height_local = fire_wind_height
-    !   endif
+      ! DME
+      if (config_flags%fire_lsm_zcoupling) then
+        logfwh = log(config_flags%fire_lsm_zcoupling_ref)
+        fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
+      else
+        logfwh = log(fire_wind_height)
+        fire_wind_height_local = fire_wind_height
+      endif
 
-    !    ! interpolate u
-    !   if(fire_wind_height_local > z0f)then
-    !     do k=kfds,kdmax
-    !       ht = hgt(k)      ! height of this m point above the ground
-    !       if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-    !         loght = log(ht)
-    !         if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
-    !           logz0 = log(z0f)
-    !           u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
-    !         else                           ! log linear interpolation
-    !           loglast=log(hgt(k-1))
-    !           u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
-    !         endif
-    !         goto 10
-    !       endif
-    !       if(k.eq.kdmax)then                 ! last layer, still not high enough
-    !         u2d=u3d(k)
-    !       endif
-    !     enddo
-    !   10 continue
-    !   else  ! roughness higher than the fire wind height
-    !     u2d=0.
-    !   endif
+       ! interpolate u
+      if(fire_wind_height_local > z0f)then
+        do k=kfds,kdmax
+          ht = hgt(k)      ! height of this m point above the ground
+          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
+            loght = log(ht)
+            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
+              logz0 = log(z0f)
+              u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
+            else                           ! log linear interpolation
+              loglast=log(hgt(k-1))
+              u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+            endif
+            goto 10
+          endif
+          if(k.eq.kdmax)then                 ! last layer, still not high enough
+            u2d=u3d(k)
+          endif
+        enddo
+      10 continue
+      else  ! roughness higher than the fire wind height
+        u2d=0.
+      endif
 
-    !    ! interpolate v
-    !   if(fire_wind_height_local > z0f)then       !
-    !     do k=kfds,kdmax
-    !       ht = hgt(k)      ! height of this u point above the ground
-    !       if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-    !         loght = log(ht)
-    !         if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
-    !           logz0 = log(z0f)
-    !           v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
-    !         else                           ! log linear interpolation
-    !           loglast=log(hgt(k-1))
-    !           v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
-    !         endif
-    !         goto 11
-    !       endif
-    !       if(k.eq.kdmax)then                 ! last layer, still not high enough
-    !         v2d=v3d(k)
-    !       endif
-    !     enddo
-    !     11 continue
-    !   else  ! roughness higher than the fire wind height
-    !     v2d=0.
-    !   endif
+       ! interpolate v
+      if(fire_wind_height_local > z0f)then       !
+        do k=kfds,kdmax
+          ht = hgt(k)      ! height of this u point above the ground
+          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
+            loght = log(ht)
+            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
+              logz0 = log(z0f)
+              v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
+            else                           ! log linear interpolation
+              loglast=log(hgt(k-1))
+              v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+            endif
+            goto 11
+          endif
+          if(k.eq.kdmax)then                 ! last layer, still not high enough
+            v2d=v3d(k)
+          endif
+        enddo
+        11 continue
+      else  ! roughness higher than the fire wind height
+        v2d=0.
+      endif
 
-    !   ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
-    !   if (config_flags%fire_lsm_zcoupling) then
-    !         uf_temp=u2d
-    !         vf_temp=v2d
-    !         wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
-    !         z0fc=z0f
-    !         ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
-    !         wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
-    !         u2d=wsf1*uf_temp/wsf
-    !         v2d=wsf1*vf_temp/wsf
-    !   endif
+      ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
+      if (config_flags%fire_lsm_zcoupling) then
+            uf_temp=u2d
+            vf_temp=v2d
+            wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
+            z0fc=z0f
+            ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
+            wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
+            u2d=wsf1*uf_temp/wsf
+            v2d=wsf1*vf_temp/wsf
+      endif
 
-    !   return
+      return
 
-    ! end subroutine Interpolate_wind3d
+    end subroutine Interpolate_wind3d
 
     subroutine Print_domain (this)
 
