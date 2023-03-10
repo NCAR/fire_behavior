@@ -12,7 +12,7 @@
     public :: geogrid_t
 
     type :: geogrid_t
-      real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong
+      real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong, xlat_c, xlong_c
       real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, true_lat_1 = 0.0, true_lat_2 = 0.0, stand_lon = 0.0
       integer :: ids = 1, jds = 1, ide, jde = 0, ifds = 1, jfds = 1, ifde = 0, jfde = 0, sr_x = 0, sr_y = 0, map_proj = 0
     contains
@@ -99,6 +99,14 @@
 
       call Get_netcdf_var (trim (file_name), 'XLONG_M', var_real32)
       return_value%xlong = var_real32(:, :, 1)
+      deallocate (var_real32)
+
+      call Get_netcdf_var (trim (file_name), 'XLAT_C', var_real32)
+      return_value%xlat_c = var_real32(:, :, 1)
+      deallocate (var_real32)
+
+      call Get_netcdf_var (trim (file_name), 'XLONG_C', var_real32)
+      return_value%xlong_c = var_real32(:, :, 1)
       deallocate (var_real32)
 
       call Get_netcdf_att (trim (file_name), 'global', 'sr_x', att_int32)
