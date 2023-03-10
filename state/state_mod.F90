@@ -349,7 +349,7 @@
       this%nx = this%ifde
       this%ny = this%jfde
 
-      if (use_geogrid) call Init_latlons_fire (this, geogrid)
+      if (use_geogrid) call this%Init_latlons_fire (geogrid)
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -528,6 +528,7 @@
                 wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
                 wrf%xlong,                                   &
                 this%fxlong,0)
+
           end if
 
         call wrf%interpolate_z2fire(                    &
