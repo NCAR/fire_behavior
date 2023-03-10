@@ -533,7 +533,8 @@ module wrf_nuopc
     ! local variables
     type(ESMF_Clock)            :: clock
     type(ESMF_State)            :: importState, exportState
-    type(ESMF_Time)             :: currTime
+    type(ESMF_Time)             :: nextTime
+!    type(ESMF_Time)             :: currTime
     ! type(ESMF_TimeInterval)     :: timeStep
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
@@ -553,13 +554,14 @@ module wrf_nuopc
       return  ! bail out
 
       ! Get current time stamp
-    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
+!    call ESMF_ClockGet(clock, currTime=currTime, rc=rc)
+    call ESMF_ClockGetNextTime(clock, nextTime=nextTime, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
-    call ESMF_TimeGet(time=currTime, yy  = yy_now, mm = mm_now, dd = dd_now, h = h_now, m = m_now, s = s_now, s_r8 = s_r8, ms = ms, rc=rc)
+    call ESMF_TimeGet(time=nextTime, yy  = yy_now, mm = mm_now, dd = dd_now, h = h_now, m = m_now, s = s_now, s_r8 = s_r8, ms = ms, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
