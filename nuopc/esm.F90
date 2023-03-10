@@ -187,6 +187,11 @@ module ESM
       "   FIRE        ",    &
       "   WRF         ",    &
       " @             " /), &
+!      " @*                                     ",    &
+!      "   WRF -> FIRE :remapMethod=nearest_stod",    &
+!      "   FIRE                                 ",    &
+!      "   WRF                                  ",    &
+!      " @                                      " /), &
       rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, file=trim(name)//":"//__FILE__)) return  ! bail out
