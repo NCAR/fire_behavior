@@ -349,7 +349,7 @@
       this%nx = this%ifde
       this%ny = this%jfde
 
-      if (use_geogrid) call this%Init_latlons_fire (geogrid)
+
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -424,7 +424,29 @@
         this%dzdyf = DEFAULT_DZDYF
       end if if_geogrid2d
 
+
       call calc_unit_fxlat_fxlong (this, config_flags)
+
+      if (this%fire_ignition_longlat == 0) then
+          ! set ideal fire mesh coordinates - used for ignition only
+          ! do not forget to set unit_fxlong, unit_fxlat outside of parallel loop
+
+          ! DME: Next call added to fixe a bug when
+          ! initializing a nested domain (before, fxlong & fxlat where not
+          ! assigned, they were supposed to be set by a mod in WPS
+          ! but here we use standard WPS therefore were zero and fire does not ignite)
+        call set_ideal_coord( this%dx,this%dy,          &
+              this%ifds,this%ifde,this%jfds,this%jfde,  &
+              this%ifms,this%ifme,this%jfms,this%jfme,  &
+              this%ifts,this%ifte,this%jfts,this%jfte,  &
+              this%fxlong,this%fxlat)
+      else
+          ! assume halo xlong xlat
+          ! interpolate nodal coordinates
+        call Init_fxlatfxlong (this,geogrid)
+      endif
+
+      if (use_geogrid) call this%Init_latlons_fire (geogrid)
 
     end subroutine Init_domain
 
@@ -494,52 +516,17 @@
         real, dimension(:, :), allocatable :: var2d
 
 
-        If_testcase: if (this%datetime_now == this%datetime_start) then
+        If_start: if (this%datetime_now == this%datetime_start) then
 
-          if (this%fire_ignition_longlat == 0) then
-              ! set ideal fire mesh coordinates - used for ignition only
-              ! do not forget to set unit_fxlong, unit_fxlat outside of parallel loop
+          call wrf%interpolate_z2fire(                     &
+              this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
+              this%ifms, this%ifme, this%jfms, this%jfme,  &
+              this%ifts,this%ifte,this%jfts,this%jfte,     &
+              wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
+              wrf%z0_stag,                                 &
+              this%fz0,1)
 
-              ! DME: Next call added to fixe a bug when
-              ! initializing a nested domain (before, fxlong & fxlat where not
-              ! assigned, they were supposed to be set by a mod in WPS
-              ! but here we use standard WPS therefore were zero and fire does not ignite)
-            call set_ideal_coord( this%dx,this%dy,          &
-                  this%ifds,this%ifde,this%jfds,this%jfde,  &
-                  this%ifms,this%ifme,this%jfms,this%jfme,  &
-                  this%ifts,this%ifte,this%jfts,this%jfte,  &
-                  this%fxlong,this%fxlat)
-          else
-              ! assume halo xlong xlat
-              ! interpolate nodal coordinates
-            call wrf%interpolate_z2fire(                    &
-                this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-                this%ifms, this%ifme, this%jfms, this%jfme,  &
-                this%ifts,this%ifte,this%jfts,this%jfte,     &
-                wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
-                wrf%xlat,                                    &
-                this%fxlat,0)
-
-
-            call wrf%interpolate_z2fire(                    &
-                this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-                this%ifms, this%ifme, this%jfms, this%jfme,  &
-                this%ifts,this%ifte,this%jfts,this%jfte,     &
-                wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
-                wrf%xlong,                                   &
-                this%fxlong,0)
-
-          end if
-
-        call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%z0_stag,                                 &
-            this%fz0,1)
-
-        endif If_testcase
+        endif If_start
 
         call wrf%interpolate_z2fire(                    &
             this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
@@ -583,6 +570,320 @@
             this%fire_rain,1)
 
     end subroutine Interpolate_vars_atm_to_fire
+
+    subroutine Init_fxlatfxlong (this, geogrid)
+
+      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
+      implicit none
+
+      class (domain), intent (in out) :: this
+      type (geogrid_t), intent(in), optional :: geogrid
+
+      real, dimension(:,:), allocatable :: xlat, xlong
+      integer ids,ide,jds,jde,ims,ime,jms,jme,its,ite,jts,jte
+
+
+      ids = geogrid%ids
+      ide = geogrid%ide
+      jds = geogrid%jds
+      jde = geogrid%jde
+
+      ims = geogrid%ids - N_POINTS_IN_HALO
+      ime = geogrid%ide + N_POINTS_IN_HALO
+      jms = geogrid%jds - N_POINTS_IN_HALO
+      jme = geogrid%jde + N_POINTS_IN_HALO
+
+      its = ids
+      ite = ide
+      jts = jds
+      jte = jde
+
+      allocate (xlat(ims:ime,jms:jme))
+      allocate (xlong(ims:ime,jms:jme))
+
+      xlat = 0.
+      xlong = 0.
+      xlat(ids:ide-1,jds:jde-1) = geogrid%xlat
+      xlong(ids:ide-1,jds:jde-1) = geogrid%xlong
+
+      call interpolate_z2fire(ids,ide, jds,jde,       &
+          ims,ime, jms,jme, its,ite, jts,jte,         &
+          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
+          this%ifms,this%ifme, this%jfms,this%jfme,   &
+          this%ifts,this%ifte, this%jfts,this%jfte,   &
+          geogrid%sr_x, geogrid%sr_y,                 & ! atm/fire this ratio
+          xlat,this%fxlat,0)
+
+      call interpolate_z2fire(ids,ide, jds,jde,       &
+          ims,ime, jms,jme, its,ite, jts,jte,         &
+          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
+          this%ifms,this%ifme, this%jfms,this%jfme,   &
+          this%ifts,this%ifte, this%jfts,this%jfte,   &
+          geogrid%sr_x,geogrid%sr_y,                  & ! atm/fire this ratio
+          xlong,this%fxlong,0)
+
+      deallocate(xlat, xlong)
+
+    end subroutine Init_fxlatfxlong
+
+    subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
+          ims,ime,jms,jme, &                ! memory dims
+          ids,ide,jds,jde, &                ! domain dims
+          its,ite,jts,jte, &                ! tile dims
+          itso,iteo,jtso,jteo, &            ! tile dims where set
+          lfn)
+                              ! array
+      implicit none
+      !*** description
+      ! extend array by one beyond the domain by linear continuation
+      !*** arguments
+      integer, intent(in) :: ix,iy               ! not 0 = do x or y (1 or 2) direction
+      real, intent(in) :: bias                   ! 0=none, 1.=max
+      integer, intent(in) :: ims,ime,jms,jme, &  ! memory dims
+                             ids,ide,jds,jde, &  ! domain dims
+                             its,ite,jts,jte     ! tile dims
+      integer, intent(out) :: itso,jtso,iteo,jteo  ! where set
+      real, intent(inout), dimension(ims:ime,jms:jme) :: lfn
+      !*** local
+      integer i,j
+      character(len=128)::msg
+      integer::its1,ite1,jts1,jte1
+      integer,parameter::halo=1     ! only 1 domain halo is needed since ENO1 is used near domain boundaries
+      !*** executable
+
+      ! for dislay only
+      itso = its
+      jtso = jts
+      iteo = ite
+      jteo = jte
+      ! go halo width beyond if at patch boundary but not at domain boudnary
+      ! assume we have halo need to compute the value we do not have
+      ! the next thread that would conveniently computer the extended values at patch corners
+      ! besides halo may not transfer values outside of the domain
+
+      its1 = its
+      jts1 = jts
+      ite1 = ite
+      jte1 = jte
+      if(.not.its.eq.ids)its1=its-halo
+      if(.not.jts.eq.jds)jts1=jts-halo
+      if(.not.ite.eq.ide)ite1=ite+halo
+      if(.not.jte.eq.jde)jte1=jte+halo
+      !$OMP CRITICAL(FIRE_UTIL_CRIT)
+      write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias
+!      call message(msg)
+      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+      if(ix.ne.0)then
+          if(its.eq.ids)then
+              do j=jts1,jte1
+                  lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
+              enddo
+              itso=ids-1
+          endif
+          if(ite.eq.ide)then
+              do j=jts1,jte1
+                  lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
+              enddo
+              iteo=ide+1
+          endif
+      !$OMP CRITICAL(FIRE_UTIL_CRIT)
+          write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
+!          call message(msg)
+      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+      endif
+      if(iy.ne.0)then
+          if(jts.eq.jds)then
+              do i=its1,ite1
+                  lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
+              enddo
+              jtso=jds-1
+          endif
+          if(jte.eq.jde)then
+              do i=its1,ite1
+                  lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
+              enddo
+              jteo=jde+1
+          endif
+      !$OMP CRITICAL(FIRE_UTIL_CRIT)
+          write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
+      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+!          call message(msg)
+      endif
+      ! corners of the domain
+      if(ix.ne.0.and.iy.ne.0)then
+          if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
+          if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
+          if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
+          if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
+      endif
+      return
+
+      contains
+        real function EX(a,b)
+        !*** statement function
+        real a,b
+        EX=(1.-bias)*(2.*a-b)+bias*max(2.*a-b,a,b)   ! extrapolation, max quarded
+        end function EX
+    end subroutine Continue_at_boundary
+
+    subroutine Interpolate_z2fire( &
+          ids,ide, jds,jde,        &
+          ims,ime, jms,jme,        &
+          its,ite, jts,jte,        &
+          ifds,ifde, jfds,jfde,    & ! fire grid dimensions
+          ifms,ifme, jfms,jfme,    &
+          ifts,ifte, jfts,jfte,    &
+          ir, jr,                  & ! atm/fire grid ratio
+          zs,                      & ! atm grid arrays in
+          zsf, flag_z0)              ! fire grid arrays out
+
+      implicit none
+      !*** purpose: interpolate height or any other 2d variable defined at mesh cell centers
+
+      !*** arguments
+      integer, intent(in) :: ids,ide, jds,jde,         &
+                             ims,ime, jms,jme,         &
+                             its,ite, jts,jte,         &
+                             ifds,ifde, jfds,jfde,     & ! fire domain bounds
+                             ifms,ifme, jfms,jfme,     & ! fire memory bounds
+                             ifts,ifte, jfts,jfte,     & ! fire tile bounds
+                             ir, jr                        ! atm/fire grid refinement ratio
+      real, intent(in), dimension(ims:ime, jms:jme) :: zs  ! terrain height at atm cell centers & ! terrain height
+      real,intent(out), dimension(ifms:ifme, jfms:jfme) :: &
+          zsf                                              ! terrain height fire grid nodes
+      integer,intent(in) :: flag_z0
+
+
+      !*** local
+      real, dimension(its-2:ite+2,jts-2:jte+2) :: za      ! terrain height
+      integer :: i,j,jts1,jte1,its1,ite1,jfts1,jfte1,ifts1,ifte1,itso,jtso,iteo,jteo
+
+      ! terrain height
+
+      jts1 = max(jts-1, jds) ! lower loop limit by one less when at end of domain
+      its1 = max(its-1, ids) ! ASSUMES THE HALO IS THERE if patch != domain
+      jte1 = min(jte+1, jde)
+      ite1 = min(ite+1, ide)
+
+      do j = jts1,jte1
+          do i = its1,ite1
+              ! copy to local array
+              za(i, j) = zs(i, j)
+          enddo
+      enddo
+
+      call continue_at_boundary(1,1,0., & ! do x direction or y direction
+      its-2,ite+2,jts-2,jte+2,           &                ! memory dims
+      ids,ide,jds,jde, &            ! domain dims - winds defined up to +1
+      its1,ite1,jts1,jte1, &                ! tile dims
+      itso,jtso,iteo,jteo, &
+      za)                               ! array
+
+      ! interpolate to tile plus strip along domain boundary if at boundary
+      jfts1 = snode(jfts, jfds, -1) ! lower loop limit by one less when at end of domain
+      ifts1 = snode(ifts, ifds, -1)
+      jfte1 = snode(jfte, jfde, +1)
+      ifte1 = snode(ifte, ifde, +1)
+
+      call interpolate_2d(  &
+          its-2,ite+2,jts-2,jte+2,     & ! memory dims atm grid tile
+          its1-1,ite1+1,jts1-1,jte1+1, & ! where atm grid values set
+          ifms,ifme,jfms,jfme,         & ! array dims fire grid
+          ifts1,ifte1,jfts1,jfte1,     & ! dimensions fire grid tile
+          ir,jr,                       & ! refinement ratio
+          real(ids),real(jds),ifds+(ir-1)*0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
+          za,                     & ! in atm grid
+          zsf)                      ! out fire grid
+
+      if (flag_z0 .eq. 1 ) then
+        do j=jfts1,jfte1
+          do i=ifts1,ifte1
+            zsf(i, j) = max(zsf(i, j), 0.001)
+          enddo
+        enddo
+      endif
+
+    contains
+
+      ! function to go beyond domain boundary if tile is next to it
+      pure integer function snode(t,d,i)
+        implicit none
+        integer, intent(in)::t,d,i
+        if(t.ne.d)then
+            snode=t
+        else
+            snode=t+i
+        endif
+      end function snode
+
+      subroutine interpolate_2d(  &
+            ims2,ime2,jms2,jme2, & ! array coarse grid
+            its2,ite2,jts2,jte2, & ! dimensions coarse grid
+            ims1,ime1,jms1,jme1, & ! array coarse grid
+            its1,ite1,jts1,jte1, & ! dimensions fine grid
+            ir,jr,               & ! refinement ratio
+            rip2,rjp2,rip1,rjp1, & ! (rip2,rjp2) on grid 2 lines up with (rip1,rjp1) on grid 1
+            v2, &                  ! in coarse grid
+            v1  )                  ! out fine grid
+        implicit none
+
+        !*** purpose
+        ! interpolate nodal values in mesh2 to nodal values in mesh1
+        ! interpolation runs over the mesh2 region its2:ite2,jts2:jte2
+        ! only the part of mesh 1 in the region its1:ite1,jts1:jte1 is modified
+
+        !*** arguments
+
+        integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
+        integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
+        integer, intent(in)::ir,jr
+        real,intent(in):: rjp1,rip1,rjp2,rip2
+        real, intent(out)::v1(ims1:ime1,jms1:jme1)
+        real, intent(in)::v2(ims2:ime2,jms2:jme2)
+
+        !*** local
+        integer:: i1,i2,j1,j2,is,ie,js,je
+        real:: tx,ty,rx,ry
+        real:: rio,rjo
+        intrinsic::ceiling,floor
+
+
+        !*** executable
+
+        ! compute mesh ratios
+        rx=1./ir
+        ry=1./jr
+
+        do j2=jts2,jte2-1             ! loop over mesh 2 cells
+          rjo=rjp1+jr*(j2-rjp2)       ! mesh 1 coordinate of the mesh 2 patch start
+          js=max(jts1,ceiling(rjo))   ! lower bound of mesh 1 patch for this mesh 2 cell
+          je=min(jte1,floor(rjo)+jr)  ! upper bound of mesh 1 patch for this mesh 2 cell
+          do i2=its2,ite2-1
+            rio=rip1+ir*(i2-rip2)
+            is=max(its1,ceiling(rio))
+            ie=min(ite1,floor(rio)+ir)
+            do j1=js,je
+              ty = (j1-rjo)*ry
+              do i1=is,ie
+                ! in case mesh 1 node lies on the boundary of several mesh 2 cells
+                ! the result will be written multiple times with the same value
+                ! up to a rounding error
+                tx = (i1-rio)*rx
+                !print *,'coarse ',i2,j2,'to',i2+1,j2+1,' fine ',is,js,' to ',ie,je
+                v1(i1,j1)=                     &
+                      (1-tx)*(1-ty)*v2(i2,j2)  &
+                 +    (1-tx)*ty  *v2(i2,j2+1)  &
+                 +      tx*(1-ty)*v2(i2+1,j2)  &
+                 +        tx*ty  *v2(i2+1,j2+1)
+              enddo
+            enddo
+          enddo
+        enddo
+
+      end subroutine interpolate_2d
+
+    end subroutine Interpolate_z2fire
 
     subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
           fire_wind_height,                               & ! interpolation height
