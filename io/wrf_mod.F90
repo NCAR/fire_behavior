@@ -1254,29 +1254,7 @@
         return_value%xlong = 0.0
         return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
       end if if_geogrid
-!        if (geogrid%dx == config_flags%dx) then
-!          return_value%dx = geogrid%dx
-!        else
-!          write (ERROR_UNIT, *) 'dx in namelist and in geogrid differ'
-!          stop
-!        end if
-!        if (geogrid%dy == config_flags%dy) then
-!          return_value%dy = geogrid%dy
-!        else
-!          write (ERROR_UNIT, *) 'dy in namelist and in geogrid differ'
-!          stop
-!        end if
-!      else
-        ! we need to initialize nx, ny here
-!        return_value%dx = config_flags%dx
-!        return_value%dy = config_flags%dy
 
-!        return_value%xlat = 0.0
-!        return_value%xlat(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlat
-!        return_value%xlong = 0.0
-!        return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
-!      end if if_geogrid
-!      return_value%dt = config_flags%dt
     end if if_use_config_flags
 
     end function Wrf_t_const
