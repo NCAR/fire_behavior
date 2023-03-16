@@ -819,6 +819,16 @@ module fire_behavior_nuopc
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
     grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
 
+    do j = grid%jfds, grid%jfde
+      do i = grid%ifds, grid%ifde
+        grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
+        grid%fire_t2(i,j) = max (grid%fire_t2(i,j), .001)
+        grid%fire_psfc(i,j) = max (grid%fire_psfc(i,j), .001)
+!        grid%fire_rain(i,j) = max (grid%fire_t2(i,j), .001)
+      end do
+    end do 
+
+
     allocate (atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
