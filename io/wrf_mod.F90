@@ -42,7 +42,6 @@
       real, dimension(:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
       real, dimension(:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
 
-      integer :: bottom_top, bottom_top_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
       integer :: num_tiles
@@ -1087,8 +1086,6 @@
           ! latlon at corners
         call return_value%Get_latcloncs ()
 
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_UNSTAG', return_value%bottom_top)
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'BOTTOM-TOP_PATCH_END_STAG', return_value%bottom_top_stag)
       end if
 
       if_use_config_flags: if (use_config_flags) then
