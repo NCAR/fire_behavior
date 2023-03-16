@@ -1098,8 +1098,8 @@
         if (.not. allocated (return_value%lons) .and. .not. allocated (return_value%lats)) then
           return_value%lats = geogrid%xlat
           return_value%lons = geogrid%xlong
-!          return_value%lats_c = geogrid%xlat_c
-!          return_value%lons_c = geogrid%xlong_c
+          return_value%lats_c = geogrid%xlat_c
+          return_value%lons_c = geogrid%xlong_c
         end if
 
         if (geogrid%ids == config_flags%ids) then

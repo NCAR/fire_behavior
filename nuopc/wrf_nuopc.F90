@@ -88,6 +88,7 @@ module wrf_nuopc
     ! local variables
     type(ESMF_State)        :: importState, exportState
     type (datetime_t) :: datetime_now
+    integer           :: i,j,k
 
     rc = ESMF_SUCCESS
 
@@ -106,18 +107,42 @@ module wrf_nuopc
     call config_flags%Init_time_block ('namelist.input')
     call config_flags%Init_atm_block ('namelist.input')
 
-    !state = wrf_t (file_name = 'wrf.nc')
     call Init_atm_state(state, config_flags)
-!    state = wrf_t('wrf.nc', config_flags, geogrid)
+
     allocate (state%q2(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate (state%t2(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate (state%z0(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate (state%psfc(size(state%lats, dim=1), size(state%lats, dim=2)))
     allocate (state%rain(size(state%lats, dim=1), size(state%lats, dim=2)))
-    allocate (state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate (state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate (state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
-    allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%bottom_top))
+    allocate (state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
+    allocate (state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
+    allocate (state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
+    allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
+
+    if (config_flags%atm_model == 'wrfdata_legacy') then
+      do k = state%kds, state%kde - 1
+        do j = state%jds, state%jde - 1
+          do i = state%ids, state%ide - 1
+            state%u3d(i, j, k) = state%u3d_stag(i, k, j)
+          end do
+        end do
+      end do
+      do k = state%kds, state%kde - 1
+        do j = state%jds, state%jde - 1
+          do i = state%ids, state%ide - 1
+            state%v3d(i, j, k) = state%v3d_stag(i, k, j)
+          end do
+        end do
+      end do
+      do k = state%kds, state%kde - 1
+        do j = state%jds, state%jde - 1
+          do i = state%ids, state%ide - 1
+            state%phl(i, j, k) = state%ph_stag(i, k, j) + state%phb_stag(i, k, j)
+          end do
+        end do
+      end do
+      state%z0 = state%z0_stag(state%ids:state%ide - 1, state%jds:state%jde - 1) 
+    endif
 
     ! Import/ Export Variables -----------------------------------------------------
 
@@ -294,7 +319,7 @@ module wrf_nuopc
      ! exportable field on Grid: inst_zonal_wind_levels
      field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/state%bottom_top/), &
+       ungriddedUBound=(/state%kde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -316,7 +341,7 @@ module wrf_nuopc
      ! exportable field on Grid: inst_merid_wind_levels
      field = ESMF_FieldCreate(name="inst_merid_wind_levels", grid=grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/state%bottom_top/), &
+       ungriddedUBound=(/state%kde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -337,7 +362,7 @@ module wrf_nuopc
      ! exportable field on Grid: inst_geop_levels
      field = ESMF_FieldCreate(name="inst_geop_levels", grid=grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/state%bottom_top/), &
+       ungriddedUBound=(/state%kde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -358,7 +383,7 @@ module wrf_nuopc
      ! exportable field on Grid: inst_pres_levels
      field = ESMF_FieldCreate(name="inst_pres_levels", grid=grid, &
        gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/state%bottom_top/), &
+       ungriddedUBound=(/state%kde - 1/), &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -478,7 +503,7 @@ module wrf_nuopc
       config_flags%start_second)
 
 !      ! "Initialize" atmospheric model
-     call Update_atm_state(datetime_now)
+     call Update_atm_state(datetime_now, config_flags)
 
 #endif
 
@@ -584,7 +609,7 @@ module wrf_nuopc
     !   return  ! bail out
 
 !      ! "Run" atmospheric model
-     call Update_atm_state(datetime_now)
+     call Update_atm_state(datetime_now, config_flags)
 !    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &
@@ -613,20 +638,22 @@ module wrf_nuopc
 
   end subroutine
 
-  subroutine Update_atm_state(datetime)
+  subroutine Update_atm_state(datetime,config_flags)
    
     type (datetime_t), intent (in) :: datetime
+    type (namelist_t), intent (in) :: config_flags
 
-
-    call state%Get_z0(datetime)
-    call state%Get_t2(datetime)
-    call state%Get_q2(datetime)
-    call state%Get_psfc(datetime)
-    call state%Get_rain(datetime)
-    call state%Get_u3d(datetime)
-    call state%Get_v3d(datetime)
-    call state%Get_phl(datetime)
-    call state%Get_pres(datetime)
+    if (config_flags%atm_model == 'wrfdata') then
+      call state%Get_z0(datetime)
+      call state%Get_t2(datetime)
+      call state%Get_q2(datetime)
+      call state%Get_psfc(datetime)
+      call state%Get_rain(datetime)
+      call state%Get_u3d(datetime)
+      call state%Get_v3d(datetime)
+      call state%Get_phl(datetime)
+      call state%Get_pres(datetime)
+    end if
 
     ! Set field data
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
@@ -640,13 +667,13 @@ module wrf_nuopc
     ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
       state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+      state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
     ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+      state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
     ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+      state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
     ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%bottom_top)
+      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
    
   end subroutine
 
