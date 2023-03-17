@@ -8,7 +8,7 @@ module fire_behavior_nuopc
   use NUOPC_Model, &
     modelSS    => SetServices
 
-  use state_mod, only : domain
+  use state_mod, only : state_fire_t
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
@@ -19,7 +19,7 @@ module fire_behavior_nuopc
 
   public SetVM, SetServices
 
-  type (domain) :: grid
+  type (state_fire_t) :: grid
   type (namelist_t) :: config_flags
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)

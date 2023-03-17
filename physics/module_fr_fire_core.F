@@ -1290,7 +1290,6 @@ subroutine prop_ls_rk3(id,               &
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_1_sub, halo_fire_lfn_2_sub, halo_fire_lfn_0_sub
 #endif
-USE state_mod, only: domain
 
 implicit none
 
@@ -1513,7 +1512,6 @@ subroutine reinit_ls_rk3(id,                       &
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_s1_sub,halo_fire_lfn_s2_sub,halo_fire_lfn_s3_sub
 #endif
-USE state_mod, only: domain
 USE namelist_mod, only: namelist_t
 
 implicit none

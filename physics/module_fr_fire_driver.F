@@ -25,7 +25,7 @@ use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_z
                                Crash, Check_mesh_2dim, Write_array_m, Print_chsum
 use module_fr_fire_core, only: ignition_line_type
 
-USE state_mod, only: domain
+USE state_mod, only: state_fire_t
 USE namelist_mod, only: namelist_t
 
 implicit none
@@ -61,7 +61,7 @@ halo_fire_mag_sub
 
     implicit none
 !*** arguments
-    TYPE(domain) , TARGET :: grid                             ! state 
+    TYPE(state_fire_t) , TARGET :: grid             ! state
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
     integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
     integer, intent(in):: &

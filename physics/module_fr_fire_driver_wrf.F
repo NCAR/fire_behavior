@@ -8,7 +8,7 @@ module module_fr_fire_driver_wrf
 
 use module_fr_fire_driver, only : fire_driver_em
 use module_fr_fire_util, only : message
-use state_mod, only: domain
+use state_mod, only: state_fire_t
 use namelist_mod , only : namelist_t
 
 implicit none
@@ -24,7 +24,7 @@ subroutine fire_driver_em_init (grid , config_flags)
 
     implicit none
 
-    type (domain), target :: grid
+    type (state_fire_t), target :: grid
     type (namelist_t), intent(in) :: config_flags
 
     call message ('fire_driver_em_init: FIRE initialization start')
@@ -49,7 +49,7 @@ subroutine fire_driver_em_step (grid, config_flags)
 
     implicit none
 
-    type (domain), target :: grid
+    type (state_fire_t), target :: grid
     type (namelist_t), intent(in) :: config_flags
 
     call message('fire_driver_em_step: FIRE step start')

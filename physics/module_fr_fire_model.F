@@ -75,7 +75,6 @@ subroutine fire_model (                    &
 !    
 ! enddo
 
-USE state_mod, only: domain
 #ifdef DM_PARALLEL
     USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
     USE module_comm_dm , ONLY : halo_fire_lfn_sub

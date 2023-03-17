@@ -12,7 +12,7 @@
 
     private
 
-    public :: domain, P_FIRE_SMOKE, NUM_TRACER
+    public :: state_fire_t, P_FIRE_SMOKE, NUM_TRACER
 
     integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, P_FIRE_SMOKE = 1
     integer, parameter :: N_POINTS_IN_HALO = 5
@@ -99,20 +99,16 @@
       real :: cen_lat, cen_lon
     contains
       procedure, public :: Handle_output => Handle_output
-      procedure, public :: Save_state => Save_state
-    end type state_fire_t
-
-    type, extends (state_fire_t) :: domain
-    contains
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
-      procedure, public :: Init_latlons_fire => Init_latlons_fire
-      procedure, public :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
+      procedure :: Init_latlons_fire => Init_latlons_fire
+      procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Interpolate_wind3d => Interpolate_wind3d
-      procedure, public :: Print => Print_domain
+      procedure, public :: Print => Print_domain ! private
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
-      procedure :: sum_2d_fire_vars => Sum_2d_fire_vars
-    end type domain
+      procedure, public :: Save_state => Save_state
+      procedure :: Sum_2d_fire_vars => Sum_2d_fire_vars
+    end type state_fire_t
 
   contains
 
@@ -122,7 +118,7 @@
 
       implicit none
 
-      type (domain), intent(in out) :: grid   ! data
+      type (state_fire_t), intent(in out) :: grid   ! data
       type (namelist_t), intent(in) :: config_flags
       integer, intent(in) :: ifts,ifte,jfts,jfte
 
@@ -143,7 +139,7 @@
 
       implicit none
 
-      type (domain), intent(in out) :: grid
+      type (state_fire_t), intent(in out) :: grid
       type (namelist_t), intent(in) :: config_flags
 
       logical :: real,ideal
@@ -199,7 +195,7 @@
 
       implicit none
 
-      class (domain), intent(in out) :: this
+      class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
       logical, intent (in), optional :: testcase
@@ -243,7 +239,7 @@
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
 
-      class (domain), intent(in out) :: this
+      class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in), optional :: geogrid
 
@@ -456,7 +452,7 @@
 
       implicit none
 
-      class (domain), intent (in out) :: this
+      class (state_fire_t), intent (in out) :: this
       type (geogrid_t), intent(in) :: geogrid
 
       real, parameter :: OFFSET = 0.5
@@ -510,7 +506,7 @@
 
         implicit none
 
-        class (domain), intent(in out) :: this          ! fire state
+        class (state_fire_t), intent(in out) :: this    ! fire state
         type (wrf_t), intent(in) :: wrf                 ! atm state
 
         real, dimension(:, :), allocatable :: var2d
@@ -577,7 +573,7 @@
 
       implicit none
 
-      class (domain), intent (in out) :: this
+      class (state_fire_t), intent (in out) :: this
       type (geogrid_t), intent(in), optional :: geogrid
 
       real, dimension(:,:), allocatable :: xlat, xlong
@@ -894,7 +890,7 @@
 
       implicit none
 
-      class (domain), intent(in) :: this
+      class (state_fire_t), intent(in) :: this
       type (namelist_t), intent(in) :: config_flags
       real, intent(in) :: fire_wind_height                  ! height above the terrain for vertical interpolation
       integer, intent(in) ::                              &
@@ -1041,7 +1037,7 @@
 
       implicit none
 
-      class (domain), intent(in out) :: this
+      class (state_fire_t), intent(in out) :: this
 
 
       write (OUTPUT_UNIT, *) ''
@@ -1068,7 +1064,7 @@
 
       implicit none
 
-      class (domain), intent(in out) :: this
+      class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
 
@@ -1272,7 +1268,7 @@
 
       implicit none
 
-      class (domain), intent(in out) :: this          ! fire state
+      class (state_fire_t), intent(in out) :: this        ! fire state
       type (wrf_t), intent(in out) :: atm                 ! atm state
       type (namelist_t), intent(in) :: config_flags   ! namelist
 

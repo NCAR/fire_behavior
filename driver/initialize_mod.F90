@@ -1,6 +1,6 @@
   module initialize_mod
 
-    use state_mod, only : domain
+    use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use module_fr_fire_driver_wrf, only : fire_driver_em_init
@@ -55,7 +55,7 @@
 
       implicit none
 
-      type (domain), intent (in out) :: grid
+      type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out), optional :: wrf
 

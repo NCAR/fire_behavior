@@ -1,6 +1,6 @@
   program fire_behavior
 
-    use state_mod, only : domain
+    use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use initialize_mod, only : Init_fire_state, Init_atm_state
     use advance_mod, only : Advance_state
@@ -8,7 +8,7 @@
 
     implicit none
 
-    type (domain) :: grid
+    type (state_fire_t) :: grid
     type (wrf_t) :: atm_state
     type (namelist_t) :: config_flags
 
