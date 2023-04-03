@@ -18,15 +18,18 @@
 module module_fr_fire_driver
 ! use this module for standalone call, you only need to provide some mock-up wrf modules  
 
-use module_fr_fire_model
-use module_fr_fire_phys, only : fire_params , init_fuel_cats
+use module_fr_fire_model, only: Fire_model
+use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
+                                Advance_moisture, Fuel_moisture, Set_fire_params
 use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
                                fire_print_file, fire_test_steps, ifval, fire_advection, fire_fmc_read, &
                                fuel_left_method, fuel_left_jrl, fuel_left_irl, fire_viscosity_ngp, &
                                fire_viscosity_bg, fire_viscosity_band, fire_viscosity, fire_upwinding_reinit, &
                                fire_upwinding, fire_upwind_split, fire_slope_factor, fire_lsm_reinit_iter, &
                                fire_lsm_band_ngp, fire_lfn_ext_up, fire_grows_only, boundary_guard, &
-                               Crash, Check_mesh_2dim, Write_array_m, Print_chsum
+                               fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
+                               fire_print_msg, &
+                               Crash, Check_mesh_2dim, Write_array_m, Print_chsum, Message
 use module_fr_fire_core, only: ignition_line_type
 
 USE state_mod, only: state_fire_t

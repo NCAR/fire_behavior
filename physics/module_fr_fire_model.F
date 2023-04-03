@@ -11,6 +11,10 @@ use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_
                                Message, Print_2d_stats, Write_array_m, Crash, Check_mesh_2dim
 use module_fr_fire_phys
 
+private
+
+public :: Fire_model
+
 contains
 
 subroutine fire_model (                    &
