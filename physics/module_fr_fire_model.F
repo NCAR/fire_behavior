@@ -3,7 +3,9 @@
 
 module module_fr_fire_model
 
-use module_fr_fire_core
+use module_fr_fire_core, only: ignition_line_type, ignition_line, &
+                               Fuel_left, Init_no_fire, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+                               Ignite_fire, Prop_ls_rk3
 use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
                                Message, Print_2d_stats, Write_array_m, Crash, Check_mesh_2dim

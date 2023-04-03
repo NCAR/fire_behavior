@@ -20,6 +20,12 @@ use module_fr_fire_util, only: fire_grows_only, fire_lfn_ext_up, fire_lsm_band_n
 ! subroutine fuel_left:  compute remaining fuel from time of ignition.
 ! subroutine prop_ls: propagation of curve in normal direction.
 
+private
+
+public :: ignition_line_type, ignition_line, &
+          Fuel_left, Init_no_fire, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+          Ignite_fire, Prop_ls_rk3
+
 ! describe one ignition line
 type ignition_line_type
   REAL  ros, &          ! subscale rate of spread during the ignition process
