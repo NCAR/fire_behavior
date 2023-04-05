@@ -438,11 +438,6 @@ elseif (ifun.eq.6) then ! timestep postprocessing
                    ifms,ifme,jfms,jfme, &
                    grnhfx,'model: heat flux(J/m^2/s)')
 
-!else
-!!$OMP CRITICAL(FIRE_MODEL_CRIT)
-!    write(msg,*)'fire_model: bad ifun=',ifun
-!!$OMP END CRITICAL(FIRE_MODEL_CRIT)
-!    call crash(msg)
 endif
 
 end subroutine fire_model
