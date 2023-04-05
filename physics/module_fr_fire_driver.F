@@ -20,7 +20,7 @@ module module_fr_fire_driver
 
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
-                                Advance_moisture, Fuel_moisture, Set_fire_params
+                                Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
 use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
                                fire_print_file, fire_test_steps, ifval, fire_advection, fire_fmc_read, &
                                fuel_left_method, fuel_left_jrl, fuel_left_irl, fire_viscosity_ngp, &
@@ -30,7 +30,7 @@ use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_z
                                fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                fire_print_msg, &
                                Crash, Check_mesh_2dim, Write_array_m, Print_chsum, Message
-use module_fr_fire_core, only: ignition_line_type
+use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
 USE state_mod, only: state_fire_t
 USE namelist_mod, only: namelist_t
@@ -515,6 +515,40 @@ call message(msg)
 7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
+if(ifun.eq.2)then
+        ! initialize all arrays that the model will not change later
+
+        if(.not.restart)call set_nfuel_cat( &
+            ifms,ifme,jfms,jfme, &
+            ifts,ifte,jfts,jfte, &
+            ifuelread,nfuel_cat0,&
+            fp%zsf,nfuel_cat)            ! better not use the extrapolated zsf!!
+
+        ! uses nfuel_cat to set the other fuel data arrays
+        ! needs zsf on halo width 1 to compute the terrain gradient
+        if(.not.restart)call set_fire_params(   &
+            ifds,ifde,jfds,jfde, &
+            ifms,ifme,jfms,jfme, &
+            ifts,ifte,jfts,jfte, &
+            dx,dy,nfuel_cat0,    &
+            nfuel_cat,fuel_time, &
+            fp  &
+)
+
+        ! initialize model state to no fire
+        if(.not.restart)then
+            call init_no_fire  ( &
+            ifds,ifde,jfds,jfde, &
+            ifms,ifme,jfms,jfme, &
+            ifts,ifte,jfts,jfte, &
+            dx,dy,time_start,    &
+            fuel_frac,fire_area,lfn,tign)
+
+            need_lfn_update=.true. ! because we have set lfn
+
+        endif
+endif
+
 if(run_advance_moisture)then
    if(ifun.eq.3)then 
       
@@ -571,7 +605,6 @@ endif
 if(fire_run)then
    call fire_model (id,ifun,restart,need_lfn_update,  &
         num_ignitions,                          & ! switches
-        ifuelread,nfuel_cat0,                   & ! initialize fuel categories
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
         ifts,ifte,jfts,jfte,                    & ! fire patch dims
@@ -589,7 +622,6 @@ if(fire_run)then
         burnt_area_dt,                          & 
         fgrnhfx,fgrnqfx,                        & ! output: heat fluxes
         ros,                                    & ! output: rate of spread for display
-        nfuel_cat,                              & ! fuel data per point 
         fuel_time,                              & ! save derived internal data
         fp                                      & ! fire coefficients
         )

@@ -4,7 +4,7 @@
 module module_fr_fire_model
 
 use module_fr_fire_core, only: ignition_line_type, ignition_line, &
-                               Fuel_left, Init_no_fire, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+                               Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
 use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
@@ -23,7 +23,6 @@ subroutine fire_model (                    &
     restart,                                &
     need_lfn_update,                          & ! if lfn needs to be synced between tiles
     num_ignitions,                          & ! number of ignitions before advancing
-    ifuelread,nfuel_cat0,                   & ! initialize fuel categories
     ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
     ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
     ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
@@ -40,7 +39,6 @@ subroutine fire_model (                    &
     burnt_area_dt,                          & 
     grnhfx,grnqfx,                          & ! output: heat fluxes
     ros,                                    & ! output: rate of spread
-    nfuel_cat,                              & ! fuel data per point 
     fuel_time,                              & ! save derived internal data
     fp  &
 ) 
@@ -103,7 +101,6 @@ logical, intent(in):: restart               ! if true, use existing state
 logical, intent(out)::need_lfn_update       ! if true, halo update on lfn afterwards
 ! scalar data
 integer, intent(in) :: num_ignitions        ! number of ignition lines
-integer, intent(in) :: ifuelread,nfuel_cat0 ! for set_fire_params
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
 integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
@@ -145,7 +142,6 @@ REAL, INTENT(out), dimension(ifms:ifme,jfms:jfme):: &
     ros                                     ! output: rate of spread
  
 ! constant arrays - set at initialization
-real, intent(inout), dimension(ifms:ifme, jfms:jfme)::nfuel_cat ! cell based, data, constant
 real,intent(inout),dimension(ifms:ifme,jfms:jfme):: fuel_time
 type(fire_params),intent(inout)::fp
 
@@ -178,44 +174,7 @@ need_lfn_update=.false.
 ignitions_done=0
 freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
-if(ifun.eq.1)then       ! do nothing, init pass 1 is outside only
-elseif(ifun.eq.2)then   
-        ! initialize all arrays that the model will not change later
-
-        if(.not.restart)call set_nfuel_cat( &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            ifuelread,nfuel_cat0,&
-            fp%zsf,nfuel_cat)            ! better not use the extrapolated zsf!!
-
-        ! uses nfuel_cat to set the other fuel data arrays
-        ! needs zsf on halo width 1 to compute the terrain gradient
-        if(.not.restart)call set_fire_params(   & 
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            fdx,fdy,nfuel_cat0,  &
-            nfuel_cat,fuel_time, &
-            fp  &
-)
-
-        ! initialize model state to no fire
-        if(.not.restart)then
-            call init_no_fire  ( &
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            fdx,fdy,time_start,  &
-            fuel_frac,fire_area,lfn,tign)
-            
-            need_lfn_update=.true. ! because we have set lfn 
-
-        endif
-
-elseif(ifun.eq.3)then   ! ignition if so specified
-
-    
-elseif (ifun.eq.4) then  ! do the timestep
+if (ifun.eq.4) then  ! do the timestep
 
     if(fire_print_msg.ge.stat_lev)then
       aw=fun_real(RNRM_SUM,  &
@@ -479,11 +438,11 @@ elseif (ifun.eq.6) then ! timestep postprocessing
                    ifms,ifme,jfms,jfme, &
                    grnhfx,'model: heat flux(J/m^2/s)')
 
-else
-!$OMP CRITICAL(FIRE_MODEL_CRIT)
-    write(msg,*)'fire_model: bad ifun=',ifun
-!$OMP END CRITICAL(FIRE_MODEL_CRIT)
-    call crash(msg)
+!else
+!!$OMP CRITICAL(FIRE_MODEL_CRIT)
+!    write(msg,*)'fire_model: bad ifun=',ifun
+!!$OMP END CRITICAL(FIRE_MODEL_CRIT)
+!    call crash(msg)
 endif
 
 end subroutine fire_model
