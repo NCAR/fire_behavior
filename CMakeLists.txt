@@ -89,6 +89,8 @@ add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
+target_include_directories(fire_behavior_nuopc INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/mod>
+                                                         $<INSTALL_INTERFACE:mod>)
 
 # install
 install(TARGETS firelib fire_behavior_nuopc 
