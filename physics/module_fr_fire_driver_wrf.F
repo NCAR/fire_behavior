@@ -6,7 +6,7 @@
 module module_fr_fire_driver_wrf
 ! wrf-specific driver
 
-use module_fr_fire_driver, only : fire_driver_em
+use module_fr_fire_driver, only : fire_driver_em, init_fire_driver
 use module_fr_fire_util, only : message
 use state_mod, only: state_fire_t
 use namelist_mod , only : namelist_t
@@ -28,6 +28,8 @@ subroutine fire_driver_em_init (grid , config_flags)
     type (namelist_t), intent(in) :: config_flags
 
     call message ('fire_driver_em_init: FIRE initialization start')
+
+    call init_fire_driver (grid, config_flags)
 
     call fire_driver_em (grid, config_flags            &
             ,1,2,0                                     & ! ifun start, end, test steps

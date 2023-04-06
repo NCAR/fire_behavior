@@ -39,13 +39,77 @@ implicit none
 
 
 private
-public fire_driver_em,use_atm_vars
+public fire_driver_em,use_atm_vars,init_fire_driver
 
 logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
 
 logical:: fmoist_run, fire_run  ! which kind of model to run overall
+logical:: run_advance_moisture
+integer::itimestep
+real:: moisture_time, time_start, dt
+
+INTEGER:: fire_num_ignitions
+integer, parameter::fire_max_ignitions=5
+TYPE(ignition_line_type), DIMENSION(fire_max_ignitions):: ignition_line
 
 contains
+
+subroutine init_fire_driver (grid, config_flags)
+
+! Driver layer modules
+#ifdef DM_PARALLEL
+    USE module_comm_dm , ONLY : halo_fire_fuel_sub, halo_fire_zsf_sub, halo_fire_lfn_sub
+#endif
+
+    implicit none
+!*** arguments
+    TYPE(state_fire_t) , TARGET :: grid             ! state
+    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
+
+    ! get ignition data
+    call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
+        ignition_line,fire_num_ignitions)
+
+    ! copy configuration flags to fire internal structures
+    call set_flags(config_flags)
+
+    ! initialize moisture model
+    itimestep=grid%itimestep
+
+    ! time - assume dt does not change
+    dt = grid%dt
+    time_start = itimestep * dt
+
+    ! decide what to run - moisture, interpolation, or fire model itself
+    fmoist_run    = config_flags%fmoist_run
+    moisture_time = time_start
+    run_advance_moisture = .false. ! default
+
+    if(fmoist_run)then
+        grid%fmoist_lasttime=moisture_time ! initialize the last time the model has run to start of run
+        grid%fmoist_nexttime=moisture_time
+        call message('moisture initialization')
+        run_advance_moisture = .true.
+    endif
+
+!$OMP SINGLE
+! init rest of fuel tables with derived constants
+! properties of fuel categories and moisture classes from namelist.fire
+call init_fuel_cats(fmoist_run) ! common for all threads
+!$OMP END SINGLE
+
+#ifdef DM_PARALLEL
+!           halo exchange on zsf width 2
+#include "HALO_FIRE_ZSF.inc"
+
+!               halo exchange on all fuel data width 2
+#include "HALO_FIRE_FUEL.inc"
+!               fire state was initialized
+                call message('halo exchange on lfn width 2')
+#include "HALO_FIRE_LFN.inc"
+#endif
+
+end subroutine init_fire_driver
 
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
@@ -77,18 +141,12 @@ halo_fire_mag_sub
              ifts,ifte, jfts,jfte
 
 !*** local
-    INTEGER:: fire_num_ignitions
-    integer, parameter::fire_max_ignitions=5
-    TYPE(ignition_line_type), DIMENSION(fire_max_ignitions):: ignition_line
-    integer::fire_ifun,istep,itimestep
+    integer::fire_ifun,istep
     logical::need_lfn_update,restart
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
     type(fire_params)::fp
-    real:: time_start, dt
-    real:: moisture_time
-    logical:: run_advance_moisture, moisture_initializing
     real::    dt_moisture
 
 
@@ -111,13 +169,6 @@ halo_fire_mag_sub
     fp%ischap => grid%ischap ! a rate of spread formula switch
     fp%iboros => grid%iboros ! Ib divided by ROS
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
-            
-    ! get ignition data 
-    call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
-        ignition_line,fire_num_ignitions)
-
-    ! copy configuration flags to fire internal structures
-    call set_flags(config_flags)
 
     itimestep=grid%itimestep
     restart=config_flags%restart
@@ -129,51 +180,41 @@ halo_fire_mag_sub
     ! **** moisture model
 
     ! decide what to run - moisture, interpolation, or fire model itself
-    fmoist_run    = config_flags%fmoist_run
     if(fire_fmc_read.ne.0.and.fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
     fire_run = .not. config_flags%fmoist_only
 
     !decide what to run
     moisture_time = time_start
     run_advance_moisture = .false. ! default
-    moisture_initializing = fire_ifun_start < 3
     
     
     
     if(fmoist_run)then
-        if(moisture_initializing)then
-            if(fire_ifun_end>2)call crash('initialization must be run separately')
-            grid%fmoist_lasttime=moisture_time ! initialize the last time the model has run to start of run
-            grid%fmoist_nexttime=moisture_time 
-            call message('moisture initialization')
-            run_advance_moisture = .true.
-        else ! regular timestep
-            if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
-                if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
-                    write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
-                        config_flags%fmoist_freq
-                    call message(msg)
-                    run_advance_moisture = .true.
-                endif
-            else
-                if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
-                    write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
-                    call message(msg)
-                    run_advance_moisture = .true.
-                endif
+        if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
+            if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
+                write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
+                    config_flags%fmoist_freq
+                call message(msg)
+                run_advance_moisture = .true.
             endif
-            if(run_advance_moisture)then ! decide on timing
-                dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
-                grid%fmoist_lasttime = moisture_time
-                if(config_flags%fmoist_freq > 0)then
-                    write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ', &
-                        config_flags%fmoist_freq,' steps'
-                    call message(msg)
-                else
-                    grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
-                    write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
-                    call message(msg)
-                endif
+        else
+            if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
+                write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
+                call message(msg)
+                run_advance_moisture = .true.
+            endif
+        endif
+        if(run_advance_moisture)then ! decide on timing
+            dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
+            grid%fmoist_lasttime = moisture_time
+            if(config_flags%fmoist_freq > 0)then
+                write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ', &
+                    config_flags%fmoist_freq,' steps'
+                call message(msg)
+            else
+                grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
+                write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
+                call message(msg)
             endif
         endif
     endif
@@ -215,10 +256,6 @@ halo_fire_mag_sub
 #include "HALO_FIRE_PHB.inc"
 
 #include "HALO_FIRE_Z0.inc"
-
-        elseif(fire_ifun.eq.2)then
-!           halo exchange on zsf width 2
-#include "HALO_FIRE_ZSF.inc"
 
         elseif(fire_ifun.eq.3)then
 !           halo exchange on atm winds and geopotential, width 1 for interpolation
@@ -292,20 +329,13 @@ halo_fire_mag_sub
    
 #ifdef DM_PARALLEL
           if(fire_run)then
-            if(fire_ifun.eq.2)then
-!               halo exchange on all fuel data width 2
-#include "HALO_FIRE_FUEL.inc"
-!               fire state was initialized
-                call message('halo exchange on lfn width 2')
-#include "HALO_FIRE_LFN.inc"
-          endif
-          if(run_advance_moisture)then
-            if(fire_ifun.eq.3)then
+            if(run_advance_moisture)then
+              if(fire_ifun.eq.3)then
                      ! prepare for interpolation to the fire grid
 #include "HALO_FIRE_MAG.inc"
-                endif
+               endif
             endif
-            endif
+          endif
 #endif
 
       enddo
@@ -475,14 +505,6 @@ call message(msg)
 write(msg,7001)'fire tile       ','ifts',ifts,ifte,jfts,jfte
 call message(msg)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-
-!$OMP SINGLE
-! init rest of fuel tables with derived constants
-if(ifun.eq.1) then
-   ! properties of fuel categories and moisture classes from namelist.fire
-   call init_fuel_cats(fmoist_run) ! common for all threads
-endif
-!$OMP END SINGLE
 
 
 pid=0
