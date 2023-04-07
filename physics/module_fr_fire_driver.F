@@ -44,9 +44,7 @@ public fire_driver_em,use_atm_vars,init_fire_driver
 logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
 
 logical:: fmoist_run, fire_run  ! which kind of model to run overall
-logical:: run_advance_moisture
-integer::itimestep
-real:: moisture_time, time_start, dt
+real:: dt
 
 INTEGER:: fire_num_ignitions
 integer, parameter::fire_max_ignitions=5
@@ -66,6 +64,11 @@ subroutine init_fire_driver (grid, config_flags)
     TYPE(state_fire_t) , TARGET :: grid             ! state
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
 
+!*** local
+    integer::itimestep
+    real:: time_start
+    real:: moisture_time
+
     ! get ignition data
     call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
         ignition_line,fire_num_ignitions)
@@ -83,13 +86,11 @@ subroutine init_fire_driver (grid, config_flags)
     ! decide what to run - moisture, interpolation, or fire model itself
     fmoist_run    = config_flags%fmoist_run
     moisture_time = time_start
-    run_advance_moisture = .false. ! default
 
     if(fmoist_run)then
         grid%fmoist_lasttime=moisture_time ! initialize the last time the model has run to start of run
         grid%fmoist_nexttime=moisture_time
         call message('moisture initialization')
-        run_advance_moisture = .true.
     endif
 
 !$OMP SINGLE
@@ -141,12 +142,15 @@ halo_fire_mag_sub
              ifts,ifte, jfts,jfte
 
 !*** local
-    integer::fire_ifun,istep
+    integer::fire_ifun,istep,itimestep
     logical::need_lfn_update,restart
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
     type(fire_params)::fp
+    real:: time_start
+    real:: moisture_time
+    logical:: run_advance_moisture
     real::    dt_moisture
 
 
@@ -174,7 +178,7 @@ halo_fire_mag_sub
     restart=config_flags%restart
 
     ! time - assume dt does not change
-    dt = grid%dt
+!    dt = grid%dt
     time_start = itimestep * dt
 
     ! **** moisture model
@@ -506,12 +510,6 @@ write(msg,7001)'fire tile       ','ifts',ifts,ifte,jfts,jfte
 call message(msg)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
 
-
-pid=0
-if(fire_print_file.gt.0)then
-    if(itimestep.le.fire_print_file.or.mod(itimestep,fire_print_file).eq.0)pid=itimestep ! print 1-fire_print_file then every fire_print_file-th
-endif
-
 ! interpolate to fire grid
 !$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
 !$OMP SCHEDULE(STATIC)
@@ -651,14 +649,6 @@ if(fire_run)then
 endif ! fire_run
 
 !$OMP END PARALLEL DO
-
-#ifdef DEBUG_OUT
-if(ifun.eq.1)then
-    if(pid.ne.0)then
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%zsf,'zsf',pid)
-    endif
-endif
-#endif
 
 if (ifun.eq.3)then
 
