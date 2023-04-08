@@ -16,7 +16,7 @@ if (NOT TARGET ESMF)
   endif (NOT ESMF_FOUND)
 endif (NOT TARGET ESMF)
 
-find_package(NetCDF REQUIRED)
+find_package(NetCDF REQUIRED Fortran)
 
 #------------------------------------------------------------------------------
 # Add source files
@@ -76,12 +76,14 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 # configure fire behavior library (used by standalone and esmx)
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
-target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
+target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
+target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:${NetCDF_LIBRARIES}>)
 
 # configure fire behavior executable (standalone code)
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
 add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
+target_link_libraries(fire_behavior_standalone PUBLIC NetCDF::NetCDF_Fortran)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
 # configure fire behavior nuopc cap library (used with esmx)
