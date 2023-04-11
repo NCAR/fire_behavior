@@ -1123,18 +1123,8 @@
           write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
           stop
         end if
-        if (geogrid%sr_x == config_flags%sr_x) then
-          return_value%sr_x = geogrid%sr_x
-        else
-          write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
-          stop
-        end if
-        if (geogrid%sr_y == config_flags%sr_y) then
-          return_value%sr_y = geogrid%sr_y
-        else
-          write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
-          stop
-        end if
+        return_value%sr_x = geogrid%sr_x
+        return_value%sr_y = geogrid%sr_y
       else
         return_value%ids = config_flags%ids
         return_value%ide = config_flags%ide

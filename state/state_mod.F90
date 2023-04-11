@@ -263,15 +263,15 @@
 
         this%ifds = ids0
         this%ifde = ide0
-        this%ifms = ids0 - N_POINTS_IN_HALO * config_flags%sr_x
-        this%ifme = ide0 + N_POINTS_IN_HALO * config_flags%sr_x
+        this%ifms = ids0 - N_POINTS_IN_HALO * geogrid%sr_x
+        this%ifme = ide0 + N_POINTS_IN_HALO * geogrid%sr_x
         this%ifts = ids0
         this%ifte = ide0
 
         this%jfds = jds0
         this%jfde = jde0
-        this%jfms = jds0 - N_POINTS_IN_HALO * config_flags%sr_y
-        this%jfme = jde0 + N_POINTS_IN_HALO * config_flags%sr_y
+        this%jfms = jds0 - N_POINTS_IN_HALO * geogrid%sr_y
+        this%jfme = jde0 + N_POINTS_IN_HALO * geogrid%sr_y
         this%jfts = jds0
         this%jfte = jde0
       else
@@ -323,18 +323,9 @@
       if_geogrid: if (use_geogrid) then
         this%cen_lat = geogrid%cen_lat
         this%cen_lon = geogrid%cen_lon
-        if (geogrid%sr_y == config_flags%sr_y) then
-          this%dx = config_flags%dx / geogrid%sr_x
-        else
-          write (ERROR_UNIT, *) 'sr_x in namelist and in geogrid differ'
-          stop
-        end if
-        if (geogrid%sr_y == config_flags%sr_y) then
-          this%dy = config_flags%dy / geogrid%sr_y
-        else
-          write (ERROR_UNIT, *) 'sr_y in namelist and in geogrid differ'
-          stop
-        end if
+        
+        this%dx = config_flags%dx / geogrid%sr_x
+        this%dy = config_flags%dy / geogrid%sr_y
       else
         this%dx = config_flags%dx / config_flags%sr_x
         this%dy = config_flags%dy / config_flags%sr_y
