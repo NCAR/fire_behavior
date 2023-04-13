@@ -45,6 +45,7 @@ logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average ou
 
 logical:: fmoist_run, fire_run  ! which kind of model to run overall
 real:: dt
+logical::restart
 
 INTEGER:: fire_num_ignitions
 integer, parameter::fire_max_ignitions=5
@@ -66,8 +67,29 @@ subroutine init_fire_driver (grid, config_flags)
 
 !*** local
     integer::itimestep
+    logical::need_lfn_update
+    type(fire_params)::fp
     real:: time_start
     real:: moisture_time
+
+!*** executable
+
+! populate our structures from wrf
+
+    ! pointers to be passed to fire rate of spread formulas
+    fp%vx => grid%uf         ! W-E winds used in fire module
+    fp%vy => grid%vf         ! S-N winds used in fire module
+    fp%zsf => grid%zsf       ! terrain height
+    fp%dzdxf => grid%dzdxf   ! terrain grad
+    fp%dzdyf => grid%dzdyf   ! terrain grad
+    fp%bbb => grid%bbb       ! a rate of spread formula coeff
+    fp%betafl => grid%betafl ! a rate of spread formula variable
+    fp%phiwc => grid%phiwc   ! a rate of spread formula coeff
+    fp%r_0 => grid%r_0       ! a rate of spread formula variable
+    fp%fgip => grid%fgip     ! a rate of spread formula coeff
+    fp%ischap => grid%ischap ! a rate of spread formula switch
+    fp%iboros => grid%iboros ! Ib divided by ROS
+    fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
     ! get ignition data
     call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
@@ -82,6 +104,7 @@ subroutine init_fire_driver (grid, config_flags)
     ! time - assume dt does not change
     dt = grid%dt
     time_start = itimestep * dt
+    restart=config_flags%restart
 
     ! decide what to run - moisture, interpolation, or fire model itself
     fmoist_run    = config_flags%fmoist_run
@@ -93,6 +116,18 @@ subroutine init_fire_driver (grid, config_flags)
         call message('moisture initialization')
     endif
 
+#ifdef DM_PARALLEL
+!       halo exchange on topography
+#include "HALO_FIRE_LONGLAT.inc"
+!!            if(fire_topo_from_atm.eq.1)then
+!!#include "HALO_FIRE_HT.inc"
+!!            endif
+! base geopotential and roughness
+#include "HALO_FIRE_PHB.inc"
+
+#include "HALO_FIRE_Z0.inc"
+#endif
+
 !$OMP SINGLE
 ! init rest of fuel tables with derived constants
 ! properties of fuel categories and moisture classes from namelist.fire
@@ -102,7 +137,41 @@ call init_fuel_cats(fmoist_run) ! common for all threads
 #ifdef DM_PARALLEL
 !           halo exchange on zsf width 2
 #include "HALO_FIRE_ZSF.inc"
+#endif
 
+        ! initialize all arrays that the model will not change later
+
+        if(.not.restart)call set_nfuel_cat( &
+            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
+            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
+            config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &
+            fp%zsf,grid%nfuel_cat)            ! better not use the extrapolated zsf!!
+
+        ! uses nfuel_cat to set the other fuel data arrays
+        ! needs zsf on halo width 1 to compute the terrain gradient
+        if(.not.restart)call set_fire_params(   &
+            grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
+            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
+            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
+            grid%dx,grid%dy,config_flags%fire_fuel_cat,    &
+            grid%nfuel_cat,grid%fuel_time, &
+            fp  &
+)
+
+        ! initialize model state to no fire
+        if(.not.restart)then
+            call init_no_fire  ( &
+            grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
+            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
+            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
+            grid%dx,grid%dy,time_start,    &
+            grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
+
+            need_lfn_update=.true. ! because we have set lfn
+
+        endif
+
+#ifdef DM_PARALLEL
 !               halo exchange on all fuel data width 2
 #include "HALO_FIRE_FUEL.inc"
 !               fire state was initialized
@@ -143,7 +212,7 @@ halo_fire_mag_sub
 
 !*** local
     integer::fire_ifun,istep,itimestep
-    logical::need_lfn_update,restart
+    logical::need_lfn_update
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
@@ -175,10 +244,8 @@ halo_fire_mag_sub
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
     itimestep=grid%itimestep
-    restart=config_flags%restart
 
     ! time - assume dt does not change
-!    dt = grid%dt
     time_start = itimestep * dt
 
     ! **** moisture model
@@ -190,8 +257,6 @@ halo_fire_mag_sub
     !decide what to run
     moisture_time = time_start
     run_advance_moisture = .false. ! default
-    
-    
     
     if(fmoist_run)then
         if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
@@ -250,18 +315,7 @@ halo_fire_mag_sub
 #include "HALO_FIRE_LFN.inc"
         endif
 
-        if(fire_ifun.eq.1)then
-!       halo exchange on topography
-#include "HALO_FIRE_LONGLAT.inc"
-!!            if(fire_topo_from_atm.eq.1)then
-!!#include "HALO_FIRE_HT.inc"
-!!            endif 
-! base geopotential and roughness
-#include "HALO_FIRE_PHB.inc"
-
-#include "HALO_FIRE_Z0.inc"
-
-        elseif(fire_ifun.eq.3)then
+        if(fire_ifun.eq.3)then
 !           halo exchange on atm winds and geopotential, width 1 for interpolation
 #include "HALO_FIRE_WIND_A.inc"
 #include "HALO_FIRE_PH.inc"
@@ -534,40 +588,6 @@ write(msg,'(a,i6,a,2(f15.6,a))')'time step',itimestep,' at',time_start,' duratio
 call message(msg)
 7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
 !$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-
-if(ifun.eq.2)then
-        ! initialize all arrays that the model will not change later
-
-        if(.not.restart)call set_nfuel_cat( &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            ifuelread,nfuel_cat0,&
-            fp%zsf,nfuel_cat)            ! better not use the extrapolated zsf!!
-
-        ! uses nfuel_cat to set the other fuel data arrays
-        ! needs zsf on halo width 1 to compute the terrain gradient
-        if(.not.restart)call set_fire_params(   &
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            dx,dy,nfuel_cat0,    &
-            nfuel_cat,fuel_time, &
-            fp  &
-)
-
-        ! initialize model state to no fire
-        if(.not.restart)then
-            call init_no_fire  ( &
-            ifds,ifde,jfds,jfde, &
-            ifms,ifme,jfms,jfme, &
-            ifts,ifte,jfts,jfte, &
-            dx,dy,time_start,    &
-            fuel_frac,fire_area,lfn,tign)
-
-            need_lfn_update=.true. ! because we have set lfn
-
-        endif
-endif
 
 if(run_advance_moisture)then
    if(ifun.eq.3)then 
