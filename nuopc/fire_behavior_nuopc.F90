@@ -186,9 +186,9 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: inst_rainfall_amount
+    ! importable field: mean_prec_rate
     call NUOPC_Advertise(importState, &
-      StandardName="inst_rainfall_amount", rc=rc)
+      StandardName="mean_prec_rate", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -592,8 +592,8 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
-     ! importable field on Grid: inst_rainfall_amount
-     field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
+     ! importable field on Grid: mean_prec_rate
+     field = ESMF_FieldCreate(name="mean_prec_rate", grid=fire_grid, &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -779,6 +779,8 @@ module fire_behavior_nuopc
 
     ! local variables
     type(ESMF_Clock)            :: clock
+    type(ESMF_TimeInterval)     :: timeStep
+    real(ESMF_KIND_R8)          :: ts
     type(ESMF_State)            :: importState, exportState
     ! type(ESMF_Time)             :: currTime
     ! type(ESMF_TimeInterval)     :: timeStep
@@ -793,6 +795,18 @@ module fire_behavior_nuopc
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
       exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call ESMF_ClockGet(clock, timeStep=timeStep, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call ESMF_TimeIntervalGet(timeStep, s_r8=ts, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -817,7 +831,7 @@ module fire_behavior_nuopc
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
-    grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
+    grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2)) * ts
 
     do j = grid%jfds, grid%jfde
       do i = grid%ifds, grid%ifde
