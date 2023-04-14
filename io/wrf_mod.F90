@@ -1022,9 +1022,9 @@
 
       implicit none
 
-      character (len = *), intent (in), optional :: file_name
-      type (namelist_t), intent (in), optional :: config_flags
-      type (geogrid_t), intent (in), optional :: geogrid
+      character (len = *), intent (in) :: file_name
+      type (namelist_t), intent (in) :: config_flags
+      type (geogrid_t), intent (in) :: geogrid
       type (wrf_t) :: return_value
 
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
@@ -1033,106 +1033,75 @@
       real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
 
-      logical :: use_geogrid, use_config_flags, use_file
       integer, parameter :: N_POINTS_IN_HALO = 5
       real (kind = REAL32) :: att_real32
 
+ 
+      return_value%file_name = trim (file_name)
 
-      use_file = .false.
-      use_geogrid = .false.
-      use_config_flags = .false.
+        ! Init projection
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LAT', att_real32)
+      return_value%cen_lat = att_real32
 
-      if (present (file_name)) then
-        use_file = .true.
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LON', att_real32)
+      return_value%cen_lon = att_real32
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT1', att_real32)
+      return_value%truelat1 = att_real32
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT2', att_real32)
+      return_value%truelat2 = att_real32
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'STAND_LON', att_real32)
+      return_value%stand_lon = att_real32
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'DX', att_real32)
+      return_value%dx = att_real32
+
+      call Get_netcdf_att (trim (return_value%file_name), 'global', 'DY', att_real32)
+      return_value%dy = att_real32
+
+        ! latlon at mass points
+      call return_value%Get_latlons ()
+
+        ! latlon at corners
+      call return_value%Get_latcloncs ()
+
+      if (.not. allocated (return_value%lons) .and. .not. allocated (return_value%lats)) then
+        return_value%lats = geogrid%xlat
+        return_value%lons = geogrid%xlong
+        return_value%lats_c = geogrid%xlat_c
+        return_value%lons_c = geogrid%xlong_c
       end if
 
-      if (present (geogrid)) then
-        use_geogrid = .true.
-      end if
-
-      if (present (config_flags)) then
-        use_config_flags = .true.
-      end if
-
-      if (use_file) then
-        return_value%file_name = trim (file_name)
-
-          ! Init projection
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LAT', att_real32)
-        return_value%cen_lat = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LON', att_real32)
-        return_value%cen_lon = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT1', att_real32)
-        return_value%truelat1 = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'TRUELAT2', att_real32)
-        return_value%truelat2 = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'STAND_LON', att_real32)
-        return_value%stand_lon = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'DX', att_real32)
-        return_value%dx = att_real32
-
-        call Get_netcdf_att (trim (return_value%file_name), 'global', 'DY', att_real32)
-        return_value%dy = att_real32
-
-          ! latlon at mass points
-        call return_value%Get_latlons ()
-
-          ! latlon at corners
-        call return_value%Get_latcloncs ()
-
-      end if
-
-      if_use_config_flags: if (use_config_flags) then
-        ! Domain dimensions
-      if (use_geogrid) then
-
-        if (.not. allocated (return_value%lons) .and. .not. allocated (return_value%lats)) then
-          return_value%lats = geogrid%xlat
-          return_value%lons = geogrid%xlong
-          return_value%lats_c = geogrid%xlat_c
-          return_value%lons_c = geogrid%xlong_c
-        end if
-
-        if (geogrid%ids == config_flags%ids) then
-          return_value%ids = config_flags%ids
-        else
-          write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%ide == config_flags%ide) then
-          return_value%ide = config_flags%ide
-        else
-          write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%jds == config_flags%jds) then
-          return_value%jds = config_flags%jds
-        else
-          write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
-          stop
-        end if
-        if (geogrid%jde == config_flags%jde) then
-          return_value%jde = config_flags%jde
-        else
-          write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
-          stop
-        end if
-        return_value%sr_x = geogrid%sr_x
-        return_value%sr_y = geogrid%sr_y
-      else
+      if (geogrid%ids == config_flags%ids) then
         return_value%ids = config_flags%ids
+      else
+        write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
+        stop
+      end if
+      if (geogrid%ide == config_flags%ide) then
         return_value%ide = config_flags%ide
+      else
+        write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
+        stop
+      end if
+      if (geogrid%jds == config_flags%jds) then
         return_value%jds = config_flags%jds
+      else
+        write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
+        stop
+      end if
+      if (geogrid%jde == config_flags%jde) then
         return_value%jde = config_flags%jde
-        return_value%sr_x = config_flags%sr_x
-        return_value%sr_y = config_flags%sr_y
+      else
+        write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
+        stop
       end if
 
+      return_value%sr_x = geogrid%sr_x
+      return_value%sr_y = geogrid%sr_y
+      
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
@@ -1234,14 +1203,10 @@
 
 
         ! Grid dimensions
-      if_geogrid: if (use_geogrid) then
         return_value%xlat = 0.0
         return_value%xlat(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlat
         return_value%xlong = 0.0
         return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
-      end if if_geogrid
-
-    end if if_use_config_flags
 
     end function Wrf_t_const
 
