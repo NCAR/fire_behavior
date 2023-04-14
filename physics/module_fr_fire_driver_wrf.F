@@ -38,8 +38,6 @@ end subroutine fire_driver_em_init
     ! stub to call fire_driver_em
 subroutine fire_driver_em_step (grid, config_flags)
 
-    USE module_fr_fire_util, only : fire_test_steps
-
     implicit none
 
     type (state_fire_t), target :: grid
@@ -48,7 +46,6 @@ subroutine fire_driver_em_step (grid, config_flags)
     call message('fire_driver_em_step: FIRE step start')
 
     call fire_driver_em (grid, config_flags            &
-            ,3,6,fire_test_steps                       &
 !            ,grid%ifds,grid%ifde - grid%sr_x, grid%jfds,grid%jfde - grid%sr_y  &
             ,grid%ifds,grid%ifde, grid%jfds,grid%jfde  &
             ,grid%ifms,grid%ifme, grid%jfms,grid%jfme  &

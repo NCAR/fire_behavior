@@ -22,7 +22,7 @@ public :: fire_advection, fire_fmc_read, fire_print_msg, fire_grows_only, fire_l
           fire_lsm_band_ngp, fire_slope_factor, fire_upwind_split, fire_upwinding, ifval, &
           fire_viscosity, fire_viscosity_band, fire_viscosity_bg, fire_viscosity_ngp, &
           boundary_guard, fire_upwinding_reinit, fire_lsm_reinit_iter, fuel_left_irl, &
-          fuel_left_jrl, fuel_left_method, fire_const_grnhfx, fire_const_grnqfx, fire_test_steps, &
+          fuel_left_jrl, fuel_left_method, fire_const_grnhfx, fire_const_grnqfx, &
           fire_const_time, fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
           fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           Open_text_file, Message, Crash, Check_mesh_2dim, &
@@ -37,7 +37,6 @@ integer,save::          &
  fire_grows_only=1,     &  ! fire can spread out only (level set functions may not increase)
  fire_upwinding=9,      &  ! upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1 
  fire_upwind_split=0,   &  ! 1=upwind advection separately from normal direction spread
- fire_test_steps=0,     &  ! 0=no fire, 1=normal, >1 = do specified number of steps and terminate (testing only)
  fire_topo_from_atm=1,  &  ! 0 = expect ZSF set correctly on entry, 1 = populate by interploating from atmosphere
  fire_advection=0,      &  ! 0 = fire spread from normal wind/slope (CAWFE), 1 = full speed projected
  fire_fmc_read=1,       &  ! fuel moisture: 0 from wrfinput, 1 from namelist.fire, 2 read from file in ideal

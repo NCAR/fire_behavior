@@ -22,7 +22,7 @@ use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
                                 Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
 use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-                               fire_test_steps, ifval, fire_advection, fire_fmc_read, &
+                               ifval, fire_advection, fire_fmc_read, &
                                fuel_left_method, fuel_left_jrl, fuel_left_irl, fire_viscosity_ngp, &
                                fire_viscosity_bg, fire_viscosity_band, fire_viscosity, fire_upwinding_reinit, &
                                fire_upwinding, fire_upwind_split, fire_slope_factor, fire_lsm_reinit_iter, &
@@ -183,7 +183,6 @@ end subroutine init_fire_driver
 
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
-            ,fire_ifun_start,fire_ifun_end,tsteps                   &
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifts,ifte, jfts,jfte                                   &
@@ -204,14 +203,13 @@ halo_fire_mag_sub
 !*** arguments
     TYPE(state_fire_t) , TARGET :: grid             ! state
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
-    integer, intent(in)::     fire_ifun_start,fire_ifun_end,tsteps ! driver cycle controls
     integer, intent(in):: &
              ifds,ifde, jfds,jfde,                                   &
              ifms,ifme, jfms,jfme,                                   &
              ifts,ifte, jfts,jfte
 
 !*** local
-    integer::fire_ifun,istep,itimestep
+    integer :: itimestep
     logical::need_lfn_update
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
@@ -288,59 +286,11 @@ halo_fire_mag_sub
         endif
     endif
 
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-    write(msg,'(a,i1,a,i1,a,i4)') &
-       'fire_driver_em: ifun from ',fire_ifun_start,' to ',fire_ifun_end,' test steps',tsteps
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-    call message(msg)
-
-    do istep=0,tsteps ! istep >0 is for testing only, exit after the first call
-      itimestep = grid%itimestep + istep ! in the first call, do fire_test_steps steps of the fire model
-
       need_lfn_update=.false.
-      do fire_ifun=fire_ifun_start,fire_ifun_end
 
-        ! 1 = run pass 1: interpolate height to zsf=terrain, moisture_model initialize
-        ! 2 = initialize run pass 2: set fuel data, terrain gradient
-        ! 3 = initialize timestep: interpolate winds, check for ignition, time step on moisture model
-        ! 4 = do one timestep 
-        ! 5 = copy timestep output to input
-        ! 6 = compute output fluxes
-
-#ifdef DM_PARALLEL
-
-       if(fire_run)then
-        if(need_lfn_update)then
-!           halo exchange on lfn width 3
-#include "HALO_FIRE_LFN.inc"
-        endif
-
-        if(fire_ifun.eq.3)then
-!           halo exchange on atm winds and geopotential, width 1 for interpolation
-#include "HALO_FIRE_WIND_A.inc"
-#include "HALO_FIRE_PH.inc"
-
-        elseif(fire_ifun.eq.4)then
-!           halo exchange on fire winds width 2 for a 2-step RK method
-#include "HALO_FIRE_WIND_F.inc"
-
-            if(run_advance_moisture)then
-            ! have interpolated to the fire grid
-#include "HALO_FIRE_MFG.inc"
-            endif
-
-        elseif(fire_ifun.eq.6)then
-!           computing fuel_left needs ignition time from neighbors
-#include "HALO_FIRE_TIGN.inc"
-
-        endif
-       endif
-#endif
-
-        
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
-            fire_ifun, need_lfn_update,                                                         &
+            need_lfn_update,                                                         &
             ifds,ifde, jfds,jfde,                                                         &
             ifms,ifme, jfms,jfme,                                                               &
             ifts,ifte, jfts,jfte,                                                         &
@@ -384,22 +334,6 @@ halo_fire_mag_sub
             fp                                                                                  &
         )
 
-   
-#ifdef DM_PARALLEL
-          if(fire_run)then
-            if(run_advance_moisture)then
-              if(fire_ifun.eq.3)then
-                     ! prepare for interpolation to the fire grid
-#include "HALO_FIRE_MAG.inc"
-               endif
-            endif
-          endif
-#endif
-
-      enddo
-    enddo
-    if(tsteps>0)call crash('fire_driver_em: test run of uncoupled fire model completed')
-
 end subroutine fire_driver_em
 
 !
@@ -407,7 +341,7 @@ end subroutine fire_driver_em
 !
 
 ! module_fr_fire_driver%%fire_driver
-subroutine fire_driver_phys (ifun,need_lfn_update,    &
+subroutine fire_driver_phys (need_lfn_update,    &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
     ifts, ifte, jfts, jfte,                       &
@@ -459,7 +393,7 @@ implicit none
 
 !*** arguments
 
-integer, intent(in)::ifun,                        &
+integer, intent(in)::                             &
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
     ifts, ifte, jfts, jfte,                       & ! fire tile bounds
@@ -558,7 +492,7 @@ ignitions_done = 0
 call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
 
 if(run_advance_moisture)then
-   if(ifun.eq.3)then 
+!   if(ifun.eq.3)then 
       
       ! one timestep of the moisture model
       call message('advance_moisture start')
@@ -604,13 +538,13 @@ if(run_advance_moisture)then
               nfuel_cat,fuel_time, &
               fp)
 
-   endif
+!   endif
 endif
 
 !   the following executes in any case
 
 if(fire_run)then
-   call fire_model (ifun,restart,need_lfn_update,  &
+   call fire_model (restart,need_lfn_update,  &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
@@ -763,7 +697,6 @@ fire_upwinding          = config_flags%fire_upwinding
 fire_upwind_split       = config_flags%fire_upwind_split 
 fire_viscosity          = config_flags%fire_viscosity 
 fire_lfn_ext_up         = config_flags%fire_lfn_ext_up 
-fire_test_steps         = config_flags%fire_test_steps 
 fire_advection          = config_flags%fire_advection
 fire_lsm_reinit         = config_flags%fire_lsm_reinit
 fire_lsm_reinit_iter    = config_flags%fire_lsm_reinit_iter 

@@ -18,7 +18,6 @@ public :: Fire_model
 contains
 
 subroutine fire_model (                    &
-    ifun,                                   & ! what to do see below
     restart,                                &
     need_lfn_update,                          & ! if lfn needs to be synced between tiles
     num_ignitions,                          & ! number of ignitions before advancing
@@ -89,12 +88,6 @@ implicit none
 !*** arguments
 
 ! control switches
-integer, intent(in) :: ifun                 ! 1 = initialize run pass 1
-                                            ! 2 = initialize run pass 2
-                                            ! 3 = initialize timestep
-                                            ! 4 = do one timestep 
-                                            ! 5 = copy timestep output to input
-                                            ! 6 = compute output fluxes
 logical, intent(in):: restart               ! if true, use existing state
 logical, intent(out)::need_lfn_update       ! if true, halo update on lfn afterwards
 ! scalar data
@@ -172,7 +165,7 @@ need_lfn_update=.false.
 ignitions_done=0
 freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
-if (ifun.eq.4) then  ! do the timestep
+! ifun4: do the timestep
 
     if(fire_print_msg.ge.stat_lev)then
       aw=fun_real(RNRM_SUM,  &
@@ -259,7 +252,7 @@ if (ifun.eq.4) then  ! do the timestep
 
     endif
     
-elseif (ifun.eq.5) then ! copy the result of timestep back to input
+! ifun5: copy the result of timestep back to input
     ! this cannot be done in the time step itself because of race condition
     ! some thread may still be using lfn as input in their tile halo
 
@@ -322,7 +315,7 @@ elseif (ifun.eq.5) then ! copy the result of timestep back to input
     
     need_lfn_update=.true. ! duh
 
-elseif (ifun.eq.6) then ! timestep postprocessing
+!ifun6 ! timestep postprocessing
 
   if(.not. freeze_fire)then
 
@@ -431,12 +424,6 @@ elseif (ifun.eq.6) then ! timestep postprocessing
                    ifms,ifme,jfms,jfme, &
                    grnhfx,'model: heat flux(J/m^2/s)')
 
-endif
-
 end subroutine fire_model
 
-!
-!*****************
-!
-            
 end module module_fr_fire_model
