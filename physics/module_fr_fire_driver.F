@@ -43,13 +43,13 @@ public fire_driver_em,use_atm_vars,init_fire_driver
 
 logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
 
-logical:: fmoist_run  ! which kind of model to run overall
+logical:: fmoist_run
 real:: dt
 logical::restart
 
-INTEGER:: fire_num_ignitions
-integer, parameter::fire_max_ignitions=5
-TYPE(ignition_line_type), DIMENSION(fire_max_ignitions):: ignition_line
+integer :: fire_num_ignitions
+integer, parameter :: FIRE_MAX_IGNITIONS = 5
+type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS):: ignition_line
 
 contains
 
@@ -91,7 +91,7 @@ subroutine init_fire_driver (grid, config_flags)
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
     ! get ignition data
-    call fire_ignition_convert (config_flags,fire_max_ignitions,grid%fire_ignition_longlat, &
+    call fire_ignition_convert (config_flags,grid%fire_ignition_longlat, &
         ignition_line,fire_num_ignitions)
 
     ! copy configuration flags to fire internal structures
@@ -519,22 +519,21 @@ end subroutine fire_driver_phys
 !*******************
 !
 
-subroutine fire_ignition_convert (config_flags,fire_max_ignitions,fire_ignition_longlat, &
+subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
     ignition_line,fire_num_ignitions)
     USE namelist_mod, only : namelist_t
     implicit none
 ! create ignition arrays from scalar flags
 !*** arguments
     TYPE (namelist_t) , INTENT(IN)          :: config_flags
-    integer, intent(in)::fire_max_ignitions
-    TYPE (ignition_line_type), DIMENSION(fire_max_ignitions), intent(out):: ignition_line ! any values from input discarded 
+    TYPE (ignition_line_type), DIMENSION(FIRE_MAX_IGNITIONS), intent(out):: ignition_line ! any values from input discarded 
     integer, intent(out)::fire_num_ignitions
     integer, intent(in)::fire_ignition_longlat
 !*** local
     integer::i
 !*** executable
     ! this is only until I figure out how to input arrays through the namelist...
-    if(fire_max_ignitions.lt.5)call crash('fire_max_ignitions too small')
+    if(FIRE_MAX_IGNITIONS.lt.5)call crash('FIRE_MAX_IGNITIONS too small')
 
     if(fire_ignition_longlat .eq. 0)then
        ! use values from _x and _y variables
