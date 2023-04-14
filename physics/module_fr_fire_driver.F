@@ -551,41 +551,11 @@ integer :: ignitions_done              ! number of isolated ignitions
     ! PAJ:
   logical :: fire_is_real_perim
 
-!*** executable
-
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,2f15.6)')'fire mesh step:      ',dx,dy
-call message(msg)
-write(msg,7001)'fire domain     ','ifds',ifds,ifde,jfds,jfde
-call message(msg)                    
-write(msg,7001)'fire memory     ','ifms',ifms,ifme,jfms,jfme
-call message(msg)                    
-write(msg,7001)'fire tile       ','ifts',ifts,ifte,jfts,jfte
-call message(msg)
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-
-! interpolate to fire grid
-!$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
-!$OMP SCHEDULE(STATIC)
 
 ignitions_done = 0
 
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,i7,1x,a,i3)')' ifun=',ifun
-call message(msg)
-write(msg,7001)'fire tile  ','ifts',ifts,ifte,jfts,jfte
-call message(msg)                    
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-
-    ! check the tiles
-    call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
-
-
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,i6,a,2(f15.6,a))')'time step',itimestep,' at',time_start,' duration',dt,'s'
-call message(msg)
-7001 format(a,' dimensions ',a4,':',i6,' to ',i6,' by ',i6,' to ',i6)
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
+  ! check the tiles
+call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
 
 if(run_advance_moisture)then
    if(ifun.eq.3)then 
@@ -664,22 +634,6 @@ if(fire_run)then
         )
 
 endif ! fire_run
-
-!$OMP END PARALLEL DO
-
-if (ifun.eq.3)then
-
-    do i=1,ignitions_done
-!$OMP CRITICAL(FIRE_DRIVER_CRIT)
-        write(msg,'(2(a,i4,1x))')'fire_driver_phys: checking ignition ',i,' of ',ignitions_done
-!$OMP END CRITICAL(FIRE_DRIVER_CRIT)
-        call message(msg)
-        if(ignited_tile(i) .EQ. 0)then
-           ! ignition is done but zero gridpts were ignited
-            call crash('fire_driver_phys: Ignition failed, no nodes ignited. Bad coordinates?')
-        endif
-    enddo
-endif
 
 end subroutine fire_driver_phys
 !
