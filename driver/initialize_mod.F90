@@ -24,24 +24,8 @@
       type (geogrid_t) :: geogrid
 
 
-      select case (config_flags%atm_model)
-        case ('wrfdata_legacy')
-          if (config_flags%fire_fuel_read == -1) then
-            geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-            atm_state = wrf_t (config_flags=config_flags, geogrid=geogrid)
-          else
-            atm_state = wrf_t (config_flags=config_flags)
-          end if
-          call atm_state%Read_wrf_input()
-
-        case ('wrfdata')
-          geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-          atm_state = wrf_t ('wrf.nc', config_flags, geogrid)
-
-        case default
-          write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
-
-      end select
+      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+      atm_state = wrf_t ('wrf.nc', config_flags, geogrid)
 
     end subroutine Init_atm_state
 
@@ -75,16 +59,7 @@
 
         ! Atmosphere to Fire
       if (present (wrf)) then
-      select case ( config_flags%atm_model)
-        case ('wrfdata_legacy')
-          call grid%Handle_wrfdata_update (wrf, config_flags, .true.)
-
-        case ('wrfdata')
-          call grid%Handle_wrfdata_update (wrf, config_flags)
-
-        case default
-          write (ERROR_UNIT, *) 'Not ready to use atm model ', config_flags%atm_model
-      end select
+        call grid%Handle_wrfdata_update (wrf, config_flags)
       end if
 
         ! Fire init

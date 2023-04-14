@@ -119,31 +119,6 @@ module wrf_nuopc
     allocate (state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
     allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
 
-    if (config_flags%atm_model == 'wrfdata_legacy') then
-      do k = state%kds, state%kde - 1
-        do j = state%jds, state%jde - 1
-          do i = state%ids, state%ide - 1
-            state%u3d(i, j, k) = state%u3d_stag(i, k, j)
-          end do
-        end do
-      end do
-      do k = state%kds, state%kde - 1
-        do j = state%jds, state%jde - 1
-          do i = state%ids, state%ide - 1
-            state%v3d(i, j, k) = state%v3d_stag(i, k, j)
-          end do
-        end do
-      end do
-      do k = state%kds, state%kde - 1
-        do j = state%jds, state%jde - 1
-          do i = state%ids, state%ide - 1
-            state%phl(i, j, k) = state%ph_stag(i, k, j) + state%phb_stag(i, k, j)
-          end do
-        end do
-      end do
-      state%z0 = state%z0_stag(state%ids:state%ide - 1, state%jds:state%jde - 1) 
-    endif
-
     ! Import/ Export Variables -----------------------------------------------------
 
     ! Disabling the following macro, e.g. renaming to WITHIMPORTFIELDS_disable,
@@ -643,17 +618,16 @@ module wrf_nuopc
     type (datetime_t), intent (in) :: datetime
     type (namelist_t), intent (in) :: config_flags
 
-    if (config_flags%atm_model == 'wrfdata') then
-      call state%Get_z0(datetime)
-      call state%Get_t2(datetime)
-      call state%Get_q2(datetime)
-      call state%Get_psfc(datetime)
-      call state%Get_rain(datetime)
-      call state%Get_u3d(datetime)
-      call state%Get_v3d(datetime)
-      call state%Get_phl(datetime)
-      call state%Get_pres(datetime)
-    end if
+
+    call state%Get_z0(datetime)
+    call state%Get_t2(datetime)
+    call state%Get_q2(datetime)
+    call state%Get_psfc(datetime)
+    call state%Get_rain(datetime)
+    call state%Get_u3d(datetime)
+    call state%Get_v3d(datetime)
+    call state%Get_phl(datetime)
+    call state%Get_pres(datetime)
 
     ! Set field data
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= &

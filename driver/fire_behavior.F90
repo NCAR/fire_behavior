@@ -24,7 +24,7 @@
       call Advance_state (grid, config_flags)
       call grid%Handle_output (config_flags)
       call grid%Provide_atm_feedback (atm_state, config_flags)
-      if (config_flags%atm_model == 'wrfdata') Call grid%Handle_wrfdata_update (atm_state, config_flags)
+      call grid%Handle_wrfdata_update (atm_state, config_flags)
     end do
 
   end program fire_behavior
