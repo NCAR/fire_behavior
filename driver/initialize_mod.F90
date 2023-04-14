@@ -25,10 +25,6 @@
 
 
       select case (config_flags%atm_model)
-        case ('test1')
-          atm_state = wrf_t (config_flags=config_flags)
-          call atm_state%Load_atmosphere_test1 (config_flags)
-
         case ('wrfdata_legacy')
           if (config_flags%fire_fuel_read == -1) then
             geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
@@ -80,9 +76,6 @@
         ! Atmosphere to Fire
       if (present (wrf)) then
       select case ( config_flags%atm_model)
-        case ('test1')
-          call grid%Handle_wrfdata_update (wrf, config_flags, .true.)
-
         case ('wrfdata_legacy')
           call grid%Handle_wrfdata_update (wrf, config_flags, .true.)
 
