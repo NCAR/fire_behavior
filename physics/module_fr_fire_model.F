@@ -8,7 +8,7 @@ use module_fr_fire_core, only: ignition_line_type, ignition_line, &
                                Ignite_fire, Prop_ls_rk3
 use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
-                               Message, Print_2d_stats, Write_array_m, Crash, Check_mesh_2dim
+                               Message, Print_2d_stats, Crash, Check_mesh_2dim
 use module_fr_fire_phys
 
 private
@@ -18,7 +18,6 @@ public :: Fire_model
 contains
 
 subroutine fire_model (                    &
-    id,                                     & ! unique number for prints and debug
     ifun,                                   & ! what to do see below
     restart,                                &
     need_lfn_update,                          & ! if lfn needs to be synced between tiles
@@ -90,7 +89,6 @@ implicit none
 !*** arguments
 
 ! control switches
-integer, intent(in) :: id
 integer, intent(in) :: ifun                 ! 1 = initialize run pass 1
                                             ! 2 = initialize run pass 2
                                             ! 3 = initialize timestep
@@ -222,7 +220,7 @@ if (ifun.eq.4) then  ! do the timestep
 
     if(.not. freeze_fire)then
 
-         call prop_ls_rk3(id,                           &
+         call prop_ls_rk3(                              &
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
              ifts,ifte,jfts,jfte,                       &
@@ -245,7 +243,7 @@ if (ifun.eq.4) then  ! do the timestep
 
        if (fire_lsm_reinit) then ! DME added call to reinitialize level-set function
           
-           call reinit_ls_rk3(id,                                    &
+           call reinit_ls_rk3(                                       &
                           ifts,ifte,jfts,jfte,                       &                  
                           ifms,ifme,jfms,jfme,                       &                     
                           ifds,ifde,jfds,jfde,                       &                     
@@ -312,11 +310,6 @@ elseif (ifun.eq.5) then ! copy the result of timestep back to input
             ignited_tile(ignitions_done)=ignited
                 
 !            need_lfn_update=.true. ! if ignition, lfn changed
-#ifdef DEBUG_OUT    
-            call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,lfn,'lfn_ig',id)
-            call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,coord_xf,'coord_xf_ig',id)
-            call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,coord_yf,'coord_yf_ig',id)
-#endif
 !        endif
         
     enddo

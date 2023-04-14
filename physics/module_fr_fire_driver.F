@@ -22,14 +22,14 @@ use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
                                 Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
 use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-                               fire_print_file, fire_test_steps, ifval, fire_advection, fire_fmc_read, &
+                               fire_test_steps, ifval, fire_advection, fire_fmc_read, &
                                fuel_left_method, fuel_left_jrl, fuel_left_irl, fire_viscosity_ngp, &
                                fire_viscosity_bg, fire_viscosity_band, fire_viscosity, fire_upwinding_reinit, &
                                fire_upwinding, fire_upwind_split, fire_slope_factor, fire_lsm_reinit_iter, &
                                fire_lsm_band_ngp, fire_lfn_ext_up, fire_grows_only, boundary_guard, &
                                fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                fire_print_msg, &
-                               Crash, Check_mesh_2dim, Write_array_m, Print_chsum, Message
+                               Crash, Check_mesh_2dim, Print_chsum, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
 USE state_mod, only: state_fire_t
@@ -541,7 +541,7 @@ type(fire_params),intent(inout)::fp
 !*** local
 real :: s
 integer :: its,ite,jts,jte, &            ! tile
-    ij,i,j,k,id,pid,ite1,jte1
+    ij,i,j,k,ite1,jte1
 character(len=128)::msg
 character(len=3)::kk
 
@@ -568,12 +568,10 @@ call message(msg)
 !$OMP PARALLEL DO PRIVATE(ij,its,ite,jts,jte,ite1,jte1,ifts,ifte,jfts,jfte,msg,id) &
 !$OMP SCHEDULE(STATIC)
 
-id = ifval(pid .ne. 0, pid + ij * 10000, 0) ! for print
-
 ignitions_done = 0
 
 !$OMP CRITICAL(FIRE_DRIVER_CRIT)
-write(msg,'(a,i7,1x,a,i3)')' id=',id,' ifun=',ifun
+write(msg,'(a,i7,1x,a,i3)')' ifun=',ifun
 call message(msg)
 write(msg,7001)'fire tile  ','ifts',ifts,ifte,jfts,jfte
 call message(msg)                    
@@ -615,7 +613,6 @@ if(run_advance_moisture)then
 
       call message('fuel_moisture start')
       call fuel_moisture(         &
-          id,                     & ! for prints and maybe file names
           nfmc,                   &
           ifds, ifde, jfds, jfde, & ! fire grid dimensions
           ifms, ifme, jfms, jfme, &
@@ -643,7 +640,7 @@ endif
 !   the following executes in any case
 
 if(fire_run)then
-   call fire_model (id,ifun,restart,need_lfn_update,  &
+   call fire_model (ifun,restart,need_lfn_update,  &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
@@ -685,33 +682,11 @@ if (ifun.eq.3)then
 
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vx,'uf')
  call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vy,'vf')
-#ifdef DEBUG_OUT
-    if(pid.gt.0)then
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%vx,'uf',pid)
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fp%vy,'vf',pid)
-    endif
-#endif
-endif
-
-if(ifun.eq.5)then
-#ifdef DEBUG_OUT
-    if(pid.gt.0)then
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,lfn,'lfn',pid)
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,tign,'tign',pid)
-    endif
-#endif
 endif
 
 if(ifun.eq.6)then
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnhfx,'fgrnhfx')
     call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnqfx,'fgrnqfx')
-#ifdef DEBUG_OUT
-    if(pid.gt.0)then
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fuel_frac,'fuel_frac',pid)
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnhfx,'fgrnhfx',pid)
-        call write_array_m(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fgrnqfx,'fgrnqfx',pid)
-    endif
-#endif
 endif
 
 end subroutine fire_driver_phys
@@ -829,7 +804,6 @@ TYPE (namelist_t) , INTENT(IN)          :: config_flags
 
 
 fire_print_msg          = config_flags%fire_print_msg
-fire_print_file         = config_flags%fire_print_file
 fuel_left_method        = config_flags%fire_fuel_left_method
 fuel_left_irl           = config_flags%fire_fuel_left_irl
 fuel_left_jrl           = config_flags%fire_fuel_left_jrl

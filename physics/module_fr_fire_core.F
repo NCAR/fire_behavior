@@ -1279,7 +1279,7 @@ end subroutine
 !
 #endif
 
-subroutine prop_ls_rk3(id,               &             
+subroutine prop_ls_rk3(               &             
                 ifds,ifde,jfds,jfde,     &                 
                 ifms,ifme,jfms,jfme,     &                    
                 ifts,ifte,jfts,jfte,     &                    
@@ -1342,7 +1342,6 @@ implicit none
   
 !*** arguments 
 
-! id                in    unique identification for prints and dumps
 ! ids,ide,jds,jde   in    domain dimensions
 ! ims,ime,jms,jme   in    memory dimensions
 ! its,ite,jts,jte   in    tile dimensions
@@ -1356,7 +1355,7 @@ implicit none
 !*** calls
 !
 
-integer,intent(in)::id,ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
+integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0 
 real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
@@ -1369,7 +1368,7 @@ real,dimension(ifms:ifme,jfms:jfme):: tend
 real::grad2,rr,tbound2,tbound3
 
 real::gradx,grady,aspeed,err,aerr,time_now
-integer::i,j,its1,ite1,jts1,jte1,k,kk,id1
+integer::i,j,its1,ite1,jts1,jte1,k,kk
 character(len=128)::msg
 integer::nfirenodes,nfireline
 real::sum_err,min_err,max_err,sum_aerr,min_aerr,max_aerr   
@@ -1386,7 +1385,7 @@ intrinsic max,min,sqrt,nint,epsilon,tiny,huge
 !*** executable
 
 !$OMP CRITICAL(FIRE_CORE_CRIT)
-write(msg,'(a8,i5,a6,i5,3(a1,i5))')'prop_ls:',id,' tile ',ifts,':',ifte,',',jfts,':',jfte
+write(msg,'(a8,i5,a6,i5,3(a1,i5))')'prop_ls: tile ',ifts,':',ifte,',',jfts,':',jfte
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
 call message(msg)
 
@@ -1404,9 +1403,7 @@ call message(msg)
 #      include "HALO_FIRE_LFN_0.inc"
 #endif
 
-    id1 = id  ! for debug prints
-    if(id1.ne.0)id1=id1+1000
-    call tend_ls(id1,    &
+    call tend_ls(    &
     ifds,ifde,jfds,jfde, &                       ! domain dims 
     ifts,ifte,jfts,jfte, &                       ! tile dims
     ifms,ifme,jfms,jfme, &                       ! memory dims
@@ -1431,8 +1428,7 @@ call message(msg)
 ! Runge-Kutta step 2 !
 !!!!!!!!!!!!!!!!!!!!!!
 
-    if(id1.ne.0)id1=id1+1000
-    call tend_ls(id1,    &
+    call tend_ls(    &
     ifds,ifde,jfds,jfde, &                     
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &               
@@ -1457,8 +1453,7 @@ call message(msg)
 ! Runge-Kutta step 3 !
 !!!!!!!!!!!!!!!!!!!!!!
 
-    if(id1.ne.0)id1=id1+1000
-    call tend_ls(id1,    &
+    call tend_ls(    &
     ifds,ifde,jfds,jfde, &                      
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &                 
@@ -1503,7 +1498,7 @@ end subroutine prop_ls_rk3
 !*****************************
 !
 
-subroutine reinit_ls_rk3(id,                       &
+subroutine reinit_ls_rk3(                       &
                 ifts,ifte,jfts,jfte,               &                     
                 ifms,ifme,jfms,jfme,               &                     
                 ifds,ifde,jfds,jfde,               &                     
@@ -1534,7 +1529,7 @@ implicit none
 
 !*** purpose: reinitialize the level-set function
 
-integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,id 
+integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme
 integer,intent(in)::ifds,ifde,jfds,jfde
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3
@@ -1873,7 +1868,7 @@ end subroutine calc_flame_length
 !*****************************
 !
 
-subroutine tend_ls( id, &
+subroutine tend_ls( &
     ids,ide,jds,jde,    &              ! domain - nodes where lfn defined
     its,ite,jts,jte,    &              ! region - nodes where tend computed
     ims,ime,jms,jme,    &              ! memory dims for ros 
@@ -1889,7 +1884,6 @@ implicit none
 ! compute the right hand side of the level set equation
 
 !*** arguments
-integer,intent(in)::id 
 integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
 integer, intent(in)::ids,ide,jds,jde
 real,intent(in)::t                                 ! time

@@ -231,7 +231,6 @@ end type fire_params
 contains
 
 subroutine fuel_moisture(                &
-    id,                                  & ! for prints and maybe file names
     nfmc,                                &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
@@ -245,7 +244,7 @@ implicit none
 
 !**** arguments
 integer, intent(in)::                    &
-    id,nfmc,                             &
+    nfmc,                                &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
     ifts,ifte,jfts,jfte

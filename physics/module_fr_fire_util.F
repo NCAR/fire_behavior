@@ -24,13 +24,12 @@ public :: fire_advection, fire_fmc_read, fire_print_msg, fire_grows_only, fire_l
           boundary_guard, fire_upwinding_reinit, fire_lsm_reinit_iter, fuel_left_irl, &
           fuel_left_jrl, fuel_left_method, fire_const_grnhfx, fire_const_grnqfx, fire_test_steps, &
           fire_const_time, fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
-          fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_print_file, &
-          Open_text_file, Message, Crash, Check_mesh_2dim, Write_array_m, Print_chsum, &
+          fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
+          Open_text_file, Message, Crash, Check_mesh_2dim, Print_chsum, &
           Print_2d_stats, Continue_at_boundary
 
 integer,save::          &
  fire_print_msg=2,      &  ! print FIRE progress
- fire_print_file=1,     &  ! write many files by write_array_m; compile with DEBUG_OUT, do not run in parallel
  fuel_left_method=1,    &  ! 1=simple, 2=exact in linear case
  fuel_left_irl=2,       &  ! refinement for fuel calculation, must be even
  fuel_left_jrl=2,       &
@@ -1115,82 +1114,6 @@ call message(msg)
 !$OMP END CRITICAL(FIRE_UTIL_CRIT)
 end subroutine print_array
 
-subroutine write_array_m(its,ite,jts,jte,           &
-                         ims,ime,jms,jme,               &
-                         a,name,id)
-! debug
-!*** arguments
-integer, intent(in)::its,ite,jts,jte,ims,ime,jms,jme,id
-real, intent(in), dimension(ims:ime,jms:jme):: a
-character(len=*),intent(in)::name
-!****
-call write_array_m3(its,ite,1,1,jts,jte,           &
-                         ims,ime,1,1,jms,jme,               &
-                         a,name,id)
-end subroutine write_array_m
-
-
-subroutine write_array_m3(its,ite,kts,kte,jts,jte,           &
-                         ims,ime,kms,kme,jms,jme,               &
-                         a,name,id)
-
-implicit none
-! debug
-!*** arguments
-integer, intent(in)::its,ite,jts,jte,ims,ime,jms,jme,kts,kte,kms,kme,id
-real, intent(in), dimension(ims:ime,kms:kme,jms:jme):: a
-character(len=*),intent(in)::name
-!****
-integer i,j,k,iu,ilen,myproc,nprocs
-logical op
-character(len=128)::fname,msg
-!****
-if(fire_print_file.eq.0.or.id.le.0)return
-call check_mesh_2dim(its,ite,jts,jte,ims,ime,jms,jme)
-#ifdef DM_PARALLEL
-call wrf_get_nproc (nprocs)
-call wrf_get_myproc(myproc)
-#else
-nprocs = 1
-#endif
-
-!$OMP CRITICAL(FIRE_UTIL_CRIT)
-if(nprocs.eq.1)then
-    write(fname,3)name,'_',id,'.txt'
-else
-    write(fname,4)name,'_',id,'.',myproc,'.txt'
-endif
-
-iu=0
-do i=6,99
-    inquire(unit=i,opened=op)
-    if(.not.op.and.iu.le.0)iu=i
-enddo
-if(iu.gt.0)open(iu,file=trim(fname),form='formatted',status='unknown')
-
-if(iu.le.0)call crash('write_array_m: cannot find available fortran unit')
-
-write(iu,1)real(its)
-write(iu,1)real(ite)
-write(iu,1)real(jts)
-write(iu,1)real(jte)
-write(iu,1)real(kts)
-write(iu,1)real(kte)
-write(iu,1)(((a(i,k,j),i=its,ite),j=jts,jte),k=kts,kte)
-close(iu)
-write(msg,2)name,'(',its,':',ite,',',jts,':',jte,',', &
-kts,':',kte,') -> ',trim(fname) 
-!$OMP END CRITICAL(FIRE_UTIL_CRIT)
-call message(msg)
-return
-
-1 format(e20.12)
-2 format(2a,3(i5,a,i5,a),2a)
-3 format(a,a,i8.8,a)
-4 format(a,a,i8.8,a,i4.4,a)
-
-
-end subroutine write_array_m3
 !
 !***
 !
