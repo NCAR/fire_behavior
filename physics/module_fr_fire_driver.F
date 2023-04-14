@@ -29,7 +29,7 @@ use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_z
                                fire_lsm_band_ngp, fire_lfn_ext_up, fire_grows_only, boundary_guard, &
                                fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                fire_print_msg, &
-                               Crash, Check_mesh_2dim, Print_chsum, Message
+                               Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
 USE state_mod, only: state_fire_t
@@ -679,14 +679,6 @@ if (ifun.eq.3)then
             call crash('fire_driver_phys: Ignition failed, no nodes ignited. Bad coordinates?')
         endif
     enddo
-
- call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vx,'uf')
- call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fp%vy,'vf')
-endif
-
-if(ifun.eq.6)then
-    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnhfx,'fgrnhfx')
-    call print_chsum(itimestep,ifms,ifme,1,1,jfms,jfme,ifds,ifde,1,1,jfds,jfde,ifts,ifte,1,1,jfts,jfte,0,0,0,fgrnqfx,'fgrnqfx')
 endif
 
 end subroutine fire_driver_phys

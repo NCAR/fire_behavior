@@ -25,7 +25,7 @@ public :: fire_advection, fire_fmc_read, fire_print_msg, fire_grows_only, fire_l
           fuel_left_jrl, fuel_left_method, fire_const_grnhfx, fire_const_grnqfx, fire_test_steps, &
           fire_const_time, fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
           fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-          Open_text_file, Message, Crash, Check_mesh_2dim, Print_chsum, &
+          Open_text_file, Message, Crash, Check_mesh_2dim, &
           Print_2d_stats, Continue_at_boundary
 
 integer,save::          &
@@ -1236,84 +1236,6 @@ else
 	ifval=j
 endif
 end function ifval
-
-subroutine print_chsum( id, & 
-    ims,ime,kms,kme,jms,jme, &                ! memory dims
-    ids,ide,kds,kde,jds,jde, &                ! domain dims
-    ips,ipe,kps,kpe,jps,jpe, &                ! patch or tile dims
-    istag,kstag,jstag,       &
-    a,name)                      
-
-#ifdef DM_PARALLEL
-    USE module_dm , only : wrf_dm_bxor_integer
-#endif
-
-integer, intent(in):: id, &
-    ims,ime,kms,kme,jms,jme, &                ! memory dims
-    ids,ide,kds,kde,jds,jde, &                ! domain dims
-    ips,ipe,kps,kpe,jps,jpe, &                ! patch dims
-    istag,kstag,jstag
-real, intent(in),dimension(ims:ime,kms:kme,jms:jme)::a
-character(len=*)::name
-
-#ifdef _OPENMP
-!external, logical:: omp_in_parallel
-!external, integer:: omp_get_thread_num
-#endif
-
-!*** local
-integer::lsum
-integer::i,j,k,n,ipe1,jpe1,kpe1,iel,thread,is,js,ks
-integer, save::psum,gsum
-real::rel
-equivalence(rel,iel)
-character(len=256)msg
-
-if(fire_print_msg.le.0)return
-
-ipe1=ifval(ipe.eq.ide.and.istag.ne.0,ipe+1,ipe)
-kpe1=ifval(kpe.eq.kde.and.kstag.ne.0,kpe+1,kpe)
-jpe1=ifval(jpe.eq.jde.and.jstag.ne.0,jpe+1,jpe)
-is=ifval(istag.ne.0,1,0)
-ks=ifval(kstag.ne.0,1,0)
-js=ifval(jstag.ne.0,1,0)
-
-lsum=0
-do j=jps,jpe1
-  do k=kps,kpe1-1
-    do i=ips,ipe1
-      rel=a(i,k,j)
-      lsum=ieor(lsum,iel)
-    enddo
-  enddo
-enddo
-
-! get process sum over all threads
-thread=0
-#ifdef _OPENMP
-!thread=omp_get_thread_num()
-#endif
-if(thread.eq.0)psum=0
-!$OMP BARRIER
-!$OMP CRITICAL(CHSUM)
-psum=ieor(psum,lsum)
-!$OMP END CRITICAL(CHSUM)
-!$OMP BARRIER
-
-! get global sum over all processes
-if(thread.eq.0)then
-#ifdef DM_PARALLEL
-    gsum = wrf_dm_bxor_integer ( psum )
-#else
-    gsum = psum
-#endif
-    write(msg,1)id,name,ids,ide+is,kds,kde+ks,jds,jde+js,gsum
-1   format(i6,1x,a10,' dims',6i5,' chsum ',z8.8)
-    call message(msg)
-endif
-
-end subroutine print_chsum 
-
 
 real function fun_real(fun,  & 
     ims,ime,kms,kme,jms,jme, &                ! memory dims
