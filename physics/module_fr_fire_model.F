@@ -19,7 +19,6 @@ contains
 
 subroutine fire_model (                    &
     restart,                                &
-    need_lfn_update,                          & ! if lfn needs to be synced between tiles
     num_ignitions,                          & ! number of ignitions before advancing
     ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
     ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
@@ -89,7 +88,6 @@ implicit none
 
 ! control switches
 logical, intent(in):: restart               ! if true, use existing state
-logical, intent(out)::need_lfn_update       ! if true, halo update on lfn afterwards
 ! scalar data
 integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
@@ -161,7 +159,6 @@ xjfme=jfme
 
 
 ! init flags
-need_lfn_update=.false.
 ignitions_done=0
 freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
@@ -302,7 +299,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
             ignitions_done=ignitions_done+1
             ignited_tile(ignitions_done)=ignited
                 
-!            need_lfn_update=.true. ! if ignition, lfn changed
 !        endif
         
     enddo
@@ -313,8 +309,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                    lfn,'fire_model: lfn out')
 
     
-    need_lfn_update=.true. ! duh
-
 !ifun6 ! timestep postprocessing
 
   if(.not. freeze_fire)then

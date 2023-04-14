@@ -67,7 +67,6 @@ subroutine init_fire_driver (grid, config_flags)
 
 !*** local
     integer::itimestep
-    logical::need_lfn_update
     type(fire_params)::fp
     real:: time_start
     real:: moisture_time
@@ -166,9 +165,6 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             grid%dx,grid%dy,time_start,    &
             grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
-
-            need_lfn_update=.true. ! because we have set lfn
-
         endif
 
 #ifdef DM_PARALLEL
@@ -180,6 +176,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
 #endif
 
 end subroutine init_fire_driver
+
 
 #define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
@@ -210,7 +207,6 @@ halo_fire_mag_sub
 
 !*** local
     integer :: itimestep
-    logical::need_lfn_update
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
@@ -286,11 +282,8 @@ halo_fire_mag_sub
         endif
     endif
 
-      need_lfn_update=.false.
-
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
-            need_lfn_update,                                                         &
             ifds,ifde, jfds,jfde,                                                         &
             ifms,ifme, jfms,jfme,                                                               &
             ifts,ifte, jfts,jfte,                                                         &
@@ -341,7 +334,7 @@ end subroutine fire_driver_em
 !
 
 ! module_fr_fire_driver%%fire_driver
-subroutine fire_driver_phys (need_lfn_update,    &
+subroutine fire_driver_phys ( &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
     ifts, ifte, jfts, jfte,                       &
@@ -410,7 +403,6 @@ integer, intent(in)::                             &
 logical, intent(in)::restart
     
 
-logical, intent(out)::need_lfn_update
 
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
@@ -422,34 +414,32 @@ real, intent(in):: &
     fire_ext_crwn,                                & ! wind height for vertical interploation to fire spread
     fire_wind_height 
 
-
 integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
+logical, intent(in) :: fire_is_real_perim
+
+real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
+
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
  
-real, intent(inout), dimension(ifms:ifme,jfms:jfme)::  &
-    nfuel_cat                                       ! fuel data; can be also set inside (cell based, fire grid)
-
 real, intent(inout), dimension(ifms:ifme, jfms:jfme):: &
     lfn,tign,fuel_frac,                        &     ! state: level function, ign time, fuel left
     lfn_hist,                                  &     ! PAJ: to init obs. fira perimeter
-    lfn_out                                    ! fire wind velocities
-
-real, intent(inout), dimension(ifms:ifme, jfms:jfme):: &
+    lfn_out,                                   &
+    nfuel_cat,                                 &     ! fuel data; can be also set inside (cell based, fire grid)
     lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front  ! level set function and reinitialization steps
 
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::   &
-    fire_area                                        ! fraction of each cell burning
-
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::   &
-    burnt_area_dt                                        
-
-real, intent(out), dimension(ifms:ifme, jfms:jfme):: &  ! redundant arrays, for display only, fire grid
+real, intent(out), dimension(ifms:ifme, jfms:jfme):: &
+    fire_area,                                       &  ! fraction of each cell burning
+    burnt_area_dt,                                   &
     fgrnhfx,                                         &  ! heat flux from surface fire (W/m^2) 
     fgrnqfx,                                         &  ! moisture flux from surface fire (W/m^2) 
     fcanhfx,                                         &  ! heat flux from crown fire (W/m^2) 
     fcanqfx,                                         &  ! moisture flux from crown fire (W/m^2) 
-    ros                                                 ! fire rate of spread (m/s)
+    ros,                                             &  ! fire rate of spread (m/s)
+    fuel_time
+
+type(fire_params),intent(inout)::fp
     
 ! moisture model arguments
 logical, intent(in)::run_advance_moisture
@@ -462,28 +452,10 @@ real, intent(inout), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
 real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
 real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi,fmc_lag
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: fmc_g
-
-
-
-!  ***** data (constant in time) *****
-
-real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
-
-type(fire_params),intent(inout)::fp
     
 !*** local
-real :: s
-integer :: its,ite,jts,jte, &            ! tile
-    ij,i,j,k,ite1,jte1
-character(len=128)::msg
-character(len=3)::kk
-
 integer :: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
 integer :: ignitions_done              ! number of isolated ignitions
-
-    ! PAJ:
-  logical :: fire_is_real_perim
 
 
 ignitions_done = 0
@@ -492,8 +464,6 @@ ignitions_done = 0
 call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
 
 if(run_advance_moisture)then
-!   if(ifun.eq.3)then 
-      
       ! one timestep of the moisture model
       call message('advance_moisture start')
       call advance_moisture(    &
@@ -538,13 +508,11 @@ if(run_advance_moisture)then
               nfuel_cat,fuel_time, &
               fp)
 
-!   endif
 endif
 
-!   the following executes in any case
 
 if(fire_run)then
-   call fire_model (restart,need_lfn_update,  &
+   call fire_model (restart,  &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
@@ -567,7 +535,7 @@ if(fire_run)then
         fp                                      & ! fire coefficients
         )
 
-endif ! fire_run
+endif
 
 end subroutine fire_driver_phys
 !
