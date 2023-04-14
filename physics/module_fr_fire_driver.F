@@ -43,7 +43,7 @@ public fire_driver_em,use_atm_vars,init_fire_driver
 
 logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
 
-logical:: fmoist_run, fire_run  ! which kind of model to run overall
+logical:: fmoist_run  ! which kind of model to run overall
 real:: dt
 logical::restart
 
@@ -217,11 +217,6 @@ halo_fire_mag_sub
     real::    dt_moisture
 
 
-
-!*** executable
-
-! populate our structures from wrf
-
     ! pointers to be passed to fire rate of spread formulas
     fp%vx => grid%uf         ! W-E winds used in fire module
     fp%vy => grid%vf         ! S-N winds used in fire module
@@ -242,13 +237,9 @@ halo_fire_mag_sub
     ! time - assume dt does not change
     time_start = itimestep * dt
 
-    ! **** moisture model
-
-    ! decide what to run - moisture, interpolation, or fire model itself
+    ! decide what to run
     if(fire_fmc_read.ne.0.and.fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
-    fire_run = .not. config_flags%fmoist_only
 
-    !decide what to run
     moisture_time = time_start
     run_advance_moisture = .false. ! default
     
@@ -329,11 +320,6 @@ halo_fire_mag_sub
 
 end subroutine fire_driver_em
 
-!
-!*******************
-!
-
-! module_fr_fire_driver%%fire_driver
 subroutine fire_driver_phys ( &
     ifds, ifde, jfds, jfde,                       & ! fire grid dimensions
     ifms, ifme, jfms, jfme,                       &
@@ -384,8 +370,6 @@ USE module_dm, only:wrf_dm_maxval
 
 implicit none
 
-!*** arguments
-
 integer, intent(in)::                             &
     ifds, ifde, jfds, jfde,                       & ! fire domain bounds
     ifms, ifme, jfms, jfme,                       & ! fire memory bounds
@@ -400,10 +384,6 @@ integer, intent(in)::                             &
     nfuel_cat0                                      ! fuel category to initialize everything to
 
 
-logical, intent(in)::restart
-    
-
-
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
     dt,                                           & ! time step
@@ -414,10 +394,10 @@ real, intent(in):: &
     fire_ext_crwn,                                & ! wind height for vertical interploation to fire spread
     fire_wind_height 
 
+logical, intent(in)::restart
 integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 logical, intent(in) :: fire_is_real_perim
-
 real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
 
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
@@ -511,7 +491,6 @@ if(run_advance_moisture)then
 endif
 
 
-if(fire_run)then
    call fire_model (restart,  &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
@@ -534,8 +513,6 @@ if(fire_run)then
         fuel_time,                              & ! save derived internal data
         fp                                      & ! fire coefficients
         )
-
-endif
 
 end subroutine fire_driver_phys
 !
