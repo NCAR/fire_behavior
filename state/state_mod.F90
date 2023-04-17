@@ -189,7 +189,7 @@
 
     end subroutine Handle_output
 
-    subroutine Handle_wrfdata_update (this, wrf, config_flags, testcase)
+    subroutine Handle_wrfdata_update (this, wrf, config_flags)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -198,7 +198,6 @@
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
-      logical, intent (in), optional :: testcase
 
       logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
@@ -208,7 +207,7 @@
         if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
-        if (.not. present(testcase)) call wrf%Update_atm_state (this%datetime_now)
+        call wrf%Update_atm_state (this%datetime_now)
 
         call wrf%interpolate_wind2fire(config_flags,                            & ! flag for debug output
                 config_flags%fire_wind_height,                                  & ! height to interpolate to
