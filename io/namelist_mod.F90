@@ -13,7 +13,6 @@
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1, &
           interval_atm = -1
       real :: dt = 2.0
-      character (len = :), allocatable :: atm_model
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
       integer :: fire_fuel_left_irl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
@@ -133,7 +132,7 @@
     type, extends (namelist_fire_t) :: namelist_t
         ! Atmosphere
       real :: dx = 200.0, dy = 200.0
-      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1, sr_x = 1, sr_y = 1
+      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1
       logical :: restart = .false.
     contains
       procedure, public :: Init_atm_block => Init_atm_block_legacy
@@ -151,16 +150,13 @@
       character (len = *), intent (in) :: file_name
 
       real :: dx, dy
-      integer :: ide, jde, kde, sr_x, sr_y, interval_atm
+      integer :: ide, jde, kde, interval_atm
       integer, parameter :: MAX_CHAR_LEN = 250
-      character (len = MAX_CHAR_LEN) :: atm_model
-
       integer :: unit_nml, io_stat
 
-      namelist /atm/ dx, dy, ide, jde, kde, sr_x, sr_y, atm_model, interval_atm
+      namelist /atm/ dx, dy, ide, jde, kde, interval_atm
 
 
-      atm_model = 'Unknown'
       interval_atm = 0
         ! The following vars are legacy vars
       dx = 200.1
@@ -168,8 +164,6 @@
       ide = 2
       jde = 2
       kde = 2
-      sr_x = 1
-      sr_y = 1
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -184,7 +178,6 @@
       end if
       close (unit_nml)
 
-      this%atm_model = trim (atm_model)
       this%interval_atm = interval_atm
 
         ! Legacy vars
@@ -193,8 +186,6 @@
       this%ide = ide
       this%jde = jde
       this%kde = kde
-      this%sr_x = sr_x
-      this%sr_y = sr_y
 
     end subroutine Init_atm_block_legacy
 

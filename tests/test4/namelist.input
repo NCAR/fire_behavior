@@ -16,7 +16,6 @@
 /
 
  &atm
- atm_model = 'wrfdata'
  interval_atm = 1
  ide = 20
  jde = 20
