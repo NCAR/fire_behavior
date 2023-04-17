@@ -240,64 +240,30 @@
 
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
-      type (geogrid_t), intent (in), optional :: geogrid
+      type (geogrid_t), intent (in) :: geogrid
 
       integer :: ims0, ime0, jms0, jme0, ids0, ide0, jds0, jde0
-      real, parameter :: DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0
-      logical :: use_geogrid
 
-
-      if (present (geogrid)) then
-        use_geogrid = .true.
-      else
-        use_geogrid = .false.
-      end if
 
         ! Domain dimensions
-      if (use_geogrid) then
-        ids0 = geogrid%ifds
-        ide0 = geogrid%ifde
-        jds0 = geogrid%jfds
-        jde0 = geogrid%jfde
+      ids0 = geogrid%ifds
+      ide0 = geogrid%ifde
+      jds0 = geogrid%jfds
+      jde0 = geogrid%jfde
 
-        this%ifds = ids0
-        this%ifde = ide0
-        this%ifms = ids0 - N_POINTS_IN_HALO * geogrid%sr_x
-        this%ifme = ide0 + N_POINTS_IN_HALO * geogrid%sr_x
-        this%ifts = ids0
-        this%ifte = ide0
+      this%ifds = ids0
+      this%ifde = ide0
+      this%ifms = ids0 - N_POINTS_IN_HALO * geogrid%sr_x
+      this%ifme = ide0 + N_POINTS_IN_HALO * geogrid%sr_x
+      this%ifts = ids0
+      this%ifte = ide0
 
-        this%jfds = jds0
-        this%jfde = jde0
-        this%jfms = jds0 - N_POINTS_IN_HALO * geogrid%sr_y
-        this%jfme = jde0 + N_POINTS_IN_HALO * geogrid%sr_y
-        this%jfts = jds0
-        this%jfte = jde0
-      else
-        ids0 = config_flags%ids
-        ide0 = config_flags%ide
-        jds0 = config_flags%jds
-        jde0 = config_flags%jde
-
-        ims0 = ids0 - N_POINTS_IN_HALO
-        ime0 = ide0 + N_POINTS_IN_HALO
-        jms0 = jds0 - N_POINTS_IN_HALO
-        jme0 = jde0 + N_POINTS_IN_HALO
-
-        this%ifds = config_flags%ids
-        this%ifde = config_flags%ide * config_flags%sr_x
-        this%ifms = (ims0 - 1) * config_flags%sr_x + 1
-        this%ifme = ime0 * config_flags%sr_x
-        this%ifts = (config_flags%ids - 1) * config_flags%sr_x + 1
-        this%ifte = (config_flags%ide - config_flags%ids + 1) * config_flags%sr_x + config_flags%ids - 1
-
-        this%jfds = config_flags%jds
-        this%jfde = config_flags%jde * config_flags%sr_y
-        this%jfms = (jms0 - 1) * config_flags%sr_y + 1
-        this%jfme = jme0 * config_flags%sr_y
-        this%jfts = (config_flags%jds - 1) * config_flags%sr_y + 1
-        this%jfte = (config_flags%jde - config_flags%jds + 1) * config_flags%sr_y + config_flags%jds - 1
-      end if
+      this%jfds = jds0
+      this%jfde = jde0
+      this%jfms = jds0 - N_POINTS_IN_HALO * geogrid%sr_y
+      this%jfme = jde0 + N_POINTS_IN_HALO * geogrid%sr_y
+      this%jfts = jds0
+      this%jfte = jde0
 
       this%kfds = config_flags%kds
       this%kfde = config_flags%kde
@@ -317,18 +283,12 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
-
-        ! Grid dimensions
-      if_geogrid: if (use_geogrid) then
-        this%cen_lat = geogrid%cen_lat
-        this%cen_lon = geogrid%cen_lon
-        
-        this%dx = config_flags%dx / geogrid%sr_x
-        this%dy = config_flags%dy / geogrid%sr_y
-      else
-        this%dx = config_flags%dx / config_flags%sr_x
-        this%dy = config_flags%dy / config_flags%sr_y
-      end if if_geogrid
+ 
+      this%cen_lat = geogrid%cen_lat
+      this%cen_lon = geogrid%cen_lon
+      
+      this%dx = config_flags%dx / geogrid%sr_x
+      this%dy = config_flags%dy / geogrid%sr_y
 
       call this%Print()
 
@@ -399,16 +359,11 @@
       allocate (this%emis_smoke(this%ifms:this%ifme, this%jfms:this%jfme))
       this%emis_smoke = 0.0
 
-      if_geogrid2d: if (use_geogrid) then
-        this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
-        this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
-        this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
-        this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
-      else
-        this%zsf = DEFAULT_ZSF
-        this%dzdxf = DEFAULT_DZDXF
-        this%dzdyf = DEFAULT_DZDYF
-      end if if_geogrid2d
+
+      this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
+      this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
+      this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
+      this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
 
 
       call calc_unit_fxlat_fxlong (this, config_flags)
@@ -432,7 +387,7 @@
         call Init_fxlatfxlong (this,geogrid)
       endif
 
-      if (use_geogrid) call this%Init_latlons_fire (geogrid)
+      call this%Init_latlons_fire (geogrid)
 
     end subroutine Init_domain
 

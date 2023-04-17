@@ -50,12 +50,8 @@
       end if
 
         ! Fire state initialization
-      if (config_flags%fire_fuel_read == -1) then
-        geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-        call grid%Initialization (config_flags, geogrid)
-      else
-        call grid%Initialization (config_flags)
-      end if
+      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+      call grid%Initialization (config_flags, geogrid)
 
         ! Atmosphere to Fire
       if (present (wrf)) then
