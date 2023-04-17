@@ -1074,30 +1074,16 @@
         return_value%lons_c = geogrid%xlong_c
       end if
 
-      if (geogrid%ids == config_flags%ids) then
-        return_value%ids = config_flags%ids
-      else
-        write (ERROR_UNIT, *) 'ids in namelist and geogrid differ'
-        stop
-      end if
-      if (geogrid%ide == config_flags%ide) then
-        return_value%ide = config_flags%ide
-      else
-        write (ERROR_UNIT, *) 'ide in namelist and geogrid differ'
-        stop
-      end if
-      if (geogrid%jds == config_flags%jds) then
-        return_value%jds = config_flags%jds
-      else
-        write (ERROR_UNIT, *) 'jds in namelist and geogrid differ'
-        stop
-      end if
-      if (geogrid%jde == config_flags%jde) then
-        return_value%jde = config_flags%jde
-      else
-        write (ERROR_UNIT, *) 'jde in namelist and geogrid differ'
-        stop
-      end if
+      print *,geogrid%ids, config_flags%ids
+      print *,geogrid%ide, config_flags%ide
+      print *,geogrid%jds, config_flags%jds
+      print *,geogrid%jde, config_flags%jde
+
+
+      return_value%ids = geogrid%ids
+      return_value%ide = geogrid%ide
+      return_value%jds = geogrid%jds
+      return_value%jde = geogrid%jde
 
       return_value%sr_x = geogrid%sr_x
       return_value%sr_y = geogrid%sr_y
@@ -1105,26 +1091,26 @@
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
-      return_value%ims = config_flags%ids - N_POINTS_IN_HALO
-      return_value%ime = config_flags%ide + N_POINTS_IN_HALO
+      return_value%ims = geogrid%ids - N_POINTS_IN_HALO
+      return_value%ime = geogrid%ide + N_POINTS_IN_HALO
       return_value%kms = config_flags%kds
       return_value%kme = config_flags%kde
-      return_value%jms = config_flags%jds - N_POINTS_IN_HALO
-      return_value%jme = config_flags%jde + N_POINTS_IN_HALO
+      return_value%jms = geogrid%jds - N_POINTS_IN_HALO
+      return_value%jme = geogrid%jde + N_POINTS_IN_HALO
 
-      return_value%ips = config_flags%ids
-      return_value%ipe = config_flags%ide
+      return_value%ips = geogrid%ids
+      return_value%ipe = geogrid%ide
       return_value%kps = config_flags%kds
       return_value%kpe = config_flags%kde
-      return_value%jps = config_flags%jds
-      return_value%jpe = config_flags%jde
+      return_value%jps = geogrid%jds
+      return_value%jpe = geogrid%jde
 
-      return_value%its = config_flags%ids
-      return_value%ite = config_flags%ide
+      return_value%its = geogrid%ids
+      return_value%ite = geogrid%ide
       return_value%kts = config_flags%kds
       return_value%kte = config_flags%kde
-      return_value%jts = config_flags%jds
-      return_value%jte = config_flags%jde
+      return_value%jts = geogrid%jds
+      return_value%jte = geogrid%jde
 
       call return_value%Print_domain()
 
