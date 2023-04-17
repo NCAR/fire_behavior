@@ -287,8 +287,8 @@
       this%cen_lat = geogrid%cen_lat
       this%cen_lon = geogrid%cen_lon
       
-      this%dx = config_flags%dx / geogrid%sr_x
-      this%dy = config_flags%dy / geogrid%sr_y
+      this%dx = geogrid%dx / geogrid%sr_x
+      this%dy = geogrid%dy / geogrid%sr_y
 
       call this%Print()
 

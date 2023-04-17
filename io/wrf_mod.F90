@@ -1074,12 +1074,6 @@
         return_value%lons_c = geogrid%xlong_c
       end if
 
-      print *,geogrid%ids, config_flags%ids
-      print *,geogrid%ide, config_flags%ide
-      print *,geogrid%jds, config_flags%jds
-      print *,geogrid%jde, config_flags%jde
-
-
       return_value%ids = geogrid%ids
       return_value%ide = geogrid%ide
       return_value%jds = geogrid%jds
