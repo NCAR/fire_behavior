@@ -8,7 +8,7 @@
 
     integer, parameter :: NUM_FMC = 5
 
-    type :: namelist_fire_t
+    type :: namelist_t
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1, &
           interval_atm = -1
@@ -123,17 +123,14 @@
       real :: fire_ignition_start_time5 = 0.0
       real :: fire_ignition_end_time5 = 0.0
       real :: fire_ignition_radius5 = 0.0
-    contains
-      procedure, public :: Initialization => Init_namelist
-      procedure, public :: Init_fire_block => Init_fire_block
-      procedure, public :: Init_time_block => Init_time_block
-    end type namelist_fire_t
 
-    type, extends (namelist_fire_t) :: namelist_t
         ! Atmosphere
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1
       logical :: restart = .false.
     contains
+      procedure, public :: Initialization => Init_namelist
+      procedure, public :: Init_fire_block => Init_fire_block
+      procedure, public :: Init_time_block => Init_time_block
       procedure, public :: Init_atm_block => Init_atm_block_legacy
     end type namelist_t
 
@@ -189,7 +186,7 @@
 
       implicit none
 
-      class (namelist_fire_t), intent (in out) :: this
+      class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
@@ -437,7 +434,7 @@
 
       implicit none
 
-      class (namelist_fire_t), intent (in out) :: this
+      class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
@@ -501,7 +498,7 @@
 
       implicit none
 
-      class (namelist_fire_t), intent (out) :: this
+      class (namelist_t), intent (out) :: this
       character (len = *), intent (in) :: file_name
 
       logical, parameter :: DEBUG_LOCAL = .true.
@@ -511,18 +508,7 @@
 
       call this%Init_time_block (file_name = trim (file_name))
       call this%Init_fire_block (file_name = trim (file_name))
-
-      select type (this)
-        type is (namelist_fire_t)
-         ! we are good
-
-        class is (namelist_t)
-          call this%Init_atm_block (file_name = trim (file_name))
-
-        class default
-          write (ERROR_UNIT, *) 'Unknown type for namelist_fire_t'
-          stop
-      end select
+      call this%Init_atm_block (file_name = trim (file_name))
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Read_namelist'
 
