@@ -114,7 +114,6 @@
            ims,ime,kms,kme,jms,jme,          &
            its,ite,kts,kte,jts,jte,          &
            rho,dz8w,                         &
-           burnt_area_dt,fgip,               &
            tracer,emis)
 
       implicit none
@@ -126,7 +125,7 @@
                           ims,ime,kms,kme,jms,jme, &
                           its,ite,kts,kte,jts,jte
       real, intent(in) :: rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
-      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: burnt_area_dt,fgip,emis
+      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: emis
       real, intent(inout) :: tracer(ims:ime,kms:kme,jms:jme)
 
       integer :: isz1,jsz1,isz2,jsz2,ir,jr
@@ -655,7 +654,7 @@
       type (datetime_t), intent (in) :: datetime
 
       real, dimension(:, :, :, :), allocatable :: var4d, var4d2
-      integer :: nt, nlevels
+      integer :: nt
 
 
       nt = this%Get_datetime_index (datetime)
@@ -1199,8 +1198,6 @@
       type (proj_lc_t) :: proj
 
       logical, parameter :: OUTPUT_LATLON_CHECK = .false.
-      real (kind = REAL32) :: att_real32
-      real :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       integer :: nx, ny, i, j
 
 
@@ -1467,14 +1464,13 @@
 
 
       !*** local
-      character(len=256)::msg
       real, dimension(its-2:ite+2,jts-2:jte+2):: ua,va   ! atm winds, interpolated over height, still staggered grid
       real, dimension(its-2:ite+2,kds:kde,jts-2:jte+2):: altw,altub,altvb,hgtu,hgtv ! altitudes
-      integer:: i,j,k,ifts1,ifte1,jfts1,jfte1,ite1,jte1
+      integer:: i,j,k,ite1,jte1
       integer::itst,itet,jtst,jtet,itsu,iteu,jtsu,jteu,itsv,itev,jtsv,jtev
-      integer::kdmax,its1,jts1,ips1,jps1
+      integer::kdmax,ips1,jps1
       integer::itsou,iteou,jtsou,jteou,itsov,iteov,jtsov,jteov
-      real:: ground,loght,loglast,logz0,logfwh,ht,zr
+      real:: loght,loglast,logz0,logfwh,ht,zr
       real::r_nan
       integer::i_nan
       equivalence (i_nan,r_nan)

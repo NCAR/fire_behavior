@@ -1028,7 +1028,6 @@
                   wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
                   wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
                   wrf%rho_stag,wrf%dz8w_stag,                      &
-                  this%burnt_area_dt,this%fgip,                    &
                   wrf%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
       end if
 
