@@ -200,7 +200,6 @@
       type (wrf_t), intent (in out) :: wrf
 
       logical, parameter :: DEBUG_LOCAL = .true.
-      integer :: i, j, k
 
 
       If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
@@ -242,7 +241,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in) :: geogrid
 
-      integer :: ims0, ime0, jms0, jme0, ids0, ide0, jds0, jde0
+      integer :: ids0, ide0, jds0, jde0
 
 
         ! Domain dimensions
@@ -382,7 +381,7 @@
 
       real, parameter :: OFFSET = 0.5
       type (proj_lc_t) :: proj
-      integer :: i, j, nx, ny
+      integer :: i, j
       real :: i_atm, j_atm, offset_corners_x, offset_corners_y
 
 
@@ -827,11 +826,10 @@
       real,intent(in):: z0f          ! roughness length in fire grid
 
       !*** local
-      character(len=256)::msg
       real, dimension(kfds:kfde-1):: altw, hgt
       integer:: k
       integer::kdmax
-      real:: ground,loght,loglast,logz0,logfwh,ht
+      real:: loght,loglast,logz0,logfwh,ht
       real::r_nan
       integer::i_nan
       equivalence (i_nan,r_nan)
@@ -1040,7 +1038,6 @@
       class (state_fire_t), intent (in) :: this
 
       character (len = :), allocatable :: file_output
-      integer :: nz
 
 
       file_output='fire_output_'//this%datetime_now%datetime//'.nc'
