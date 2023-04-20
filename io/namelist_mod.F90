@@ -131,7 +131,6 @@
 
     type, extends (namelist_fire_t) :: namelist_t
         ! Atmosphere
-      real :: dx = 200.0, dy = 200.0
       integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1
       logical :: restart = .false.
     contains
@@ -149,18 +148,15 @@
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
-      real :: dx, dy
       integer :: ide, jde, kde, interval_atm
       integer, parameter :: MAX_CHAR_LEN = 250
       integer :: unit_nml, io_stat
 
-      namelist /atm/ dx, dy, ide, jde, kde, interval_atm
+      namelist /atm/ ide, jde, kde, interval_atm
 
 
       interval_atm = 0
         ! The following vars are legacy vars
-      dx = 200.1
-      dy = 200.1
       ide = 2
       jde = 2
       kde = 2
@@ -181,8 +177,6 @@
       this%interval_atm = interval_atm
 
         ! Legacy vars
-      this%dx = dx
-      this%dy = dy
       this%ide = ide
       this%jde = jde
       this%kde = kde
