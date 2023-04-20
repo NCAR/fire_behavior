@@ -65,7 +65,7 @@
       real, dimension(:, :), intent (in) :: var
 
       integer, parameter :: N_DIMS = 2
-      integer :: ncidout, status, dimid, varid, n
+      integer :: ncidout, status, varid, n
       integer :: dimids(N_DIMS)
 
 
@@ -108,7 +108,7 @@
       real, dimension(:, :, :), intent (in) :: var
 
       integer, parameter :: N_DIMS = 3
-      integer :: ncidout, status, dimid, varid, n
+      integer :: ncidout, status, varid, n
       integer :: dimids(N_DIMS)
 
 

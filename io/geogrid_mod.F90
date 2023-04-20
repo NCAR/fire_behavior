@@ -126,19 +126,6 @@
       class (geogrid_t), intent (in) :: this
       type (proj_lc_t) :: return_value
 
-      integer :: nx, ny
-
-
-!      if (allocated (this%lats)) then
-!        nx = size (this%lats, dim = 1) + offset
-!        ny = size (this%lats, dim = 2) + offset
-!      else
-!        write (ERROR_UNIT, *) 'lats array needs to be initialized to get the WRF projection'
-!      end if
-
-!      print *, shape (this%xlat)
-!      print *, shape (this%xlong)
-!      print *, 'ide, jde = ', this%ide, this%jde
 
       return_value = proj_lc_t (cen_lat = this%cen_lat , cen_lon = this%cen_lon, &
           dx = this%dx, dy = this%dy, standard_lon = this%stand_lon, true_lat_1 = this%true_lat_1, &
