@@ -208,7 +208,6 @@ halo_fire_mag_sub
 !*** local
     integer :: itimestep
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
-    real:: corner_ll,corner_ul,corner_ur,corner_lr
     character(len=128)msg
     type(fire_params)::fp
     real:: time_start

@@ -87,8 +87,7 @@ module wrf_nuopc
 
     ! local variables
     type(ESMF_State)        :: importState, exportState
-    type (datetime_t) :: datetime_now
-    integer           :: i,j,k
+
 
     rc = ESMF_SUCCESS
 
@@ -478,7 +477,7 @@ module wrf_nuopc
       config_flags%start_second)
 
 !      ! "Initialize" atmospheric model
-     call Update_atm_state(datetime_now, config_flags)
+     call Update_atm_state(datetime_now)
 
 #endif
 
@@ -584,7 +583,7 @@ module wrf_nuopc
     !   return  ! bail out
 
 !      ! "Run" atmospheric model
-     call Update_atm_state(datetime_now, config_flags)
+     call Update_atm_state(datetime_now)
 !    call state%Destroy_t2 ()
 
     call ESMF_ClockPrint(clock, options="currTime", &
@@ -613,10 +612,9 @@ module wrf_nuopc
 
   end subroutine
 
-  subroutine Update_atm_state(datetime,config_flags)
+  subroutine Update_atm_state (datetime)
    
     type (datetime_t), intent (in) :: datetime
-    type (namelist_t), intent (in) :: config_flags
 
 
     call state%Get_z0(datetime)
