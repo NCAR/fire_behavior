@@ -827,10 +827,12 @@ module fire_behavior_nuopc
 
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
-    grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2))
+    ! convert cm to m
+    grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2)) * 0.01
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
+    ! convert m s-1 to m
     grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2)) * ts
 
     do j = grid%jfds, grid%jfde
