@@ -210,9 +210,9 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: inst_rainfall_amount
+    ! exportable field: mean_prec_rate
     call NUOPC_Advertise(exportState, &
-      StandardName="inst_rainfall_amount", rc=rc)
+      StandardName="mean_prec_rate", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -460,8 +460,8 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field on Grid: inst_rainfall_amount
-    field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=grid, &
+    ! exportable field on Grid: mean_prec_rate
+    field = ESMF_FieldCreate(name="mean_prec_rate", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -656,8 +656,10 @@ module wrf_nuopc
     end if
 
     ! Set field data
+
+    ! convert m to cm 
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
-      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) * 100.0
     ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
       state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
