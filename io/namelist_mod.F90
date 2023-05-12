@@ -125,7 +125,7 @@
       real :: fire_ignition_radius5 = 0.0
 
         ! Atmosphere
-      integer :: ids = 1, ide = 1, jds = 1, jde = 1, kds = 1, kde = 1
+      integer :: ids = 1, jds = 1, kds = 1, kde = 1
       logical :: restart = .false.
     contains
       procedure, public :: Initialization => Init_namelist
@@ -145,17 +145,15 @@
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
-      integer :: ide, jde, kde, interval_atm
+      integer :: kde, interval_atm
       integer, parameter :: MAX_CHAR_LEN = 250
       integer :: unit_nml, io_stat
 
-      namelist /atm/ ide, jde, kde, interval_atm
+      namelist /atm/ kde, interval_atm
 
 
       interval_atm = 0
         ! The following vars are legacy vars
-      ide = 2
-      jde = 2
       kde = 2
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
@@ -174,8 +172,6 @@
       this%interval_atm = interval_atm
 
         ! Legacy vars
-      this%ide = ide
-      this%jde = jde
       this%kde = kde
 
     end subroutine Init_atm_block_legacy
