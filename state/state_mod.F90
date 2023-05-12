@@ -298,6 +298,8 @@
 
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%uf = 0.
+      this%vf = 0.
       allocate (this%bbb(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%betafl(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%phiwc(this%ifms:this%ifme, this%jfms:this%jfme))
