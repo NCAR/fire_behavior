@@ -910,40 +910,6 @@ enddo
 max_2darray = t
 end function max_2darray
 
-subroutine print_2d_stats_vec(ips,ipe,jps,jpe, &
-                         ims,ime,jms,jme, &
-                         ax,ay,name)
-implicit none
-integer, intent(in)::ips,ipe,jps,jpe,ims,ime,jms,jme
-real, intent(in), dimension(ims:ime,jms:jme)::ax,ay
-character(len=*),intent(in)::name
-integer:: i,j
-real:: t 
-real:: avg_a,max_a,min_a 
-character(len=25)::id
-id=name
-call print_2d_stats(ips,ipe,jps,jpe, &
-                         ims,ime,jms,jme, &
-                         ax,id//'/x ')
-call print_2d_stats(ips,ipe,jps,jpe, &
-                         ims,ime,jms,jme, &
-                         ay,id//'/y ')
-avg_a=0
-max_a=-huge(max_a)
-min_a= huge(min_a)
-do j=jps,jpe
-    do i=ips,ipe
-        t=sqrt(ax(i,j)**2+ay(i,j)**2)
-        max_a=max(max_a,t)
-        min_a=min(min_a,t)
-        avg_a=avg_a+t
-    enddo
-enddo
-avg_a = avg_a/((ipe-ips+1)*(jpe-jps+1))
-call print_stat_line(id//'/sz',ips,ipe,jps,jpe,min_a,max_a,avg_a)
-end subroutine print_2d_stats_vec
-
-
 subroutine print_stat_line(name,ips,ipe,jps,jpe,min_a,max_a,avg_a)
 !*** encapsulate line with statistics
 implicit none
