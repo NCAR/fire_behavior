@@ -36,8 +36,7 @@ list(APPEND _io_files io/namelist_mod.F90
 
 
 # WRF Physics
-list(APPEND _wrffire_physics physics/module_fr_fire_atm.F
-                             physics/module_fr_fire_core.F
+list(APPEND _wrffire_physics physics/module_fr_fire_core.F
                              physics/module_fr_fire_driver.F
 			     physics/module_fr_fire_driver_wrf.F
 			     physics/module_fr_fire_model.F

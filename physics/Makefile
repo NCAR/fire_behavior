@@ -9,7 +9,7 @@ SHARE_DIR = ../share
 SHARE_INCLUDE="-I$(SHARE_DIR)"
 
 objects = module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o \
-	 module_fr_fire_model.o module_fr_fire_atm.o module_fr_fire_driver.o module_fr_fire_driver_wrf.o module_fr_fire_util.o
+	 module_fr_fire_model.o module_fr_fire_driver.o module_fr_fire_driver_wrf.o module_fr_fire_util.o
 
 target: $(objects)
 %.o: %.F
