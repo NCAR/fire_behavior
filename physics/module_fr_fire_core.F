@@ -11,7 +11,7 @@ use module_fr_fire_util, only: fire_grows_only, fire_lfn_ext_up, fire_lsm_band_n
                                fire_upwind_split, fire_upwinding, fire_viscosity, fire_viscosity_band, &
                                fire_viscosity_bg, fire_viscosity_ngp, boundary_guard, fire_upwinding_reinit, &
                                fire_lfn_ext_up, fire_lsm_reinit_iter, fuel_left_irl, fuel_left_jrl, &
-                               fuel_left_method, fire_print_msg, continue_at_boundary, &
+                               fuel_left_method, fire_print_msg, &
                                Message, Crash, Print_2d_stats
 
 ! The mathematical core of the fire spread model. No physical constants here.
@@ -1524,7 +1524,6 @@ real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,time_now
 integer::nts,i,j,k,kk
 intrinsic epsilon
 character(len=128)::msg
-integer::itso,iteo,jtso,jteo
 real::threshold_HLl,threshold_HLu
 integer,parameter::bdy_eno1=10
 !*** executable
@@ -1544,14 +1543,6 @@ threshold_HLu=fire_lsm_band_ngp*dx
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
 
-    call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
-    ifms,ifme,jfms,jfme, &                             ! memory dims
-    ifds,ifde,jfds,jfde, &                             ! domain
-    ifts,ifte,jfts,jfte, &                             ! tile
-    itso,iteo,jtso,jteo, &                             ! where set now
-    lfn_s3) 
-
-    
 dt_s=0.01*dx
 do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each time step is enoguh)
     ! Runge-Kutta step 1 !
@@ -1567,13 +1558,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S1.inc"
 #endif
 
-    call continue_at_boundary(1,1,fire_lfn_ext_up, & 
-    ifms,ifme,jfms,jfme, &                          
-    ifds,ifde,jfds,jfde, &                           
-    ifts,ifte,jfts,jfte, &                           
-    itso,iteo,jtso,jteo, &               
-    lfn_s1) 
-
     ! Runge-Kutta step 2 !
 
     call advance_ls_reinit( &
@@ -1587,13 +1571,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S2.inc"
 #endif
 
-    call continue_at_boundary(1,1,fire_lfn_ext_up, &  
-    ifms,ifme,jfms,jfme, &              
-    ifds,ifde,jfds,jfde, &                 
-    ifts,ifte,jfts,jfte, &               
-    itso,iteo,jtso,jteo, & 
-    lfn_s2) 
-
     ! Runge-Kutta step 3 !
 
     call advance_ls_reinit( &
@@ -1606,13 +1583,6 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #ifdef DM_PARALLEL
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
-
-    call continue_at_boundary(1,1,fire_lfn_ext_up, &  
-    ifms,ifme,jfms,jfme, &              
-    ifds,ifde,jfds,jfde, &                  
-    ifts,ifte,jfts,jfte, &              
-    itso,iteo,jtso,jteo, &           
-    lfn_s3) 
 
 enddo ! end iterations for steady state solution of reinitialization PDE
 
@@ -1882,7 +1852,7 @@ real:: te,diffLx,diffLy,diffRx,diffRy, &
    diffCx,diffCy,diff2x,diff2y,grad,rr, &
    ros_base,ros_wind,ros_slope,ros_back,advx,advy,scale,nvx,nvy, &
    speed,tanphi
-integer::i,j,itso,iteo,jtso,jteo
+integer::i,j
 character(len=128)msg
 
 ! constants
@@ -1907,13 +1877,6 @@ intrinsic max,min,sqrt,nint,tiny,huge
 threshold_HLl=-fire_lsm_band_ngp*dx 
 threshold_HLu=fire_lsm_band_ngp*dx
 threshold_AV=fire_viscosity_ngp*dx
-    
-    call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
-    ims,ime,jms,jme, &                                 ! memory dims
-    ids,ide,jds,jde, &                                 ! domain
-    its,ite,jts,jte, &                                 ! tile
-    itso,iteo,jtso,jteo, &                             ! where set now
-    lfn)                                               ! field 
 
     tbound=0    
     do j=jts,jte

@@ -26,7 +26,7 @@ public :: fire_advection, fire_fmc_read, fire_print_msg, fire_grows_only, fire_l
           fire_const_time, fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
           fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           Open_text_file, Message, Crash, Check_mesh_2dim, &
-          Print_2d_stats, Continue_at_boundary
+          Print_2d_stats
 
 integer,save::          &
  fire_print_msg=2,      &  ! print FIRE progress
@@ -153,108 +153,6 @@ endif
     endif
 
 end function open_text_file
-
-!
-!****************
-!
-
-subroutine continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
-    ims,ime,jms,jme, &                ! memory dims
-    ids,ide,jds,jde, &                ! domain dims
-    its,ite,jts,jte, &                ! tile dims
-    itso,iteo,jtso,jteo, &            ! tile dims where set
-    lfn)                              ! array
-implicit none
-!*** description
-! extend array by one beyond the domain by linear continuation
-!*** arguments
-integer, intent(in)::ix,iy              ! not 0 = do x or y (1 or 2) direction
-real,intent(in)::bias                   ! 0=none, 1.=max
-integer, intent(in)::ims,ime,jms,jme, & ! memory dims
-    ids,ide,jds,jde,                  & ! domain dims
-    its,ite,jts,jte                     ! tile dims
-integer, intent(out)::itso,jtso,iteo,jteo ! where set
-real,intent(inout),dimension(ims:ime,jms:jme)::lfn
-!*** local
-integer i,j
-character(len=128)::msg
-integer::its1,ite1,jts1,jte1
-integer,parameter::halo=1           ! only 1 domain halo is needed since ENO1 is used near domain boundaries
-!*** executable
-
-! for dislay only
-itso=its
-jtso=jts
-iteo=ite
-jteo=jte
-! go halo width beyond if at patch boundary but not at domain boudnary 
-! assume we have halo need to compute the value we do not have 
-! the next thread that would conveniently computer the extended values at patch corners
-! besides halo may not transfer values outside of the domain
-! 
-its1=its
-jts1=jts
-ite1=ite
-jte1=jte
-if(.not.its.eq.ids)its1=its-halo
-if(.not.jts.eq.jds)jts1=jts-halo
-if(.not.ite.eq.ide)ite1=ite+halo
-if(.not.jte.eq.jde)jte1=jte+halo
-!$OMP CRITICAL(FIRE_UTIL_CRIT)
-write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias 
-call message(msg)
-!$OMP END CRITICAL(FIRE_UTIL_CRIT)
-if(ix.ne.0)then
-    if(its.eq.ids)then
-        do j=jts1,jte1
-            lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
-        enddo
-        itso=ids-1
-    endif
-    if(ite.eq.ide)then
-        do j=jts1,jte1
-            lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
-        enddo
-        iteo=ide+1
-    endif
-!$OMP CRITICAL(FIRE_UTIL_CRIT)
-    write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
-    call message(msg)
-!$OMP END CRITICAL(FIRE_UTIL_CRIT)
-endif
-if(iy.ne.0)then
-    if(jts.eq.jds)then
-        do i=its1,ite1
-            lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
-        enddo
-        jtso=jds-1
-    endif
-    if(jte.eq.jde)then
-        do i=its1,ite1
-            lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
-        enddo
-        jteo=jde+1
-    endif
-!$OMP CRITICAL(FIRE_UTIL_CRIT)
-    write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-!$OMP END CRITICAL(FIRE_UTIL_CRIT)
-    call message(msg)
-endif
-! corners of the domain
-if(ix.ne.0.and.iy.ne.0)then
-    if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
-    if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
-    if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
-    if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
-endif
-return
-contains
-real function EX(a,b)
-!*** statement function
-real a,b
-EX=(1.-bias)*(2.*a-b)+bias*max(2.*a-b,a,b)   ! extrapolation, max quarded
-end function EX
-end subroutine continue_at_boundary
 
 !
 !*****************************
