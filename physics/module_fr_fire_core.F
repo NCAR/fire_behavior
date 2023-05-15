@@ -402,12 +402,6 @@ endif
 rx=1./ir 
 ry=1./jr
 
-! interpolate level set function to finer grid
-#ifdef DEBUG_OUT_FUEL_LEFT    
-    call write_array_m(1,IFCELLS+1,1,JFCELLS+1,1,IFCELLS+1,1,JFCELLS+1,lff,'lff',0)
-    call write_array_m(1,IFCELLS+1,1,JFCELLS+1,1,IFCELLS+1,1,JFCELLS+1,tif,'tif',0)
-#endif
-
 !
 ! example for ir=2:
 !
@@ -547,16 +541,6 @@ do icl=its,ite
     fire_area(icl,jcl)=helpsum2
   enddo 
 enddo
-  
-
-
-
-#ifdef DEBUG_OUT_FUEL_LEFT
-    call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,fire_area,'fire_area',0)
-    call write_array_m(its,ite,jts,jte,ims,ime,jms,jme,fuel_frac,'fuel_frac',0)
-    call write_array_m(1,IFCELLS,1,JFCELLS,1,IFCELLS,1,JFCELLS,fuel_left_f,'fuel_left_f',0)
-    call write_array_m(1,IFCELLS,1,JFCELLS,1,IFCELLS,1,JFCELLS,fire_area_f,'fire_area_f',0)
-#endif
 
 ! finish the averaging
 do j=jts,jte
