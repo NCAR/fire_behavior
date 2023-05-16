@@ -79,7 +79,7 @@ then
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -le 38 ]
+  if [ $test -le 26 ]
   then
     echo '  Test6.2 PASSED'
     echo '    Ignore this difference:'
@@ -203,3 +203,4 @@ fi
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
 rm -f ./wrf.nc
 
+rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat

@@ -203,3 +203,4 @@ fi
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
 rm -f ./wrf.nc
 
+rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
