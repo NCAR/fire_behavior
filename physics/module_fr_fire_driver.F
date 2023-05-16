@@ -1,4 +1,6 @@
 
+module module_fr_fire_driver
+
 ! SFIRE - Spread fire model in WRF-Fire
 !
 ! This module is the entry point from WRF ARW to the wildland 
@@ -14,9 +16,6 @@
 ! NCAR, the U.S.D.A. Forest Service, the Australian Bureau of Meteorology, 
 ! and the University of Colorado at Denver. 
 !
-
-module module_fr_fire_driver
-! use this module for standalone call, you only need to provide some mock-up wrf modules  
 
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
@@ -37,11 +36,9 @@ USE namelist_mod, only: namelist_t
 
 implicit none
 
-
 private
-public fire_driver_em,use_atm_vars,init_fire_driver
 
-logical:: use_atm_vars=.true.   !  interpolate wind from atm mesh and average output fluxes back
+public fire_driver_em, init_fire_driver
 
 logical:: fmoist_run
 real:: dt
@@ -55,26 +52,18 @@ contains
 
 subroutine init_fire_driver (grid, config_flags)
 
-! Driver layer modules
-#ifdef DM_PARALLEL
-    USE module_comm_dm , ONLY : halo_fire_fuel_sub, halo_fire_zsf_sub, halo_fire_lfn_sub
-#endif
-
     implicit none
-!*** arguments
+
     TYPE(state_fire_t) , TARGET :: grid             ! state
     TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
 
-!*** local
     integer::itimestep
     type(fire_params)::fp
     real:: time_start
     real:: moisture_time
 
-!*** executable
 
 ! populate our structures from wrf
-
     ! pointers to be passed to fire rate of spread formulas
     fp%vx => grid%uf         ! W-E winds used in fire module
     fp%vy => grid%vf         ! S-N winds used in fire module
@@ -115,28 +104,11 @@ subroutine init_fire_driver (grid, config_flags)
         call message('moisture initialization')
     endif
 
-#ifdef DM_PARALLEL
-!       halo exchange on topography
-#include "HALO_FIRE_LONGLAT.inc"
-!!            if(fire_topo_from_atm.eq.1)then
-!!#include "HALO_FIRE_HT.inc"
-!!            endif
-! base geopotential and roughness
-#include "HALO_FIRE_PHB.inc"
-
-#include "HALO_FIRE_Z0.inc"
-#endif
-
 !$OMP SINGLE
 ! init rest of fuel tables with derived constants
 ! properties of fuel categories and moisture classes from namelist.fire
 call init_fuel_cats(fmoist_run) ! common for all threads
 !$OMP END SINGLE
-
-#ifdef DM_PARALLEL
-!           halo exchange on zsf width 2
-#include "HALO_FIRE_ZSF.inc"
-#endif
 
         ! initialize all arrays that the model will not change later
 
@@ -154,8 +126,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             grid%dx,grid%dy,config_flags%fire_fuel_cat,    &
             grid%nfuel_cat,grid%fuel_time, &
-            fp  &
-)
+            fp)
 
         ! initialize model state to no fire
         if(.not.restart)then
@@ -167,45 +138,21 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
         endif
 
-#ifdef DM_PARALLEL
-!               halo exchange on all fuel data width 2
-#include "HALO_FIRE_FUEL.inc"
-!               fire state was initialized
-                call message('halo exchange on lfn width 2')
-#include "HALO_FIRE_LFN.inc"
-#endif
-
 end subroutine init_fire_driver
 
-
-#define DEBUG_OUT
 subroutine fire_driver_em ( grid , config_flags                    & 
             ,ifds,ifde, jfds,jfde                                   &
             ,ifms,ifme, jfms,jfme                                   &
             ,ifts,ifte, jfts,jfte                                   &
             )
 
-!*** purpose: driver from grid structure
-
-! Driver layer modules
-#ifdef DM_PARALLEL
-    USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
-    USE module_comm_dm , ONLY : halo_fire_fuel_sub, halo_fire_tign_sub, halo_fire_wind_f_sub, &
-halo_fire_wind_a_sub, halo_fire_ph_sub, halo_fire_zsf_sub, halo_fire_longlat_sub, &
-halo_fire_phb_sub, halo_fire_z0_sub, halo_fire_lfn_sub, halo_fire_mfg_sub, &
-halo_fire_mag_sub
-#endif
-
     implicit none
-!*** arguments
-    TYPE(state_fire_t) , TARGET :: grid             ! state
-    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
-    integer, intent(in):: &
-             ifds,ifde, jfds,jfde,                                   &
-             ifms,ifme, jfms,jfme,                                   &
-             ifts,ifte, jfts,jfte
 
-!*** local
+    type (state_fire_t), target :: grid
+    type (namelist_t), intent (in) :: config_flags
+    integer, intent(in) :: ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
+        ifts, ifte, jfts, jfte
+
     integer :: itimestep
     real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
     character(len=128)msg
@@ -363,10 +310,6 @@ subroutine fire_driver_phys ( &
     fp                                            & ! fire params
     )
 
-#ifdef DM_PARALLEL
-USE module_dm, only:wrf_dm_maxval
-#endif
-
 implicit none
 
 integer, intent(in)::                             &
@@ -381,7 +324,6 @@ integer, intent(in)::                             &
                                                     ! 1=from altitude
                                                     ! 2=from file
     nfuel_cat0                                      ! fuel category to initialize everything to
-
 
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
@@ -419,8 +361,7 @@ real, intent(out), dimension(ifms:ifme, jfms:jfme):: &
     fuel_time
 
 type(fire_params),intent(inout)::fp
-    
-! moisture model arguments
+  ! moisture model arguments
 logical, intent(in)::run_advance_moisture
 real, intent(in)::dt_moisture
 real, intent(in)::fmep_decay_tlag
@@ -432,7 +373,6 @@ real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
 real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi,fmc_lag
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: fmc_g
     
-!*** local
 integer :: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
 integer :: ignitions_done              ! number of isolated ignitions
 
@@ -489,7 +429,6 @@ if(run_advance_moisture)then
 
 endif
 
-
    call fire_model (restart,  &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
@@ -514,23 +453,24 @@ endif
         )
 
 end subroutine fire_driver_phys
-!
-!*******************
-!
 
 subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
     ignition_line,fire_num_ignitions)
-    USE namelist_mod, only : namelist_t
-    implicit none
+
 ! create ignition arrays from scalar flags
-!*** arguments
+
+    USE namelist_mod, only : namelist_t
+
+    implicit none
+
     TYPE (namelist_t) , INTENT(IN)          :: config_flags
     TYPE (ignition_line_type), DIMENSION(FIRE_MAX_IGNITIONS), intent(out):: ignition_line ! any values from input discarded 
     integer, intent(out)::fire_num_ignitions
     integer, intent(in)::fire_ignition_longlat
-!*** local
+
     integer::i
-!*** executable
+
+
     ! this is only until I figure out how to input arrays through the namelist...
     if(FIRE_MAX_IGNITIONS.lt.5)call crash('FIRE_MAX_IGNITIONS too small')
 
@@ -602,7 +542,6 @@ subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
        ignition_line(5)%start_time=config_flags%fire_ignition_start_time5
        ignition_line(5)%end_time=config_flags%fire_ignition_end_time5
 
-    ! 
         fire_num_ignitions=0      
         do i=1,min(5,config_flags%fire_num_ignitions)
             ! count the ignitions 
@@ -615,17 +554,14 @@ subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
 
 end subroutine fire_ignition_convert
 
-!
-!***
-!
-
 subroutine set_flags(config_flags)
+
 implicit none
+
 TYPE (namelist_t) , INTENT(IN)          :: config_flags
+
 ! copy flags from wrf to module_fr_fire_util
 ! for instructions how to add a flag see the top of module_fr_fire_util.F
-
-
 fire_print_msg          = config_flags%fire_print_msg
 fuel_left_method        = config_flags%fire_fuel_left_method
 fuel_left_irl           = config_flags%fire_fuel_left_irl
@@ -652,9 +588,6 @@ fire_viscosity_band     = config_flags%fire_viscosity_band
 fire_viscosity_ngp      = config_flags%fire_viscosity_ngp
 fire_slope_factor       = config_flags%fire_slope_factor 
 fire_fmc_read           = config_flags%fire_fmc_read
-
-
-
 
 end subroutine set_flags
 
