@@ -1,8 +1,3 @@
-!
-#define DEBUG_OUT
-#define DEBUG_PRINT
-!#define FUEL_LEFT
-!#define DEBUG_OUT_FUEL_LEFT    
 
 module module_fr_fire_core
 
@@ -44,10 +39,6 @@ end type ignition_line_type
 
 contains
 
-!
-!****************************************
-!
-    
 subroutine init_no_fire(&
     ifds,ifde,jfds,jfde, &
     ifms,ifme,jfms,jfme, &
@@ -58,7 +49,6 @@ implicit none
              
 !*** purpose: initialize model to no fire
 
-!*** arguments
 integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
 integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
 integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
@@ -87,11 +77,6 @@ enddo
 call message('init_no_fire: state set to no fire')
 
 end subroutine init_no_fire
-
-!
-!******************
-!
- 
 
 subroutine ignite_fire( ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
                         ifms,ifme,jfms,jfme,                      &
@@ -142,7 +127,6 @@ real:: radius                   ! all within the radius of the line will ignite
 real:: start_time,end_time      ! the ignition time for the start and the end of the line
 real:: ros,tos                  ! ignition rate and time of spread
 
-!*** executable
 
 ! copy ignition line fields to local variables
 start_x    = ignition_line%start_x ! x coordinate of the ignition line start point (m, or long/lat)
@@ -295,10 +279,10 @@ SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2)
         !
         ! |m-c| = |a-m| cos (a-m,e-s) 
         !       = |a-m| (a-m).(e-s))/(|a-m|*|e-s|)
-!***    local
+
         real:: mx,my,dam2,dames,am_es,cos2,dmc2,mcrel,mid_t,dif_t,des2,cx,cy
         character(len=128):: msg
-!***    executable
+
 
 11      format('IGN ',6(a,g17.7,1x))
 12      format('IGN ',4(a,2g13.7,1x))
@@ -345,11 +329,6 @@ SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
         endif
 END SUBROUTINE nearest
-
-
-!
-!**********************
-!            
 
 subroutine fuel_left(&
     ims,ime,jms,jme, &
@@ -574,12 +553,7 @@ write(msg,'(a,4i6,a,f10.7)')'fuel_left: tile',its,ite,jts,jte,' max fuel burnt/a
 call message(msg)
 return
 
-
 end subroutine fuel_left
-
-!
-!************************
-!
 
 subroutine fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
     lfn00,lfn01,lfn10,lfn11, &
@@ -724,10 +698,6 @@ fuel_frac_left = out
 fire_frac_area = area
 
 end subroutine fuel_left_cell_1
-
-!
-!****************************************
-!
 
 real function fuel_left_cell_2(  &
     lfn00,lfn01,lfn10,lfn11, &
@@ -1174,9 +1144,6 @@ if(out>1. .or. out<0.)call crash('fuel_left_cell_2: fuel fraction out of bounds 
 fuel_left_cell_2 = out
 end function fuel_left_cell_2
 
-!
-!****************************************
-!
 real function intexp(ab)
 implicit none
 real::ab
@@ -1192,9 +1159,7 @@ if ( eps < abs(ab)**3/6. ) then
     intexp=1+ab/2.
 end if
 end function
-!
-!****************************************
-!
+
 subroutine sortxt(xytlist,nrow,ncolumn,xt,nxt,nvec)
 implicit none
 integer::nrow,ncolumn,nxt,nvec
@@ -1219,9 +1184,7 @@ do i=1,nvec-1
 end do
 
 end subroutine !sortxt
-!
-!****************************************
-!
+
 subroutine matvec(A,m,n,V,nv,out,nout,nrow,ncolumn)
 implicit none
 integer::m,n,nv,nout,nrow,ncolumn
@@ -1238,9 +1201,7 @@ do i=1,nrow
   end do
 end do
 end subroutine
-!
-!****************************************
-!
+
 subroutine matmatp(A,mA,nA,B,mB,nB,C,mC,nC,nrow,ncolumn,nP)
 implicit none
 integer::mA,nA,mB,nB,mC,nC,nrow,ncolumn,nP
@@ -1258,9 +1219,6 @@ end do
 end do
 end subroutine
 
-!
-!****************************************
-!
 #endif
 
 subroutine prop_ls_rk3(               &             
@@ -1275,11 +1233,6 @@ subroutine prop_ls_rk3(               &
                 fp                       &
                    )
 
-
-#ifdef DM_PARALLEL
-    USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
-    USE module_comm_dm , ONLY : halo_fire_lfn_1_sub, halo_fire_lfn_2_sub, halo_fire_lfn_0_sub
-#endif
 
 implicit none
 
@@ -1478,10 +1431,6 @@ call message(msg)
     
 end subroutine prop_ls_rk3
 
-!
-!*****************************
-!
-
 subroutine reinit_ls_rk3(                       &
                 ifts,ifte,jfts,jfte,               &                     
                 ifms,ifme,jfms,jfme,               &                     
@@ -1492,11 +1441,6 @@ subroutine reinit_ls_rk3(                       &
                 lfn_out,tign                       &
                 ) 
 
-
-#ifdef DM_PARALLEL
-    USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
-    USE module_comm_dm , ONLY : halo_fire_lfn_s1_sub,halo_fire_lfn_s2_sub,halo_fire_lfn_s3_sub
-#endif
 
 implicit none
 
@@ -1594,10 +1538,6 @@ enddo ! end iterations for steady state solution of reinitialization PDE
     enddo
 
 end subroutine reinit_ls_rk3
-
-!
-!*****************************
-!
 
 subroutine advance_ls_reinit(ifms,ifme,jfms,jfme, &
                           ifds,ifde,jfds,jfde,    &
@@ -1707,10 +1647,6 @@ real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,tend_r
 
 end subroutine advance_ls_reinit
 
-!
-!*****************************
-!
-
 subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
                        ifms,ifme,jfms,jfme, &              ! memory dims
                        ifds,jfds,ifde,jfde, &              ! domain dims         
@@ -1784,10 +1720,6 @@ call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
 
 end subroutine tign_update
 
-!
-!*****************************
-!
-
 subroutine calc_flame_length(ifts,ifte,jfts,jfte, &
                              ifms,ifme,jfms,jfme, &
                              ros,iboros,flame_length,ros_fl,fire_area)
@@ -1816,10 +1748,6 @@ do j=jfts,jfte
 enddo
 
 end subroutine calc_flame_length
-
-!
-!*****************************
-!
 
 subroutine tend_ls( &
     ids,ide,jds,jde,    &              ! domain - nodes where lfn defined
@@ -2054,11 +1982,6 @@ threshold_AV=fire_viscosity_ngp*dx
 
 end subroutine tend_ls
 
-!
-!**************************
-!
-!
-
 real function select_upwind(diffLx,diffRx)
 implicit none
 real, intent(in):: diffLx, diffRx
@@ -2072,11 +1995,6 @@ if (diffLx<0.and.diffRx<0.)diff2x=diffRx
 
 select_upwind=diff2x
 end function select_upwind
-
-
-!
-!**************************
-!
 
 real function select_godunov(diffLx,diffRx)
 implicit none
@@ -2095,10 +2013,6 @@ if (diffRx<0.and.     diffCx<0)diff2x=diffRx
 
 select_godunov=diff2x
 end function select_godunov
-
-!
-!**************************
-!
 
 real function select_eno(diffLx,diffRx)
 implicit none
@@ -2124,11 +2038,6 @@ endif
 select_eno=diff2x
 end function select_eno
       
-!
-!**************************
-!
-
-
 real function select_2nd(ros,dx,lfn_i,lfn_im1,lfn_ip1)
 implicit none
 real, intent(in):: lfn_i, lfn_im1, lfn_ip1
@@ -2144,11 +2053,6 @@ diff2x_m=(lfn_i+lfn_im1)/(2.*dx)
 select_2nd=diff2x_p-diff2x_m
 end function select_2nd
 
-!
-!**************************
-!
-
-
 real function select_4th(dx,lfn_i,lfn_im1,lfn_im2,lfn_ip1,lfn_ip2)
 implicit none
 real, intent(in):: lfn_i,lfn_im1,lfn_im2,lfn_ip1,lfn_ip2
@@ -2163,11 +2067,6 @@ diff2x_p=(7.0*lfn_ip1+7.0*lfn_i-lfn_ip2-lfn_im1)/(12.*dx)
 diff2x_m=(7.0*lfn_i+7.0*lfn_im1-lfn_ip1-lfn_im2)/(12.*dx)
 select_4th=diff2x_p-diff2x_m
 end function select_4th
-
-!
-!**************************
-!
-
 
 real function select_weno3(dx,lfn_it,lfn_im1t,lfn_im2t,lfn_ip1t,lfn_ip2t,uf)
 implicit none
@@ -2223,11 +2122,6 @@ else
   select_weno3=(flux_m-flux_p)/dx
 endif
 end function select_weno3
-
-!
-!**************************
-!
-
 
 real function select_weno5(dx,lfn_it,lfn_im1t,lfn_im2t,lfn_im3t,lfn_ip1t,lfn_ip2t,lfn_ip3t,uf)
 implicit none
@@ -2296,24 +2190,23 @@ else
 endif
 end function select_weno5
 
-!
-!**************************
-!
-
 real function speed_func(diffCx,diffCy,dx,dy,i,j,fp)
+
 !*** purpose
 !    the level set method speed function
+
 implicit none
-!*** arguments
+
 real, intent(in)::diffCx,diffCy  ! x and y coordinates of the direction of propagation
 real, intent(in)::dx,dy  ! x and y coordinates of the direction of propagation
 integer, intent(in)::i,j         ! indices of the node to compute the speed at
 type(fire_params),intent(in)::fp
-!*** local
+
 real::scale,nvx,nvy,r
 real::ros_base , ros_wind , ros_slope
 real, parameter:: eps=epsilon(0.0)
-!*** executable
+
+
             ! normal direction, from central differences
             scale=sqrt(diffCx*diffCx+diffCy*diffCy+eps) 
             nvx=diffCx/scale
