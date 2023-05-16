@@ -1,44 +1,41 @@
-!
-#define DEBUG_OUT
 
 module module_fr_fire_model
 
-use module_fr_fire_core, only: ignition_line_type, ignition_line, &
+  use module_fr_fire_core, only: ignition_line_type, ignition_line, &
                                Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
-use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
+  use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
                                real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
-use module_fr_fire_phys
+  use module_fr_fire_phys
 
-private
+  private
 
-public :: Fire_model
+  public :: Fire_model
 
-contains
+  contains
 
-subroutine fire_model (                    &
-    restart,                                &
-    num_ignitions,                          & ! number of ignitions before advancing
-    ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
-    ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
-    ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
-    time_start,dt,                          & ! time and increment
-    fdx,fdy,                                & ! fire mesh spacing,
-    ignition_line,                          & ! small array of ignition line descriptions
-    ignitions_done,ignited_tile,            &
-    coord_xf,coord_yf,unit_xf,unit_yf,      & ! fire mesh coordinates
-    lfn,                                & ! state: level function
-    lfn_hist,                           & ! PAJ: to init obs fire perimeter.
-    fire_is_real_perim,                 & ! PAJ: to init obs fire perimeter.
-    lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front, & ! state
-    lfn_out,tign,fuel_frac,fire_area,   & ! state: level function, ign time, fuel left, area burning
-    burnt_area_dt,                          & 
-    grnhfx,grnqfx,                          & ! output: heat fluxes
-    ros,                                    & ! output: rate of spread
-    fuel_time,                              & ! save derived internal data
-    fp  &
-) 
+    subroutine fire_model (                    &
+        restart,                                &
+        num_ignitions,                          & ! number of ignitions before advancing
+        ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
+        ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
+        ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
+        time_start,dt,                          & ! time and increment
+        fdx,fdy,                                & ! fire mesh spacing,
+        ignition_line,                          & ! small array of ignition line descriptions
+        ignitions_done,ignited_tile,            &
+        coord_xf,coord_yf,unit_xf,unit_yf,      & ! fire mesh coordinates
+        lfn,                                & ! state: level function
+        lfn_hist,                           & ! PAJ: to init obs fire perimeter.
+        fire_is_real_perim,                 & ! PAJ: to init obs fire perimeter.
+        lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front, & ! state
+        lfn_out,tign,fuel_frac,fire_area,   & ! state: level function, ign time, fuel left, area burning
+        burnt_area_dt,                          & 
+        grnhfx,grnqfx,                          & ! output: heat fluxes
+        ros,                                    & ! output: rate of spread
+        fuel_time,                              & ! save derived internal data
+        fp) 
 
 ! This subroutine implements the fire spread model.
 ! All quantities are on the fire grid. It inputs
@@ -55,114 +52,58 @@ subroutine fire_model (                    &
 !
 ! All computation is done on one tile. 
 !
-! This subroutine is intended to be called in a loop like
-!
-! 
-! do ifun=1,6 (if initizalize run, otherwise 3,6)
-!   start parallel loop over tiles
-!       if ifun=1, set z and fuel data
-!       if ifun=3, set the wind arrays
-!       call fire_model(....)
-!   end parallel loop over tiles
-!
-!   if need_lfn_update, halo exchange on lfn width 2
-!   
-!   if ifun=0
-!       halo exchange on z width 2
-!       halo exchange on fuel data width 1
-!   endif
-!   
-!   if ifun=3, halo exchange on winds width 2
-!    
-! enddo
 
-#ifdef DM_PARALLEL
-    USE module_dm        , ONLY : ntasks_x,ntasks_y,local_communicator,mytask,ntasks
-    USE module_comm_dm , ONLY : halo_fire_lfn_sub
-#endif
+      implicit none
 
-implicit none
-
-!*** arguments
-
-! control switches
 logical, intent(in):: restart               ! if true, use existing state
-! scalar data
 integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
 integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
-REAL,INTENT(in) :: time_start,dt            ! starting time, time step
-REAL,INTENT(in) :: fdx,fdy                  ! spacing of the fire mesh
-! array data
+real,intent(in) :: time_start,dt            ! starting time, time step
+real,intent(in) :: fdx,fdy                  ! spacing of the fire mesh
 type(ignition_line_type), dimension (num_ignitions), intent(in):: ignition_line ! descriptions of ignition lines
-
 integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
 integer, intent(out):: ignitions_done              ! number of isolated ignitions
-
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
     coord_xf,coord_yf                       !  node coordinates  
 real, intent(in):: unit_xf,unit_yf          !  coordinate units in m
-    
-! state
-    ! PAJ: to init obs fire perimeter
   real, intent(in), dimension(ifms:ifme,jfms:jfme):: lfn_hist   
   logical, intent(in) :: fire_is_real_perim
-
-REAL, INTENT(inout), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
     lfn   , &                               ! level function: fire is where lfn<0 (node)
     tign  , &                               ! absolute time of ignition (node)
     fuel_frac                               ! fuel fraction (node), currently redundant
-
-REAL, INTENT(inout), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
     lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front           ! level function stages
-
-REAL, INTENT(out), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
     fire_area                               ! fraction of each cell burning
-    
-REAL, INTENT(out), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
     burnt_area_dt 
-
-! output
-REAL, INTENT(out), dimension(ifms:ifme,jfms:jfme):: &
+real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
     lfn_out, &                              !                              
     grnhfx,grnqfx, &                        ! heat fluxes J/m^2/s  (cell)             
     ros                                     ! output: rate of spread
- 
-! constant arrays - set at initialization
-real,intent(inout),dimension(ifms:ifme,jfms:jfme):: fuel_time
+real, intent(inout),dimension(ifms:ifme,jfms:jfme):: fuel_time
 type(fire_params),intent(inout)::fp
 
-!*** local
-
-integer :: xifms,xifme,xjfms,xjfme  ! memory bounds for pass-through arguments to normal spread
 real, dimension(ifts:ifte,jfts:jfte)::fuel_frac_burnt,fuel_frac_end
 integer::ignited,ig,i,j
 real::tbound,tfa,thf,mhf,tqf,mqf,aw,mw
 character(len=128)::msg
 logical:: freeze_fire
 integer:: stat_lev=1
-
-    ! PAJ:
   real :: start_time_ig, end_time_ig
   real, parameter :: EPSILON = 0.00001
 
-!*** executable
 
 call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme)
-
-xifms=ifms  ! dimensions for the include file
-xifme=ifme
-xjfms=jfms
-xjfme=jfme
-
 
 ! init flags
 ignitions_done=0
 freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
 ! ifun4: do the timestep
-
     if(fire_print_msg.ge.stat_lev)then
       aw=fun_real(RNRM_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
@@ -184,13 +125,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 !$OMP END MASTER 
     endif
 
-!   compute fuel fraction at start
-!    call fuel_left( &
-!        ifms,ifme,jfms,jfme, &
-!        ifts,ifte,jfts,jfte, &
-!        ifms,ifme,jfms,jfme, &
-!        lfn,tign,fuel_time,time_start,fuel_frac,fire_area) ! fuel frac is shared
-
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &
                    fuel_frac,'model: fuel_frac start')
@@ -208,7 +142,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 !   lfn does not change, tign has no halos
 
     if(.not. freeze_fire)then
-
          call prop_ls_rk3(                              &
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
@@ -245,7 +178,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
     else
         call message('fire_model: EXPERIMENTAL: skipping fireline propagation')
-
     endif
     
 ! ifun5: copy the result of timestep back to input
@@ -253,7 +185,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
     ! some thread may still be using lfn as input in their tile halo
 
     if (.not. freeze_fire) then
-
        do j=jfts,jfte
            do i=ifts,ifte
                lfn(i,j)=lfn_out(i,j)
@@ -261,11 +192,9 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                ! even if tign does not need a halo
            enddo
        enddo
-
     endif
 
     ! check for ignitions
-!paj
   ig = 1
   start_time_ig = ignition_line(ig)%start_time 
   end_time_ig  = ignition_line(ig)%end_time
@@ -303,15 +232,11 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
     enddo
  end if
             
-
     call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
                    lfn,'fire_model: lfn out')
-
     
 !ifun6 ! timestep postprocessing
-
   if(.not. freeze_fire)then
-
     ! compute the heat fluxes from the fuel burned
     ! needs lfn and tign from neighbors so halo must be updated before
     call fuel_left(&
@@ -389,13 +314,11 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 !$OMP END MASTER
 91  format('Time ',f11.3,' s ',a,e12.3,1x,a)
     endif
-        
 
   else
      call message('fire_model: EXPERIMENTAL: skipping fuel burnt computation')
 
      if (fire_const_grnhfx >= 0. .and. fire_const_grnqfx >= 0.) then
-
 !$OMP CRITICAL(FIRE_MODEL_CRIT)
         write(msg,'(a,2e12.3,a)')'fire_model: EXPERIMENTAL output constant heat flux', &
            fire_const_grnhfx, fire_const_grnqfx, ' W/s'
@@ -408,7 +331,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                 grnqfx(i,j)=fire_const_grnqfx
             enddo
         enddo
-
       endif
 
    endif
@@ -417,6 +339,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                    ifms,ifme,jfms,jfme, &
                    grnhfx,'model: heat flux(J/m^2/s)')
 
-end subroutine fire_model
+  end subroutine fire_model
 
 end module module_fr_fire_model
