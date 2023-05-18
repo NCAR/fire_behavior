@@ -4,7 +4,7 @@ module module_fr_fire_model
   use module_fr_fire_core, only: ignition_line_type, ignition_line, &
                                Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
-  use module_fr_fire_util, only: fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
+  use module_fr_fire_util, only: fire_lsm_reinit, &
                                real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
   use module_fr_fire_phys
@@ -89,7 +89,6 @@ real, dimension(ifts:ifte,jfts:jfte)::fuel_frac_burnt,fuel_frac_end
 integer::ignited,ig,i,j
 real::tbound,tfa,thf,mhf,tqf,mqf,aw,mw
 character(len=128)::msg
-logical:: freeze_fire
 integer:: stat_lev=1
   real :: start_time_ig, end_time_ig
   real, parameter :: EPSILON = 0.00001
@@ -99,7 +98,6 @@ call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme)
 
 ! init flags
 ignitions_done=0
-freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 
 ! ifun4: do the timestep
     if(fire_print_msg.ge.stat_lev)then
@@ -139,7 +137,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 !   set lfn_out tign
 !   lfn does not change, tign has no halos
 
-    if(.not. freeze_fire)then
          call prop_ls_rk3(                              &
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
@@ -174,15 +171,10 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                          )
        endif ! fire_lsm_reinit
 
-    else
-        call message('fire_model: EXPERIMENTAL: skipping fireline propagation')
-    endif
-    
 ! ifun5: copy the result of timestep back to input
     ! this cannot be done in the time step itself because of race condition
     ! some thread may still be using lfn as input in their tile halo
 
-    if (.not. freeze_fire) then
        do j=jfts,jfte
            do i=ifts,ifte
                lfn(i,j)=lfn_out(i,j)
@@ -190,7 +182,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                ! even if tign does not need a halo
            enddo
        enddo
-    endif
 
     ! check for ignitions
   ig = 1
@@ -234,7 +225,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
                    lfn,'fire_model: lfn out')
     
 !ifun6 ! timestep postprocessing
-  if(.not. freeze_fire)then
     ! compute the heat fluxes from the fuel burned
     ! needs lfn and tign from neighbors so halo must be updated before
     call fuel_left(&
@@ -312,26 +302,6 @@ freeze_fire = fire_const_time > 0. .and. time_start < fire_const_time
 !$OMP END MASTER
 91  format('Time ',f11.3,' s ',a,e12.3,1x,a)
     endif
-
-  else
-     call message('fire_model: EXPERIMENTAL: skipping fuel burnt computation')
-
-     if (fire_const_grnhfx >= 0. .and. fire_const_grnqfx >= 0.) then
-!$OMP CRITICAL(FIRE_MODEL_CRIT)
-        write(msg,'(a,2e12.3,a)')'fire_model: EXPERIMENTAL output constant heat flux', &
-           fire_const_grnhfx, fire_const_grnqfx, ' W/s'
-!$OMP END CRITICAL(FIRE_MODEL_CRIT)
-        call message(msg)
-        
-        do j=jfts,jfte
-            do i=ifts,ifte
-                grnhfx(i,j)=fire_const_grnhfx
-                grnqfx(i,j)=fire_const_grnqfx
-            enddo
-        enddo
-      endif
-
-   endif
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &

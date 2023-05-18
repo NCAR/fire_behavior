@@ -22,8 +22,8 @@ public :: fire_advection, fire_fmc_read, fire_print_msg, fire_grows_only, fire_l
           fire_lsm_band_ngp, fire_slope_factor, fire_upwind_split, fire_upwinding, ifval, &
           fire_viscosity, fire_viscosity_band, fire_viscosity_bg, fire_viscosity_ngp, &
           boundary_guard, fire_upwinding_reinit, fire_lsm_reinit_iter, fuel_left_irl, &
-          fuel_left_jrl, fuel_left_method, fire_const_grnhfx, fire_const_grnqfx, &
-          fire_const_time, fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
+          fuel_left_jrl, fuel_left_method, &
+          fire_lsm_reinit, real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
           fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           Open_text_file, Message, Crash, Check_mesh_2dim, &
           Print_2d_stats
@@ -46,9 +46,6 @@ integer,save::          &
  fire_viscosity_ngp=4        ! number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg
 
 real, save::            &
- fire_const_time=-1,    &  ! time from ignition to start constant heat output  <0=never
- fire_const_grnhfx=-1., &  ! if both >=0, the constant heat flux to output then
- fire_const_grnqfx=-1., &  ! if both >=0, the constant heat flux to output then
  fire_atm_feedback=1. , &  ! 1 = normal, 0. = one way coupling atmosphere -> fire only
  fire_viscosity=0.4,    &  ! artificial viscosity
  fire_lfn_ext_up=1.,    &  ! 0.=extend level set function at boundary by reflection, 1.=always up

@@ -26,8 +26,7 @@ use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_z
                                fire_viscosity_bg, fire_viscosity_band, fire_viscosity, fire_upwinding_reinit, &
                                fire_upwinding, fire_upwind_split, fire_slope_factor, fire_lsm_reinit_iter, &
                                fire_lsm_band_ngp, fire_lfn_ext_up, fire_grows_only, boundary_guard, &
-                               fire_const_grnhfx, fire_const_grnqfx, fire_const_time, fire_lsm_reinit, &
-                               fire_print_msg, &
+                               fire_lsm_reinit, fire_print_msg, &
                                Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
@@ -561,9 +560,6 @@ fire_print_msg          = config_flags%fire_print_msg
 fuel_left_method        = config_flags%fire_fuel_left_method
 fuel_left_irl           = config_flags%fire_fuel_left_irl
 fuel_left_jrl           = config_flags%fire_fuel_left_jrl
-fire_const_time         = config_flags%fire_const_time
-fire_const_grnhfx       = config_flags%fire_const_grnhfx
-fire_const_grnqfx       = config_flags%fire_const_grnqfx
 fire_atm_feedback       = config_flags%fire_atm_feedback
 boundary_guard          = config_flags%fire_boundary_guard
 fire_grows_only         = config_flags%fire_grows_only

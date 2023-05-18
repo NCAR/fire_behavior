@@ -17,9 +17,6 @@
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
       integer :: fire_fuel_left_irl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
       integer :: fire_fuel_left_jrl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
-      real :: fire_const_time = -1.0          ! "time from ignition to freeze fire, <0 never" "s"
-      real :: fire_const_grnhfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
-      real :: fire_const_grnqfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
       integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_grows_only = 1          ! "if >0 level set function cannot increase = fire can only grow" "1"
@@ -188,9 +185,6 @@
       integer :: fire_fuel_left_method = 1    ! "submesh to compute fuel lwft, even, at least 2" ""
       integer :: fire_fuel_left_irl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
       integer :: fire_fuel_left_jrl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
-      real :: fire_const_time = -1.0          ! "time from ignition to freeze fire, <0 never" "s"
-      real :: fire_const_grnhfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
-      real :: fire_const_grnqfx = 0.0         ! "if both >=0, the amount of constant heat flux" "1"
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
       integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_grows_only = 1          ! "if >0 level set function cannot increase = fire can only grow" "1"
@@ -262,7 +256,7 @@
           fire_ignition_radius5 = 0.0
 
       namelist /fire/  fire_print_msg, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
-          fire_const_time, fire_const_grnhfx, fire_const_grnqfx, fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
+          fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
           fire_upwinding, fire_upwind_split, fire_viscosity, fire_lfn_ext_up, fire_advection, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
@@ -317,9 +311,6 @@
       this%fire_fuel_left_method = fire_fuel_left_method
       this%fire_fuel_left_irl = fire_fuel_left_irl
       this%fire_fuel_left_jrl = fire_fuel_left_jrl
-      this%fire_const_time = fire_const_time
-      this%fire_const_grnhfx = fire_const_grnhfx
-      this%fire_const_grnqfx = fire_const_grnqfx
       this%fire_atm_feedback = fire_atm_feedback
       this%fire_boundary_guard = fire_boundary_guard
       this%fire_grows_only = fire_grows_only
