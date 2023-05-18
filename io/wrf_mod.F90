@@ -1900,7 +1900,7 @@
       type (namelist_t), intent (in) :: config_flags
 
       integer, parameter :: KDE_TEST4 = 51
-      logical, parameter  :: DEBUG = .true.
+      logical, parameter  :: DEBUG_LOCAL = .true.
       real, parameter, dimension(KDE_TEST4) :: PH_2_PROFILE = [ 0.00000000, 13.8204203, 26.5920029, 38.3797607, 49.2364426, &
           59.2161636, &
           68.3687134, 76.7347412, 84.2828140, 91.0704575, 97.1466751, 102.561920, 107.365410, 111.603745, 115.318642, 118.537750, &
@@ -1941,7 +1941,7 @@
       integer :: k
 
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Entering subroutine Load_atmosphere_test1'
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Load_atmosphere_test1'
 
         ! 3D arrays
       do k = 1, config_flags%kde
@@ -1958,7 +1958,7 @@
       this%z0_stag = Z0
       this%mut_stag = MUT
 
-      if (DEBUG) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_atmosphere_test1'
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Load_atmosphere_test1'
 
     end subroutine Load_atmosphere_test1
 
