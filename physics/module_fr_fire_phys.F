@@ -355,8 +355,6 @@ endif
 if(initialize) then 
     call message('advance_moisture: initializing, copying surface variables to old')
     call copy2old
-!else
-!    call print_3d_stats_by_slice(its,ite,1,moisture_classes,jts,jte,ims,ime,1,nfmc,jms,jme,fmc_gc,'before advance fmc_gc')
 endif
 
 if(check_data)then
