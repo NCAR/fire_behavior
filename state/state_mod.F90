@@ -93,7 +93,6 @@
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
       real :: unit_fxlong, unit_fxlat
-      integer :: fire_ignition_longlat
       integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
@@ -142,30 +141,10 @@
       type (state_fire_t), intent(in out) :: grid
       type (namelist_t), intent(in) :: config_flags
 
-      logical :: real,ideal
-
-
-      ideal=config_flags%fire_ignition_start_x1 .ne.0. .or. config_flags%fire_ignition_start_y1 .ne. 0.
-      real=config_flags%fire_ignition_start_lon1 .ne. 0. .or. config_flags%fire_ignition_start_lat1 .ne. 0.
-      if(ideal)grid%fire_ignition_longlat = 0
-
-      if (ideal) write (OUTPUT_UNIT, *) 'Using ideal ignition coordinates, m from the lower left domain corner'
-      if (real) grid%fire_ignition_longlat = 1
-      if (real) write (OUTPUT_UNIT, *) 'Using real ignition coordinates, longitude and latitude'
-      if (ideal.and.real) write (ERROR_UNIT, *) 'Only one of the ideal or real coordinates may be given'
-
-      if(grid%fire_ignition_longlat .eq. 0)then
-           ! ideal
-           !  ignition is in m
-        grid%unit_fxlong=1.
-        grid%unit_fxlat=1.
-           ! will set fire mesh coordinates to uniform mesh below
-      else
-           ! real
-           ! 1 degree in m (approximate OK)
-        grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-        grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
-      endif
+         ! real
+         ! 1 degree in m (approximate OK)
+      grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+      grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
 
     end subroutine calc_unit_fxlat_fxlong
 

@@ -56,12 +56,8 @@
         ! Ignitions
       integer :: fire_num_ignitions = 0 ! "number of ignition lines"
 
-      real :: fire_ignition_start_x1 = 0.0    ! "x coord of start of ignition line" "m"
-      real :: fire_ignition_start_y1 = 0.0    ! "y coord of start of ignition line" "m"
       real :: fire_ignition_start_lon1 = 0.0  ! "long coord of start of ignition line" "deg"
       real :: fire_ignition_start_lat1 = 0.0  ! "lat coord of start of ignition line" "deg"
-      real :: fire_ignition_end_x1 = 0.0      ! "x coord of end of ignition line" "m"
-      real :: fire_ignition_end_y1 = 0.0      ! "y coord of end of ignition line" "m"
       real :: fire_ignition_end_lon1 = 0.0    ! "long coord of end of ignition line" "deg"
       real :: fire_ignition_end_lat1 = 0.0    ! "lat coord of end of ignition line" "deg"
       real :: fire_ignition_ros1 = 0.01       ! "rate of spread during ignition" "m/s"
@@ -69,12 +65,8 @@
       real :: fire_ignition_end_time1 = 0.0   ! "ignition line end time" "s"
       real :: fire_ignition_radius1 = 0.0     ! "ignite all within the radius" "m"
 
-      real :: fire_ignition_start_x2 = 0.0
-      real :: fire_ignition_start_y2 = 0.0
       real :: fire_ignition_start_lon2 = 0.0
       real :: fire_ignition_start_lat2 = 0.0
-      real :: fire_ignition_end_x2 = 0.0
-      real :: fire_ignition_end_y2 = 0.0
       real :: fire_ignition_end_lon2 = 0.0
       real :: fire_ignition_end_lat2 = 0.0
       real :: fire_ignition_ros2 = 0.01
@@ -82,12 +74,8 @@
       real :: fire_ignition_end_time2 = 0.0
       real :: fire_ignition_radius2 = 0.0
 
-      real :: fire_ignition_start_x3 = 0.0
-      real :: fire_ignition_start_y3 = 0.0
       real :: fire_ignition_start_lon3 = 0.0
       real :: fire_ignition_start_lat3 = 0.0
-      real :: fire_ignition_end_x3 = 0.0
-      real :: fire_ignition_end_y3 = 0.0
       real :: fire_ignition_end_lon3 = 0.0
       real :: fire_ignition_end_lat3 = 0.0
       real :: fire_ignition_ros3 = 0.01
@@ -95,12 +83,8 @@
       real :: fire_ignition_end_time3 = 0.0
       real :: fire_ignition_radius3 = 0.0
 
-      real :: fire_ignition_start_x4 = 0.0
-      real :: fire_ignition_start_y4 = 0.0
       real :: fire_ignition_start_lon4 = 0.0
       real :: fire_ignition_start_lat4 = 0.0
-      real :: fire_ignition_end_x4 = 0.0
-      real :: fire_ignition_end_y4 = 0.0
       real :: fire_ignition_end_lon4 = 0.0
       real :: fire_ignition_end_lat4 = 0.0
       real :: fire_ignition_ros4 = 0.01
@@ -108,12 +92,8 @@
       real :: fire_ignition_end_time4 = 0.0
       real :: fire_ignition_radius4 = 0.0
 
-      real :: fire_ignition_start_x5 = 0.0
-      real :: fire_ignition_start_y5 = 0.0
       real :: fire_ignition_start_lon5 = 0.0
       real :: fire_ignition_start_lat5 = 0.0
-      real :: fire_ignition_end_x5 = 0.0
-      real :: fire_ignition_end_y5 = 0.0
       real :: fire_ignition_end_lon5 = 0.0
       real :: fire_ignition_end_lat5 = 0.0
       real :: fire_ignition_ros5 = 0.01
@@ -222,12 +202,8 @@
         ! ignitions
       integer :: fire_num_ignitions = 0
 
-      real :: fire_ignition_start_x1 = 0.0    ! "x coord of start of ignition line" "m"
-      real :: fire_ignition_start_y1 = 0.0    ! "y coord of start of ignition line" "m"
       real :: fire_ignition_start_lon1 = 0.0  ! "long coord of start of ignition line" "deg"
       real :: fire_ignition_start_lat1 = 0.0  ! "lat coord of start of ignition line" "deg"
-      real :: fire_ignition_end_x1 = 0.0      ! "x coord of end of ignition line" "m"
-      real :: fire_ignition_end_y1 = 0.0      ! "y coord of end of ignition line" "m"
       real :: fire_ignition_end_lon1 = 0.0    ! "long coord of end of ignition line" "deg"
       real :: fire_ignition_end_lat1 = 0.0    ! "lat coord of end of ignition line" "deg"
       real :: fire_ignition_ros1 = 0.01       ! "rate of spread during ignition" "m/s"
@@ -235,25 +211,21 @@
       real :: fire_ignition_end_time1 = 0.0   ! "ignition line end time" "s"
       real :: fire_ignition_radius1 = 0.0     ! "ignite all within the radius" "m"
 
-      real :: fire_ignition_start_x2 = 0.0, fire_ignition_start_y2 = 0.0, fire_ignition_start_lon2 = 0.0, &
-          fire_ignition_start_lat2 = 0.0, fire_ignition_end_x2 = 0.0, fire_ignition_end_y2 = 0.0, fire_ignition_end_lon2 = 0.0, &
-          fire_ignition_end_lat2 = 0.0, fire_ignition_ros2 = 0.01, fire_ignition_start_time2 = 0.0, fire_ignition_end_time2 = 0.0, &
-          fire_ignition_radius2 = 0.0
+      real :: fire_ignition_start_lon2 = 0.0, fire_ignition_start_lat2 = 0.0, fire_ignition_end_lon2 = 0.0, &
+          fire_ignition_end_lat2 = 0.0, &
+          fire_ignition_ros2 = 0.01, fire_ignition_start_time2 = 0.0, fire_ignition_end_time2 = 0.0, fire_ignition_radius2 = 0.0
 
-      real :: fire_ignition_start_x3 = 0.0, fire_ignition_start_y3 = 0.0, fire_ignition_start_lon3 = 0.0, &
-          fire_ignition_start_lat3 = 0.0, fire_ignition_end_x3 = 0.0, fire_ignition_end_y3 = 0.0, fire_ignition_end_lon3 = 0.0, &
-          fire_ignition_end_lat3 = 0.0, fire_ignition_ros3 = 0.01, fire_ignition_start_time3 = 0.0, fire_ignition_end_time3 = 0.0, &
-          fire_ignition_radius3 = 0.0
+      real :: fire_ignition_start_lon3 = 0.0, fire_ignition_start_lat3 = 0.0, fire_ignition_end_lon3 = 0.0, &
+          fire_ignition_end_lat3 = 0.0, &
+          fire_ignition_ros3 = 0.01, fire_ignition_start_time3 = 0.0, fire_ignition_end_time3 = 0.0, fire_ignition_radius3 = 0.0
 
-      real :: fire_ignition_start_x4 = 0.0, fire_ignition_start_y4 = 0.0, fire_ignition_start_lon4 = 0.0, &
-          fire_ignition_start_lat4 = 0.0, fire_ignition_end_x4 = 0.0, fire_ignition_end_y4 = 0.0, fire_ignition_end_lon4 = 0.0, &
-          fire_ignition_end_lat4 = 0.0, fire_ignition_ros4 = 0.01, fire_ignition_start_time4 = 0.0, fire_ignition_end_time4 = 0.0, &
-          fire_ignition_radius4 = 0.0
+      real :: fire_ignition_start_lon4 = 0.0, fire_ignition_start_lat4 = 0.0, fire_ignition_end_lon4 = 0.0, &
+          fire_ignition_end_lat4 = 0.0, &
+          fire_ignition_ros4 = 0.01, fire_ignition_start_time4 = 0.0, fire_ignition_end_time4 = 0.0, fire_ignition_radius4 = 0.0
 
-      real :: fire_ignition_start_x5 = 0.0, fire_ignition_start_y5 = 0.0, fire_ignition_start_lon5 = 0.0, &
-          fire_ignition_start_lat5 = 0.0, fire_ignition_end_x5 = 0.0, fire_ignition_end_y5 = 0.0, fire_ignition_end_lon5 = 0.0, &
-          fire_ignition_end_lat5 = 0.0, fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, &
-          fire_ignition_radius5 = 0.0
+      real :: fire_ignition_start_lon5 = 0.0, fire_ignition_start_lat5 = 0.0, fire_ignition_end_lon5 = 0.0, &
+          fire_ignition_end_lat5 = 0.0, &
+          fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, fire_ignition_radius5 = 0.0
 
       namelist /fire/  fire_print_msg, fire_fuel_left_method, fire_fuel_left_irl, fire_fuel_left_jrl, &
           fire_atm_feedback, fire_boundary_guard, fire_grows_only, &
@@ -265,30 +237,20 @@
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
-          fire_ignition_start_x1, fire_ignition_start_y1, fire_ignition_start_lon1, &
-          fire_ignition_start_lat1, fire_ignition_end_x1, fire_ignition_end_y1, fire_ignition_end_lon1, &
-          fire_ignition_end_lat1, fire_ignition_ros1, fire_ignition_start_time1, fire_ignition_end_time1, &
-          fire_ignition_radius1, &
+          fire_ignition_start_lon1, fire_ignition_start_lat1, fire_ignition_end_lon1, fire_ignition_end_lat1, &
+          fire_ignition_ros1, fire_ignition_start_time1, fire_ignition_end_time1, fire_ignition_radius1, &
             ! Ignition 2
-          fire_ignition_start_x2, fire_ignition_start_y2, fire_ignition_start_lon2, &
-          fire_ignition_start_lat2, fire_ignition_end_x2, fire_ignition_end_y2, fire_ignition_end_lon2, &
-          fire_ignition_end_lat2, fire_ignition_ros2, fire_ignition_start_time2, fire_ignition_end_time2, &
-          fire_ignition_radius2, &
+          fire_ignition_start_lon2, fire_ignition_start_lat2, fire_ignition_end_lon2, fire_ignition_end_lat2, &
+          fire_ignition_ros2, fire_ignition_start_time2, fire_ignition_end_time2, fire_ignition_radius2, &
             ! Ignition 3
-          fire_ignition_start_x3, fire_ignition_start_y3, fire_ignition_start_lon3, &
-          fire_ignition_start_lat3, fire_ignition_end_x3, fire_ignition_end_y3, fire_ignition_end_lon3, &
-          fire_ignition_end_lat3, fire_ignition_ros3, fire_ignition_start_time3, fire_ignition_end_time3, &
-          fire_ignition_radius3, &
+          fire_ignition_start_lon3, fire_ignition_start_lat3, fire_ignition_end_lon3, fire_ignition_end_lat3, &
+          fire_ignition_ros3, fire_ignition_start_time3, fire_ignition_end_time3, fire_ignition_radius3, &
             ! Ignition 4
-          fire_ignition_start_x4, fire_ignition_start_y4, fire_ignition_start_lon4, &
-          fire_ignition_start_lat4, fire_ignition_end_x4, fire_ignition_end_y4, fire_ignition_end_lon4, &
-          fire_ignition_end_lat4, fire_ignition_ros4, fire_ignition_start_time4, fire_ignition_end_time4, &
-          fire_ignition_radius4, &
+          fire_ignition_start_lon4, fire_ignition_start_lat4, fire_ignition_end_lon4, fire_ignition_end_lat4, &
+          fire_ignition_ros4, fire_ignition_start_time4, fire_ignition_end_time4, fire_ignition_radius4, &
             ! Ignition 5
-          fire_ignition_start_x5, fire_ignition_start_y5, fire_ignition_start_lon5, &
-          fire_ignition_start_lat5, fire_ignition_end_x5, fire_ignition_end_y5, fire_ignition_end_lon5, &
-          fire_ignition_end_lat5, fire_ignition_ros5, fire_ignition_start_time5, fire_ignition_end_time5, &
-          fire_ignition_radius5
+          fire_ignition_start_lon5, fire_ignition_start_lat5, fire_ignition_end_lon5, fire_ignition_end_lat5, &
+          fire_ignition_ros5, fire_ignition_start_time5, fire_ignition_end_time5, fire_ignition_radius5
 
       integer :: unit_nml, io_stat
 
@@ -347,12 +309,8 @@
 
       this%fire_num_ignitions = fire_num_ignitions
 
-      this%fire_ignition_start_x1 = fire_ignition_start_x1
-      this%fire_ignition_start_y1 = fire_ignition_start_y1
       this%fire_ignition_start_lon1 = fire_ignition_start_lon1
       this%fire_ignition_start_lat1 = fire_ignition_start_lat1
-      this%fire_ignition_end_x1 = fire_ignition_end_x1
-      this%fire_ignition_end_y1 = fire_ignition_end_y1
       this%fire_ignition_end_lon1 = fire_ignition_end_lon1
       this%fire_ignition_end_lat1 = fire_ignition_end_lat1
       this%fire_ignition_ros1 = fire_ignition_ros1
@@ -360,12 +318,8 @@
       this%fire_ignition_end_time1 = fire_ignition_end_time1
       this%fire_ignition_radius1 = fire_ignition_radius1
 
-      this%fire_ignition_start_x2 = fire_ignition_start_x2
-      this%fire_ignition_start_y2 = fire_ignition_start_y2
       this%fire_ignition_start_lon2 = fire_ignition_start_lon2
       this%fire_ignition_start_lat2 = fire_ignition_start_lat2
-      this%fire_ignition_end_x2 = fire_ignition_end_x2
-      this%fire_ignition_end_y2 = fire_ignition_end_y2
       this%fire_ignition_end_lon2 = fire_ignition_end_lon2
       this%fire_ignition_end_lat2 = fire_ignition_end_lat2
       this%fire_ignition_ros2 = fire_ignition_ros2
@@ -373,12 +327,8 @@
       this%fire_ignition_end_time2 = fire_ignition_end_time2
       this%fire_ignition_radius2 = fire_ignition_radius2
 
-      this%fire_ignition_start_x3 = fire_ignition_start_x3
-      this%fire_ignition_start_y3 = fire_ignition_start_y3
       this%fire_ignition_start_lon3 = fire_ignition_start_lon3
       this%fire_ignition_start_lat3 = fire_ignition_start_lat3
-      this%fire_ignition_end_x3 = fire_ignition_end_x3
-      this%fire_ignition_end_y3 = fire_ignition_end_y3
       this%fire_ignition_end_lon3 = fire_ignition_end_lon3
       this%fire_ignition_end_lat3 = fire_ignition_end_lat3
       this%fire_ignition_ros3 = fire_ignition_ros3
@@ -386,12 +336,8 @@
       this%fire_ignition_end_time3 = fire_ignition_end_time3
       this%fire_ignition_radius3 = fire_ignition_radius3
 
-      this%fire_ignition_start_x4 = fire_ignition_start_x4
-      this%fire_ignition_start_y4 = fire_ignition_start_y4
       this%fire_ignition_start_lon4 = fire_ignition_start_lon4
       this%fire_ignition_start_lat4 = fire_ignition_start_lat4
-      this%fire_ignition_end_x4 = fire_ignition_end_x4
-      this%fire_ignition_end_y4 = fire_ignition_end_y4
       this%fire_ignition_end_lon4 = fire_ignition_end_lon4
       this%fire_ignition_end_lat4 = fire_ignition_end_lat4
       this%fire_ignition_ros4 = fire_ignition_ros4
@@ -399,12 +345,8 @@
       this%fire_ignition_end_time4 = fire_ignition_end_time4
       this%fire_ignition_radius4 = fire_ignition_radius4
 
-      this%fire_ignition_start_x5 = fire_ignition_start_x5
-      this%fire_ignition_start_y5 = fire_ignition_start_y5
       this%fire_ignition_start_lon5 = fire_ignition_start_lon5
       this%fire_ignition_start_lat5 = fire_ignition_start_lat5
-      this%fire_ignition_end_x5 = fire_ignition_end_x5
-      this%fire_ignition_end_y5 = fire_ignition_end_y5
       this%fire_ignition_end_lon5 = fire_ignition_end_lon5
       this%fire_ignition_end_lat5 = fire_ignition_end_lat5
       this%fire_ignition_ros5 = fire_ignition_ros5

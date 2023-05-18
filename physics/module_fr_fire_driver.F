@@ -78,8 +78,7 @@ subroutine init_fire_driver (grid, config_flags)
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
     ! get ignition data
-    call fire_ignition_convert (config_flags,grid%fire_ignition_longlat, &
-        ignition_line,fire_num_ignitions)
+    call fire_ignition_convert (config_flags,ignition_line,fire_num_ignitions)
 
     ! copy configuration flags to fire internal structures
     call set_flags(config_flags)
@@ -226,7 +225,6 @@ subroutine fire_driver_em ( grid , config_flags                    &
             config_flags%fire_ext_grnd, config_flags%fire_ext_crwn, config_flags%fire_crwn_hgt, &
             config_flags%fire_wind_height,                                                      &  ! height of wind input to fire spread formula
             fire_num_ignitions,                                                                 & 
-            grid%fire_ignition_longlat,                                                         &
             ignition_line,                                                                      &
             grid%lfn,                                                                           &
             grid%lfn_hist,                                                                      &  ! PAJ: to initialize fire perimeter from obs
@@ -272,7 +270,6 @@ subroutine fire_driver_phys ( &
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
     fire_wind_height,                             & ! for vertical wind interpolation
     num_ignitions,                                & 
-    ignition_longlat,                             &
     ignition_line,                                &
     lfn,                                          &
     lfn_hist,                                     & ! PAJ to init perimeter from obs
@@ -331,7 +328,6 @@ real, intent(in):: &
     fire_wind_height 
 
 integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
-integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 logical, intent(in) :: fire_is_real_perim
 real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
 
@@ -448,8 +444,7 @@ endif
 
 end subroutine fire_driver_phys
 
-subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
-    ignition_line,fire_num_ignitions)
+subroutine fire_ignition_convert (config_flags,ignition_line,fire_num_ignitions)
 
 ! create ignition arrays from scalar flags
 
@@ -460,7 +455,6 @@ subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
     TYPE (namelist_t) , INTENT(IN)          :: config_flags
     TYPE (ignition_line_type), DIMENSION(FIRE_MAX_IGNITIONS), intent(out):: ignition_line ! any values from input discarded 
     integer, intent(out)::fire_num_ignitions
-    integer, intent(in)::fire_ignition_longlat
 
     integer::i
 
@@ -468,30 +462,6 @@ subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
     ! this is only until I figure out how to input arrays through the namelist...
     if(FIRE_MAX_IGNITIONS.lt.5)call crash('FIRE_MAX_IGNITIONS too small')
 
-    if(fire_ignition_longlat .eq. 0)then
-       ! use values from _x and _y variables
-       ignition_line(1)%start_x=config_flags%fire_ignition_start_x1
-       ignition_line(1)%start_y=config_flags%fire_ignition_start_y1
-       ignition_line(1)%end_x=config_flags%fire_ignition_end_x1
-       ignition_line(1)%end_y=config_flags%fire_ignition_end_y1
-       ignition_line(2)%start_x=config_flags%fire_ignition_start_x2
-       ignition_line(2)%start_y=config_flags%fire_ignition_start_y2
-       ignition_line(2)%end_x=config_flags%fire_ignition_end_x2
-       ignition_line(2)%end_y=config_flags%fire_ignition_end_y2
-       ignition_line(3)%start_x=config_flags%fire_ignition_start_x3
-       ignition_line(3)%start_y=config_flags%fire_ignition_start_y3
-       ignition_line(3)%end_x=config_flags%fire_ignition_end_x3
-       ignition_line(3)%end_y=config_flags%fire_ignition_end_y3
-       ignition_line(4)%start_x=config_flags%fire_ignition_start_x4
-       ignition_line(4)%start_y=config_flags%fire_ignition_start_y4
-       ignition_line(4)%end_x=config_flags%fire_ignition_end_x4
-       ignition_line(4)%end_y=config_flags%fire_ignition_end_y4
-       ignition_line(5)%start_x=config_flags%fire_ignition_start_x5
-       ignition_line(5)%start_y=config_flags%fire_ignition_start_y5
-       ignition_line(5)%end_x=config_flags%fire_ignition_end_x5
-       ignition_line(5)%end_y=config_flags%fire_ignition_end_y5
-    endif
-    if(fire_ignition_longlat .eq. 1)then
         ! use values from _long and _lat
        ignition_line(1)%start_x=config_flags%fire_ignition_start_lon1
        ignition_line(1)%start_y=config_flags%fire_ignition_start_lat1
@@ -513,7 +483,6 @@ subroutine fire_ignition_convert (config_flags,fire_ignition_longlat, &
        ignition_line(5)%start_y=config_flags%fire_ignition_start_lat5
        ignition_line(5)%end_x=config_flags%fire_ignition_end_lon5
        ignition_line(5)%end_y=config_flags%fire_ignition_end_lat5
-    endif
     ! common to both cases
        ignition_line(1)%ros=config_flags%fire_ignition_ros1 
        ignition_line(1)%radius=config_flags%fire_ignition_radius1 
