@@ -16,7 +16,6 @@ module module_fr_fire_model
   contains
 
     subroutine fire_model (                    &
-        restart,                                &
         num_ignitions,                          & ! number of ignitions before advancing
         ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
         ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
@@ -55,7 +54,6 @@ module module_fr_fire_model
 
       implicit none
 
-logical, intent(in):: restart               ! if true, use existing state
 integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         

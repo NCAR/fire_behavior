@@ -126,7 +126,6 @@
 
         ! Atmosphere
       integer :: ids = 1, jds = 1, kds = 1, kde = 1
-      logical :: restart = .false.
     contains
       procedure, public :: Initialization => Init_namelist
       procedure, public :: Init_fire_block => Init_fire_block

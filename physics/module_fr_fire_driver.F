@@ -42,7 +42,6 @@ public fire_driver_em, init_fire_driver
 
 logical:: fmoist_run
 real:: dt
-logical::restart
 
 integer :: fire_num_ignitions
 integer, parameter :: FIRE_MAX_IGNITIONS = 5
@@ -92,7 +91,6 @@ subroutine init_fire_driver (grid, config_flags)
     ! time - assume dt does not change
     dt = grid%dt
     time_start = itimestep * dt
-    restart=config_flags%restart
 
     ! decide what to run - moisture, interpolation, or fire model itself
     fmoist_run    = config_flags%fmoist_run
@@ -112,7 +110,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
 
         ! initialize all arrays that the model will not change later
 
-        if(.not.restart)call set_nfuel_cat( &
+        call set_nfuel_cat( &
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &
@@ -120,7 +118,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
 
         ! uses nfuel_cat to set the other fuel data arrays
         ! needs zsf on halo width 1 to compute the terrain gradient
-        if(.not.restart)call set_fire_params(   &
+        call set_fire_params(   &
             grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
@@ -129,14 +127,12 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             fp)
 
         ! initialize model state to no fire
-        if(.not.restart)then
-            call init_no_fire  ( &
+        call init_no_fire  ( &
             grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             grid%dx,grid%dy,time_start,    &
             grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
-        endif
 
 end subroutine init_fire_driver
 
@@ -225,7 +221,7 @@ subroutine fire_driver_em ( grid , config_flags                    &
             ifms,ifme, jfms,jfme,                                                               &
             ifts,ifte, jfts,jfte,                                                         &
             time_start,                                                                         &
-            itimestep, restart, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
+            itimestep, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
             grid%dt, grid%dx, grid%dy,                                                          &
             grid%unit_fxlong, grid%unit_fxlat,                                                  & ! coordinates of grid center
             config_flags%fire_ext_grnd, config_flags%fire_ext_crwn, config_flags%fire_crwn_hgt, &
@@ -271,7 +267,7 @@ subroutine fire_driver_phys ( &
     ifms, ifme, jfms, jfme,                       &
     ifts, ifte, jfts, jfte,                       &
     time_start,                                   & ! start of the timestep
-    itimestep,restart,ifuelread,nfuel_cat0,       &
+    itimestep,ifuelread,nfuel_cat0,               &
     dt,dx,dy,                                     & ! in scalars
     unit_fxlong,unit_fxlat,                       & ! fxlong, fxlat units in m  
     fire_ext_grnd,fire_ext_crwn,fire_crwn_hgt,    &
@@ -335,7 +331,6 @@ real, intent(in):: &
     fire_ext_crwn,                                & ! wind height for vertical interploation to fire spread
     fire_wind_height 
 
-logical, intent(in)::restart
 integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
 integer, intent(in):: ignition_longlat       ! if 1 ignition give as long/lat, otherwise as m from lower left corner
 logical, intent(in) :: fire_is_real_perim
@@ -429,7 +424,7 @@ if(run_advance_moisture)then
 
 endif
 
-   call fire_model (restart,  &
+   call fire_model (                            &
         num_ignitions,                          & ! switches
         ifds,ifde,jfds,jfde,                    & ! fire domain dims
         ifms,ifme,jfms,jfme,                    & ! fire memory dims
