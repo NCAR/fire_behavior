@@ -2,7 +2,8 @@
 
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
-    use module_fr_fire_driver_wrf, only : fire_driver_em_step
+    use module_fr_fire_driver, only : fire_driver_em
+    use module_fr_fire_util, only : message
 
     implicit none
 
@@ -31,7 +32,10 @@
 
       grid%itimestep = grid%itimestep + 1
 
-      call fire_driver_em_step (grid, config_flags)
+        ! Fire advance
+      call message('Advance_state: FIRE step start')
+      call fire_driver_em (grid, config_flags)
+      call message('Advance_state: FIRE step complete')
 
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)

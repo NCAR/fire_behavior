@@ -134,21 +134,15 @@ call init_fuel_cats(fmoist_run) ! common for all threads
 
 end subroutine init_fire_driver
 
-subroutine fire_driver_em ( grid , config_flags                    & 
-            ,ifds,ifde, jfds,jfde                                   &
-            ,ifms,ifme, jfms,jfme                                   &
-            ,ifts,ifte, jfts,jfte                                   &
-            )
+subroutine fire_driver_em ( grid , config_flags )
 
     implicit none
 
     type (state_fire_t), target :: grid
     type (namelist_t), intent (in) :: config_flags
-    integer, intent(in) :: ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
-        ifts, ifte, jfts, jfte
 
     integer :: itimestep
-    real, dimension(ifms:ifme, jfms:jfme)::lfn_out  
+    real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
     character(len=128)msg
     type(fire_params)::fp
     real:: time_start
@@ -215,9 +209,9 @@ subroutine fire_driver_em ( grid , config_flags                    &
 
         ! need domain by 1 smaller, in last row.col winds are not set properly
         call fire_driver_phys ( &
-            ifds,ifde, jfds,jfde,                                                         &
-            ifms,ifme, jfms,jfme,                                                               &
-            ifts,ifte, jfts,jfte,                                                         &
+            grid%ifds,grid%ifde, grid%jfds,grid%jfde,                                                         &
+            grid%ifms,grid%ifme, grid%jfms,grid%jfme,                                                               &
+            grid%ifts,grid%ifte, grid%jfts,grid%jfte,                                                         &
             time_start,                                                                         &
             itimestep, config_flags%fire_fuel_read, config_flags%fire_fuel_cat,        &  ! in scalars
             grid%dt, grid%dx, grid%dy,                                                          &

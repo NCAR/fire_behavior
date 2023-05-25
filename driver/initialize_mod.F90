@@ -3,8 +3,9 @@
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
-    use module_fr_fire_driver_wrf, only : fire_driver_em_init
     use wrf_mod, only : wrf_t
+    use module_fr_fire_driver, only : init_fire_driver
+    use module_fr_fire_util, only : message
 
     private
 
@@ -59,7 +60,9 @@
       end if
 
         ! Fire init
-      call fire_driver_em_init (grid, config_flags)
+      call message ('Init_fire_state: FIRE initialization start')
+      call init_fire_driver (grid, config_flags)
+      call message ('Init_fire_state: FIRE initialization complete')
 
       if (DEBUG_LOCAL .and. config_flags%fire_fuel_read == -1) then
           ! print lat/lons
