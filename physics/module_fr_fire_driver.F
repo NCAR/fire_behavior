@@ -232,7 +232,7 @@ subroutine fire_driver_em ( grid , config_flags )
             lfn_out,                                                                            & ! work - one timestep    
             grid%fgrnhfx, grid%fgrnqfx, grid%fcanhfx, grid%fcanqfx,                             & ! out redundant arrays, atm grid
             grid%ros,                                                                           & ! rate of spread
-            grid%fxlong, grid%fxlat, grid%fz0,                                                  &       
+            grid%lons, grid%lats, grid%fz0,                                                     &
             grid%nfuel_cat,                                                                     & ! input, or internal for safekeeping
             grid%fuel_time,                                                                     & 
             config_flags%nfmc,                                                                  & ! moisture model variables start

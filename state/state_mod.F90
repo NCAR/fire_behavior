@@ -366,8 +366,8 @@
       real :: i_atm, j_atm, offset_corners_x, offset_corners_y
 
 
-      allocate (this%lons(this%nx, this%ny))
-      allocate (this%lats(this%nx, this%ny))
+      allocate (this%lons(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lats(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
