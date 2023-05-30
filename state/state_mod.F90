@@ -63,8 +63,6 @@
       real, dimension(:, :), allocatable :: lons   ! "longitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
-      real, dimension(:, :), allocatable :: fxlong ! "longitude of midpoints of fire cells" "degrees"
-      real, dimension(:, :), allocatable :: fxlat ! "latitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: test
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
@@ -131,22 +129,6 @@
       enddo
 
     end subroutine calc_smoke_emissions
-
-    subroutine calc_unit_fxlat_fxlong (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
-
-      implicit none
-
-      type (state_fire_t), intent(in out) :: grid
-      type (namelist_t), intent(in) :: config_flags
-
-         ! real
-         ! 1 degree in m (approximate OK)
-      grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-      grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
-
-    end subroutine calc_unit_fxlat_fxlong
 
     subroutine Handle_output (this, config_flags)
 
@@ -307,8 +289,6 @@
       allocate (this%fcanhfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fcanqfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fxlong(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
 
@@ -345,8 +325,8 @@
       this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
       this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
 
-      call calc_unit_fxlat_fxlong (this, config_flags)
-      call Init_fxlatfxlong (this,geogrid)
+      this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+      this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
       call this%Init_latlons_fire (geogrid)
 
     end subroutine Init_domain
@@ -471,62 +451,6 @@
             this%fire_rain,1)
 
     end subroutine Interpolate_vars_atm_to_fire
-
-    subroutine Init_fxlatfxlong (this, geogrid)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
-      implicit none
-
-      class (state_fire_t), intent (in out) :: this
-      type (geogrid_t), intent(in), optional :: geogrid
-
-      real, dimension(:,:), allocatable :: xlat, xlong
-      integer ids,ide,jds,jde,ims,ime,jms,jme,its,ite,jts,jte
-
-
-      ids = geogrid%ids
-      ide = geogrid%ide
-      jds = geogrid%jds
-      jde = geogrid%jde
-
-      ims = geogrid%ids - N_POINTS_IN_HALO
-      ime = geogrid%ide + N_POINTS_IN_HALO
-      jms = geogrid%jds - N_POINTS_IN_HALO
-      jme = geogrid%jde + N_POINTS_IN_HALO
-
-      its = ids
-      ite = ide
-      jts = jds
-      jte = jde
-
-      allocate (xlat(ims:ime,jms:jme))
-      allocate (xlong(ims:ime,jms:jme))
-
-      xlat = 0.
-      xlong = 0.
-      xlat(ids:ide-1,jds:jde-1) = geogrid%xlat
-      xlong(ids:ide-1,jds:jde-1) = geogrid%xlong
-
-      call interpolate_z2fire(ids,ide, jds,jde,       &
-          ims,ime, jms,jme, its,ite, jts,jte,         &
-          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
-          this%ifms,this%ifme, this%jfms,this%jfme,   &
-          this%ifts,this%ifte, this%jfts,this%jfte,   &
-          geogrid%sr_x, geogrid%sr_y,                 & ! atm/fire this ratio
-          xlat,this%fxlat,0)
-
-      call interpolate_z2fire(ids,ide, jds,jde,       &
-          ims,ime, jms,jme, its,ite, jts,jte,         &
-          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
-          this%ifms,this%ifme, this%jfms,this%jfme,   &
-          this%ifts,this%ifte, this%jfts,this%jfte,   &
-          geogrid%sr_x,geogrid%sr_y,                  & ! atm/fire this ratio
-          xlong,this%fxlong,0)
-
-      deallocate(xlat, xlong)
-
-    end subroutine Init_fxlatfxlong
 
     subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
           ims,ime,jms,jme, &                ! memory dims
@@ -1030,8 +954,8 @@
 
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'test', this%test(1:this%nx, 1:this%ny))
 
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlat', this%fxlat(1:this%nx, 1:this%ny))
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlong', this%fxlong(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'lats', this%lats(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'lons', this%lons(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))

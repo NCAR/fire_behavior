@@ -86,14 +86,6 @@
           end do
           close (unit_out)
         end if
-
-        open (newunit = unit_out, file = 'wrf_latlons_fire.dat')
-        do j = 1, grid%jfde
-          do i = 1, grid%ifde
-            write (unit_out, *) grid%fxlong(i, j), grid%fxlat(i, j)
-          end do
-        end do
-        close (unit_out)
       end if
 
       if (DEBUG_LOCAL) then
