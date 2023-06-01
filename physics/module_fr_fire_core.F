@@ -2190,37 +2190,4 @@ else
 endif
 end function select_weno5
 
-real function speed_func(diffCx,diffCy,dx,dy,i,j,fp)
-
-!*** purpose
-!    the level set method speed function
-
-implicit none
-
-real, intent(in)::diffCx,diffCy  ! x and y coordinates of the direction of propagation
-real, intent(in)::dx,dy  ! x and y coordinates of the direction of propagation
-integer, intent(in)::i,j         ! indices of the node to compute the speed at
-type(fire_params),intent(in)::fp
-
-real::scale,nvx,nvy,r
-real::ros_base , ros_wind , ros_slope
-real, parameter:: eps=epsilon(0.0)
-
-
-            ! normal direction, from central differences
-            scale=sqrt(diffCx*diffCx+diffCy*diffCy+eps) 
-            nvx=diffCx/scale
-            nvy=diffCy/scale
-                      
-            ! get rate of spread from wind speed and slope
-
-            call fire_ros(ros_base,ros_wind,ros_slope, &
-            nvx,nvy,i,j,fp)
-
-            r=ros_base + ros_wind + ros_slope
-            if(fire_grows_only.gt.0)r=max(r,0.)
-            speed_func=r
-
-end function speed_func
-
 end module module_fr_fire_core
