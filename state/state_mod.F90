@@ -98,7 +98,7 @@
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
-      procedure :: Init_latlons_fire => Init_latlons_fire
+      procedure :: Init_latlons => Init_latlons
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Interpolate_wind3d => Interpolate_wind3d
       procedure, public :: Print => Print_domain ! private
@@ -327,11 +327,11 @@
 
       this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
       this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
-      call this%Init_latlons_fire (geogrid)
+      call this%Init_latlons (geogrid)
 
     end subroutine Init_domain
 
-    subroutine Init_latlons_fire (this, geogrid)
+    subroutine Init_latlons (this, geogrid)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
@@ -385,7 +385,7 @@
       call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm + offset_corners_y, &
           lat = this%lats_c(this%nx + 1, this%ny + 1), lon = this%lons_c(this%nx + 1, this%ny + 1))
 
-    end subroutine Init_latlons_fire
+    end subroutine Init_latlons
 
     subroutine Interpolate_vars_atm_to_fire (this, wrf)
 
@@ -713,9 +713,9 @@
     subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
           fire_wind_height,                               & ! interpolation height
           ifds, ifde, kfds, kfde, jfds, jfde,             & ! fire grid dimensions
-          u3d,v3d,                                        & ! atm grid arrays in
+          uin,vin,                                        & ! atm grid arrays in
           phl,                                            &
-          u2d,v2d,z0f)                                      ! fire grid arrays out
+          uout,vout,z0f)                                      ! fire grid arrays out
 
       implicit none
 
@@ -725,9 +725,9 @@
       integer, intent(in) ::                              &
           ifds,ifde, kfds,kfde, jfds,jfde ! fire domain bounds
 
-      real,intent(in)::u3d(:),v3d(:), & ! atm wind velocity, staggered
+      real,intent(in)::uin(:),vin(:), & ! atm wind velocity, staggered
           phl(:)                                   ! geopotential
-      real,intent(out):: u2d,v2d    ! wind velocity fire grid nodes
+      real,intent(out):: uout,vout    ! wind velocity fire grid nodes
       real,intent(in):: z0f          ! roughness length in fire grid
 
       !*** local
@@ -745,8 +745,8 @@
       !*** executable
       ! debug init local arrays
       i_nan=2147483647
-      u2d=r_nan
-      v2d=r_nan
+      uout=r_nan
+      vout=r_nan
       altw=r_nan
       hgt=r_nan
 
@@ -803,20 +803,20 @@
             loght = log(ht)
             if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
               logz0 = log(z0f)
-              u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
+              uout= uin(k)*(logfwh-logz0)/(loght-logz0)
             else                           ! log linear interpolation
               loglast=log(hgt(k-1))
-              u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+              uout= uin(k-1) + (uin(k) - uin(k-1)) * ( logfwh - loglast) / (loght - loglast)
             endif
             goto 10
           endif
           if(k.eq.kdmax)then                 ! last layer, still not high enough
-            u2d=u3d(k)
+            uout=uin(k)
           endif
         enddo
       10 continue
       else  ! roughness higher than the fire wind height
-        u2d=0.
+        uout=0.
       endif
 
        ! interpolate v
@@ -827,32 +827,32 @@
             loght = log(ht)
             if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
               logz0 = log(z0f)
-              v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
+              vout= vin(k)*(logfwh-logz0)/(loght-logz0)
             else                           ! log linear interpolation
               loglast=log(hgt(k-1))
-              v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+              vout= vin(k-1) + (vin(k) - vin(k-1)) * ( logfwh - loglast) / (loght - loglast)
             endif
             goto 11
           endif
           if(k.eq.kdmax)then                 ! last layer, still not high enough
-            v2d=v3d(k)
+            vout=vin(k)
           endif
         enddo
         11 continue
       else  ! roughness higher than the fire wind height
-        v2d=0.
+        vout=0.
       endif
 
       ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
       if (config_flags%fire_lsm_zcoupling) then
-            uf_temp=u2d
-            vf_temp=v2d
+            uf_temp=uout
+            vf_temp=vout
             wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
             z0fc=z0f
             ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
             wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
-            u2d=wsf1*uf_temp/wsf
-            v2d=wsf1*vf_temp/wsf
+            uout=wsf1*uf_temp/wsf
+            vout=wsf1*vf_temp/wsf
       endif
 
       return
