@@ -1240,136 +1240,97 @@ end subroutine set_nfuel_cat
 !**********************
 !            
 
-subroutine fire_ros(ros_base,ros_wind,ros_slope, &
-propx,propy,i,j,fp)
-
-implicit none
-
-! copied with the following changes ONLY: 
-!   0.5*(speed + abs(speed)) -> max(speed,0.)
-!   index l -> j 
-!   not using nfuel_cat here - cell info was put into arrays passed as arguments
-!       in include file to avoid transcription errors when used elsewhere
-!   betaop is absorbed in phiwc, see module_fr_fire_model/fire_startup
-!   return the base, wind, and slope contributions to the rate of spread separately
-!       because they may be needed to take advantage of known wind and slope vectors.
-!       They should add up to get the total rate of spread.
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-!     ... calculates fire spread rate with McArthur formula or Rothermel
-!           using fuel type of fuel cell
-!      
-!         m/s =(ft/min) *.3048/60. =(ft/min) * .00508   ! conversion rate
-!         ft/min = m/s * 2.2369 * 88. = m/s *  196.850 ! conversion rate
-!      
-!ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-
-!*** arguments
-real, intent(out)::ros_base,ros_wind,ros_slope ! rate of spread contribution due to fuel, wind, and slope
-real, intent(in)::propx,propy
-integer, intent(in)::i,j         ! node mesh coordinates
-type(fire_params),intent(in)::fp
-
-!*** local
-real:: speed, tanphi ! windspeed and slope in the direction normal to the fireline
-real:: umid, phis, phiw, spdms, umidm, excess
-real:: ros_back
-integer, parameter::ibeh=1
-real, parameter::ros_max=6.
-character(len=128)msg
-real::cor_wind,cor_slope,nvx,nvy,scale
-
-
-!*** executable
-
-! make sure normal direction is size 1
-!scale=sqrt(propx*propx+propy*propy)+tiny(scale)
-scale=1.
-nvx=propx/scale
-nvy=propy/scale
-if (fire_advection.ne.0) then ! from flags in module_fr_fire_util
-    ! wind speed is total speed 
-    speed =  sqrt(fp%vx(i,j)*fp%vx(i,j)+ fp%vy(i,j)*fp%vy(i,j))+tiny(speed)
-    ! slope is total slope
-    tanphi = sqrt(fp%dzdxf(i,j)*fp%dzdxf(i,j) + fp%dzdyf(i,j)*fp%dzdyf(i,j))+tiny(tanphi)
-    ! cos of wind and spread, if >0
-    cor_wind =  max(0.,(fp%vx(i,j)*nvx + fp%vy(i,j)*nvy)/speed)
-    ! cos of slope and spread, if >0
-    cor_slope = max(0., (fp%dzdxf(i,j)*nvx + fp%dzdyf(i,j)*nvy)/tanphi)
-else
-    ! wind speed in spread direction
-    speed =  fp%vx(i,j)*nvx + fp%vy(i,j)*nvy
-    ! slope in spread direction
-    tanphi = fp%dzdxf(i,j)*nvx + fp%dzdyf(i,j)*nvy
-    cor_wind=1.
-    cor_slope=1.
-endif
-
-if (.not. fp%ischap(i,j) > 0.) then      ! if fuel is not chaparral, calculate rate of spread one of these ways
-    if (ibeh .eq. 1) then                ! use Rothermel formula
-!       ... if wind is 0 or into fireline, phiw = 0, &this reduces to backing ros.
-        spdms = max(speed,0.)            ! 
-        umidm = min(spdms,30.)           ! max input wind spd is 30 m/s   !param!
-        umid = umidm * 196.850           ! m/s to ft/min
-        !  eqn.: phiw = c * umid**bbb(i,j) * (fp%betafl(i,j)/betaop)**(-e) ! wind coef
-        phiw = umid**fp%bbb(i,j) * fp%phiwc(i,j) ! wind coef
-        phis=0.
-        if (tanphi .gt. 0.) then
-            phis = 5.275 *(fp%betafl(i,j))**(-0.3) *tanphi**2   ! slope factor
-        endif
-        ! rosm = fp%r_0(i,j)*(1. + phiw + phis)  * .00508 ! spread rate, m/s
-        ros_base = fp%r_0(i,j) * .00508
-        ros_wind = ros_base*phiw
-        ros_slope= ros_base*phis
-        
-
-    else                                   ! McArthur formula (Australian)
-        ! rosm = 0.18*exp(0.8424*max(speed,0.))
-        ros_base = 0.18*exp(0.8424)
-        ros_wind = 0.18*exp(0.8424*max(speed,0.))
-        ros_slope =0.
+  subroutine fire_ros(ros_base,ros_wind,ros_slope, &
+    nvx,nvy,i,j,fp)
+  
+    implicit none
+  
+  !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  !     ... calculates fire spread rate with McArthur formula or Rothermel
+  !           using fuel type of fuel cell
+  !      
+  !         m/s =(ft/min) *.3048/60. =(ft/min) * .00508   ! conversion rate
+  !         ft/min = m/s * 2.2369 * 88. = m/s *  196.850 ! conversion rate
+  !      
+  !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  
+    !*** arguments
+    real, intent(out) :: ros_base, ros_wind, ros_slope ! rate of spread contribution due to fuel, wind, and slope
+    real, intent(in) :: nvx, nvy
+    integer, intent(in) :: i,j         ! node mesh coordinates
+    type(fire_params), intent(in) :: fp
+    
+    !*** local
+    real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
+    real :: umid, phis, phiw, spdms, umidm, excess
+    real :: ros_back
+    real, parameter::ros_max=6.
+    real ::cor_wind, cor_slope
+  
+  
+    !*** executable
+  
+    if (fire_advection.ne.0) then ! from flags in module_fr_fire_util
+      ! wind speed is total speed 
+      speed = sqrt(fp%vx(i,j) * fp%vx(i,j) + fp%vy(i,j) * fp%vy(i,j)) +tiny(speed)
+      ! slope is total slope
+      tanphi = sqrt(fp%dzdxf(i,j) * fp%dzdxf(i,j) + fp%dzdyf(i,j) * fp%dzdyf(i,j)) + tiny(tanphi)
+      ! cos of wind and spread, if >0
+      cor_wind =  max(0., (fp%vx(i,j) * nvx + fp%vy(i,j) * nvy) / speed)
+      ! cos of slope and spread, if >0
+      cor_slope = max(0., (fp%dzdxf(i,j) * nvx + fp%dzdyf(i,j) * nvy) / tanphi)
+    else
+      ! wind speed in spread direction
+      speed = fp%vx(i,j) * nvx + fp%vy(i,j) * nvy
+      ! slope in spread direction
+      tanphi = fp%dzdxf(i,j) * nvx + fp%dzdyf(i,j) * nvy
+      cor_wind = 1.
+      cor_slope = 1.
     endif
-!
-else   ! chaparral
-!        .... spread rate has no dependency on fuel character, only windspeed.
-    spdms = max(speed,0.)      
-    ! rosm = 1.2974 * spdms**1.41       ! spread rate, m/s
-    ! note: backing ros is 0 for chaparral without setting nozero value below
-    !sp_n=.03333  
-    ! chaparral backing fire spread rate 0.033 m/s   ! param!
-    !rosm= max(rosm, sp_n)   ! no less than backing r.o.s.
-
-    ros_back=.03333    ! chaparral backing fire spread rate 0.033 m/s   ! param!
-    ros_wind = 1.2974 * spdms**1.41       ! spread rate, m/s
-    ros_wind = max(ros_wind, ros_back)
-    ros_slope =0.
-
-endif
-! if advection, multiply by the cosines
-ros_wind=ros_wind*cor_wind
-ros_slope=ros_slope*cor_slope
-
-!     ----------note!  put an 6 m/s cap on max spread rate -----------
-! rosm= min(rosm, 6.)         ! no faster than this cap   ! param !
-
-excess = ros_base + ros_wind + ros_slope - ros_max
-
-if (excess > 0.)then
-    ! take it out of wind and slope in proportion
-    ros_wind = ros_wind - excess*ros_wind/(ros_wind+ros_slope)
-    ros_slope = ros_slope - excess*ros_slope/(ros_wind+ros_slope)
-endif
-
-
-!write(msg,*)i,j,' speed=',speed,' tanphi',tanphi,' ros=',ros_base,ros_wind,ros_slope
-!call message(msg)
-      return
-
-contains
-real function nrm2(u,v)
-real, intent(in)::u,v
-nrm2=sqrt(u*u+v*v)
-end function nrm2
-
-end subroutine fire_ros 
+  
+    if (.not. fp%ischap(i,j) > 0.) then      
+      ! Fuel is not chaparral, calculate rate of spread using Rothermel formula
+      ! ... if wind is 0 or into fireline, phiw = 0, &this reduces to backing ros.
+      spdms = max(speed,0.)            ! 
+      umidm = min(spdms,30.)           ! max input wind spd is 30 m/s   !param!
+      umid = umidm * 196.850           ! m/s to ft/min
+      !  eqn.: phiw = c * umid**bbb(i,j) * (fp%betafl(i,j)/betaop)**(-e) ! wind coef
+      phiw = umid**fp%bbb(i,j) * fp%phiwc(i,j) ! wind coef
+      phis=0.
+      if (tanphi .gt. 0.) then
+      phis = 5.275 *(fp%betafl(i,j))**(-0.3) *tanphi**2   ! slope factor
+      endif
+      ! rosm = fp%r_0(i,j)*(1. + phiw + phis)  * .00508 ! spread rate, m/s
+      ros_base = fp%r_0(i,j) * .00508
+      ros_wind = ros_base*phiw
+      ros_slope= ros_base*phis!
+    else 
+      ! Chaparral fuel, spread rate only depends on windspeed, not fuel character
+      spdms = max(speed,0.)      
+      ! rosm = 1.2974 * spdms**1.41       ! spread rate, m/s
+      ! note: backing ros is 0 for chaparral without setting nozero value below
+      ! sp_n=.03333  
+      ! chaparral backing fire spread rate 0.033 m/s   ! param!
+      ! rosm= max(rosm, sp_n)   ! no less than backing r.o.s.
+  
+      ros_back=.03333    ! chaparral backing fire spread rate 0.033 m/s   ! param!
+      ros_wind = 1.2974 * spdms**1.41       ! spread rate, m/s
+      ros_wind = max(ros_wind, ros_back)
+      ros_slope =0.
+    endif
+  
+    ! if advection, multiply by the cosines
+    ros_wind = ros_wind * cor_wind
+    ros_slope = ros_slope * cor_slope
+  
+    !     ----------note!  put an 6 m/s cap on max spread rate -----------
+    excess = ros_base + ros_wind + ros_slope - ros_max
+  
+    if (excess > 0.)then
+      ! take it out of wind and slope in proportion
+      ros_wind = ros_wind - excess * ros_wind / (ros_wind + ros_slope)
+      ros_slope = ros_slope - excess * ros_slope/ (ros_wind + ros_slope)
+    endif
+  end subroutine fire_ros 
 
 end module module_fr_fire_phys
