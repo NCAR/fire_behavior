@@ -1,7 +1,7 @@
 
 FC=gfortran
 #FCFLAGS=-ffree-form -std=f2008
-FCFLAGS=-std=f2008 -ffree-form -fbacktrace -fcheck=all -finit-real=nan -fall-intrinsics -Wall -g -Og
+FCFLAGS=-std=f2008 -ffree-form -fbacktrace -fcheck=all -finit-real=nan -fall-intrinsics -Wall -g -Og #-ffpe-trap=invalid,zero,overflow,underflow
 CPP=cpp
 CPPFLAGS=-nostdinc -C -P -w
 
