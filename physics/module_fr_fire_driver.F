@@ -20,13 +20,7 @@ module module_fr_fire_driver
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
                                 Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
-use module_fr_fire_util, only: fire_atm_feedback, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-                               ifval, fire_advection, fire_fmc_read, &
-                               fuel_left_method, fuel_left_jrl, fuel_left_irl, fire_viscosity_ngp, &
-                               fire_viscosity_bg, fire_viscosity_band, fire_viscosity, fire_upwinding_reinit, &
-                               fire_upwinding, fire_upwind_split, fire_slope_factor, fire_lsm_reinit_iter, &
-                               fire_lsm_band_ngp, fire_lfn_ext_up, fire_grows_only, boundary_guard, &
-                               fire_lsm_reinit, fire_print_msg, &
+use module_fr_fire_util, only: ifval, &
                                Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
@@ -80,9 +74,6 @@ subroutine init_fire_driver (grid, config_flags)
     ! get ignition data
     call fire_ignition_convert (config_flags,ignition_line,fire_num_ignitions)
 
-    ! copy configuration flags to fire internal structures
-    call set_flags(config_flags)
-
     ! initialize moisture model
     itimestep=grid%itimestep
 
@@ -97,13 +88,13 @@ subroutine init_fire_driver (grid, config_flags)
     if(fmoist_run)then
         grid%fmoist_lasttime=moisture_time ! initialize the last time the model has run to start of run
         grid%fmoist_nexttime=moisture_time
-        call message('moisture initialization')
+        call message('moisture initialization',config_flags%fire_print_msg)
     endif
 
 !$OMP SINGLE
 ! init rest of fuel tables with derived constants
 ! properties of fuel categories and moisture classes from namelist.fire
-call init_fuel_cats(fmoist_run) ! common for all threads
+call init_fuel_cats(fmoist_run,config_flags%fire_print_msg) ! common for all threads
 !$OMP END SINGLE
 
         ! initialize all arrays that the model will not change later
@@ -112,7 +103,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &
-            fp%zsf,grid%nfuel_cat)            ! better not use the extrapolated zsf!!
+            fp%zsf,grid%nfuel_cat,config_flags%fire_print_msg)            ! better not use the extrapolated zsf!!
 
         ! uses nfuel_cat to set the other fuel data arrays
         ! needs zsf on halo width 1 to compute the terrain gradient
@@ -122,7 +113,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             grid%dx,grid%dy,config_flags%fire_fuel_cat,    &
             grid%nfuel_cat,grid%fuel_time, &
-            fp)
+            fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
         ! initialize model state to no fire
         call init_no_fire  ( &
@@ -130,6 +121,7 @@ call init_fuel_cats(fmoist_run) ! common for all threads
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
             grid%dx,grid%dy,time_start,    &
+            config_flags%fire_print_msg,   &
             grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
 
 end subroutine init_fire_driver
@@ -172,7 +164,7 @@ subroutine fire_driver_em ( grid , config_flags )
     time_start = itimestep * dt
 
     ! decide what to run
-    if(fire_fmc_read.ne.0.and.fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
+    if(config_flags%fire_fmc_read.ne.0.and.fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
 
     moisture_time = time_start
     run_advance_moisture = .false. ! default
@@ -182,13 +174,13 @@ subroutine fire_driver_em ( grid , config_flags )
             if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
                 write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
                     config_flags%fmoist_freq
-                call message(msg)
+                call message(msg,config_flags%fire_print_msg)
                 run_advance_moisture = .true.
             endif
         else
             if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
                 write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
-                call message(msg)
+                call message(msg,config_flags%fire_print_msg)
                 run_advance_moisture = .true.
             endif
         endif
@@ -198,11 +190,11 @@ subroutine fire_driver_em ( grid , config_flags )
             if(config_flags%fmoist_freq > 0)then
                 write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ', &
                     config_flags%fmoist_freq,' steps'
-                call message(msg)
+                call message(msg,config_flags%fire_print_msg)
             else
                 grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
                 write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
-                call message(msg)
+                call message(msg,config_flags%fire_print_msg)
             endif
         endif
     endif
@@ -248,8 +240,17 @@ subroutine fire_driver_em ( grid , config_flags )
             grid%fmc_equi,                                                                      & ! fuel moisture fields updated, by class, equilibrium diagnostic 
             grid%fmc_lag,                                                                       & ! fuel moisture fields updated, by class, tendency diagnostic
             fp%fmc_g ,                                                                          &                             !  write-only alias. need to exit before using fp again
-            fp                                                                                  &
-        )
+            fp,                                                                                 &
+            config_flags%fire_fuel_left_method, config_flags%fire_fuel_left_irl,                &
+            config_flags%fire_fuel_left_jrl, config_flags%fire_boundary_guard,                  &
+            config_flags%fire_grows_only, config_flags%fire_upwinding,                          &
+            config_flags%fire_upwind_split, config_flags%fire_upwinding_reinit,                 &
+            config_flags%fire_lsm_reinit, config_flags%fire_lsm_reinit_iter,                    &
+            config_flags%fire_viscosity, config_flags%fire_viscosity_bg,                        &
+            config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp,                  &
+            config_flags%fire_advection, config_flags%fire_slope_factor,                        &
+            config_flags%fire_fmc_read, config_flags%fire_lsm_band_ngp,                         &
+            config_flags%fire_print_msg )
 
 end subroutine fire_driver_em
 
@@ -293,8 +294,16 @@ subroutine fire_driver_phys ( &
     fmc_equi,                                     &  ! fuel moisture fields updated, by class equilibrium diagnostic
     fmc_lag,                                      &  ! fuel moisture fields updated, by class tendency diagnostic
     fmc_g,                                        &                          ! fuel moisture, alias of fp%fmc_g
-    fp                                            & ! fire params
-    )
+    fp,                                           & ! fire params
+    fuel_left_method, fuel_left_irl, fuel_left_jrl, &
+    boundary_guard, fire_grows_only, fire_upwinding, &
+    fire_upwind_split, fire_upwinding_reinit, &
+    fire_lsm_reinit, fire_lsm_reinit_iter, &
+    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity_band, fire_viscosity_ngp, &
+    fire_advection, fire_slope_factor, &
+    fire_fmc_read, fire_lsm_band_ngp, &
+    fire_print_msg )
 
 implicit none
 
@@ -309,7 +318,13 @@ integer, intent(in)::                             &
                                                     ! 0=from nfuel_cat0
                                                     ! 1=from altitude
                                                     ! 2=from file
-    nfuel_cat0                                      ! fuel category to initialize everything to
+    nfuel_cat0,                                   & ! fuel category to initialize everything to
+    fuel_left_method, fuel_left_irl, fuel_left_jrl, &
+    boundary_guard, fire_grows_only, fire_upwinding, &
+    fire_upwind_split, fire_upwinding_reinit, &
+    fire_lsm_reinit_iter, fire_viscosity_ngp, &
+    fire_advection, fire_fmc_read, fire_lsm_band_ngp, &
+    fire_print_msg
 
 real, intent(in):: &
     time_start,                                   & ! start of this time step from the beginning of the simulation
@@ -319,10 +334,12 @@ real, intent(in):: &
     fire_crwn_hgt,                                & ! lowest height crown fire heat is released (m)
     fire_ext_grnd,                                & ! extinction depth of surface fire heat flux (m)
     fire_ext_crwn,                                & ! wind height for vertical interploation to fire spread
-    fire_wind_height 
+    fire_wind_height,                             &
+    fire_viscosity,fire_viscosity_bg,             &
+    fire_viscosity_band,fire_slope_factor
 
 integer, intent(in):: num_ignitions          ! number of ignitions, can be 0
-logical, intent(in) :: fire_is_real_perim
+logical, intent(in) :: fire_is_real_perim, fire_lsm_reinit
 real, dimension(ifms:ifme, jfms:jfme), intent(in) :: fxlong, fxlat, fz0 ! fire mesh coordinates and z0
 
 TYPE (ignition_line_type), DIMENSION(num_ignitions), intent(out):: ignition_line
@@ -364,15 +381,16 @@ integer :: ignitions_done              ! number of isolated ignitions
 ignitions_done = 0
 
   ! check the tiles
-call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme)! check if fire node tile fits in memory
+call check_mesh_2dim(ifts-2,ifte+2,jfts-2,jfte+2,ifms,ifme,jfms,jfme,fire_print_msg)! check if fire node tile fits in memory
 
 if(run_advance_moisture)then
       ! one timestep of the moisture model
-      call message('advance_moisture start')
+      call message('advance_moisture start',fire_print_msg)
       call advance_moisture(    &
               itimestep.eq.1,             & ! initialize?
               ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
               ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
+              fire_print_msg,             &
               nfmc,                       & ! number of moisture fields
               dt_moisture,                & ! moisture model time step
               fmep_decay_tlag,            & ! moisture extended model assim. diffs decay tlag
@@ -386,19 +404,20 @@ if(run_advance_moisture)then
               fmc_equi,                   &  ! fuel moisture fields updated, by class equilibrium diagnostic
               fmc_lag                     &  ! fuel moisture fields updated, by class tendency diagnostic
               )
-      call message('advance_moisture end')
+      call message('advance_moisture end',fire_print_msg)
 
-      call message('fuel_moisture start')
+      call message('fuel_moisture start',fire_print_msg)
       call fuel_moisture(         &
           nfmc,                   &
           ifds, ifde, jfds, jfde, & ! fire grid dimensions
           ifms, ifme, jfms, jfme, &
           ifts,ifte,jfts,jfte,    &
+          fire_print_msg,         &
           nfuel_cat,              & ! fuel data
           fmc_gc,                 & ! moisture contents by class on atmospheric grid
           fmc_g                   & ! weighted fuel moisture contents on fire grid
           )
-      call message('fuel_moisture end')
+      call message('fuel_moisture end',fire_print_msg)
 
       ! fuel moisture may have changed, reset the precomputed ros parameters
       ! uses nfuel_cat to set the other fuel data arrays
@@ -409,7 +428,7 @@ if(run_advance_moisture)then
               ifts,ifte,jfts,jfte, &
               dx,dy,nfuel_cat0,    &
               nfuel_cat,fuel_time, &
-              fp)
+              fp,fire_fmc_read,fire_print_msg)
 
 endif
 
@@ -433,8 +452,15 @@ endif
         fgrnhfx,fgrnqfx,                        & ! output: heat fluxes
         ros,                                    & ! output: rate of spread for display
         fuel_time,                              & ! save derived internal data
-        fp                                      & ! fire coefficients
-        )
+        fp,                                     & ! fire coefficients
+        fuel_left_method, fuel_left_irl, fuel_left_jrl, &
+        boundary_guard, fire_grows_only, fire_upwinding, &
+        fire_upwind_split, fire_upwinding_reinit, &
+        fire_lsm_reinit, fire_lsm_reinit_iter, &
+        fire_viscosity, fire_viscosity_bg, &
+        fire_viscosity_band, fire_viscosity_ngp, &
+        fire_advection, fire_slope_factor, &
+        fire_lsm_band_ngp, fire_print_msg )
 
 end subroutine fire_driver_phys
 
@@ -510,39 +536,5 @@ subroutine fire_ignition_convert (config_flags,ignition_line,fire_num_ignitions)
         enddo
 
 end subroutine fire_ignition_convert
-
-subroutine set_flags(config_flags)
-
-implicit none
-
-TYPE (namelist_t) , INTENT(IN)          :: config_flags
-
-! copy flags from wrf to module_fr_fire_util
-! for instructions how to add a flag see the top of module_fr_fire_util.F
-fire_print_msg          = config_flags%fire_print_msg
-fuel_left_method        = config_flags%fire_fuel_left_method
-fuel_left_irl           = config_flags%fire_fuel_left_irl
-fuel_left_jrl           = config_flags%fire_fuel_left_jrl
-fire_atm_feedback       = config_flags%fire_atm_feedback
-boundary_guard          = config_flags%fire_boundary_guard
-fire_grows_only         = config_flags%fire_grows_only
-fire_upwinding          = config_flags%fire_upwinding
-fire_upwind_split       = config_flags%fire_upwind_split 
-fire_viscosity          = config_flags%fire_viscosity 
-fire_lfn_ext_up         = config_flags%fire_lfn_ext_up 
-fire_advection          = config_flags%fire_advection
-fire_lsm_reinit         = config_flags%fire_lsm_reinit
-fire_lsm_reinit_iter    = config_flags%fire_lsm_reinit_iter 
-fire_upwinding_reinit   = config_flags%fire_upwinding_reinit 
-fire_lsm_band_ngp       = config_flags%fire_lsm_band_ngp
-fire_lsm_zcoupling      = config_flags%fire_lsm_zcoupling
-fire_lsm_zcoupling_ref  = config_flags%fire_lsm_zcoupling_ref 
-fire_viscosity_bg       = config_flags%fire_viscosity_bg 
-fire_viscosity_band     = config_flags%fire_viscosity_band 
-fire_viscosity_ngp      = config_flags%fire_viscosity_ngp
-fire_slope_factor       = config_flags%fire_slope_factor 
-fire_fmc_read           = config_flags%fire_fmc_read
-
-end subroutine set_flags
 
 end module module_fr_fire_driver

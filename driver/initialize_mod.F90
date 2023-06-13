@@ -60,9 +60,9 @@
       end if
 
         ! Fire init
-      call message ('Init_fire_state: FIRE initialization start')
+      call message ('Init_fire_state: FIRE initialization start',config_flags%fire_print_msg)
       call init_fire_driver (grid, config_flags)
-      call message ('Init_fire_state: FIRE initialization complete')
+      call message ('Init_fire_state: FIRE initialization complete',config_flags%fire_print_msg)
 
       if (DEBUG_LOCAL .and. config_flags%fire_fuel_read == -1) then
           ! print lat/lons

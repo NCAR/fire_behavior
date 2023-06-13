@@ -33,9 +33,9 @@
       grid%itimestep = grid%itimestep + 1
 
         ! Fire advance
-      call message('Advance_state: FIRE step start')
+      call message('Advance_state: FIRE step start',config_flags%fire_print_msg)
       call fire_driver_em (grid, config_flags)
-      call message('Advance_state: FIRE step complete')
+      call message('Advance_state: FIRE step complete',config_flags%fire_print_msg)
 
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)

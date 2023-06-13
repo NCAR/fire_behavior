@@ -1053,6 +1053,7 @@
            v2,                     &  ! input
            ims1,ime1,jms1,jme1,    &
            its1,ite1,jts1,jte1,    &
+           fire_print_msg,         &
            v1)                        ! output
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
@@ -1066,6 +1067,7 @@
       ! the dimensions are in cells, not nodes!
 
       integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
+      integer, intent(in)::fire_print_msg
       real, intent(out)::v1(ims1:ime1,jms1:jme1)
       integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
       real, intent(in)::v2(ims2:ime2,jms2:jme2)
@@ -1153,6 +1155,7 @@
             this%fuel_frac,                           &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
+            config_flags%fire_print_msg,              &
             atm%avg_fuel_frac)
       call sum_2d_cells(                              &
             this%ifms,this%ifme, this%jfms,this%jfme, &
@@ -1160,6 +1163,7 @@
             this%fgrnhfx,                             &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
+            config_flags%fire_print_msg,              &
             atm%grnhfx)
       call sum_2d_cells(                              &
             this%ifms,this%ifme, this%jfms,this%jfme, &
@@ -1167,6 +1171,7 @@
             this%fgrnqfx,                             &
             atm%ims,atm%ime, atm%jms,atm%jme,         &
             atm%its,atm%ite, atm%jts,atm%jte,         &
+            config_flags%fire_print_msg,              &
             atm%grnqfx)
 
       write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback

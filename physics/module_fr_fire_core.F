@@ -2,12 +2,7 @@
 module module_fr_fire_core
 
 use module_fr_fire_phys, only: fire_params , fire_ros
-use module_fr_fire_util, only: fire_grows_only, fire_lfn_ext_up, fire_lsm_band_ngp, fire_slope_factor, &
-                               fire_upwind_split, fire_upwinding, fire_viscosity, fire_viscosity_band, &
-                               fire_viscosity_bg, fire_viscosity_ngp, boundary_guard, fire_upwinding_reinit, &
-                               fire_lfn_ext_up, fire_lsm_reinit_iter, fuel_left_irl, fuel_left_jrl, &
-                               fuel_left_method, fire_print_msg, &
-                               Message, Crash, Print_2d_stats
+use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 
@@ -44,6 +39,7 @@ subroutine init_no_fire(&
     ifms,ifme,jfms,jfme, &
     ifts,ifte,jfts,jfte, &
     fdx,fdy,time_now,    & ! scalars in
+    fire_print_msg,      &
     fuel_frac,fire_area,lfn,tign)    ! arrays out            
 implicit none
              
@@ -52,6 +48,7 @@ implicit none
 integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
 integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
 integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
+integer, intent(in):: fire_print_msg
 real, intent(in) :: fdx,fdy,time_now        ! mesh spacing, time
 real, intent(out), dimension (ifms:ifme,jfms:jfme) :: & 
                    fuel_frac,fire_area,lfn,tign       ! model state
@@ -74,13 +71,14 @@ do j=jfts,jfte
         lfn(i,j) = lfn_init        ! no fire 
     enddo
 enddo
-call message('init_no_fire: state set to no fire')
+call message('init_no_fire: state set to no fire',fire_print_msg)
 
 end subroutine init_no_fire
 
 subroutine ignite_fire( ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
                         ifms,ifme,jfms,jfme,                      &
                         ifts,ifte,jfts,jfte,                      &
+                        fire_print_msg,                           &
                         ignition_line,                            &
                         start_ts,end_ts,                    &
                         coord_xf,coord_yf,                &     
@@ -104,6 +102,7 @@ implicit none
 integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
 integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
 integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
+integer, intent(in):: fire_print_msg
 type(ignition_line_type), intent(in):: ignition_line    ! description of the ignition line
 real, intent(in):: start_ts,end_ts          ! the time step start and end 
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
@@ -175,11 +174,11 @@ axmax=coord_xf(ifte,jfte)
 aymax=coord_yf(ifte,jfte)
 !$OMP CRITICAL(FIRE_CORE_CRIT)
 write(msg,'(a,2g13.6,a,2g13.6)')'IGN from ',sx,sy,' to ',ex,ey
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,'(a,2f10.2,a,2f10.2,a)')'IGN timestep [',start_ts,end_ts,'] in [',start_time,end_time,']'
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,'(a,2g13.6,a,2g13.6)')'IGN tile coord from  ',axmin,aymin,' to ',axmax,aymax
-call message(msg)
+call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
 ignited=0
 dmax=0
@@ -193,7 +192,7 @@ do j=jfts,jfte
 
         ! get d= distance from the nearest point on the ignition segment
         ! and time_ign = the ignition time there
-        call nearest(d,time_ign,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2)
+        call nearest(d,time_ign,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2,fire_print_msg)
         dmax=max(d,dmax)
         dmin=min(d,dmin)
 
@@ -201,9 +200,9 @@ do j=jfts,jfte
         if(fire_print_msg.ge.3)then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
             write(msg,*)'IGN1 i,j=',i,j,' lfn(i,j)=',lfn(i,j),' tign(i,j)=',tign(i,j)
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,*)'IGN2 i,j=',i,j,' lfn_new= ',lfn_new, ' time_ign= ',time_ign,' d=',d
-            call message(msg)
+            call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
         endif
         if(.not.lfn_new>0.) then
@@ -215,16 +214,16 @@ do j=jfts,jfte
 !$OMP CRITICAL(FIRE_CORE_CRIT)
                 write(msg,'(a,2i6,a,2g13.6,a,f10.2,a,2f10.2,a)')'IGN ignited cell ',i,j,' at',ax,ay, &
                     ' time',tign(i,j),' in [',start_ts,end_ts,']'
-                call message(msg)
+                call message(msg,fire_print_msg)
                 write(msg,'(a,g10.3,a,f10.2,a,2f10.2,a)')'IGN distance',d,' from ignition line at',time_ign,' in [',st,et,']'
-                call message(msg)
+                call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
             endif
             if(tign(i,j) < start_ts .or. tign(i,j) > end_ts )then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
                 write(msg,'(a,2i6,a,f11.6,a,2f11.6,a)')'WARNING ',i,j, &
                 ' fixing ignition time ',tign(i,j),' outside of the time step [',start_ts,end_ts,']'
-                call message (msg)
+                call message (msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
                 tign(i,j) = min(max(tign(i,j),start_ts),end_ts)
             endif
@@ -233,16 +232,16 @@ do j=jfts,jfte
         if(fire_print_msg.ge.3)then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
             write(msg,*)'IGN3 i,j=',i,j,' lfn(i,j)=',lfn(i,j),' tign(i,j)=',tign(i,j)
-            call message(msg)
+            call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
         endif
     enddo
 enddo
 !$OMP CRITICAL(FIRE_CORE_CRIT)
 write(msg,'(a,2g13.2,a,g10.2,a,g10.2)')'IGN units ',unit_xf,unit_yf,' m max dist ',dmax,' min',dmin
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,'(a,f6.1,a,f8.1,a,i10)')'IGN radius ',radius,' time of spread',tos,' ignited nodes',ignited
-call message(msg)
+call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
 
 return
@@ -252,9 +251,10 @@ end subroutine ignite_fire
 
 ! called from the inside of a loop, inline if possible
 !DEC$ ATTRIBUTES FORCEINLINE
-SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2)
+SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2,fire_print_msg)
         implicit none
 !***    arguments
+        integer, intent(in):: fire_print_msg
         real, intent(out):: d,t
         real, intent(in):: ax,ay,sx,sy,st,ex,ey,et,cx2,cy2
         ! input:
@@ -315,17 +315,17 @@ SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2)
         if(fire_print_msg.ge.3)then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
             write(msg,12)'find nearest to [',ax,ay,'] from [',sx,sy,'] [',ex,ey,']' ! DEB
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,12)'end times',st,et,' scale squared',cx2,cy2 ! DEB
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,11)'nearest at mcrel=',mcrel,'from the midpoint, t=',t ! DEB
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,12)'nearest is [',cx,cy,'] d=',d ! DEB
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,11)'dam2=',dam2,'des2=',des2,'dames=',dames
-            call message(msg)
+            call message(msg,fire_print_msg)
             write(msg,11)'am_es=',am_es,'cos2=',cos2,'dmc2=',dmc2 ! DEB
-            call message(msg)
+            call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
         endif
 END SUBROUTINE nearest
@@ -334,7 +334,8 @@ subroutine fuel_left(&
     ims,ime,jms,jme, &
     its,ite,jts,jte, &
     ifs,ife,jfs,jfe, &
-    lfn, tign, fuel_time, time_now, fuel_frac, fire_area)
+    lfn, tign, fuel_time, time_now, fuel_frac, fire_area, &
+    fuel_left_method, fuel_left_irl, fuel_left_jrl, fire_print_msg )
 implicit none
 
 !*** purpose: determine fraction of fuel remaining
@@ -342,7 +343,8 @@ implicit none
 
 !*** arguments
 
-integer, intent(in) :: its,ite,jts,jte,ims,ime,jms,jme,ifs,ife,jfs,jfe
+integer, intent(in) :: its,ite,jts,jte,ims,ime,jms,jme,ifs,ife,jfs,jfe, &
+                       fuel_left_method,fuel_left_irl,fuel_left_jrl,fire_print_msg
 real, intent(in), dimension(ims:ime,jms:jme)::lfn,tign,fuel_time
 real, intent(in):: time_now
 real, intent(out), dimension(ifs:ife,jfs:jfe)::fuel_frac
@@ -491,7 +493,7 @@ do icl=its,ite
           call fuel_left_cell_1( fuel_left_ff, fire_area_ff, &
              lffij,lffij1,lffi1j,lffi1j1,&
              tifij,tifij1,tifi1j,tifi1j1,&
-             time_now, fuel_time(icl,jcl))
+             time_now, fuel_time(icl,jcl), fire_print_msg)
         elseif(fuel_left_method.eq.2)then
           fire_area_ff=0  ! initialize to something until computed in fuel_left_f(i,j)
           fuel_left_ff=fuel_left_cell_2( &
@@ -550,7 +552,7 @@ enddo
 !$OMP CRITICAL(FIRE_CORE_CRIT)
 write(msg,'(a,4i6,a,f10.7)')'fuel_left: tile',its,ite,jts,jte,' max fuel burnt/area',fmax 
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-call message(msg)
+call message(msg,fire_print_msg)
 return
 
 end subroutine fuel_left
@@ -558,10 +560,11 @@ end subroutine fuel_left
 subroutine fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
     lfn00,lfn01,lfn10,lfn11, &
     tign00,tign01,tign10,tign11,&
-    time_now, fuel_time_cell)
+    time_now, fuel_time_cell, fire_print_msg)
 !*** purpose: compute the fuel fraction left in one cell
 implicit none
 !*** arguments
+integer, intent(in)::fire_print_msg
 real, intent(out):: fuel_frac_left, fire_frac_area ! 
 real, intent(in)::lfn00,lfn01,lfn10,lfn11    ! level set function at 4 corners of the cell
 real, intent(in)::tign00,tign01,tign10,tign11! ignition time at the  4 corners of the cell
@@ -683,10 +686,10 @@ if(area>0)out=area*exp(ta/fuel_time_cell) + (1. - area)
 if(out>1.)then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
     write(msg,*)'out=',out,'>1 area=',area,' ta=',ta
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,*)'tign=',tign00,tign01,tign10,tign11,' time_now=',time_now
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
     !call message('WARNING: fuel_left_cell_1: fuel fraction > 1')
     call crash('fuel_left_cell_1: fuel fraction > 1')
 endif
@@ -1225,7 +1228,13 @@ subroutine prop_ls_rk3(               &
                 ifds,ifde,jfds,jfde,     &                 
                 ifms,ifme,jfms,jfme,     &                    
                 ifts,ifte,jfts,jfte,     &                    
-                ts,dt,dx,dy,             &                     
+                ts,dt,dx,dy,             &
+                fire_grows_only,         &
+                fire_upwinding, fire_upwind_split, &
+                fire_viscosity, fire_viscosity_bg, &
+                fire_viscosity_band, fire_viscosity_ngp, &
+                fire_advection, fire_slope_factor,       &
+                fire_lsm_band_ngp, fire_print_msg,       &
                 tbound,                  &                  
                 lfn_in,                  &
                 lfn_0,lfn_1,lfn_2,       & 
@@ -1293,6 +1302,9 @@ implicit none
 !
 
 integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
+integer,intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+                    fire_advection,fire_lsm_band_ngp,fire_print_msg
+real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0 
 real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
@@ -1324,7 +1336,7 @@ intrinsic max,min,sqrt,nint,epsilon,tiny,huge
 !$OMP CRITICAL(FIRE_CORE_CRIT)
 write(msg,'(a8,i5,a6,i5,3(a1,i5))')'prop_ls: tile ',ifts,':',ifte,',',jfts,':',jfte
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-call message(msg)
+call message(msg,fire_print_msg)
 
 !!!!!!!!!!!!!!!!!!!!!!
 ! Runge-Kutta step 1 !
@@ -1345,6 +1357,12 @@ call message(msg)
     ifts,ifte,jfts,jfte, &                       ! tile dims
     ifms,ifme,jfms,jfme, &                       ! memory dims
     ts,dt,dx,dy,         &                       ! scalars in
+    fire_grows_only,     &
+    fire_upwinding, fire_upwind_split, &
+    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity_band, fire_viscosity_ngp, &
+    fire_advection, fire_slope_factor,       &
+    fire_lsm_band_ngp, fire_print_msg,   &
     lfn_0,               &                       ! arrays in
     tbound,              &                       ! scalars out 
     tend, ros,           &                       ! arrays out        
@@ -1369,7 +1387,13 @@ call message(msg)
     ifds,ifde,jfds,jfde, &                     
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &               
-    ts+dt,dt,dx,dy,      &                  
+    ts+dt,dt,dx,dy,      &
+    fire_grows_only,     &
+    fire_upwinding, fire_upwind_split, &
+    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity_band, fire_viscosity_ngp, &
+    fire_advection, fire_slope_factor,       &
+    fire_lsm_band_ngp, fire_print_msg,   &
     lfn_1,               &                             
     tbound2,             &                              
     tend,ros,            &                           
@@ -1394,7 +1418,13 @@ call message(msg)
     ifds,ifde,jfds,jfde, &                      
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &                 
-    ts+dt,dt,dx,dy,      &                  
+    ts+dt,dt,dx,dy,      &
+    fire_grows_only,     &
+    fire_upwinding, fire_upwind_split, &
+    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity_band, fire_viscosity_ngp, &
+    fire_advection, fire_slope_factor,       &
+    fire_lsm_band_ngp, fire_print_msg,   &
     lfn_2,               &                            
     tbound3,             &                            
     tend,ros,            &                           
@@ -1420,13 +1450,13 @@ call message(msg)
     write(msg,'(a,f10.2,4(a,f7.2))')'prop_ls: time',ts,' dt=',dt,' bound',min(tbound,999.99), &
         ' dx=',dx,' dy=',dy
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
     if(dt>tbound)then
 !$OMP CRITICAL(FIRE_CORE_CRIT)
         write(msg,'(2(a,f10.2))')'prop_ls: WARNING: time step ',dt, &
         ' > bound =',tbound
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call message(msg)
+        call message(msg,fire_print_msg)
     endif
     
 end subroutine prop_ls_rk3
@@ -1435,7 +1465,9 @@ subroutine reinit_ls_rk3(                       &
                 ifts,ifte,jfts,jfte,               &                     
                 ifms,ifme,jfms,jfme,               &                     
                 ifds,ifde,jfds,jfde,               &                     
-                ts,dt,dx,dy,                       &                    
+                ts,dt,dx,dy,                       &
+                fire_upwinding_reinit, fire_lsm_reinit_iter, &
+                fire_lsm_band_ngp,                 &
                 lfn_in,                            & 
                 lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3, & 
                 lfn_out,tign                       &
@@ -1458,6 +1490,7 @@ implicit none
 
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme
 integer,intent(in)::ifds,ifde,jfds,jfde
+integer,intent(in)::fire_upwinding_reinit,fire_lsm_reinit_iter,fire_lsm_band_ngp
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_out
@@ -1496,7 +1529,8 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     ifds,ifde,jfds,jfde,    &           
     ifts,ifte,jfts,jfte,    &               
     dx,dy,dt_s,bdy_eno1,threshold_HLu, &               
-    lfn_s0,lfn_s3,lfn_s3,lfn_s1,1.0/3.0)   ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
+    lfn_s0,lfn_s3,lfn_s3,lfn_s1,1.0/3.0, &   ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
+    fire_upwinding_reinit)
 
 #ifdef DM_PARALLEL
 #      include "HALO_FIRE_LFN_S1.inc"
@@ -1509,7 +1543,8 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     ifds,ifde,jfds,jfde,    &
     ifts,ifte,jfts,jfte,    &
     dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-    lfn_s0,lfn_s3,lfn_s1,lfn_s2,1.0/2.0)
+    lfn_s0,lfn_s3,lfn_s1,lfn_s2,1.0/2.0, &
+    fire_upwinding_reinit)
 
 #ifdef DM_PARALLEL
 #      include "HALO_FIRE_LFN_S2.inc"
@@ -1522,7 +1557,8 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
     ifds,ifde,jfds,jfde,    &
     ifts,ifte,jfts,jfte,    &
     dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-    lfn_s0,lfn_s3,lfn_s2,lfn_s3,1.0)  
+    lfn_s0,lfn_s3,lfn_s2,lfn_s3,1.0, &
+    fire_upwinding_reinit) 
 
 #ifdef DM_PARALLEL
 #      include "HALO_FIRE_LFN_S3.inc"
@@ -1543,7 +1579,8 @@ subroutine advance_ls_reinit(ifms,ifme,jfms,jfme, &
                           ifds,ifde,jfds,jfde,    &
                           ifts,ifte,jfts,jfte,    &
                           dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-                          lfn_s0,lfn_ini,lfn_curr,lfn_fin,rk_coeff)
+                          lfn_s0,lfn_ini,lfn_curr,lfn_fin,rk_coeff, &
+                          fire_upwinding_reinit)
 
 ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
 ! Domingo Munoz-Esparza, NCAR/RAL
@@ -1556,6 +1593,7 @@ subroutine advance_ls_reinit(ifms,ifme,jfms,jfme, &
 implicit none
 
 integer,intent(in)::ifms,ifme,jfms,jfme,ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde,bdy_eno1
+integer,intent(in)::fire_upwinding_reinit
 real,dimension(ifms:ifme,jfms:jfme),intent(in)::lfn_s0,lfn_ini,lfn_curr
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_fin
 real,intent(in)::dx,dy,dt_s,threshold_HLu,rk_coeff
@@ -1650,7 +1688,8 @@ end subroutine advance_ls_reinit
 subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
                        ifms,ifme,jfms,jfme, &              ! memory dims
                        ifds,jfds,ifde,jfde, &              ! domain dims         
-                       ts,dt,               &              ! scalars in
+                       ts,dt,boundary_guard,&              ! scalars in
+                       fire_print_msg,      &
                        lfn_in,lfn_out,tign  &              ! arrays inout          
                       )
 
@@ -1660,6 +1699,7 @@ subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
 implicit none
 
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,ifds,jfds,ifde,jfde
+integer,intent(in)::boundary_guard,fire_print_msg
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::tign
 real,dimension(ifms:ifme,jfms:jfme),intent(in)::lfn_in,lfn_out
 real,intent(in)::ts,dt
@@ -1716,7 +1756,7 @@ do i=ifts,ifte
 enddo
     
 call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
-               lfn_out,'prop_ls: lfn out')
+               lfn_out,'prop_ls: lfn out',fire_print_msg)
 
 end subroutine tign_update
 
@@ -1754,6 +1794,12 @@ subroutine tend_ls( &
     its,ite,jts,jte,    &              ! region - nodes where tend computed
     ims,ime,jms,jme,    &              ! memory dims for ros 
     t,dt,dx,dy,         &              ! scalars in
+    fire_grows_only,    &
+    fire_upwinding, fire_upwind_split, &
+    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity_band, fire_viscosity_ngp, &
+    fire_advection, fire_slope_factor,       &
+    fire_lsm_band_ngp, fire_print_msg,  &
     lfn,                &              ! arrays in
     tbound,             &              ! scalars out 
     tend, ros,          &              ! arrays out
@@ -1767,6 +1813,9 @@ implicit none
 !*** arguments
 integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
 integer, intent(in)::ids,ide,jds,jde
+integer, intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+                     fire_advection,fire_lsm_band_ngp,fire_print_msg
+real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,intent(in)::t                                 ! time
 real,intent(in)::dt,dx,dy                          ! mesh step
 real,dimension(ims:ime,jms:jme),intent(inout)::lfn ! level set function 
@@ -1901,7 +1950,7 @@ threshold_AV=fire_viscosity_ngp*dx
             speed =  fp%vx(i,j)*nvx + fp%vy(i,j)*nvy
             ! get rate of spread from wind speed and slope
             call fire_ros(ros_base,ros_wind,ros_slope, &
-            nvx,nvy,i,j,fp)
+            nvx,nvy,i,j,fp,fire_advection)
             rr=ros_base + ros_wind + fire_slope_factor*ros_slope
 
             if(fire_grows_only.gt.0)rr=max(rr,0.)
@@ -1975,7 +2024,7 @@ threshold_AV=fire_viscosity_ngp*dx
     enddo        
 
     call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme, & 
-                   tend,'tend_ls: tend out')
+                   tend,'tend_ls: tend out',fire_print_msg)
 
     ! the final CFL bound
     tbound = 1/(tbound+tol)

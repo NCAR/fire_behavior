@@ -4,8 +4,7 @@ module module_fr_fire_model
   use module_fr_fire_core, only: ignition_line_type, ignition_line, &
                                Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
-  use module_fr_fire_util, only: fire_lsm_reinit, &
-                               real_max, real_sum, rnrm_max, rnrm_sum, fun_real, fire_print_msg, &
+  use module_fr_fire_util, only: real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
   use module_fr_fire_phys
 
@@ -34,7 +33,15 @@ module module_fr_fire_model
         grnhfx,grnqfx,                          & ! output: heat fluxes
         ros,                                    & ! output: rate of spread
         fuel_time,                              & ! save derived internal data
-        fp) 
+        fp,                                     &
+        fuel_left_method, fuel_left_irl, fuel_left_jrl, &
+        boundary_guard, fire_grows_only, fire_upwinding, &
+        fire_upwind_split, fire_upwinding_reinit, &
+        fire_lsm_reinit, fire_lsm_reinit_iter, &
+        fire_viscosity, fire_viscosity_bg, &
+        fire_viscosity_band, fire_viscosity_ngp, &
+        fire_advection, fire_slope_factor, &
+        fire_lsm_band_ngp, fire_print_msg )
 
 ! This subroutine implements the fire spread model.
 ! All quantities are on the fire grid. It inputs
@@ -58,8 +65,15 @@ integer, intent(in) :: num_ignitions        ! number of ignition lines
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
 integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
+integer, intent(in) :: fuel_left_method,fuel_left_irl,fuel_left_jrl, &
+                       boundary_guard,fire_grows_only,fire_upwinding, &
+                       fire_upwind_split,fire_upwinding_reinit,fire_lsm_reinit_iter, &
+                       fire_viscosity_ngp,fire_advection,fire_lsm_band_ngp, &
+                       fire_print_msg
+logical, intent(in) :: fire_lsm_reinit
 real,intent(in) :: time_start,dt            ! starting time, time step
 real,intent(in) :: fdx,fdy                  ! spacing of the fire mesh
+real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 type(ignition_line_type), dimension (num_ignitions), intent(in):: ignition_line ! descriptions of ignition lines
 integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
 integer, intent(out):: ignitions_done              ! number of isolated ignitions
@@ -94,7 +108,7 @@ integer:: stat_lev=1
   real, parameter :: EPSILON = 0.00001
 
 
-call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme)
+call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme,fire_print_msg)
 
 ! init flags
 ignitions_done=0
@@ -115,15 +129,15 @@ ignitions_done=0
         fp%vx,fp%vy)
 !$OMP MASTER 
       write(msg,91)time_start,'Average wind        ',aw,'m/s'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
       write(msg,91)time_start,'Maximum wind        ',mw,'m/s'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
 !$OMP END MASTER 
     endif
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &
-                   fuel_frac,'model: fuel_frac start')
+                   fuel_frac,'model: fuel_frac start',fire_print_msg)
 
     ! advance the model from time_start to time_start+dt
     ! return the fuel fraction burnt this call in each fire cell
@@ -141,7 +155,14 @@ ignitions_done=0
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
              ifts,ifte,jfts,jfte,                       &
-             time_start,dt,fdx,fdy,tbound,              &
+             time_start,dt,fdx,fdy,                     &
+             fire_grows_only,                           &
+             fire_upwinding,fire_upwind_split,          &
+             fire_viscosity, fire_viscosity_bg,         &
+             fire_viscosity_band, fire_viscosity_ngp,   &
+             fire_advection, fire_slope_factor,         &
+             fire_lsm_band_ngp, fire_print_msg,         &
+             tbound,                                    &
              lfn,                                       &
              lfn_0,lfn_1,lfn_2,                         & 
              lfn_out,tign,ros, fp                       &
@@ -150,7 +171,8 @@ ignitions_done=0
        call tign_update(ifts,ifte,jfts,jfte, & 
                         ifms,ifme,jfms,jfme, &                    
                         ifds,jfds,ifde,jfde, &
-                        time_start,dt,       &  
+                        time_start,dt,boundary_guard, &
+                        fire_print_msg, &
                         lfn,lfn_out,tign     &             
                        )
 
@@ -164,7 +186,9 @@ ignitions_done=0
                           ifts,ifte,jfts,jfte,                       &                  
                           ifms,ifme,jfms,jfme,                       &                     
                           ifds,ifde,jfds,jfde,                       &                     
-                          time_start,dt,fdx,fdy,                     &               
+                          time_start,dt,fdx,fdy,                     &
+                          fire_upwinding_reinit,fire_lsm_reinit_iter,&
+                          fire_lsm_band_ngp,                         &
                           lfn,                                       &
                           lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,         &
                           lfn_out,tign                               &
@@ -208,6 +232,7 @@ ignitions_done=0
                 ifds,ifde,jfds,jfde,                      & ! fire domain dims - the whole domain
                 ifms,ifme,jfms,jfme,                      &
                 ifts,ifte,jfts,jfte,                      &
+                fire_print_msg,                           &
                 ignition_line(ig),                        &
                 time_start,time_start+dt,                 &
                 coord_xf,coord_yf,unit_xf,unit_yf,        & 
@@ -222,7 +247,7 @@ ignitions_done=0
  end if
             
     call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
-                   lfn,'fire_model: lfn out')
+                   lfn,'fire_model: lfn out',fire_print_msg)
     
 !ifun6 ! timestep postprocessing
     ! compute the heat fluxes from the fuel burned
@@ -231,11 +256,12 @@ ignitions_done=0
         ifms,ifme,jfms,jfme, &
         ifts,ifte,jfts,jfte, &
         ifts,ifte,jfts,jfte, &
-        lfn,tign,fuel_time,time_start+dt,fuel_frac_end,fire_area) !fuel_frac_end is private and tile based
+        lfn,tign,fuel_time,time_start+dt,fuel_frac_end,fire_area,fuel_left_method, &
+        fuel_left_irl, fuel_left_jrl, fire_print_msg) !fuel_frac_end is private and tile based
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifts,ifte,jfts,jfte, &
-                   fuel_frac_end,'model: fuel_frac end')
+                   fuel_frac_end,'model: fuel_frac end',fire_print_msg)
     
     do j=jfts,jfte
         do i=ifts,ifte
@@ -247,7 +273,7 @@ ignitions_done=0
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifts,ifte,jfts,jfte, &
-                   fuel_frac_burnt,'model: fuel_frac burned')
+                   fuel_frac_burnt,'model: fuel_frac burned',fire_print_msg)
         
     call heat_fluxes(dt,fp,                       &
         ifms,ifme,jfms,jfme,                      &
@@ -290,22 +316,22 @@ ignitions_done=0
         grnqfx,grnqfx) 
 !$OMP MASTER 
       write(msg,91)time_start,'Fire area           ',tfa,'m^2'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
       write(msg,91)time_start,'Heat output         ',thf,'W'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
       write(msg,91)time_start,'Max heat flux       ',mhf,'W/m^2'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
       write(msg,91)time_start,'Latent heat output  ',tqf,'W'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
       write(msg,91)time_start,'Max latent heat flux',mqf,'W/m^2'
-      call message(msg,stat_lev)
+      call message(msg,fire_print_msg,stat_lev)
 !$OMP END MASTER
 91  format('Time ',f11.3,' s ',a,e12.3,1x,a)
     endif
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &
-                   grnhfx,'model: heat flux(J/m^2/s)')
+                   grnhfx,'model: heat flux(J/m^2/s)',fire_print_msg)
 
   end subroutine fire_model
 

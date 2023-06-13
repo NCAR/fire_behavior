@@ -2,8 +2,7 @@
 module module_fr_fire_phys
 
 use constants_mod, only : XLV
-use module_fr_fire_util, only: fire_advection, fire_fmc_read, fire_print_msg, &
-                               Crash, Check_mesh_2dim, Print_2d_stats, Message, Open_text_file
+use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message, Open_text_file
 
 PRIVATE
 
@@ -235,6 +234,7 @@ subroutine fuel_moisture(                &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
     ifts,ifte,jfts,jfte,                 &
+    fire_print_msg,                      &
     nfuel_cat,                           & ! fuel data
     fmc_gc,                              & ! moisture contents by class on atmospheric grid
     fmc_g                                & ! weighted fuel moisture contents on fire grid
@@ -247,8 +247,8 @@ integer, intent(in)::                    &
     nfmc,                                &
     ifds, ifde, jfds, jfde,              & ! fire grid dimensions
     ifms, ifme, jfms, jfme,              &
-    ifts,ifte,jfts,jfte
-
+    ifts,ifte,jfts,jfte,                 &
+    fire_print_msg
 
 real,intent(in),dimension(ifms:ifme,jfms:jfme):: nfuel_cat ! fuel data
 real,intent(in),dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
@@ -258,8 +258,8 @@ real,intent(out),dimension(ifms:ifme,jfms:jfme):: fmc_g ! fuel data
 integer::i,j,k,n
 character(len=128)::msg
 
-call check_mesh_2dim(ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde) ! check if fire tile fits into domain
-call check_mesh_2dim(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme) ! check if fire tile fits into memory
+call check_mesh_2dim(ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde,fire_print_msg) ! check if fire tile fits into domain
+call check_mesh_2dim(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fire_print_msg) ! check if fire tile fits into memory
 
 do j=jfts,jfte
     do i=ifts,ifte
@@ -279,7 +279,7 @@ do k=1,moisture_classes
         enddo
     enddo
 
-    call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fmc_g,'fuel_moisture: fmc_g')
+    call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fmc_g,'fuel_moisture: fmc_g',fire_print_msg)
 
 enddo
 
@@ -290,6 +290,7 @@ subroutine advance_moisture(    &
     initialize,                 & ! initialize timestepping. true on the first call at time 0, then false
     ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
     ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
+    fire_print_msg,             &
     nfmc,                       & ! dimension of moisture fields
     moisture_dt,                & ! timestep = time step time elapsed from the last call
     fmep_decay_tlag,            & ! moisture extended model assimilated diffs. decay time lag
@@ -311,7 +312,8 @@ logical, intent(in):: initialize
 integer, intent(in)::           &
     ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
     ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
-    nfmc                          ! number of moisture fields
+    nfmc,                       & ! number of moisture fields
+    fire_print_msg
 real, intent(in):: moisture_dt, fmep_decay_tlag
 real, intent(in), dimension(ifms:ifme,jfms:jfme):: t2, q2, psfc, rain
 real, intent(inout), dimension(ifms:ifme,jfms:jfme):: t2_old, q2_old, psfc_old, rain_old 
@@ -341,7 +343,7 @@ if(msglevel>1)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
     write(msg,'(a,f10.2,a,i4,a,i4)')'advance moisture dt=',moisture_dt,'s using ',moisture_classes,' classes from possible ',nfmc
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
 endif
 
 if(moisture_classes > nfmc .or. moisture_classes > max_moisture_classes)then
@@ -353,7 +355,7 @@ if(moisture_classes > nfmc .or. moisture_classes > max_moisture_classes)then
 endif
 
 if(initialize) then 
-    call message('advance_moisture: initializing, copying surface variables to old')
+    call message('advance_moisture: initializing, copying surface variables to old',fire_print_msg)
     call copy2old
 endif
 
@@ -364,7 +366,7 @@ if(check_data)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
                  write(msg,'(a,2i4,a,3e12.2)')'At i j',i,j,' t2 psfc q2 are ',t2(i,j),psfc(i,j),q2(i,j)
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-                 call message(msg) 
+                 call message(msg,fire_print_msg) 
                  call crash('invalid data passed from WRF, must have t2 psfc>0, q2 >= 0')
             endif
         enddo
@@ -424,7 +426,7 @@ do j=jfts,jfte
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
                     write(msg,'(a,2i6,5(a,f10.2))')'At i,j ',i,j,' RH=',RH, &
                         ' from T=',T,' P=',P,' Q=',Q
-                    call message(msg) 
+                    call message(msg,fire_print_msg) 
                     call crash('Relative humidity must be between 0 and 1, saturated water contents must be >0')
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
                 endif
@@ -474,10 +476,10 @@ do j=jfts,jfte
                 change = moisture_dt * rlag 
 
                 if(change  < tol)then
-                     if(fire_print_msg.ge.3)call message('midpoint method')
+                     if(fire_print_msg.ge.3)call message('midpoint method',fire_print_msg)
                      fmc = fmc_old + (equi - fmc_old)*change*(1.0 - 0.5*change)  ! 2nd order Taylor
                 else
-                     if(fire_print_msg.ge.3)call message('exponential method')
+                     if(fire_print_msg.ge.3)call message('exponential method',fire_print_msg)
                      fmc = fmc_old + (equi - fmc_old)*(1 - exp(-change))
                 endif
                 fmc_gc(i,k,j) = fmc
@@ -490,9 +492,9 @@ do j=jfts,jfte
                 if(fire_print_msg.ge.3)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
 		    write(msg,*)'i=',i,' j=',j,'EMC_w=',EMC_w,' EMC_d=',EMC_d
-                    call message(msg)
+                    call message(msg,fire_print_msg)
                     write(msg,*)'fmc_old=',fmc,' equi=',equi,' change=',change,' fmc=',fmc
-                    call message(msg)
+                    call message(msg,fire_print_msg)
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
                 endif
 
@@ -520,14 +522,14 @@ enddo
 if(fire_print_msg.ge.2)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
     write(msg,2)'Rain intensity    min',rainmin,  ' max',rainmax,' mm/h'
-    call message(msg) 
+    call message(msg,fire_print_msg) 
     if(rainmin <0.)then
-        call message('WARNING rain accumulation must increase')
+        call message('WARNING rain accumulation must increase',fire_print_msg)
     endif
     write(msg,2)'Relative humidity min',100*rhmin,' max',100*rhmax,'%'
-    call message(msg) 
+    call message(msg,fire_print_msg) 
     if(.not.(rhmax<=1.0 .and. rhmin>=0))then
-        call message('WARNING Relative humidity must be between 0 and 100%')
+        call message('WARNING Relative humidity must be between 0 and 100%',fire_print_msg)
     endif
 2   format(2(a,f10.2),a)
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
@@ -558,11 +560,12 @@ end subroutine get_equi_moist
 end subroutine advance_moisture
 
 
-subroutine read_namelist_fire(init_fuel_moisture)
+subroutine read_namelist_fire(init_fuel_moisture,fire_print_msg)
 implicit none
 !*** purpose: read namelist.fire 
 !*** arguments: 
 logical, intent(in)::init_fuel_moisture
+integer, intent(in)::fire_print_msg
 #ifdef DM_PARALLEL
 logical, external:: wrf_dm_on_monitor
 #endif
@@ -594,28 +597,28 @@ IF ( wrf_dm_on_monitor() ) THEN
 #endif
 
     ! read the file
-    call message('Reading file namelist.fire',level=0)
-    iounit=open_text_file('namelist.fire','read',allow_fail=.true.)
+    call message('Reading file namelist.fire',fire_print_msg,level=0)
+    iounit=open_text_file('namelist.fire','read',fire_print_msg,allow_fail=.true.)
     if(iounit < 0)then
-       call message('File namelist.fire not found, using defaults',level=0)
+       call message('File namelist.fire not found, using defaults',fire_print_msg,level=0)
     else  
        read(iounit,fuel_scalars,iostat=io)
        if(io < 0)then
-           call message('Namelist fuel_scalars not found, using defaults',level=0)
+           call message('Namelist fuel_scalars not found, using defaults',fire_print_msg,level=0)
        elseif(io > 0)then
            call crash('Error in file namelist.fire, namelist fuel_scalars')
        endif
        rewind(iounit)
        read(iounit,fuel_categories,iostat=io)
        if(io < 0)then
-           call message('Namelist fuel_categories not found, using defaults',level=0)
+           call message('Namelist fuel_categories not found, using defaults',fire_print_msg,level=0)
        elseif(io > 0)then
            call crash('Error in file namelist.fire, namelist fuel_categories')
        endif
        rewind(iounit)
        read(iounit,fuel_moisture,iostat=io)
        if(io < 0)then
-           call message('Namelist fuel_moisture not found, using defaults',level=0)
+           call message('Namelist fuel_moisture not found, using defaults',fire_print_msg,level=0)
        elseif(io > 0)then
            call crash('Error in file namelist.fire, namelist fuel_moisture')
        endif
@@ -623,7 +626,7 @@ IF ( wrf_dm_on_monitor() ) THEN
     endif
 
     ! write to output file
-    iounit=open_text_file('namelist.fire.output','write')
+    iounit=open_text_file('namelist.fire.output','write',fire_print_msg)
     write(iounit,fuel_scalars)
     write(iounit,fuel_categories)
     write(iounit,fuel_moisture)
@@ -665,7 +668,7 @@ IF ( wrf_dm_on_monitor() ) THEN
     ! WARNING: delete this and set fgi_c and fmc_gc_initial_value directly for more general models!
     !**************************************************************************************************
 
-    call message('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes')
+    call message('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes',fire_print_msg)
     do i=1,mfuelcats
             fgi_t(i) = 0.
             do k=1,max_moisture_classes
@@ -684,7 +687,7 @@ IF ( wrf_dm_on_monitor() ) THEN
                 endif
                 write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
                     'fuel category',i,'fuel load',fgi(i),'total by class',fgi_t(i), 'ratio',rat
-                call message(msg)
+                call message(msg,fire_print_msg)
             endif
             ! fuel moisture averaging weights for fuel classes in category i
             fmc_gwt(i)=0.
@@ -706,11 +709,12 @@ ENDIF
 end subroutine read_namelist_fire
 
 
-subroutine init_fuel_cats(init_fuel_moisture)
+subroutine init_fuel_cats(init_fuel_moisture,fire_print_msg)
 implicit none
 !*** purpose: initialize fuel tables and variables by constants
 !*** arguments: 
 logical, intent(in)::init_fuel_moisture
+integer, intent(in)::fire_print_msg
 #ifdef DM_PARALLEL
 logical, external:: wrf_dm_on_monitor
 #endif
@@ -729,7 +733,7 @@ character(len=128):: msg
 !   endif
 #endif
 
-call read_namelist_fire(init_fuel_moisture)
+call read_namelist_fire(init_fuel_moisture,fire_print_msg)
 
 #ifdef DM_PARALLEL
 ! broadcast the contents of the file
@@ -788,25 +792,25 @@ END DO
 
 ! prints
 
-call message('**********************************************************')
-call message('FUEL COEFFICIENTS')
+call message('**********************************************************',fire_print_msg)
+call message('FUEL COEFFICIENTS',fire_print_msg)
 write(msg,8)'cmbcnst    ',cmbcnst
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,8)'hfgl       ',hfgl
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,8)'fuelmc_g   ',fuelmc_g
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,8)'fuelmc_c   ',fuelmc_c
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,8)'fuelheat   ',fuelheat
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,7)'nfuelcats  ',nfuelcats
-call message(msg)
+call message(msg,fire_print_msg)
 write(msg,7)'no_fuel_cat',no_fuel_cat
-call message(msg)
+call message(msg,fire_print_msg)
 if(init_fuel_moisture)then
     write(msg,7)'moisture_classes',moisture_classes
-    call message(msg)
+    call message(msg,fire_print_msg)
 endif
 
 j=1    ! number of columns; max 5, but we do only one anyway, or would need to line up
@@ -817,80 +821,80 @@ j=1    ! number of columns; max 5, but we do only one anyway, or would need to l
 11 format(a,2x,99(1x,a12))
 do i=1,nfuelcats,j
     k=min(i+j-1,nfuelcats)
-    call message(' ')
+    call message(' ',fire_print_msg)
     write(msg,7)'CATEGORY  ',(ii,ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,9)'fuel name ',(fuel_name(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
 !    write(msg,8)'windrf    ',(windrf(ii),ii=i,k)
-!    call message(msg)
+!    call message(msg,fire_print_msg)
     write(msg,8)'fgi       ',(fgi(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fueldepthm',(fueldepthm(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'savr      ',(savr(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fuelmce   ',(fuelmce(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fueldens  ',(fueldens(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'st        ',(st(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'se        ',(se(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'weight    ',(weight(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fci_d     ',(fci_d(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fct       ',(fct(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,7)'ichap     ',(ichap(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fci       ',(fci(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     write(msg,8)'fcbr      ',(fcbr(ii),ii=i,k)
-    call message(msg)
+    call message(msg,fire_print_msg)
     if(init_fuel_moisture)then
         write(msg,11)'fuel class name',(trim(moisture_class_name(kk)),kk=1,moisture_classes),'Total','Total/fgi'
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,10)'fuel load fgi_c',(fgi_c(i,kk),kk=1,moisture_classes),fgi_t(i),fgi_t(i)/fgi(i)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,10)'fraction fmc_gw',(fmc_gw(i,kk),kk=1,moisture_classes),fmc_gwt(i)
-        call message(msg)
+        call message(msg,fire_print_msg)
     endif
 enddo
-call message(' ')
-call message('**********************************************************')
+call message(' ',fire_print_msg)
+call message('**********************************************************',fire_print_msg)
 
 if(init_fuel_moisture)then
     j=1
     do i=1,moisture_classes,j
         k=min(i+j-1,nfuelcats)
-        call message(' ')
+        call message(' ',fire_print_msg)
         write(msg,7)'FUEL MOISTURE CLASS',(ii,ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,9)'moisture class name    ',(trim(moisture_class_name(ii)),ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,7)'drying_model           ',(drying_model(ii),ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,8)'drying_lag (h)         ',(drying_lag(ii),ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,7)'wetting_model          ',(wetting_model(ii),ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,7)'fmc_gc_initialization  ',(fmc_gc_initialization(ii),ii=i,k)
-        call message(msg)
+        call message(msg,fire_print_msg)
         write(msg,8)'wetting_lag (h)        ',(wetting_lag(ii),ii=i,k)
-        call message(msg)    
+        call message(msg,fire_print_msg)    
         write(msg,8)'saturation_moisture (1)',(saturation_moisture(ii),ii=i,k)
-        call message(msg)    
+        call message(msg,fire_print_msg)    
         write(msg,8)'saturation_rain (mm/h) ',(saturation_rain(ii),ii=i,k)
-        call message(msg)    
+        call message(msg,fire_print_msg)    
         write(msg,8)'rain_threshold (mm/h)  ',(rain_threshold(ii),ii=i,k)
-        call message(msg)    
+        call message(msg,fire_print_msg)    
     enddo
-    call message(' ')
-    call message('**********************************************************')
-    call message(' ')
+    call message(' ',fire_print_msg)
+    call message('**********************************************************',fire_print_msg)
+    call message(' ',fire_print_msg)
 endif
 
 end subroutine init_fuel_cats
@@ -905,7 +909,7 @@ subroutine set_fire_params( &
                            ifts,ifte,jfts,jfte, &
                            fdx,fdy,nfuel_cat0,  &
                            nfuel_cat,fuel_time, &
-                           fp ) 
+                           fp, fire_fmc_read, fire_print_msg ) 
 
 implicit none
 
@@ -917,6 +921,7 @@ integer, intent(in)::ifts,ifte,jfts,jfte                        ! fire tile boun
 integer, intent(in)::ifms,ifme,jfms,jfme                        ! memory array bounds
 real, intent(in):: fdx,fdy                                      ! fire mesh spacing
 integer,intent(in)::nfuel_cat0                                  ! default fuel category, if nfuel_cat=0
+integer,intent(in)::fire_fmc_read, fire_print_msg
 real, intent(in),dimension(ifms:ifme, jfms:jfme)::nfuel_cat  ! fuel data
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
 type(fire_params),intent(inout)::fp
@@ -1039,7 +1044,7 @@ do j=jfts,jfte
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
             write(msg,'(3(a,i5))')'nfuel_cat(', i ,',',j,')=',k
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-            call message(msg)
+            call message(msg,fire_print_msg)
             call crash('set_fire_params: fuel category out of bounds')
         endif
 
@@ -1102,7 +1107,7 @@ if(nerr.gt.1)then
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
     write(msg,'(a,i6,a)')'set_fire_params: WARNING: fuel category 0 replaced in',nerr,' cells'
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
 endif
 
 end subroutine set_fire_params
@@ -1158,7 +1163,7 @@ end subroutine heat_fluxes
 subroutine set_nfuel_cat(   &
     ifms,ifme,jfms,jfme,               &
     ifts,ifte,jfts,jfte,               &
-    ifuelread,nfuel_cat0,zsf,nfuel_cat)
+    ifuelread,nfuel_cat0,zsf,nfuel_cat,fire_print_msg)
 
 implicit none
 
@@ -1166,7 +1171,7 @@ implicit none
 integer, intent(in)::   ifts,ifte,jfts,jfte,               &
                         ifms,ifme,jfms,jfme               
 
-integer, intent(in)::ifuelread,nfuel_cat0
+integer, intent(in)::ifuelread,nfuel_cat0,fire_print_msg
 real, intent(in), dimension(ifms:ifme, jfms:jfme)::zsf
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::nfuel_cat
 
@@ -1180,12 +1185,12 @@ character(len=128)msg
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
     write(msg,'(a,i3)')'set_nfuel_cat: ifuelread=',ifuelread 
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
 
 if (ifuelread .eq. -1 .or. ifuelread .eq. 2) then
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
-    call message('set_nfuel_cat: assuming nfuel_cat initialized already') 
-    call message(msg)
+    call message('set_nfuel_cat: assuming nfuel_cat initialized already',fire_print_msg) 
+    call message(msg,fire_print_msg)
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
 else if (ifuelread .eq. 0) then
 !
@@ -1197,7 +1202,7 @@ else if (ifuelread .eq. 0) then
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
     write(msg,'(a,i3)')'set_nfuel_cat: fuel initialized with category',nfuel_cat0
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg)
+    call message(msg,fire_print_msg)
          
 else if (ifuelread .eq. 1) then
 !
@@ -1227,7 +1232,7 @@ else if (ifuelread .eq. 1) then
         enddo
     enddo
 
-    call message('set_nfuel_cat: fuel initialized by altitude')
+    call message('set_nfuel_cat: fuel initialized by altitude',fire_print_msg)
 else
 
     call crash('set_nfuel_cat: bad ifuelread')
@@ -1241,7 +1246,7 @@ end subroutine set_nfuel_cat
 !            
 
   subroutine fire_ros(ros_base,ros_wind,ros_slope, &
-    nvx,nvy,i,j,fp)
+    nvx,nvy,i,j,fp,fire_advection)
   
     implicit none
   
@@ -1258,6 +1263,7 @@ end subroutine set_nfuel_cat
     real, intent(out) :: ros_base, ros_wind, ros_slope ! rate of spread contribution due to fuel, wind, and slope
     real, intent(in) :: nvx, nvy
     integer, intent(in) :: i,j         ! node mesh coordinates
+    integer, intent(in) :: fire_advection
     type(fire_params), intent(in) :: fp
     
     !*** local
