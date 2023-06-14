@@ -18,8 +18,7 @@ module module_fr_fire_util
 
 private
 
-public :: ifval, &
-          real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
+public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, fun_real, &
           Open_text_file, Message, Crash, Check_mesh_2dim, &
           Print_2d_stats
 

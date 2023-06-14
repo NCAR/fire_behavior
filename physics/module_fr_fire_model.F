@@ -4,7 +4,7 @@ module module_fr_fire_model
   use module_fr_fire_core, only: ignition_line_type, ignition_line, &
                                Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
-  use module_fr_fire_util, only: real_max, real_sum, rnrm_max, rnrm_sum, fun_real, &
+  use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
   use module_fr_fire_phys
 

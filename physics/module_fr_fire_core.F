@@ -1,7 +1,7 @@
 
 module module_fr_fire_core
 
-use module_fr_fire_phys, only: fire_params , fire_ros
+use module_fr_fire_phys, only: fire_params , Fire_ros
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 ! The mathematical core of the fire spread model. No physical constants here.

@@ -18,19 +18,19 @@ module module_fr_fire_driver
 !
 
 use module_fr_fire_model, only: Fire_model
-use module_fr_fire_phys, only : fire_params , init_fuel_cats, &
+use module_fr_fire_phys, only : fire_params, Init_fuel_cats, &
                                 Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
-USE state_mod, only: state_fire_t
-USE namelist_mod, only: namelist_t
+use state_mod, only: state_fire_t
+use namelist_mod, only: namelist_t
 
 implicit none
 
 private
 
-public fire_driver_em, init_fire_driver
+public Fire_driver_em, Init_fire_driver
 
 logical:: fmoist_run
 real:: dt
