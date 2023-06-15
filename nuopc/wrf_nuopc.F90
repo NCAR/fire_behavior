@@ -210,9 +210,10 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: mean_prec_rate
+    ! exportable field: inst_rainfall_amount
+    ! rainfall is accumulated rainfall not instantaneous
     call NUOPC_Advertise(exportState, &
-      StandardName="mean_prec_rate", rc=rc)
+      StandardName="inst_rainfall_amount", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -460,8 +461,8 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field on Grid: mean_prec_rate
-    field = ESMF_FieldCreate(name="mean_prec_rate", grid=grid, &
+    ! exportable field on Grid: inst_rainfall_amount
+    field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
