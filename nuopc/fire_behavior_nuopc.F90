@@ -31,6 +31,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
+  logical :: rainrate = .TRUE.
 
   contains
 
@@ -157,6 +158,14 @@ module fire_behavior_nuopc
     ! importable field: inst_rainfall_amount
     call NUOPC_Advertise(importState, &
       StandardName="inst_rainfall_amount", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: mean_prec_rate
+    call NUOPC_Advertise(importState, &
+      StandardName="mean_prec_rate", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -387,13 +396,31 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
-     ! importable field on Grid: inst_rainfall_amount
-     field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
+     if (NUOPC_IsConnected(importState, fieldName="mean_prec_rate")) then
+       ! importable field on Grid: mean_prec_rate
+       field = ESMF_FieldCreate(name="mean_prec_rate", grid=fire_grid, &
+         typekind=ESMF_TYPEKIND_R8, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+       call ESMF_StateRemove(importState, (/"inst_rainfall_amount"/), rc=rc)
+     elseif (NUOPC_IsConnected(importState, fieldName="inst_rainfall_amount")) then
+       ! importable field on Grid: inst_rainfall_amount
+       field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
+         typekind=ESMF_TYPEKIND_R8, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+       rainrate = .FALSE.
+       call ESMF_StateRemove(importState, (/"mean_prec_rate"/), rc=rc)
+     else
+       call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+         msg="missing rainfall import", &
+         line=__LINE__, file=__FILE__, rcToReturn=rc)
+         return
+     endif
      call NUOPC_Realize(importState, field=field, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -405,7 +432,6 @@ module fire_behavior_nuopc
        line=__LINE__, &
        file=__FILE__)) &
        return  ! bail out
-
 
      ! importable field on Grid: inst_spec_humid_height2m
      field = ESMF_FieldCreate(name="inst_spec_humid_height2m", grid=fire_grid, &
@@ -531,6 +557,8 @@ module fire_behavior_nuopc
 
     ! local variables
     type(ESMF_Clock)            :: clock
+    type(ESMF_TimeInterval)     :: timeStep
+    real(ESMF_KIND_R8)          :: ts
     type(ESMF_State)            :: importState, exportState
     ! type(ESMF_Time)             :: currTime
     ! type(ESMF_TimeInterval)     :: timeStep
@@ -545,6 +573,18 @@ module fire_behavior_nuopc
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
       exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call ESMF_ClockGet(clock, timeStep=timeStep, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    call ESMF_TimeIntervalGet(timeStep, s_r8=ts, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -565,13 +605,21 @@ module fire_behavior_nuopc
 
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
-    grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2))
+    ! convert cm to m
+    grid%fz0(1:grid%nx,1:grid%ny) = ptr_z0(clb(1):cub(1),clb(2):cub(2)) * 0.01
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
-    grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
+    ! convert m s-1 to m
+    print *, ts
+    if (rainrate) then
+      grid%fire_rain(1:grid%nx,1:grid%ny) = grid%fire_rain(1:grid%nx,1:grid%ny) + ptr_rain(clb(1):cub(1),clb(2):cub(2)) * ts
+    else
+      grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
+    endif
 
     do j = grid%jfds, grid%jfde
+
       do i = grid%ifds, grid%ifde
         grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
         grid%fire_t2(i,j) = max (grid%fire_t2(i,j), .001)

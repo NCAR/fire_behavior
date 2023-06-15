@@ -16,7 +16,7 @@ if (NOT TARGET ESMF)
   endif (NOT ESMF_FOUND)
 endif (NOT TARGET ESMF)
 
-find_package(NetCDF REQUIRED)
+find_package(NetCDF REQUIRED Fortran)
 
 #------------------------------------------------------------------------------
 # Add source files
@@ -58,15 +58,17 @@ set(CMAKE_Fortran_COMPILER mpif90)
 set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  set(CMAKE_Fortran_FLAGS_OPT "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -fno-inline -no-ip -traceback")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT} ${CMAKE_Fortran_FLAGS_DEBUG}")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -traceback -O2")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -traceback -O0 -fno-inline -no-ip -check all -fpe0 -ftrapuv -init=snan,arrays")
+  set(CMAKE_Fortran_FLAGS "-ip -fp-model precise -w -ftz -align all -fno-alias -FR -convert big_endian")
 elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  set(CMAKE_Fortran_FLAGS_OPT "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
-  set(CMAKE_Fortran_FLAGS_DEBUG "-g -Og -fcheck=all -finit-real=nan -Wall -fbacktrace")
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_OPT}")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
+  set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -finit-real=nan")
+  set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
 else()
-  message(WARNING "Fortran compiler with ID ${CMAKE_Fortran_COMPILER_ID} will be used with CMake default options")
+  message(WARNING "${CMAKE_Fortran_COMPILER_ID} Fortran compiler will be used with default options")
 endif()
 
 set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
@@ -75,12 +77,14 @@ set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
 # configure fire behavior library (used by standalone and esmx)
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
-target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
+target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
+target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:${NetCDF_LIBRARIES}>)
 
 # configure fire behavior executable (standalone code)
 add_executable(fire_behavior_standalone driver/fire_behavior.F90)
 add_dependencies(fire_behavior_standalone firelib)
 target_link_libraries(fire_behavior_standalone PUBLIC firelib)
+target_link_libraries(fire_behavior_standalone PUBLIC NetCDF::NetCDF_Fortran)
 install(TARGETS fire_behavior_standalone DESTINATION bin)
 
 # configure fire behavior nuopc cap library (used with esmx)
@@ -88,6 +92,8 @@ add_library(fire_behavior_nuopc nuopc/fire_behavior_nuopc.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
+target_include_directories(fire_behavior_nuopc INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/mod>
+                                                         $<INSTALL_INTERFACE:mod>)
 
 # install
 install(TARGETS firelib fire_behavior_nuopc 

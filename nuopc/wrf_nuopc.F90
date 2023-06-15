@@ -185,6 +185,7 @@ module wrf_nuopc
       return  ! bail out
 
     ! exportable field: inst_rainfall_amount
+    ! rainfall is accumulated rainfall not instantaneous
     call NUOPC_Advertise(exportState, &
       StandardName="inst_rainfall_amount", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -628,8 +629,10 @@ module wrf_nuopc
     call state%Get_pres(datetime)
 
     ! Set field data
+
+    ! convert m to cm 
     ptr_z0(clb(1):cub(1),clb(2):cub(2))= &
-      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+      state%z0(1:size(state%lats, dim=1),1:size(state%lats, dim=2)) * 100.0
     ptr_q2(clb(1):cub(1),clb(2):cub(2))= &
       state%q2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_psfc(clb(1):cub(1),clb(2):cub(2))= &
