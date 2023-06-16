@@ -100,7 +100,7 @@
       procedure, public :: Initialization => Init_domain
       procedure :: Init_latlons => Init_latlons
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
-      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
+      procedure, public :: Interpolate_profile => Interpolate_profile
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure, public :: Save_state => Save_state
@@ -169,23 +169,7 @@
 
         call wrf%Update_atm_state (this%datetime_now)
 
-        call wrf%interpolate_wind2fire(config_flags,                            & ! flag for debug output
-                config_flags%fire_wind_height,                                  & ! height to interpolate to
-                wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1,          &
-                wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,              &
-                wrf%ips,min(wrf%ipe,wrf%ide-1), wrf%jps,min(wrf%jpe,wrf%jde-1), &
-                wrf%i_start(1),min(wrf%i_end(1),wrf%ide-1),                     &
-                wrf%j_start(1),min(wrf%j_end(1),wrf%jde-1),                     &
-                this%ifds,this%ifde-wrf%sr_x, this%jfds,this%jfde-wrf%sr_y,     &
-                this%ifms, this%ifme, this%jfms, this%jfme,                     &
-                this%ifts, this%ifte, this%jfts, this%jfte,   &
-                wrf%sr_x,wrf%sr_y,                            & ! atm/fire this ratio
-                wrf%u3d_stag,wrf%v3d_stag,                    & ! 3D atm this arrays in
-                wrf%ph_stag,wrf%phb_stag,                     &
-                wrf%z0_stag,                                  & ! 2D atm this arrays in
-                this%uf,this%vf,this%fz0)                       ! fire this arrays out
-
-        call this%interpolate_vars_atm_to_fire(wrf)
+        call this%interpolate_vars_atm_to_fire(wrf, config_flags)
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
 
@@ -243,10 +227,10 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
- 
+
       this%cen_lat = geogrid%cen_lat
       this%cen_lon = geogrid%cen_lon
-      
+
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
 
@@ -387,68 +371,65 @@
 
     end subroutine Init_latlons
 
-    subroutine Interpolate_vars_atm_to_fire (this, wrf)
+    subroutine Interpolate_vars_atm_to_fire (this, wrf, config_flags)
 
-        implicit none
+      implicit none
 
-        class (state_fire_t), intent(in out) :: this    ! fire state
-        type (wrf_t), intent(in) :: wrf                 ! atm state
+      class (state_fire_t), intent(in out) :: this    ! fire state
+      type (wrf_t), intent(inout) :: wrf                 ! atm state
+      type (namelist_t), intent (in) :: config_flags
 
-        real, dimension(:, :), allocatable :: var2d
+      real, dimension(:, :), allocatable :: var2d
+      integer :: i, j
 
-
-        If_start: if (this%datetime_now == this%datetime_start) then
-
-          call wrf%interpolate_z2fire(                     &
-              this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-              this%ifms, this%ifme, this%jfms, this%jfme,  &
-              this%ifts,this%ifte,this%jfts,this%jfte,     &
-              wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-              wrf%z0_stag,                                 &
-              this%fz0,1)
-
-        endif If_start
-
-        call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
-            wrf%t2_stag,                                 &
-            this%fire_t2,1)
 
           ! Alternative interpolation in testing mode (no impact on the fire evolution)
           ! We need the fire grid lat/lon
-        if (allocated (this%lats) .and. allocated (this%lons)) then
+      if (allocated (this%lats) .and. allocated (this%lons)) then
+
+        If_start: if (this%datetime_now == this%datetime_start) then
           call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
-              this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
-              this%test(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
-              deallocate (var2d)
-        end if
+              this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'fz0', var2d)
+              this%fz0(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+        endif If_start
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%q2_stag,                                 &
-            this%fire_q2,1)
+        do j = 1, wrf%jde
+          do i = 1, wrf%ide
+            call this%interpolate_profile (config_flags,       & ! for debug output, <= 0 no output
+                config_flags%fire_wind_height,                 & ! interpolation height
+                this%kfds, this%kfde,                          & ! fire grid dimensions
+                wrf%u3d_stag(i,:,j),wrf%v3d_stag(i,:,j),       & ! atm grid arrays in
+                wrf%ph_stag(i,:,j)+wrf%phb_stag(i,:,j),        &
+                wrf%ua(i,j),wrf%va(i,j),wrf%z0_stag(i,j))
+          enddo
+        enddo
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%psfc_stag,                                 &
-            this%fire_psfc,1)
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'uf', var2d)
+            this%uf(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%rainc_stag+wrf%rainnc_stag,                                 &
-            this%fire_rain,1)
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'vf', var2d)
+            this%vf(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
+            this%fire_t2(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'q2', var2d)
+            this%fire_q2(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'psfc', var2d)
+            this%fire_psfc(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'rain', var2d)
+            this%fire_rain(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        deallocate (var2d)
+      end if
 
     end subroutine Interpolate_vars_atm_to_fire
 
@@ -710,9 +691,9 @@
 
     end subroutine Interpolate_z2fire
 
-    subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
+    subroutine Interpolate_profile (this, config_flags,    & ! for debug output, <= 0 no output
           fire_wind_height,                               & ! interpolation height
-          ifds, ifde, kfds, kfde, jfds, jfde,             & ! fire grid dimensions
+          kfds, kfde,             & ! fire grid dimensions
           uin,vin,                                        & ! atm grid arrays in
           phl,                                            &
           uout,vout,z0f)                                      ! fire grid arrays out
@@ -722,7 +703,7 @@
       class (state_fire_t), intent(in) :: this
       type (namelist_t), intent(in) :: config_flags
       real, intent(in) :: fire_wind_height                  ! height above the terrain for vertical interpolation
-      integer, intent(in) :: ifds, ifde, kfds, kfde, jfds, jfde ! fire domain bounds
+      integer, intent(in) :: kfds, kfde ! fire domain bounds
       real, intent(in) :: uin(:), vin(:), phl(:) ! staggered atm wind velocity, and geopoential heigh
       real, intent(out) :: uout, vout    ! wind velocity fire grid nodes
       real, intent(in) :: z0f          ! roughness length in fire grid
@@ -748,7 +729,7 @@
         hgt(k) = 0.5 * (altw(k) + altw(k+1)) - altw(kfds) ! height of the mass point above the ground
       enddo
 
-      ! extrapolate mid-flame height from fire_lsm_zcoupling_ref? 
+      ! extrapolate mid-flame height from fire_lsm_zcoupling_ref?
       if (config_flags%fire_lsm_zcoupling) then
         logfwh = log(config_flags%fire_lsm_zcoupling_ref)
         fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
@@ -796,7 +777,7 @@
         vout = wsf1 * vf_temp / wsf
       endif
 
-    end subroutine Interpolate_wind3d
+    end subroutine Interpolate_profile
 
     subroutine Print_domain (this)
 

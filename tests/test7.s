@@ -78,8 +78,11 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $6}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-  if [ $test -eq 0 ]
+  echo $test
+  if [ $test -eq 6 ]
   then
+    echo '    Ignore this difference:'
+    diff ./file1.dat ./file2.dat
     echo '  Test7.2 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else

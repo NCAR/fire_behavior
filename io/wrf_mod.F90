@@ -26,7 +26,7 @@
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
         ! 2D
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: xlat, xlong
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
         ! feedback to atm
@@ -94,7 +94,6 @@
       procedure, public :: Get_z_at_w => Get_height_agl_at_walls
       procedure, public :: Interp_var2grid_nearest => Interp_var2grid_nearest
       procedure, public :: Interpolate_z2fire => Interpolate_z2fire
-      procedure, public :: Interpolate_wind2fire => Interpolate_wind2fire
       procedure, public :: Print_domain => Print_domain
       procedure, public :: Read_wrf_input => Read_wrf_input
       procedure, public :: Update_atm_state => Update_atm_state
@@ -1035,7 +1034,7 @@
       integer, parameter :: N_POINTS_IN_HALO = 5
       real (kind = REAL32) :: att_real32
 
- 
+
       return_value%file_name = trim (file_name)
 
         ! Init projection
@@ -1080,7 +1079,7 @@
 
       return_value%sr_x = geogrid%sr_x
       return_value%sr_y = geogrid%sr_y
-      
+
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
@@ -1158,6 +1157,10 @@
       return_value%q2_stag = DEFAULT_Q2
       allocate (return_value%psfc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%psfc_stag = DEFAULT_PSFC
+      allocate (return_value%ua(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%ua = 0.0
+      allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%va = 0.0
 
       allocate (return_value%c1h(return_value%kms:return_value%kme))
       return_value%c1h = DEFAULT_C1H
@@ -1373,6 +1376,24 @@
         case ('t2')
           var_wrf = this%t2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
 
+        case ('q2')
+          var_wrf = this%q2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('psfc')
+          var_wrf = this%psfc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('rain')
+          var_wrf = this%rainnc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) &
+                   + this%rainc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+        case ('fz0')
+          var_wrf = this%z0_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('uf')
+          var_wrf = this%ua(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('vf')
+          var_wrf = this%va(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
         case default
           write (ERROR_UNIT, *) 'Unknown variable name to interpolate'
           stop
@@ -1425,328 +1446,7 @@
 
     end subroutine Interp_var2grid_nearest
 
-    subroutine Interpolate_wind2fire(this, config_flags,  & ! for debug output, <= 0 no output
-          fire_wind_height,                               & ! interpolation height
-          ids,ide, kds,kde, jds,jde,                      & ! atm grid dimensions
-          ims,ime, kms,kme, jms,jme,                      &
-          ips,ipe,jps,jpe,                                &
-          its,ite,jts,jte,                                &
-          ifds, ifde, jfds, jfde,                         & ! fire grid dimensions
-          ifms, ifme, jfms, jfme,                         &
-          ifts,ifte,jfts,jfte,                            &
-          ir,jr,                                          & ! atm/fire grid ratio
-          u,v,                                            & ! atm grid arrays in
-          ph,phb,                                         &
-          z0,                                             &
-          uf,vf,z0f)                                        ! fire grid arrays out
-
-      implicit none
-
-      class (wrf_t), intent(in) :: this
-      type (namelist_t), intent(in)          :: config_flags
-      real, intent(in):: fire_wind_height                 ! height above the terrain for vertical interpolation
-      integer, intent(in)::                             &
-          ids,ide, kds,kde, jds,jde,                    & ! atm domain bounds
-          ims,ime, kms,kme, jms,jme,                    & ! atm memory bounds
-          ips,ipe,jps,jpe,                              &
-          its,ite,jts,jte,                              & ! atm tile bounds
-          ifds, ifde, jfds, jfde,                       & ! fire domain bounds
-          ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-          ifts,ifte,jfts,jfte,                          & ! fire tile bounds
-          ir,jr                                         ! atm/fire grid refinement ratio
-      real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::&
-          u,v,                                          & ! atm wind velocity, staggered
-          ph,phb                                          ! geopotential
-      real,intent(in),dimension(ims:ime,jms:jme) :: z0    ! roughness height
-      real,intent(out), dimension(ifms:ifme,jfms:jfme)::&
-          uf,vf                                           ! wind velocity fire grid nodes
-      real,intent(in),dimension(ifms:ifme,jfms:jfme)::z0f ! roughness length in fire grid
-
-
-      !*** local
-      real, dimension(its-2:ite+2,jts-2:jte+2):: ua,va   ! atm winds, interpolated over height, still staggered grid
-      real, dimension(its-2:ite+2,kds:kde,jts-2:jte+2):: altw,altub,altvb,hgtu,hgtv ! altitudes
-      integer:: i,j,k,ite1,jte1
-      integer::itst,itet,jtst,jtet,itsu,iteu,jtsu,jteu,itsv,itev,jtsv,jtev
-      integer::kdmax,ips1,jps1
-      integer::itsou,iteou,jtsou,jteou,itsov,iteov,jtsov,jteov
-      real:: loght,loglast,logz0,logfwh,ht,zr
-      real::r_nan
-      integer::i_nan
-      equivalence (i_nan,r_nan)
-      real::fire_wind_height_local,z0fc
-      real::ust_d,wsf,wsf1,uf_temp,vf_temp
-      real,parameter::vk_kappa=0.4
-
-      !*** executable
-      ! debug init local arrays
-      i_nan=2147483647
-      ua=r_nan
-      va=r_nan
-      altw=r_nan
-      altub=r_nan
-      hgtu=r_nan
-      hgtv=r_nan
-
-      !                            ^ j
-      !        ------------        |
-      !        |          |         ----> i
-      !        u    p     |
-      !        |          |    nodes in cell (i,j)
-      !        ------v-----    view from top
-      !
-      !             v(ide,jde+1)
-      !            -------x------
-      !            |            |
-      !            |            |
-      ! u(ide,jde) x      x     x u(ide+1,jde)
-      !            | p(ide,hde) |
-      !            |            |   p=ph,phb,z0,...
-      !            -------x------
-      !              v(ide,jde)
-      !
-      ! staggered values set u(ids:ide+1,jds:jde) v(ids:ide,jds:jde+1)
-      ! p=ph+phb set at (ids:ide,jds:jde)
-      ! location of u(i,j) needs p(i-1,j) and p(i,j)
-      ! location of v(i,j) needs p(i,j-1) and p(i,j)
-      ! *** NOTE need HALO in ph, phb
-      ! so we can compute only u(ids+1:ide,jds:jde) v(ids:ide,jds+1,jde)
-      ! unless we extend p at the boundary
-      ! but because we care about the fire way in the inside it does not matter
-      ! if the fire gets close to domain boundary the simulation is over anyway
-
-      ite1=snode(ite,ide,1)
-      jte1=snode(jte,jde,1)
-
-      ! indexing
-
-      ! file for u
-      itst=ifval(ids.eq.its,its,its-1)
-      itet=ifval(ide.eq.ite,ite,ite+1)
-      jtst=ifval(jds.ge.jts,jts,jts-1)
-      jtet=ifval(jde.eq.jte,jte,jte+1)
-
-      kdmax=kde-1   ! max layer to interpolate from, can be less
-
-      do j = jtst,jtet
-        do k=kds,kdmax+1
-          do i = itst,itet
-            altw(i,k,j) = (ph(i,k,j)+phb(i,k,j)) / G             ! altitude of the bottom w-point
-          enddo
-        enddo
-      enddo
-
-      ! values at u points
-      itsu=ifval(ids.eq.its,its+1,its)  ! staggered direction
-      iteu=ifval(ide.eq.ite,ite,ite+1)  ! staggered direction
-      jtsu=ifval(jds.ge.jts,jts,jts-1)
-      jteu=ifval(jde.eq.jte,jte,jte+1)
-
-      do j = jtsu,jteu
-        do k=kds,kdmax+1
-          do i = itsu,iteu
-            altub(i,k,j)= 0.5*(altw(i-1,k,j)+altw(i,k,j))      ! altitude of the bottom point under u-point
-          enddo
-        enddo
-        do k=kds,kdmax
-          do i = itsu,iteu
-            hgtu(i,k,j) =  0.5*(altub(i,k,j)+altub(i,k+1,j)) - altub(i,kds,j)  ! height of the u-point above the ground
-          enddo
-        enddo
-      enddo
-
-      ! values at v points
-      jtsv=ifval(jds.eq.jts,jts+1,jts)  ! staggered direction
-      jtev=ifval(jde.eq.jte,jte,jte+1)  ! staggered direction
-      itsv=ifval(ids.ge.its,its,its-1)
-      itev=ifval(ide.eq.ite,ite,ite+1)
-
-      do j = jtsv,jtev
-        do k=kds,kdmax+1
-          do i = itsv,itev
-            altvb(i,k,j)= 0.5*(altw(i,k,j-1)+altw(i,k,j))      ! altitude of the bottom point under v-point
-          enddo
-        enddo
-        do k=kds,kdmax
-          do i = itsv,itev
-            hgtv(i,k,j) =  0.5*(altvb(i,k,j)+altvb(i,k+1,j)) - altvb(i,kds,j)  ! height of the v-point above the ground
-          enddo
-        enddo
-      enddo
-
-      ! DME
-      if (config_flags%fire_lsm_zcoupling) then
-        logfwh = log(config_flags%fire_lsm_zcoupling_ref)
-        fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
-      else
-        logfwh = log(fire_wind_height)
-        fire_wind_height_local = fire_wind_height
-      endif
-
-          ! interpolate u, staggered in X
-
-          do j = jtsu,jteu            ! compute on domain by 1 smaller, otherwise z0 and ph not available
-      !    do i = itsu,iteu        ! compute with halo 2
-            do i = itsu,iteu
-              zr = 0.5*(z0(i,j)+z0(i-1,j)) ! interpolated roughness length under this u point
-              if(fire_wind_height_local > zr)then       !
-                do k=kds,kdmax
-                  ht = hgtu(i,k,j)      ! height of this u point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(zr)
-                      ua(i,j)= u(i,k,j)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgtu(i,k-1,j))
-                      ua(i,j)= u(i,k-1,j) + (u(i,k,j) - u(i,k-1,j)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 10
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    ua(i,j)=u(i,k,j)
-                  endif
-                enddo
-      10        continue
-              else  ! roughness higher than the fire wind height
-                ua(i,j)=0.
-              endif
-            enddo
-          enddo
-
-          do j = jtsu,jteu
-            ua(itsu-1,j)=ua(itsu,j)
-          enddo
-
-          ! interpolate v, staggered in Y
-
-          do j = jtsv,jtev
-            do i = itsv,itev
-              zr = 0.5*(z0(i,j-1)+z0(i,j)) ! roughness length under this v point
-              if(fire_wind_height_local > zr)then       !
-                do k=kds,kdmax
-                  ht = hgtv(i,k,j)      ! height of this u point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(zr)
-                      va(i,j)= v(i,k,j)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgtv(i,k-1,j))
-                      va(i,j)= v(i,k-1,j) + (v(i,k,j) - v(i,k-1,j)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 11
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    va(i,j)=v(i,k,j)
-                  endif
-                enddo
-      11        continue
-              else  ! roughness higher than the fire wind height
-                va(i,j)=0.
-              endif
-            enddo
-          enddo
-
-          do i = itsv,itev
-            va(i,jtsv-1)=va(i,jtsv)
-          enddo
-          ips1 = ifval(ips.eq.ids,ips+1,ips)
-
-          call continue_at_boundary(1,1,0., & ! x direction
-             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
-             ids+1,ide,jds,jde, &     ! domain dims - where u defined
-             itsu,iteu,jtsu,jteu, & ! tile dims - in nonextended direction one beyond if at patch boundary but not domain
-             itsou,iteou,jtsou,jteou, & ! out, where set
-             ua)                           ! array
-
-          jps1 = ifval(jps.eq.jds,jps+1,jps)
-
-          call continue_at_boundary(1,1,0., & ! y direction
-             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
-             ids,ide,jds+1,jde, &      ! domain dims - where v wind defined
-             itsv,itev,jtsv,jtev, & ! tile dims
-             itsov,iteov,jtsov,jteov, & ! where set
-             va)                           ! array
-
-      !      ---------------
-      !     | F | F | F | F |   Example of atmospheric and fire grid with
-      !     |-------|-------|   ir=jr=4.
-      !     | F | F | F | F |   Winds are given at the midpoints of the sides of the atmosphere grid,
-      !     ua------z-------|   interpolated to midpoints of the cells of the fine fire grid F.
-      !     | F | F | F | F |   This is (1,1) cell of atmosphere grid, and [*] is the (1,1) cell of the fire grid.
-      !     |---------------|   ua(1,1) <--> uf(0.5,2.5)
-      !     | * | F | F | F |   va(1,1) <--> vf(2.5,0.5)
-      !      -------va------    za(1,1) <--> zf(2.5,2.5)
-      !
-      !   ^ x2
-      !   |  --------va(1,2)---------
-      !   | |            |           |   Example of atmospheric and fire grid with
-      !   | |            |           |   ir=jr=1.
-      !   | |          za,zf         |   Winds are given at the midpoints of the sides of the atmosphere grid,
-      !   | ua(1,1)----uf,vf-----ua(2,1) interpolated to midpoints of the cells of the (the same) fire grid
-      !   | |           (1,1)        |   ua(1,1) <--> uf(0.5,1)
-      !   | |            |           |   va(1,1) <--> vf(1,0.5)
-      !   | |            |           |   za(1,1) <--> zf(1,1)
-      !   |  --------va(1,1)---------
-      !   |--------------------> x1
-      !
-      ! Meshes are aligned by the lower left cell of the domain. Then in the above figure
-      ! u = node with the ua component of the wind at (ids,jds), midpoint of side
-      ! v = node with the va component of the wind at (ids,jds), midpoint of side
-      ! * = fire grid node at (ifds,jfds)
-      ! z = node with height, midpoint of cell
-      !
-      ! ua(ids,jds)=uf(ifds-0.5,jfds+jr*0.5-0.5)         = uf(ifds-0.5,jfds+(jr-1)*0.5)
-      ! va(ids,jds)=vf(ifds+ir*0.5-0.5,jfds-0.5)         = vf(ifds+(ir-1)*0.5,jfds-0.5)
-      ! za(ids,jds)=zf(ifds+ir*0.5-0.5,jfds+jr*0.5-0.5)  = zf(ifds+(ir-1)*0.5,jfds+(jr-1)*0.5)
-
-          ! ifts1=max(snode(ifts,ifps,-1),ifds) ! go 1 beyond patch boundary but not at domain boundary
-          ! ifte1=min(snode(ifte,ifpe,+1),ifde)
-          ! jfts1=max(snode(jfts,jfps,-1),jfds)
-          ! jfte1=min(snode(jfte,jfpe,+1),jfde)
-
-          call interpolate_2d(  &
-              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
-              itsou,iteou,jtsou,jteou,& ! where set
-              ifms,ifme,jfms,jfme,    & ! array dims fire grid
-              ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to
-              ir,jr,                  & ! refinement ratio
-              real(ids),real(jds),ifds-0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-              ua,                     & ! in atm grid
-              uf)                      ! out fire grid
-
-          call interpolate_2d(  &
-              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
-              itsov,iteov,jtsov,jteov,& ! where set
-              ifms,ifme,jfms,jfme,    & ! array dims fire grid
-              ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to
-              ir,jr,                  & ! refinement ratio
-              real(ids),real(jds),ifds+(ir-1)*0.5,jfds-0.5, & ! line up by lower left corner of domain
-              va,                     & ! in atm grid
-              vf)                      ! out fire grid
-
-      ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
-      if (config_flags%fire_lsm_zcoupling) then
-        do j = jfts,jfte
-          do i = ifts,ifte
-            uf_temp=uf(i,j)
-            vf_temp=vf(i,j)
-            wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
-            z0fc=z0f(i,j)
-            ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
-            wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
-            uf(i,j)=wsf1*uf_temp/wsf
-            vf(i,j)=wsf1*vf_temp/wsf
-          enddo
-        enddo
-      endif
-
-      return
-
-      end subroutine Interpolate_wind2fire
-
-      subroutine Interpolate_z2fire(this,      & ! for debug output, <= 0 no output
+    subroutine Interpolate_z2fire(this,      & ! for debug output, <= 0 no output
             ifds,ifde, jfds,jfde,              & ! fire grid dimensions
             ifms,ifme, jfms,jfme,              &
             ifts,ifte, jfts,jfte,              &

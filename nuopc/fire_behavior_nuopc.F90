@@ -594,9 +594,9 @@ module fire_behavior_nuopc
     
     do j = 1, grid%jfde
       do i = 1, grid%ifde
-        call grid%Interpolate_wind3d (config_flags,  & ! for debug output, <= 0 no output
+        call grid%Interpolate_profile (config_flags,  & ! for debug output, <= 0 no output
             config_flags%fire_wind_height,           & ! interpolation height
-            grid%ifds, grid%ifde, grid%kfds, grid%kfde, grid%jfds, grid%jfde,    & ! fire grid dimensions
+            grid%kfds, grid%kfde,                    & ! fire grid dimensions
             atm_u3d(i,j,:),atm_v3d(i,j,:),           & ! atm grid arrays in
             atm_ph(i,j,:),                           &
             grid%uf(i,j),grid%vf(i,j),grid%fz0(i,j))
