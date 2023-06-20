@@ -93,9 +93,7 @@
       procedure, public :: Get_z0 => Get_z0
       procedure, public :: Get_z_at_w => Get_height_agl_at_walls
       procedure, public :: Interp_var2grid_nearest => Interp_var2grid_nearest
-      procedure, public :: Interpolate_z2fire => Interpolate_z2fire
       procedure, public :: Print_domain => Print_domain
-      procedure, public :: Read_wrf_input => Read_wrf_input
       procedure, public :: Update_atm_state => Update_atm_state
     end type wrf_t
 
@@ -158,106 +156,6 @@
       enddo
 
     end subroutine Add_fire_tracer_emissions
-
-    subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
-          ims,ime,jms,jme, &                ! memory dims
-          ids,ide,jds,jde, &                ! domain dims
-          its,ite,jts,jte, &                ! tile dims
-          itso,iteo,jtso,jteo, &            ! tile dims where set
-          lfn)
-                              ! array
-      implicit none
-      !*** description
-      ! extend array by one beyond the domain by linear continuation
-      !*** arguments
-      integer, intent(in) :: ix,iy               ! not 0 = do x or y (1 or 2) direction
-      real, intent(in) :: bias                   ! 0=none, 1.=max
-      integer, intent(in) :: ims,ime,jms,jme, &  ! memory dims
-                             ids,ide,jds,jde, &  ! domain dims
-                             its,ite,jts,jte     ! tile dims
-      integer, intent(out) :: itso,jtso,iteo,jteo  ! where set
-      real, intent(inout), dimension(ims:ime,jms:jme) :: lfn
-      !*** local
-      integer i,j
-      character(len=128)::msg
-      integer::its1,ite1,jts1,jte1
-      integer,parameter::halo=1     ! only 1 domain halo is needed since ENO1 is used near domain boundaries
-      !*** executable
-
-      ! for dislay only
-      itso = its
-      jtso = jts
-      iteo = ite
-      jteo = jte
-      ! go halo width beyond if at patch boundary but not at domain boudnary
-      ! assume we have halo need to compute the value we do not have
-      ! the next thread that would conveniently computer the extended values at patch corners
-      ! besides halo may not transfer values outside of the domain
-
-      its1 = its
-      jts1 = jts
-      ite1 = ite
-      jte1 = jte
-      if(.not.its.eq.ids)its1=its-halo
-      if(.not.jts.eq.jds)jts1=jts-halo
-      if(.not.ite.eq.ide)ite1=ite+halo
-      if(.not.jte.eq.jde)jte1=jte+halo
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias
-!      call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      if(ix.ne.0)then
-          if(its.eq.ids)then
-              do j=jts1,jte1
-                  lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
-              enddo
-              itso=ids-1
-          endif
-          if(ite.eq.ide)then
-              do j=jts1,jte1
-                  lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
-              enddo
-              iteo=ide+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
-!          call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      endif
-      if(iy.ne.0)then
-          if(jts.eq.jds)then
-              do i=its1,ite1
-                  lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
-              enddo
-              jtso=jds-1
-          endif
-          if(jte.eq.jde)then
-              do i=its1,ite1
-                  lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
-              enddo
-              jteo=jde+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-!          call message(msg)
-      endif
-      ! corners of the domain
-      if(ix.ne.0.and.iy.ne.0)then
-          if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
-          if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
-          if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
-          if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
-      endif
-      return
-
-      contains
-        real function EX(a,b)
-        !*** statement function
-        real a,b
-        EX=(1.-bias)*(2.*a-b)+bias*max(2.*a-b,a,b)   ! extrapolation, max quarded
-        end function EX
-    end subroutine Continue_at_boundary
 
     subroutine Destroy_distance_between_vertical_layers (this)
 
@@ -1249,89 +1147,6 @@
 
     end subroutine Get_latcloncs
 
-    subroutine interpolate_2d(  &
-          ims2,ime2,jms2,jme2, & ! array coarse grid
-          its2,ite2,jts2,jte2, & ! dimensions coarse grid
-          ims1,ime1,jms1,jme1, & ! array coarse grid
-          its1,ite1,jts1,jte1, & ! dimensions fine grid
-          ir,jr,               & ! refinement ratio
-          rip2,rjp2,rip1,rjp1, & ! (rip2,rjp2) on grid 2 lines up with (rip1,rjp1) on grid 1
-          v2, &                  ! in coarse grid
-          v1  )                  ! out fine grid
-      implicit none
-
-      !*** purpose
-      ! interpolate nodal values in mesh2 to nodal values in mesh1
-      ! interpolation runs over the mesh2 region its2:ite2,jts2:jte2
-      ! only the part of mesh 1 in the region its1:ite1,jts1:jte1 is modified
-
-      !*** arguments
-
-      integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
-      integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
-      integer, intent(in)::ir,jr
-      real,intent(in):: rjp1,rip1,rjp2,rip2
-      real, intent(out)::v1(ims1:ime1,jms1:jme1)
-      real, intent(in)::v2(ims2:ime2,jms2:jme2)
-
-      !*** local
-      integer:: i1,i2,j1,j2,is,ie,js,je
-      real:: tx,ty,rx,ry
-      real:: rio,rjo
-      intrinsic::ceiling,floor
-
-
-      !*** executable
-
-      ! compute mesh ratios
-      rx=1./ir
-      ry=1./jr
-
-      do j2=jts2,jte2-1             ! loop over mesh 2 cells
-        rjo=rjp1+jr*(j2-rjp2)       ! mesh 1 coordinate of the mesh 2 patch start
-        js=max(jts1,ceiling(rjo))   ! lower bound of mesh 1 patch for this mesh 2 cell
-        je=min(jte1,floor(rjo)+jr)  ! upper bound of mesh 1 patch for this mesh 2 cell
-        do i2=its2,ite2-1
-          rio=rip1+ir*(i2-rip2)
-          is=max(its1,ceiling(rio))
-          ie=min(ite1,floor(rio)+ir)
-          do j1=js,je
-            ty = (j1-rjo)*ry
-            do i1=is,ie
-              ! in case mesh 1 node lies on the boundary of several mesh 2 cells
-              ! the result will be written multiple times with the same value
-              ! up to a rounding error
-              tx = (i1-rio)*rx
-              !print *,'coarse ',i2,j2,'to',i2+1,j2+1,' fine ',is,js,' to ',ie,je
-              v1(i1,j1)=                     &
-                    (1-tx)*(1-ty)*v2(i2,j2)  &
-               +    (1-tx)*ty  *v2(i2,j2+1)  &
-               +      tx*(1-ty)*v2(i2+1,j2)  &
-               +        tx*ty  *v2(i2+1,j2+1)
-            enddo
-          enddo
-        enddo
-      enddo
-
-    end subroutine interpolate_2d
-
-    ! general conditional expression
-    pure integer function ifval(l,i,j)
-
-      implicit none
-
-      logical, intent(in)::l
-      integer, intent(in)::i,j
-
-
-      if(l)then
-        ifval=i
-      else
-        ifval=j
-      endif
-
-    end function ifval
-
     subroutine Interp_var2grid_nearest (this, lats_in, lons_in, var_name, vals_out)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
@@ -1446,80 +1261,6 @@
 
     end subroutine Interp_var2grid_nearest
 
-    subroutine Interpolate_z2fire(this,      & ! for debug output, <= 0 no output
-            ifds,ifde, jfds,jfde,              & ! fire grid dimensions
-            ifms,ifme, jfms,jfme,              &
-            ifts,ifte, jfts,jfte,              &
-            ir, jr,                            & ! atm/fire grid ratio
-            zs,                                & ! atm grid arrays in
-            zsf, flag_z0)                          ! fire grid arrays out
-
-        implicit none
-        !*** purpose: interpolate height or any other 2d variable defined at mesh cell centers
-
-        !*** arguments
-        class (wrf_t), intent (in) :: this
-        integer, intent(in) :: ifds,ifde, jfds,jfde,     & ! fire domain bounds
-                               ifms,ifme, jfms,jfme,     & ! fire memory bounds
-                               ifts,ifte, jfts,jfte,     & ! fire tile bounds
-                               ir, jr                        ! atm/fire grid refinement ratio
-        real, intent(in), dimension(this%ims:this%ime, this%jms:this%jme) :: zs  ! terrain height at atm cell centers & ! terrain height
-        real,intent(out), dimension(ifms:ifme, jfms:jfme) :: &
-            zsf                                              ! terrain height fire grid nodes
-        integer,intent(in) :: flag_z0
-
-
-        !*** local
-        real, dimension(this%its-2:this%ite+2,this%jts-2:this%jte+2) :: za      ! terrain height
-        integer :: i,j,jts1,jte1,its1,ite1,jfts1,jfte1,ifts1,ifte1,itso,jtso,iteo,jteo
-
-        ! terrain height
-
-        jts1 = max(this%jts-1, this%jds) ! lower loop limit by one less when at end of domain
-        its1 = max(this%its-1, this%ids) ! ASSUMES THE HALO IS THERE if patch != domain
-        jte1 = min(this%jte+1, this%jde)
-        ite1 = min(this%ite+1, this%ide)
-
-        do j = jts1,jte1
-            do i = its1,ite1
-                ! copy to local array
-                za(i, j) = zs(i, j)
-            enddo
-        enddo
-
-        call continue_at_boundary(1,1,0., & ! do x direction or y direction
-        this%its-2,this%ite+2,this%jts-2,this%jte+2,           &                ! memory dims
-        this%ids,this%ide,this%jds,this%jde, &            ! domain dims - winds defined up to +1
-        its1,ite1,jts1,jte1, &                ! tile dims
-        itso,jtso,iteo,jteo, &
-        za)                               ! array
-
-        ! interpolate to tile plus strip along domain boundary if at boundary
-        jfts1 = snode(jfts, jfds, -1) ! lower loop limit by one less when at end of domain
-        ifts1 = snode(ifts, ifds, -1)
-        jfte1 = snode(jfte, jfde, +1)
-        ifte1 = snode(ifte, ifde, +1)
-
-        call interpolate_2d(  &
-            this%its-2,this%ite+2,this%jts-2,this%jte+2,     & ! memory dims atm grid tile
-            its1-1,ite1+1,jts1-1,jte1+1, & ! where atm grid values set
-            ifms,ifme,jfms,jfme,         & ! array dims fire grid
-            ifts1,ifte1,jfts1,jfte1,     & ! dimensions fire grid tile
-            ir,jr,                       & ! refinement ratio
-            real(this%ids),real(this%jds),ifds+(ir-1)*0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-            za,                     & ! in atm grid
-            zsf)                      ! out fire grid
-
-        if (flag_z0 .eq. 1 ) then
-          do j=jfts1,jfte1
-            do i=ifts1,ifte1
-              zsf(i, j) = max(zsf(i, j), 0.001)
-            enddo
-          enddo
-        endif
-
-    end subroutine Interpolate_z2fire
-
     subroutine Print_domain (this)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -1548,58 +1289,6 @@
 
     end subroutine Print_domain
 
-    subroutine Read_wrf_input (this)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      real :: check_val
-      integer :: io_stat, wrf_input_unit
-
-
-      open (newunit = wrf_input_unit, file = 'wrf_input.dat', iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening the wrf_input.dat file'
-        stop
-      end if
-
-      check_val = 0
-      read (wrf_input_unit, *, iostat = io_stat) this%u3d_stag
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading wrf_input.dat'
-        stop
-      end if
-
-      read (wrf_input_unit, *) this%v3d_stag
-      read (wrf_input_unit, *) this%ph_stag
-      read (wrf_input_unit, *) this%phb_stag
-      read (wrf_input_unit, *) this%rho_stag
-      read (wrf_input_unit, *) this%z_at_w_stag
-      read (wrf_input_unit, *) this%dz8w_stag
-      read (wrf_input_unit, *) this%z0_stag
-      read (wrf_input_unit, *) this%mut_stag
-      read (wrf_input_unit, *) check_val
-
-      write (OUTPUT_UNIT, *) check_val
-
-      close (wrf_input_unit)
-
-    end subroutine Read_wrf_input
-
-    ! function to go beyond domain boundary if tile is next to it
-    pure integer function snode(t,d,i)
-      implicit none
-      integer, intent(in)::t,d,i
-      if(t.ne.d)then
-          snode=t
-      else
-          snode=t+i
-      endif
-    end function snode
-
     subroutine Update_atm_state (this, datetime_now)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -1607,17 +1296,10 @@
       implicit none
 
       class (wrf_t), intent(in out) :: this
-!      type (namelist_t), intent (in) :: config_flags
       type (datetime_t), intent (in) :: datetime_now
 
       logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
-
-
-!      must go outside
-!      If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
-!        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
-!        if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
 
           ! Update t2_stag
@@ -1730,9 +1412,6 @@
           end do
         end do
         call this%Destroy_rho ()
-
-!        call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
-!      end if If_update_atm
 
     end subroutine Update_atm_state
 
