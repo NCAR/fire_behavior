@@ -19,7 +19,7 @@ module module_fr_fire_driver
 
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params, Init_fuel_cats, &
-                                Advance_moisture, Fuel_moisture, Set_fire_params, Set_nfuel_cat
+                                Advance_moisture, Fuel_moisture, Set_fire_params
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
@@ -97,12 +97,6 @@ call init_fuel_cats(fmoist_run,config_flags%fire_print_msg) ! common for all thr
 !$OMP END SINGLE
 
         ! initialize all arrays that the model will not change later
-
-        call set_nfuel_cat( &
-            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-            config_flags%fire_fuel_read,config_flags%fire_fuel_cat, &
-            fp%zsf,grid%nfuel_cat,config_flags%fire_print_msg)            ! better not use the extrapolated zsf!!
 
         ! uses nfuel_cat to set the other fuel data arrays
         ! needs zsf on halo width 1 to compute the terrain gradient

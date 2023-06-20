@@ -7,7 +7,7 @@ use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message, 
 PRIVATE
 
 ! subroutines and functions 
-PUBLIC:: init_fuel_cats,fire_ros,heat_fluxes,set_nfuel_cat,set_fire_params
+PUBLIC:: init_fuel_cats,fire_ros,heat_fluxes,set_fire_params
 PUBLIC:: fuel_moisture,advance_moisture,read_namelist_fire
 
 ! variables
@@ -1154,92 +1154,6 @@ do j=jfts,jfte
 enddo
 
 end subroutine heat_fluxes
-
-!
-!**********************
-!            
-
-
-subroutine set_nfuel_cat(   &
-    ifms,ifme,jfms,jfme,               &
-    ifts,ifte,jfts,jfte,               &
-    ifuelread,nfuel_cat0,zsf,nfuel_cat,fire_print_msg)
-
-implicit none
-
-! set fuel distributions for testing
-integer, intent(in)::   ifts,ifte,jfts,jfte,               &
-                        ifms,ifme,jfms,jfme               
-
-integer, intent(in)::ifuelread,nfuel_cat0,fire_print_msg
-real, intent(in), dimension(ifms:ifme, jfms:jfme)::zsf
-real, intent(out), dimension(ifms:ifme, jfms:jfme)::nfuel_cat
-
-!*** local
-
-! parameters to control execution
-integer:: i,j,iu1
-real:: t1
-character(len=128)msg
-
-!$OMP CRITICAL(FIRE_PHYS_CRIT)
-    write(msg,'(a,i3)')'set_nfuel_cat: ifuelread=',ifuelread 
-!$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg,fire_print_msg)
-
-if (ifuelread .eq. -1 .or. ifuelread .eq. 2) then
-!$OMP CRITICAL(FIRE_PHYS_CRIT)
-    call message('set_nfuel_cat: assuming nfuel_cat initialized already',fire_print_msg) 
-    call message(msg,fire_print_msg)
-!$OMP END CRITICAL(FIRE_PHYS_CRIT)
-else if (ifuelread .eq. 0) then
-!
-    do j=jfts,jfte
-        do  i=ifts,ifte
-            nfuel_cat(i,j)=real(nfuel_cat0)
-        enddo
-    enddo
-!$OMP CRITICAL(FIRE_PHYS_CRIT)
-    write(msg,'(a,i3)')'set_nfuel_cat: fuel initialized with category',nfuel_cat0
-!$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg,fire_print_msg)
-         
-else if (ifuelread .eq. 1) then
-!
-!         make dependent on altitude (co mountains/forest vs. plains)
-!          2000 m : 6562 ft   ;    1600 m: 5249 ft
-
-!        ... user defines fuel category spatial variability ! param!
-    do j=jfts,jfte
-        do  i=ifts,ifte
-            ! nfuel_cat(i,j)= 2     ! grass with understory ! jm does nothing
-            !jm t1=zsf(i,j)*slngth/100.
-            t1 = zsf(i,j)  ! this is in m
-            if(t1.le.1524.)then   !  up to 5000 ft
-                nfuel_cat(i,j)= 3  ! tall grass
-            else if(t1.ge.1524. .and. t1.le.2073.)then  ! 5.0-6.8 kft.
-                nfuel_cat(i,j)= 2  ! grass with understory
-            else if(t1.ge.2073..and.t1.le.2438.)then  ! 6.8-8.0 kft.
-                nfuel_cat(i,j)= 8  ! timber litter - 10 (ponderosa)
-            else if(t1.gt.2438. .and. t1.le. 3354.) then ! 8.0-11.0 kft.
-!                 ... could also be mixed conifer.
-                nfuel_cat(i,j)= 10 ! timber litter - 8 (lodgepole)
-            else if(t1.gt.3354. .and. t1.le. 3658.) then ! 11.0-12.0 kft
-                nfuel_cat(i,j)= 1  ! alpine meadow - 1
-            else if(t1.gt.3658. ) then  ! > 12.0 kft
-                nfuel_cat(i,j)= 14 ! no fuel.
-            endif
-        enddo
-    enddo
-
-    call message('set_nfuel_cat: fuel initialized by altitude',fire_print_msg)
-else
-
-    call crash('set_nfuel_cat: bad ifuelread')
-endif
-!     .............end  load fuel categories (or constant) here.
-
-end subroutine set_nfuel_cat            
 
 !
 !**********************
