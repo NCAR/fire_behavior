@@ -64,7 +64,7 @@
       call init_fire_driver (grid, config_flags)
       call message ('Init_fire_state: FIRE initialization complete',config_flags%fire_print_msg)
 
-      if (DEBUG_LOCAL .and. config_flags%fire_fuel_read == -1) then
+      if (DEBUG_LOCAL) then
           ! print lat/lons
         open (newunit = unit_out, file = 'latlons_c.dat')
         open (newunit = unit_out2, file = 'latlons.dat')

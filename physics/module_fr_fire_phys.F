@@ -907,7 +907,7 @@ subroutine set_fire_params( &
                            ifds,ifde,jfds,jfde, &
                            ifms,ifme,jfms,jfme, &
                            ifts,ifte,jfts,jfte, &
-                           fdx,fdy,nfuel_cat0,  &
+                           fdx,fdy,             &
                            nfuel_cat,fuel_time, &
                            fp, fire_fmc_read, fire_print_msg ) 
 
@@ -920,7 +920,6 @@ integer, intent(in)::ifds,ifde,jfds,jfde                        ! fire domain bo
 integer, intent(in)::ifts,ifte,jfts,jfte                        ! fire tile bounds
 integer, intent(in)::ifms,ifme,jfms,jfme                        ! memory array bounds
 real, intent(in):: fdx,fdy                                      ! fire mesh spacing
-integer,intent(in)::nfuel_cat0                                  ! default fuel category, if nfuel_cat=0
 integer,intent(in)::fire_fmc_read, fire_print_msg
 real, intent(in),dimension(ifms:ifme, jfms:jfme)::nfuel_cat  ! fuel data
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
@@ -934,7 +933,6 @@ real::  fuelload, fueldepth, rtemp1, rtemp2, &
         fuelloadm,fdxinv,fdyinv
 real:: bmst
 integer:: i,j,k
-integer::nerr
 character(len=128)::msg
 
 integer :: kk
@@ -1019,7 +1017,6 @@ ksb(204)=13
 
 ! ****** !
 
-nerr=0
 do j=jfts,jfte
    do i=ifts,ifte
      ! fuel category 
@@ -1034,12 +1031,6 @@ do j=jfts,jfte
         fp%r_0(i,j)=0.             ! no fuel, no spread.
         fp%iboros(i,j)=0.   ! DME Ib/ROS zero for no fuel
      else
-        if(k.eq.0.and.nfuel_cat0.ge.1.and.nfuel_cat0.le.nfuelcats)then
-            ! replace k=0 by default
-            k=nfuel_cat0
-            nerr=nerr+1
-        endif
-   
         if(k.lt.1.or.k.gt.nfuelcats)then
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
             write(msg,'(3(a,i5))')'nfuel_cat(', i ,',',j,')=',k
@@ -1102,13 +1093,6 @@ do j=jfts,jfte
      endif
   enddo
 enddo
-
-if(nerr.gt.1)then
-!$OMP CRITICAL(FIRE_PHYS_CRIT)
-    write(msg,'(a,i6,a)')'set_fire_params: WARNING: fuel category 0 replaced in',nerr,' cells'
-!$OMP END CRITICAL(FIRE_PHYS_CRIT)
-    call message(msg,fire_print_msg)
-endif
 
 end subroutine set_fire_params
 

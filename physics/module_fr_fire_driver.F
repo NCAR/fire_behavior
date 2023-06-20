@@ -104,7 +104,7 @@ call init_fuel_cats(fmoist_run,config_flags%fire_print_msg) ! common for all thr
             grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
             grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
             grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-            grid%dx,grid%dy,config_flags%fire_fuel_cat,    &
+            grid%dx,grid%dy,                         &
             grid%nfuel_cat,grid%fuel_time, &
             fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
@@ -244,7 +244,7 @@ subroutine fire_driver_em ( grid , config_flags )
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
                   grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
                   grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-                  grid%dx,grid%dy,config_flags%fire_fuel_cat,    &
+                  grid%dx,grid%dy,                         &
                   grid%nfuel_cat,grid%fuel_time, &
                   fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
