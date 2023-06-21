@@ -649,59 +649,13 @@ implicit none
 !*** arguments: 
 logical, intent(in)::init_fuel_moisture
 integer, intent(in)::fire_print_msg
-#ifdef DM_PARALLEL
-logical, external:: wrf_dm_on_monitor
-#endif
-#ifdef _OPENMP
-!integer, external:: OMP_GET_THREAD_NUM
-#endif
 !*** local
 integer:: i,j,k,ii
 integer:: kk
 character(len=128):: msg
 !*** executable
 
-#ifdef _OPENMP
-!   if (OMP_GET_THREAD_NUM() .ne. 0)then
-!      call crash('init_fuel_cats: must be called from master thread')
-!   endif
-#endif
-
 call read_namelist_fire(init_fuel_moisture,fire_print_msg)
-
-#ifdef DM_PARALLEL
-! broadcast the contents of the file
-call wrf_dm_bcast_real(cmbcnst,1)
-call wrf_dm_bcast_real(hfgl,1)
-call wrf_dm_bcast_real(fuelmc_g,1)
-call wrf_dm_bcast_real(fuelmc_c,1)
-call wrf_dm_bcast_integer(nfuelcats,1)
-call wrf_dm_bcast_integer(no_fuel_cat,1)
-call wrf_dm_bcast_real(windrf,    nfuelcats)
-call wrf_dm_bcast_real(fgi,       nfuelcats)
-call wrf_dm_bcast_real(fueldepthm,nfuelcats)
-call wrf_dm_bcast_real(savr,      nfuelcats)
-call wrf_dm_bcast_real(fuelmce,   nfuelcats)
-call wrf_dm_bcast_real(fueldens,  nfuelcats)
-call wrf_dm_bcast_real(st,        nfuelcats)
-call wrf_dm_bcast_real(se,        nfuelcats)
-call wrf_dm_bcast_real(weight,    nfuelcats)
-call wrf_dm_bcast_real(fci_d,     nfuelcats)
-call wrf_dm_bcast_real(fct,       nfuelcats)
-call wrf_dm_bcast_integer(ichap,  nfuelcats)
-! broadcast moisture tables
-call wrf_dm_bcast_integer(moisture_classes,1)
-call wrf_dm_bcast_real(drying_lag,     max_moisture_classes)
-call wrf_dm_bcast_real(wetting_lag,     max_moisture_classes)
-call wrf_dm_bcast_real(saturation_moisture,     max_moisture_classes)
-call wrf_dm_bcast_real(saturation_rain,     max_moisture_classes)
-call wrf_dm_bcast_real(rain_threshold,     max_moisture_classes)
-call wrf_dm_bcast_integer(drying_model,     max_moisture_classes)
-call wrf_dm_bcast_integer(wetting_model,     max_moisture_classes)
-call wrf_dm_bcast_integer(fmc_gc_initialization,     max_moisture_classes)
-call wrf_dm_bcast_real(fmc_gc_initial_value,     max_moisture_classes)
-call wrf_dm_bcast_real(fmc_gw,     mfuelcats*max_moisture_classes)
-#endif
 
 ! moisture model derived scalars
 do i=1,moisture_classes
@@ -724,118 +678,8 @@ DO i = 1,nfuelcats
     endif
 END DO
 
-! prints
-
-call message('**********************************************************',fire_print_msg)
-call message('FUEL COEFFICIENTS',fire_print_msg)
-write(msg,8)'cmbcnst    ',cmbcnst
-call message(msg,fire_print_msg)
-write(msg,8)'hfgl       ',hfgl
-call message(msg,fire_print_msg)
-write(msg,8)'fuelmc_g   ',fuelmc_g
-call message(msg,fire_print_msg)
-write(msg,8)'fuelmc_c   ',fuelmc_c
-call message(msg,fire_print_msg)
-write(msg,8)'fuelheat   ',fuelheat
-call message(msg,fire_print_msg)
-write(msg,7)'nfuelcats  ',nfuelcats
-call message(msg,fire_print_msg)
-write(msg,7)'no_fuel_cat',no_fuel_cat
-call message(msg,fire_print_msg)
-if(init_fuel_moisture)then
-    write(msg,7)'moisture_classes',moisture_classes
-    call message(msg,fire_print_msg)
-endif
-
-j=1    ! number of columns; max 5, but we do only one anyway, or would need to line up
-7 format(a,(1x,i8,4x))
-8 format(a,5(1x,g12.5e2))
-9 format(a,5(1x,a))
-10 format(a,2x,99(1x,f12.5))
-11 format(a,2x,99(1x,a12))
-do i=1,nfuelcats,j
-    k=min(i+j-1,nfuelcats)
-    call message(' ',fire_print_msg)
-    write(msg,7)'CATEGORY  ',(ii,ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,9)'fuel name ',(fuel_name(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-!    write(msg,8)'windrf    ',(windrf(ii),ii=i,k)
-!    call message(msg,fire_print_msg)
-    write(msg,8)'fgi       ',(fgi(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fueldepthm',(fueldepthm(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'savr      ',(savr(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fuelmce   ',(fuelmce(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fueldens  ',(fueldens(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'st        ',(st(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'se        ',(se(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'weight    ',(weight(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fci_d     ',(fci_d(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fct       ',(fct(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,7)'ichap     ',(ichap(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fci       ',(fci(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    write(msg,8)'fcbr      ',(fcbr(ii),ii=i,k)
-    call message(msg,fire_print_msg)
-    if(init_fuel_moisture)then
-        write(msg,11)'fuel class name',(trim(moisture_class_name(kk)),kk=1,moisture_classes),'Total','Total/fgi'
-        call message(msg,fire_print_msg)
-        write(msg,10)'fuel load fgi_c',(fgi_c(i,kk),kk=1,moisture_classes),fgi_t(i),fgi_t(i)/fgi(i)
-        call message(msg,fire_print_msg)
-        write(msg,10)'fraction fmc_gw',(fmc_gw(i,kk),kk=1,moisture_classes),fmc_gwt(i)
-        call message(msg,fire_print_msg)
-    endif
-enddo
-call message(' ',fire_print_msg)
-call message('**********************************************************',fire_print_msg)
-
-if(init_fuel_moisture)then
-    j=1
-    do i=1,moisture_classes,j
-        k=min(i+j-1,nfuelcats)
-        call message(' ',fire_print_msg)
-        write(msg,7)'FUEL MOISTURE CLASS',(ii,ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,9)'moisture class name    ',(trim(moisture_class_name(ii)),ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,7)'drying_model           ',(drying_model(ii),ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,8)'drying_lag (h)         ',(drying_lag(ii),ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,7)'wetting_model          ',(wetting_model(ii),ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,7)'fmc_gc_initialization  ',(fmc_gc_initialization(ii),ii=i,k)
-        call message(msg,fire_print_msg)
-        write(msg,8)'wetting_lag (h)        ',(wetting_lag(ii),ii=i,k)
-        call message(msg,fire_print_msg)    
-        write(msg,8)'saturation_moisture (1)',(saturation_moisture(ii),ii=i,k)
-        call message(msg,fire_print_msg)    
-        write(msg,8)'saturation_rain (mm/h) ',(saturation_rain(ii),ii=i,k)
-        call message(msg,fire_print_msg)    
-        write(msg,8)'rain_threshold (mm/h)  ',(rain_threshold(ii),ii=i,k)
-        call message(msg,fire_print_msg)    
-    enddo
-    call message(' ',fire_print_msg)
-    call message('**********************************************************',fire_print_msg)
-    call message(' ',fire_print_msg)
-endif
-
 end subroutine init_fuel_cats
 
-!
-!*******************
-!
 
 subroutine set_fire_params( &
                            ifds,ifde,jfds,jfde, &
