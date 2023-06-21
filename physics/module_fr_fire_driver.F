@@ -26,36 +26,30 @@ use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 use state_mod, only: state_fire_t
 use namelist_mod, only: namelist_t
 
-implicit none
+  implicit none
 
-private
+  private
 
-public Fire_driver_em, Init_fire_driver
+  public Fire_driver_em, Init_fire_driver
 
-logical:: fmoist_run
-real:: dt
-
-integer :: fire_num_ignitions
-integer, parameter :: FIRE_MAX_IGNITIONS = 5
-type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS):: ignition_line
+  integer :: fire_num_ignitions
+  integer, parameter :: FIRE_MAX_IGNITIONS = 5
+  type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS):: ignition_line
 
 contains
 
-subroutine init_fire_driver (grid, config_flags)
+  subroutine init_fire_driver (grid, config_flags)
 
     implicit none
 
-    TYPE(state_fire_t) , TARGET :: grid             ! state
-    TYPE (namelist_t) , INTENT(IN)  :: config_flags ! namelist
+    type (state_fire_t), target :: grid
+    type (namelist_t), intent(in) :: config_flags
 
-    integer::itimestep
-    type(fire_params)::fp
-    real:: time_start
-    real:: moisture_time
+    type(fire_params) :: fp
+    real :: time_start
 
 
-! populate our structures from wrf
-    ! pointers to be passed to fire rate of spread formulas
+      ! pointers to be passed to fire rate of spread formulas
     fp%vx => grid%uf         ! W-E winds used in fire module
     fp%vy => grid%vf         ! S-N winds used in fire module
     fp%zsf => grid%zsf       ! terrain height
@@ -70,54 +64,40 @@ subroutine init_fire_driver (grid, config_flags)
     fp%iboros => grid%iboros ! Ib divided by ROS
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
-    ! get ignition data
-    call fire_ignition_convert (config_flags,ignition_line,fire_num_ignitions)
+      ! get ignition data
+    call fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
 
-    ! initialize moisture model
-    itimestep=grid%itimestep
-
-    ! time - assume dt does not change
-    dt = grid%dt
-    time_start = itimestep * dt
-
-    ! decide what to run - moisture, interpolation, or fire model itself
-    fmoist_run    = config_flags%fmoist_run
-    moisture_time = time_start
-
-    if(fmoist_run)then
-        grid%fmoist_lasttime=moisture_time ! initialize the last time the model has run to start of run
-        grid%fmoist_nexttime=moisture_time
-        call message('moisture initialization',config_flags%fire_print_msg)
+      ! initialize moisture model
+    if (config_flags%fmoist_run) then
+        grid%fmoist_lasttime = grid%itimestep * grid%dt
+        grid%fmoist_nexttime = grid%fmoist_lasttime
     endif
 
-!$OMP SINGLE
-! init rest of fuel tables with derived constants
-! properties of fuel categories and moisture classes from namelist.fire
-call init_fuel_cats(fmoist_run,config_flags%fire_print_msg) ! common for all threads
-!$OMP END SINGLE
+      ! init rest of fuel tables with derived constants
+      ! properties of fuel categories and moisture classes from namelist.fire
+    call init_fuel_cats (config_flags%fmoist_run, config_flags%fire_print_msg)
 
-        ! initialize all arrays that the model will not change later
+      ! uses nfuel_cat to set the other fuel data arrays
+      ! needs zsf on halo width 1 to compute the terrain gradient
+    call set_fire_params (   &
+        grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
+        grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
+        grid%dx,grid%dy,                         &
+        grid%nfuel_cat,grid%fuel_time, &
+        fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
-        ! uses nfuel_cat to set the other fuel data arrays
-        ! needs zsf on halo width 1 to compute the terrain gradient
-        call set_fire_params(   &
-            grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
-            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-            grid%dx,grid%dy,                         &
-            grid%nfuel_cat,grid%fuel_time, &
-            fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+      ! initialize model state to no fire
+    time_start = grid%itimestep * grid%dt
+    call init_no_fire  ( &
+        grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
+        grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
+        grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
+        grid%dx,grid%dy,time_start,    &
+        config_flags%fire_print_msg,   &
+        grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
 
-        ! initialize model state to no fire
-        call init_no_fire  ( &
-            grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
-            grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-            grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-            grid%dx,grid%dy,time_start,    &
-            config_flags%fire_print_msg,   &
-            grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
-
-end subroutine init_fire_driver
+  end subroutine init_fire_driver
 
 subroutine fire_driver_em ( grid , config_flags )
 
@@ -126,7 +106,6 @@ subroutine fire_driver_em ( grid , config_flags )
     type (state_fire_t), target :: grid
     type (namelist_t), intent (in) :: config_flags
 
-    integer :: itimestep
     integer :: ignitions_done              ! number of isolated ignitions
     integer :: ignited_tile(fire_num_ignitions) ! number of gridpts ignited in a given ignition
     real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
@@ -153,18 +132,16 @@ subroutine fire_driver_em ( grid , config_flags )
     fp%iboros => grid%iboros ! Ib divided by ROS
     fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
-    itimestep=grid%itimestep
-
     ! time - assume dt does not change
-    time_start = itimestep * dt
+    time_start = grid%itimestep * grid%dt
 
     ! decide what to run
-    if(config_flags%fire_fmc_read.ne.0.and.fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
+    if(config_flags%fire_fmc_read.ne.0.and.config_flags%fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
 
     moisture_time = time_start
     run_advance_moisture = .false. ! default
     
-    if(fmoist_run)then
+    if(config_flags%fmoist_run)then
         if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
             if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
                 write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
@@ -205,7 +182,7 @@ subroutine fire_driver_em ( grid , config_flags )
           ! one timestep of the moisture model
           call message('advance_moisture start',config_flags%fire_print_msg)
           call advance_moisture(    &
-                  itimestep.eq.1,             & ! initialize?
+                  grid%itimestep.eq.1,             & ! initialize?
                   grid%ifms,grid%ifme,  grid%jfms,grid%jfme,      & ! fire memory dimensions
                   grid%ifts,grid%ifte,  grid%jfts,grid%jfte,      & ! fire tile dimensions
                   config_flags%fire_print_msg,             &
