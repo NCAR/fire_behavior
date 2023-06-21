@@ -9,17 +9,10 @@ module module_fr_fire_util
 
   use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
-! various method selection parameters
-! 1. add the parameter and its static default here
-! optional:
-! 2. add copy from config_flags in module_fr_fire_driver%%set_flags
-! 3. add a line in Registry.EM to define the variable and set default value
-! 4. add the variable and value in namelist.input
-
 private
 
 public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, fun_real, &
-          Open_text_file, Message, Crash, Check_mesh_2dim, &
+          Message, Crash, Check_mesh_2dim, &
           Print_2d_stats
 
 integer, parameter:: REAL_SUM=10, REAL_MAX=20, RNRM_SUM=30, RNRM_MAX=40
@@ -57,69 +50,6 @@ contains
     if (fire_print_msg >= mlevel) write (OUTPUT_UNIT, *) 'FIRE:' // trim (msg)
 
   end subroutine message
-
-!
-!****************
-!
-
-
-integer function open_text_file(filename,rw,fire_print_msg,allow_fail)
-implicit none
-character(len=*),intent(in):: filename,rw
-integer, intent(in):: fire_print_msg
-logical, intent(in), optional:: allow_fail
-#ifdef _OPENMP
-!integer, external:: OMP_GET_THREAD_NUM
-#endif
-character(len=128):: msg
-character(len=1)::act
-integer::iounit,ierr
-logical::op,ok
-
-#ifdef _OPENMP
-!   if (OMP_GET_THREAD_NUM() .ne. 0)then
-!      call crash('open_input_text_file: called from parallel loop')
-!   endif
-#endif
-if(present(allow_fail))then
-    ok=allow_fail
-else
-    ok=.false.  ! default
-endif
-
-    do iounit=19,99
-       inquire(iounit,opened=op)
-       if(.not.op)goto 1
-    enddo
-    call crash('open_text_file: Cannot find any available I/O unit')
-1   continue
-    act=rw(1:1)
-    select case (act)
-        case ('r','R')
-            OPEN(iounit, FILE=filename,FORM='FORMATTED',STATUS='OLD',ACTION='READ',IOSTAT=ierr)
-        case ('w','W')
-            OPEN(iounit, FILE=filename,FORM='FORMATTED',STATUS='UNKNOWN',ACTION='WRITE',IOSTAT=ierr)
-        case default
-            write(msg,*)'open_text_file: bad mode ',trim(rw),' for file ',trim(filename)
-    end select
-    
-    if(ierr.ne.0)then 
-	write(msg,*)'Cannot open file ',filename
-        if(ok)then
-            call message(msg,fire_print_msg)
-            open_text_file=-1
-        else
-            call crash(msg)
-        endif
-    else
-        open_text_file=iounit
-    endif
-
-end function open_text_file
-
-!
-!*****************************
-!
 
 subroutine check_mesh_2dim(ids,ide,jds,jde,ims,ime,jms,jme,fire_print_msg)
 implicit none

@@ -2,7 +2,7 @@
 module module_fr_fire_phys
 
 use constants_mod, only : XLV
-use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message, Open_text_file
+use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
 
 PRIVATE
 
@@ -561,76 +561,15 @@ end subroutine advance_moisture
 
 
 subroutine read_namelist_fire(init_fuel_moisture,fire_print_msg)
+
 implicit none
-!*** purpose: read namelist.fire 
-!*** arguments: 
+
 logical, intent(in)::init_fuel_moisture
 integer, intent(in)::fire_print_msg
-#ifdef DM_PARALLEL
-logical, external:: wrf_dm_on_monitor
-#endif
-#ifdef _OPENMP
-!integer, external:: OMP_GET_THREAD_NUM
-#endif
 !*** local
-integer:: iounit, i, k, io
+integer:: i, k
 character(len=128):: msg
 real:: rat
-!*** executable
-
-! read 
-namelist /fuel_scalars/ cmbcnst,hfgl,fuelmc_g,fuelmc_c,nfuelcats,no_fuel_cat
-namelist /fuel_categories/ fuel_name,windrf,fgi,fueldepthm,savr, &
-    fuelmce,fueldens,st,se,weight,fci_d,fct,ichap,fgi_1h,fgi_10h,fgi_100h,fgi_1000h,fgi_live
-namelist /fuel_moisture/ moisture_classes,drying_lag,wetting_lag,saturation_moisture,saturation_rain,rain_threshold, &
-    drying_model,wetting_model, moisture_class_name,fmc_gc_initialization, fmc_1h,fmc_10h,fmc_100h,fmc_1000h,fmc_live
-
-#ifdef _OPENMP
-!   if (OMP_GET_THREAD_NUM() .ne. 0)then
-!      call crash('init_fuel_cats: must be called from master thread')
-!   endif
-#endif
-
-#ifdef DM_PARALLEL
-IF ( wrf_dm_on_monitor() ) THEN
-    ! we are the MPI rank 0
-#endif
-
-    ! read the file
-    call message('Reading file namelist.fire',fire_print_msg,level=0)
-    iounit=open_text_file('namelist.fire','read',fire_print_msg,allow_fail=.true.)
-    if(iounit < 0)then
-       call message('File namelist.fire not found, using defaults',fire_print_msg,level=0)
-    else  
-       read(iounit,fuel_scalars,iostat=io)
-       if(io < 0)then
-           call message('Namelist fuel_scalars not found, using defaults',fire_print_msg,level=0)
-       elseif(io > 0)then
-           call crash('Error in file namelist.fire, namelist fuel_scalars')
-       endif
-       rewind(iounit)
-       read(iounit,fuel_categories,iostat=io)
-       if(io < 0)then
-           call message('Namelist fuel_categories not found, using defaults',fire_print_msg,level=0)
-       elseif(io > 0)then
-           call crash('Error in file namelist.fire, namelist fuel_categories')
-       endif
-       rewind(iounit)
-       read(iounit,fuel_moisture,iostat=io)
-       if(io < 0)then
-           call message('Namelist fuel_moisture not found, using defaults',fire_print_msg,level=0)
-       elseif(io > 0)then
-           call crash('Error in file namelist.fire, namelist fuel_moisture')
-       endif
-       close(iounit)
-    endif
-
-    ! write to output file
-    iounit=open_text_file('namelist.fire.output','write',fire_print_msg)
-    write(iounit,fuel_scalars)
-    write(iounit,fuel_categories)
-    write(iounit,fuel_moisture)
-    close(iounit)
 
     if (nfuelcats>mfuelcats) then
         write(msg,*)'nfuelcats=',nfuelcats,' is too large, increase mfuelcats'
@@ -700,11 +639,6 @@ IF ( wrf_dm_on_monitor() ) THEN
                endif
             enddo
     enddo
-
-    
-#ifdef DM_PARALLEL
-ENDIF
-#endif
 
 end subroutine read_namelist_fire
 
