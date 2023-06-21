@@ -19,7 +19,8 @@ module module_fr_fire_driver
 
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params, Init_fuel_cats, &
-                                Advance_moisture, Fuel_moisture, Set_fire_params
+                                Set_fire_params
+use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 

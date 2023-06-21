@@ -15,7 +15,8 @@ fire_behavior.exe: fire_behavior.o \
 	../io/geogrid_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o ../share/proj_lc_mod.o \
 	initialize_mod.o advance_mod.o ../share/datetime_mod.o ../io/wrf_mod.o ../share/constants_mod.o \
 	../physics/module_fr_fire_driver.o ../physics/module_fr_fire_util.o \
-	../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o
+	../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o \
+        ../physics/module_fr_fire_fuel_moisture_model.o
 	$(FC) $^ -o $@ $(NETCDF_LIBS)
 
 %.o: %.F90
