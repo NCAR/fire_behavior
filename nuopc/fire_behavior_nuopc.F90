@@ -537,6 +537,7 @@ module fire_behavior_nuopc
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
     integer                     :: i, j
+    real                        :: wspd
     character(len=160)          :: msgString
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph, atm_pres
 
@@ -574,7 +575,7 @@ module fire_behavior_nuopc
     do j = grid%jfds, grid%jfde
       do i = grid%ifds, grid%ifde
         grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
-        grid%fire_t2(i,j) = max (grid%fire_t2(i,j), .001)
+        grid%fire_t2(i,j) = max (grid%fire_t2(i,j), 123.4) ! avoid arithmatic error
         grid%fire_psfc(i,j) = max (grid%fire_psfc(i,j), .001)
 !        grid%fire_rain(i,j) = max (grid%fire_t2(i,j), .001)
       end do
@@ -600,6 +601,14 @@ module fire_behavior_nuopc
             atm_u3d(i,j,:),atm_v3d(i,j,:),           & ! atm grid arrays in
             atm_ph(i,j,:),                           &
             grid%uf(i,j),grid%vf(i,j),grid%fz0(i,j))
+
+        ! avoid arithmatic error
+        wspd = (grid%uf(i,j) ** 2. + grid%vf(i,j) ** 2.) ** .5
+        if (wspd < 0.001) then
+          grid%uf(i,j) = sign(0.001, grid%uf(i,j))
+          grid%vf(i,j) = sign(0.001, grid%vf(i,j))
+        endif
+
       enddo
     enddo
 

@@ -638,6 +638,7 @@ module wrf_nuopc
       state%rain(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
     ptr_t2(clb(1):cub(1),clb(2):cub(2))= &
       state%t2(1:size(state%lats, dim=1),1:size(state%lats, dim=2))
+
     ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
       state%u3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
     ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &

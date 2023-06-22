@@ -417,11 +417,14 @@
           do i = i_st,i_en
 
             ! --- set z (in meters above ground)
-
             z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
 
-            ! --- heat flux
+            ! --- the fire tendencies are too small in uppder levels
+            if (z_w > 2500.) then
+              cycle
+            end if
 
+            ! --- heat flux
             fact_g = cp_i * EXP( - alfg_i * z_w )
             if ( z_w < z1can ) then
                    fact_c = cp_i
@@ -430,18 +433,15 @@
             end if
             hfx(i,k,j) = fact_g * grnhfx(i,j) + fact_c * canhfx(i,j)
 
-    !!            write(msg,2)i,k,j,z_w,grnhfx(i,j),hfx(i,k,j)
-    !!2           format('hfx:',3i4,6e11.3)
-    !!            call message(msg)
-
             ! --- vapor flux
-
             fact_g = xlv_i * EXP( - alfg_i * z_w )
+
             if (z_w < z1can) then
                    fact_c = xlv_i
             else
                    fact_c = xlv_i * EXP( - alfc_i * (z_w - z1can) )
             end if
+
             qfx(i,k,j) = fact_g * grnqfx(i,j) + fact_c * canqfx(i,j)
 
 
@@ -926,7 +926,7 @@
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
-      real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
+      real, parameter :: DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
 
       integer, parameter :: N_POINTS_IN_HALO = 5
