@@ -6,7 +6,7 @@ module module_fr_fire_model
                                Ignite_fire, Prop_ls_rk3
   use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
-  use module_fr_fire_phys
+  use module_fr_fire_phys, only: Heat_fluxes, fire_params
 
   private
 
