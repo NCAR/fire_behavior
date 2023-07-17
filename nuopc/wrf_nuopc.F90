@@ -184,10 +184,10 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: inst_rainfall_amount
+    ! exportable field: accumulated_lwe_thickness_of_precipitation_amount
     ! rainfall is accumulated rainfall not instantaneous
     call NUOPC_Advertise(exportState, &
-      StandardName="inst_rainfall_amount", rc=rc)
+      StandardName="accumulated_lwe_thickness_of_precipitation_amount", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -435,8 +435,8 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field on Grid: inst_rainfall_amount
-    field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=grid, &
+    ! exportable field on Grid: accumulated_lwe_thickness_of_precipitation_amount
+    field = ESMF_FieldCreate(name="accumulated_lwe_thickness_of_precipitation_amount", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
