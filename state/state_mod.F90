@@ -63,8 +63,6 @@
       real, dimension(:, :), allocatable :: lons   ! "longitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
-      real, dimension(:, :), allocatable :: fxlong ! "longitude of midpoints of fire cells" "degrees"
-      real, dimension(:, :), allocatable :: fxlat ! "latitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: test
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
@@ -100,9 +98,9 @@
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
-      procedure :: Init_latlons_fire => Init_latlons_fire
+      procedure :: Init_latlons => Init_latlons
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
-      procedure, public :: Interpolate_wind3d => Interpolate_wind3d
+      procedure, public :: Interpolate_profile => Interpolate_profile
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure, public :: Save_state => Save_state
@@ -131,22 +129,6 @@
       enddo
 
     end subroutine calc_smoke_emissions
-
-    subroutine calc_unit_fxlat_fxlong (grid, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
-
-      implicit none
-
-      type (state_fire_t), intent(in out) :: grid
-      type (namelist_t), intent(in) :: config_flags
-
-         ! real
-         ! 1 degree in m (approximate OK)
-      grid%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-      grid%unit_fxlong = cos (grid%cen_lat * 2.0 * PI / 360.0) * grid%unit_fxlat  ! latitude
-
-    end subroutine calc_unit_fxlat_fxlong
 
     subroutine Handle_output (this, config_flags)
 
@@ -187,23 +169,7 @@
 
         call wrf%Update_atm_state (this%datetime_now)
 
-        call wrf%interpolate_wind2fire(config_flags,                            & ! flag for debug output
-                config_flags%fire_wind_height,                                  & ! height to interpolate to
-                wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1,          &
-                wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,              &
-                wrf%ips,min(wrf%ipe,wrf%ide-1), wrf%jps,min(wrf%jpe,wrf%jde-1), &
-                wrf%i_start(1),min(wrf%i_end(1),wrf%ide-1),                     &
-                wrf%j_start(1),min(wrf%j_end(1),wrf%jde-1),                     &
-                this%ifds,this%ifde-wrf%sr_x, this%jfds,this%jfde-wrf%sr_y,     &
-                this%ifms, this%ifme, this%jfms, this%jfme,                     &
-                this%ifts, this%ifte, this%jfts, this%jfte,   &
-                wrf%sr_x,wrf%sr_y,                            & ! atm/fire this ratio
-                wrf%u3d_stag,wrf%v3d_stag,                    & ! 3D atm this arrays in
-                wrf%ph_stag,wrf%phb_stag,                     &
-                wrf%z0_stag,                                  & ! 2D atm this arrays in
-                this%uf,this%vf,this%fz0)                       ! fire this arrays out
-
-        call this%interpolate_vars_atm_to_fire(wrf)
+        call this%interpolate_vars_atm_to_fire(wrf, config_flags)
 
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
 
@@ -261,10 +227,10 @@
       call this%datetime_next_output%Add_seconds (config_flags%interval_output)
 
       this%datetime_next_atm_update = this%datetime_start
- 
+
       this%cen_lat = geogrid%cen_lat
       this%cen_lon = geogrid%cen_lon
-      
+
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
 
@@ -307,8 +273,6 @@
       allocate (this%fcanhfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fcanqfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fxlong(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fxlat(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
 
@@ -345,13 +309,13 @@
       this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
       this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
 
-      call calc_unit_fxlat_fxlong (this, config_flags)
-      call Init_fxlatfxlong (this,geogrid)
-      call this%Init_latlons_fire (geogrid)
+      this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+      this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
+      call this%Init_latlons (geogrid)
 
     end subroutine Init_domain
 
-    subroutine Init_latlons_fire (this, geogrid)
+    subroutine Init_latlons (this, geogrid)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
@@ -366,8 +330,8 @@
       real :: i_atm, j_atm, offset_corners_x, offset_corners_y
 
 
-      allocate (this%lons(this%nx, this%ny))
-      allocate (this%lats(this%nx, this%ny))
+      allocate (this%lons(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lats(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
@@ -405,464 +369,109 @@
       call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm + offset_corners_y, &
           lat = this%lats_c(this%nx + 1, this%ny + 1), lon = this%lons_c(this%nx + 1, this%ny + 1))
 
-    end subroutine Init_latlons_fire
+    end subroutine Init_latlons
 
-    subroutine Interpolate_vars_atm_to_fire (this, wrf)
+    subroutine Interpolate_vars_atm_to_fire (this, wrf, config_flags)
 
-        implicit none
+      implicit none
 
-        class (state_fire_t), intent(in out) :: this    ! fire state
-        type (wrf_t), intent(in) :: wrf                 ! atm state
+      class (state_fire_t), intent(in out) :: this    ! fire state
+      type (wrf_t), intent(inout) :: wrf                 ! atm state
+      type (namelist_t), intent (in) :: config_flags
 
-        real, dimension(:, :), allocatable :: var2d
+      real, dimension(:, :), allocatable :: var2d
+      integer :: i, j
 
-
-        If_start: if (this%datetime_now == this%datetime_start) then
-
-          call wrf%interpolate_z2fire(                     &
-              this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-              this%ifms, this%ifme, this%jfms, this%jfme,  &
-              this%ifts,this%ifte,this%jfts,this%jfte,     &
-              wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-              wrf%z0_stag,                                 &
-              this%fz0,1)
-
-        endif If_start
-
-        call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire this ratio
-            wrf%t2_stag,                                 &
-            this%fire_t2,1)
 
           ! Alternative interpolation in testing mode (no impact on the fire evolution)
           ! We need the fire grid lat/lon
-        if (allocated (this%lats) .and. allocated (this%lons)) then
+      if (allocated (this%lats) .and. allocated (this%lons)) then
+
+        If_start: if (this%datetime_now == this%datetime_start) then
           call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
-              this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
-              this%test(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
-              deallocate (var2d)
-        end if
+              this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'fz0', var2d)
+              this%fz0(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+        endif If_start
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%q2_stag,                                 &
-            this%fire_q2,1)
+        do j = 1, wrf%jde
+          do i = 1, wrf%ide
+            call this%interpolate_profile (config_flags,       & ! for debug output, <= 0 no output
+                config_flags%fire_wind_height,                 & ! interpolation height
+                this%kfds, this%kfde,                          & ! fire grid dimensions
+                wrf%u3d_stag(i,:,j),wrf%v3d_stag(i,:,j),       & ! atm grid arrays in
+                wrf%ph_stag(i,:,j)+wrf%phb_stag(i,:,j),        &
+                wrf%ua(i,j),wrf%va(i,j),wrf%z0_stag(i,j))
+          enddo
+        enddo
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%psfc_stag,                                 &
-            this%fire_psfc,1)
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'uf', var2d)
+            this%uf(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
 
-         call wrf%interpolate_z2fire(                    &
-            this%ifds, this%ifde, this%jfds, this%jfde,  & ! fire this dimensions
-            this%ifms, this%ifme, this%jfms, this%jfme,  &
-            this%ifts,this%ifte,this%jfts,this%jfte,     &
-            wrf%sr_x,wrf%sr_y,                           & ! atm/fire wrf ratio
-            wrf%rainc_stag+wrf%rainnc_stag,                                 &
-            this%fire_rain,1)
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'vf', var2d)
+            this%vf(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 't2', var2d)
+            this%fire_t2(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'q2', var2d)
+            this%fire_q2(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'psfc', var2d)
+            this%fire_psfc(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        call wrf%interp_var2grid_nearest (this%lats(this%ifds:this%ifde, this%jfds:this%jfde), &
+            this%lons(this%ifds:this%ifde, this%jfds:this%jfde), 'rain', var2d)
+            this%fire_rain(this%ifds:this%ifde, this%jfds:this%jfde) = var2d
+
+        deallocate (var2d)
+      end if
 
     end subroutine Interpolate_vars_atm_to_fire
 
-    subroutine Init_fxlatfxlong (this, geogrid)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
-      implicit none
-
-      class (state_fire_t), intent (in out) :: this
-      type (geogrid_t), intent(in), optional :: geogrid
-
-      real, dimension(:,:), allocatable :: xlat, xlong
-      integer ids,ide,jds,jde,ims,ime,jms,jme,its,ite,jts,jte
-
-
-      ids = geogrid%ids
-      ide = geogrid%ide
-      jds = geogrid%jds
-      jde = geogrid%jde
-
-      ims = geogrid%ids - N_POINTS_IN_HALO
-      ime = geogrid%ide + N_POINTS_IN_HALO
-      jms = geogrid%jds - N_POINTS_IN_HALO
-      jme = geogrid%jde + N_POINTS_IN_HALO
-
-      its = ids
-      ite = ide
-      jts = jds
-      jte = jde
-
-      allocate (xlat(ims:ime,jms:jme))
-      allocate (xlong(ims:ime,jms:jme))
-
-      xlat = 0.
-      xlong = 0.
-      xlat(ids:ide-1,jds:jde-1) = geogrid%xlat
-      xlong(ids:ide-1,jds:jde-1) = geogrid%xlong
-
-      call interpolate_z2fire(ids,ide, jds,jde,       &
-          ims,ime, jms,jme, its,ite, jts,jte,         &
-          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
-          this%ifms,this%ifme, this%jfms,this%jfme,   &
-          this%ifts,this%ifte, this%jfts,this%jfte,   &
-          geogrid%sr_x, geogrid%sr_y,                 & ! atm/fire this ratio
-          xlat,this%fxlat,0)
-
-      call interpolate_z2fire(ids,ide, jds,jde,       &
-          ims,ime, jms,jme, its,ite, jts,jte,         &
-          this%ifds,this%ifde, this%jfds,this%jfde,   & ! fire this dimensions
-          this%ifms,this%ifme, this%jfms,this%jfme,   &
-          this%ifts,this%ifte, this%jfts,this%jfte,   &
-          geogrid%sr_x,geogrid%sr_y,                  & ! atm/fire this ratio
-          xlong,this%fxlong,0)
-
-      deallocate(xlat, xlong)
-
-    end subroutine Init_fxlatfxlong
-
-    subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
-          ims,ime,jms,jme, &                ! memory dims
-          ids,ide,jds,jde, &                ! domain dims
-          its,ite,jts,jte, &                ! tile dims
-          itso,iteo,jtso,jteo, &            ! tile dims where set
-          lfn)
-                              ! array
-      implicit none
-      !*** description
-      ! extend array by one beyond the domain by linear continuation
-      !*** arguments
-      integer, intent(in) :: ix,iy               ! not 0 = do x or y (1 or 2) direction
-      real, intent(in) :: bias                   ! 0=none, 1.=max
-      integer, intent(in) :: ims,ime,jms,jme, &  ! memory dims
-                             ids,ide,jds,jde, &  ! domain dims
-                             its,ite,jts,jte     ! tile dims
-      integer, intent(out) :: itso,jtso,iteo,jteo  ! where set
-      real, intent(inout), dimension(ims:ime,jms:jme) :: lfn
-      !*** local
-      integer i,j
-      character(len=128)::msg
-      integer::its1,ite1,jts1,jte1
-      integer,parameter::halo=1     ! only 1 domain halo is needed since ENO1 is used near domain boundaries
-      !*** executable
-
-      ! for dislay only
-      itso = its
-      jtso = jts
-      iteo = ite
-      jteo = jte
-      ! go halo width beyond if at patch boundary but not at domain boudnary
-      ! assume we have halo need to compute the value we do not have
-      ! the next thread that would conveniently computer the extended values at patch corners
-      ! besides halo may not transfer values outside of the domain
-
-      its1 = its
-      jts1 = jts
-      ite1 = ite
-      jte1 = jte
-      if(.not.its.eq.ids)its1=its-halo
-      if(.not.jts.eq.jds)jts1=jts-halo
-      if(.not.ite.eq.ide)ite1=ite+halo
-      if(.not.jte.eq.jde)jte1=jte+halo
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias
-!      call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      if(ix.ne.0)then
-          if(its.eq.ids)then
-              do j=jts1,jte1
-                  lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
-              enddo
-              itso=ids-1
-          endif
-          if(ite.eq.ide)then
-              do j=jts1,jte1
-                  lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
-              enddo
-              iteo=ide+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
-!          call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      endif
-      if(iy.ne.0)then
-          if(jts.eq.jds)then
-              do i=its1,ite1
-                  lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
-              enddo
-              jtso=jds-1
-          endif
-          if(jte.eq.jde)then
-              do i=its1,ite1
-                  lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
-              enddo
-              jteo=jde+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-!          call message(msg)
-      endif
-      ! corners of the domain
-      if(ix.ne.0.and.iy.ne.0)then
-          if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
-          if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
-          if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
-          if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
-      endif
-      return
-
-      contains
-        real function EX(a,b)
-        !*** statement function
-        real a,b
-        EX=(1.-bias)*(2.*a-b)+bias*max(2.*a-b,a,b)   ! extrapolation, max quarded
-        end function EX
-    end subroutine Continue_at_boundary
-
-    subroutine Interpolate_z2fire( &
-          ids,ide, jds,jde,        &
-          ims,ime, jms,jme,        &
-          its,ite, jts,jte,        &
-          ifds,ifde, jfds,jfde,    & ! fire grid dimensions
-          ifms,ifme, jfms,jfme,    &
-          ifts,ifte, jfts,jfte,    &
-          ir, jr,                  & ! atm/fire grid ratio
-          zs,                      & ! atm grid arrays in
-          zsf, flag_z0)              ! fire grid arrays out
-
-      implicit none
-      !*** purpose: interpolate height or any other 2d variable defined at mesh cell centers
-
-      !*** arguments
-      integer, intent(in) :: ids,ide, jds,jde,         &
-                             ims,ime, jms,jme,         &
-                             its,ite, jts,jte,         &
-                             ifds,ifde, jfds,jfde,     & ! fire domain bounds
-                             ifms,ifme, jfms,jfme,     & ! fire memory bounds
-                             ifts,ifte, jfts,jfte,     & ! fire tile bounds
-                             ir, jr                        ! atm/fire grid refinement ratio
-      real, intent(in), dimension(ims:ime, jms:jme) :: zs  ! terrain height at atm cell centers & ! terrain height
-      real,intent(out), dimension(ifms:ifme, jfms:jfme) :: &
-          zsf                                              ! terrain height fire grid nodes
-      integer,intent(in) :: flag_z0
-
-
-      !*** local
-      real, dimension(its-2:ite+2,jts-2:jte+2) :: za      ! terrain height
-      integer :: i,j,jts1,jte1,its1,ite1,jfts1,jfte1,ifts1,ifte1,itso,jtso,iteo,jteo
-
-      ! terrain height
-
-      jts1 = max(jts-1, jds) ! lower loop limit by one less when at end of domain
-      its1 = max(its-1, ids) ! ASSUMES THE HALO IS THERE if patch != domain
-      jte1 = min(jte+1, jde)
-      ite1 = min(ite+1, ide)
-
-      do j = jts1,jte1
-          do i = its1,ite1
-              ! copy to local array
-              za(i, j) = zs(i, j)
-          enddo
-      enddo
-
-      call continue_at_boundary(1,1,0., & ! do x direction or y direction
-      its-2,ite+2,jts-2,jte+2,           &                ! memory dims
-      ids,ide,jds,jde, &            ! domain dims - winds defined up to +1
-      its1,ite1,jts1,jte1, &                ! tile dims
-      itso,jtso,iteo,jteo, &
-      za)                               ! array
-
-      ! interpolate to tile plus strip along domain boundary if at boundary
-      jfts1 = snode(jfts, jfds, -1) ! lower loop limit by one less when at end of domain
-      ifts1 = snode(ifts, ifds, -1)
-      jfte1 = snode(jfte, jfde, +1)
-      ifte1 = snode(ifte, ifde, +1)
-
-      call interpolate_2d(  &
-          its-2,ite+2,jts-2,jte+2,     & ! memory dims atm grid tile
-          its1-1,ite1+1,jts1-1,jte1+1, & ! where atm grid values set
-          ifms,ifme,jfms,jfme,         & ! array dims fire grid
-          ifts1,ifte1,jfts1,jfte1,     & ! dimensions fire grid tile
-          ir,jr,                       & ! refinement ratio
-          real(ids),real(jds),ifds+(ir-1)*0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-          za,                     & ! in atm grid
-          zsf)                      ! out fire grid
-
-      if (flag_z0 .eq. 1 ) then
-        do j=jfts1,jfte1
-          do i=ifts1,ifte1
-            zsf(i, j) = max(zsf(i, j), 0.001)
-          enddo
-        enddo
-      endif
-
-    contains
-
-      ! function to go beyond domain boundary if tile is next to it
-      pure integer function snode(t,d,i)
-        implicit none
-        integer, intent(in)::t,d,i
-        if(t.ne.d)then
-            snode=t
-        else
-            snode=t+i
-        endif
-      end function snode
-
-      subroutine interpolate_2d(  &
-            ims2,ime2,jms2,jme2, & ! array coarse grid
-            its2,ite2,jts2,jte2, & ! dimensions coarse grid
-            ims1,ime1,jms1,jme1, & ! array coarse grid
-            its1,ite1,jts1,jte1, & ! dimensions fine grid
-            ir,jr,               & ! refinement ratio
-            rip2,rjp2,rip1,rjp1, & ! (rip2,rjp2) on grid 2 lines up with (rip1,rjp1) on grid 1
-            v2, &                  ! in coarse grid
-            v1  )                  ! out fine grid
-        implicit none
-
-        !*** purpose
-        ! interpolate nodal values in mesh2 to nodal values in mesh1
-        ! interpolation runs over the mesh2 region its2:ite2,jts2:jte2
-        ! only the part of mesh 1 in the region its1:ite1,jts1:jte1 is modified
-
-        !*** arguments
-
-        integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
-        integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
-        integer, intent(in)::ir,jr
-        real,intent(in):: rjp1,rip1,rjp2,rip2
-        real, intent(out)::v1(ims1:ime1,jms1:jme1)
-        real, intent(in)::v2(ims2:ime2,jms2:jme2)
-
-        !*** local
-        integer:: i1,i2,j1,j2,is,ie,js,je
-        real:: tx,ty,rx,ry
-        real:: rio,rjo
-        intrinsic::ceiling,floor
-
-
-        !*** executable
-
-        ! compute mesh ratios
-        rx=1./ir
-        ry=1./jr
-
-        do j2=jts2,jte2-1             ! loop over mesh 2 cells
-          rjo=rjp1+jr*(j2-rjp2)       ! mesh 1 coordinate of the mesh 2 patch start
-          js=max(jts1,ceiling(rjo))   ! lower bound of mesh 1 patch for this mesh 2 cell
-          je=min(jte1,floor(rjo)+jr)  ! upper bound of mesh 1 patch for this mesh 2 cell
-          do i2=its2,ite2-1
-            rio=rip1+ir*(i2-rip2)
-            is=max(its1,ceiling(rio))
-            ie=min(ite1,floor(rio)+ir)
-            do j1=js,je
-              ty = (j1-rjo)*ry
-              do i1=is,ie
-                ! in case mesh 1 node lies on the boundary of several mesh 2 cells
-                ! the result will be written multiple times with the same value
-                ! up to a rounding error
-                tx = (i1-rio)*rx
-                !print *,'coarse ',i2,j2,'to',i2+1,j2+1,' fine ',is,js,' to ',ie,je
-                v1(i1,j1)=                     &
-                      (1-tx)*(1-ty)*v2(i2,j2)  &
-                 +    (1-tx)*ty  *v2(i2,j2+1)  &
-                 +      tx*(1-ty)*v2(i2+1,j2)  &
-                 +        tx*ty  *v2(i2+1,j2+1)
-              enddo
-            enddo
-          enddo
-        enddo
-
-      end subroutine interpolate_2d
-
-    end subroutine Interpolate_z2fire
-
-    subroutine Interpolate_wind3d (this, config_flags,    & ! for debug output, <= 0 no output
+    subroutine Interpolate_profile (this, config_flags,    & ! for debug output, <= 0 no output
           fire_wind_height,                               & ! interpolation height
-          ifds, ifde, kfds, kfde, jfds, jfde,             & ! fire grid dimensions
-          u3d,v3d,                                        & ! atm grid arrays in
+          kfds, kfde,             & ! fire grid dimensions
+          uin,vin,                                        & ! atm grid arrays in
           phl,                                            &
-          u2d,v2d,z0f)                                      ! fire grid arrays out
+          uout,vout,z0f)                                      ! fire grid arrays out
 
       implicit none
 
       class (state_fire_t), intent(in) :: this
       type (namelist_t), intent(in) :: config_flags
       real, intent(in) :: fire_wind_height                  ! height above the terrain for vertical interpolation
-      integer, intent(in) ::                              &
-          ifds,ifde, kfds,kfde, jfds,jfde ! fire domain bounds
-
-      real,intent(in)::u3d(:),v3d(:), & ! atm wind velocity, staggered
-          phl(:)                                   ! geopotential
-      real,intent(out):: u2d,v2d    ! wind velocity fire grid nodes
-      real,intent(in):: z0f          ! roughness length in fire grid
+      integer, intent(in) :: kfds, kfde ! fire domain bounds
+      real, intent(in) :: uin(:), vin(:), phl(:) ! staggered atm wind velocity, and geopoential heigh
+      real, intent(out) :: uout, vout    ! wind velocity fire grid nodes
+      real, intent(in) :: z0f          ! roughness length in fire grid
 
       !*** local
-      real, dimension(kfds:kfde-1):: altw, hgt
-      integer:: k
-      integer::kdmax
-      real:: loght,loglast,logz0,logfwh,ht
-      real::r_nan
-      integer::i_nan
-      equivalence (i_nan,r_nan)
-      real::fire_wind_height_local,z0fc
-      real::ust_d,wsf,wsf1,uf_temp,vf_temp
-      real,parameter::vk_kappa=0.4
+      real, dimension(kfds:kfde-1) :: altw, hgt
+      integer :: k
+      integer :: kdmax
+      real :: loght, loglast, logz0, logfwh, ht
+      real :: r_nan
+      real :: fire_wind_height_local, z0fc
+      real :: ust_d, wsf, wsf1, uf_temp, vf_temp
+      real, parameter :: vk_kappa = 0.4
+
 
       !*** executable
-      ! debug init local arrays
-      i_nan=2147483647
-      u2d=r_nan
-      v2d=r_nan
-      altw=r_nan
-      hgt=r_nan
-
-      !                            ^ j
-      !        ------------        |
-      !        |          |         ----> i
-      !        u    p     |
-      !        |          |    nodes in cell (i,j)
-      !        ------v-----    view from top
-      !
-      !             v(ide,jde+1)
-      !            -------x------
-      !            |            |
-      !            |            |
-      ! u(ide,jde) x      x     x u(ide+1,jde)
-      !            | p(ide,hde) |
-      !            |            |   p=ph,phb,z0,...
-      !            -------x------
-      !              v(ide,jde)
-      !
-      ! staggered values set u(ids:ide+1,jds:jde) v(ids:ide,jds:jde+1)
-      ! p=ph+phb set at (ids:ide,jds:jde)
-      ! location of u(i,j) needs p(i-1,j) and p(i,j)
-      ! location of v(i,j) needs p(i,j-1) and p(i,j)
-      ! *** NOTE need HALO in ph, phb
-      ! so we can compute only u(ids+1:ide,jds:jde) v(ids:ide,jds+1,jde)
-      ! unless we extend p at the boundary
-      ! but because we care about the fire way in the inside it does not matter
-      ! if the fire gets close to domain boundary the simulation is over anyway
-
-      kdmax=kfde-2   ! max layer to interpolate from, can be less
-      do k = kfds,kdmax+1
-        altw(k) = phl(k) / G             ! altitude of the bottom w-point
+      kdmax = kfde - 2          ! max layer to interpolate from, can be less
+      do k = kfds, kdmax + 1
+        altw(k) = phl(k) / G    ! altitude of the bottom w-point
       enddo
 
-      do k = kfds,kdmax
-        hgt(k) = 0.5 * (altw(k)+ altw(k+1)) - altw(kfds) ! height of the mass point above the ground
+      do k = kfds, kdmax
+        hgt(k) = 0.5 * (altw(k) + altw(k+1)) - altw(kfds) ! height of the mass point above the ground
       enddo
 
-      ! DME
+      ! extrapolate mid-flame height from fire_lsm_zcoupling_ref?
       if (config_flags%fire_lsm_zcoupling) then
         logfwh = log(config_flags%fire_lsm_zcoupling_ref)
         fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
@@ -871,69 +480,46 @@
         fire_wind_height_local = fire_wind_height
       endif
 
-       ! interpolate u
-      if(fire_wind_height_local > z0f)then
-        do k=kfds,kdmax
-          ht = hgt(k)      ! height of this m point above the ground
-          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
+      ! interpolate u
+      if (fire_wind_height_local > z0f)then
+        do k= kfds, kdmax
+          ht = hgt(k) ! height of this mass point above the ground
+          if(ht >= fire_wind_height_local) then ! found layer k this point is in
             loght = log(ht)
-            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
+            if(k == kfds)then               ! first layer, log linear interpolation from 0 at zr
               logz0 = log(z0f)
-              u2d= u3d(k)*(logfwh-logz0)/(loght-logz0)
+              uout = uin(k) * (logfwh - logz0) / (loght - logz0)
+              vout = vin(k) * (logfwh - logz0) / (loght - logz0)
             else                           ! log linear interpolation
-              loglast=log(hgt(k-1))
-              u2d= u3d(k-1) + (u3d(k) - u3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
+              loglast = log(hgt(k-1))
+              uout = uin(k-1) + (uin(k) - uin(k-1)) * (logfwh - loglast) / (loght - loglast)
+              vout = vin(k-1) + (vin(k) - vin(k-1)) * (logfwh - loglast) / (loght - loglast)
             endif
-            goto 10
+            exit
           endif
           if(k.eq.kdmax)then                 ! last layer, still not high enough
-            u2d=u3d(k)
+            uout = uin(k)
+            vout = vin(k)
           endif
         enddo
-      10 continue
       else  ! roughness higher than the fire wind height
-        u2d=0.
-      endif
-
-       ! interpolate v
-      if(fire_wind_height_local > z0f)then       !
-        do k=kfds,kdmax
-          ht = hgt(k)      ! height of this u point above the ground
-          if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-            loght = log(ht)
-            if(k.eq.kfds)then               ! first layer, log linear interpolation from 0 at zr
-              logz0 = log(z0f)
-              v2d= v3d(k)*(logfwh-logz0)/(loght-logz0)
-            else                           ! log linear interpolation
-              loglast=log(hgt(k-1))
-              v2d= v3d(k-1) + (v3d(k) - v3d(k-1)) * ( logfwh - loglast) / (loght - loglast)
-            endif
-            goto 11
-          endif
-          if(k.eq.kdmax)then                 ! last layer, still not high enough
-            v2d=v3d(k)
-          endif
-        enddo
-        11 continue
-      else  ! roughness higher than the fire wind height
-        v2d=0.
+        uout = 0.0
+        vout = 0.0
       endif
 
       ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
       if (config_flags%fire_lsm_zcoupling) then
-            uf_temp=u2d
-            vf_temp=v2d
-            wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
-            z0fc=z0f
-            ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
-            wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
-            u2d=wsf1*uf_temp/wsf
-            v2d=wsf1*vf_temp/wsf
+        uf_temp=uout
+        vf_temp=vout
+        wsf = max(sqrt(uf_temp ** 2. + vf_temp ** 2.), 0.1)
+        z0fc = z0f
+        ust_d = wsf * vk_kappa / log(config_flags%fire_lsm_zcoupling_ref / z0fc)
+        wsf1 = (ust_d / vk_kappa) * log((fire_wind_height + z0fc) / z0fc)
+        uout = wsf1 * uf_temp / wsf
+        vout = wsf1 * vf_temp / wsf
       endif
 
-      return
-
-    end subroutine Interpolate_wind3d
+    end subroutine Interpolate_profile
 
     subroutine Print_domain (this)
 
@@ -1030,8 +616,8 @@
 
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'test', this%test(1:this%nx, 1:this%ny))
 
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlat', this%fxlat(1:this%nx, 1:this%ny))
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fxlong', this%fxlong(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'lats', this%lats(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'lons', this%lons(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))

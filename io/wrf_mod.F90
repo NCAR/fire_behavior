@@ -26,7 +26,7 @@
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
         ! 2D
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: xlat, xlong
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
         ! feedback to atm
@@ -93,10 +93,7 @@
       procedure, public :: Get_z0 => Get_z0
       procedure, public :: Get_z_at_w => Get_height_agl_at_walls
       procedure, public :: Interp_var2grid_nearest => Interp_var2grid_nearest
-      procedure, public :: Interpolate_z2fire => Interpolate_z2fire
-      procedure, public :: Interpolate_wind2fire => Interpolate_wind2fire
       procedure, public :: Print_domain => Print_domain
-      procedure, public :: Read_wrf_input => Read_wrf_input
       procedure, public :: Update_atm_state => Update_atm_state
     end type wrf_t
 
@@ -159,106 +156,6 @@
       enddo
 
     end subroutine Add_fire_tracer_emissions
-
-    subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
-          ims,ime,jms,jme, &                ! memory dims
-          ids,ide,jds,jde, &                ! domain dims
-          its,ite,jts,jte, &                ! tile dims
-          itso,iteo,jtso,jteo, &            ! tile dims where set
-          lfn)
-                              ! array
-      implicit none
-      !*** description
-      ! extend array by one beyond the domain by linear continuation
-      !*** arguments
-      integer, intent(in) :: ix,iy               ! not 0 = do x or y (1 or 2) direction
-      real, intent(in) :: bias                   ! 0=none, 1.=max
-      integer, intent(in) :: ims,ime,jms,jme, &  ! memory dims
-                             ids,ide,jds,jde, &  ! domain dims
-                             its,ite,jts,jte     ! tile dims
-      integer, intent(out) :: itso,jtso,iteo,jteo  ! where set
-      real, intent(inout), dimension(ims:ime,jms:jme) :: lfn
-      !*** local
-      integer i,j
-      character(len=128)::msg
-      integer::its1,ite1,jts1,jte1
-      integer,parameter::halo=1     ! only 1 domain halo is needed since ENO1 is used near domain boundaries
-      !*** executable
-
-      ! for dislay only
-      itso = its
-      jtso = jts
-      iteo = ite
-      jteo = jte
-      ! go halo width beyond if at patch boundary but not at domain boudnary
-      ! assume we have halo need to compute the value we do not have
-      ! the next thread that would conveniently computer the extended values at patch corners
-      ! besides halo may not transfer values outside of the domain
-
-      its1 = its
-      jts1 = jts
-      ite1 = ite
-      jte1 = jte
-      if(.not.its.eq.ids)its1=its-halo
-      if(.not.jts.eq.jds)jts1=jts-halo
-      if(.not.ite.eq.ide)ite1=ite+halo
-      if(.not.jte.eq.jde)jte1=jte+halo
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write(msg,'(a,2i5,a,f5.2)')'continue_at_boundary: directions',ix,iy,' bias ',bias
-!      call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      if(ix.ne.0)then
-          if(its.eq.ids)then
-              do j=jts1,jte1
-                  lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
-              enddo
-              itso=ids-1
-          endif
-          if(ite.eq.ide)then
-              do j=jts1,jte1
-                  lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
-              enddo
-              iteo=ide+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
-!          call message(msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      endif
-      if(iy.ne.0)then
-          if(jts.eq.jds)then
-              do i=its1,ite1
-                  lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
-              enddo
-              jtso=jds-1
-          endif
-          if(jte.eq.jde)then
-              do i=its1,ite1
-                  lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
-              enddo
-              jteo=jde+1
-          endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-          write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-!          call message(msg)
-      endif
-      ! corners of the domain
-      if(ix.ne.0.and.iy.ne.0)then
-          if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
-          if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
-          if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
-          if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
-      endif
-      return
-
-      contains
-        real function EX(a,b)
-        !*** statement function
-        real a,b
-        EX=(1.-bias)*(2.*a-b)+bias*max(2.*a-b,a,b)   ! extrapolation, max quarded
-        end function EX
-    end subroutine Continue_at_boundary
 
     subroutine Destroy_distance_between_vertical_layers (this)
 
@@ -520,11 +417,14 @@
           do i = i_st,i_en
 
             ! --- set z (in meters above ground)
-
             z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
 
-            ! --- heat flux
+            ! --- the fire tendencies are too small in uppder levels
+            if (z_w > 2500.) then
+              cycle
+            end if
 
+            ! --- heat flux
             fact_g = cp_i * EXP( - alfg_i * z_w )
             if ( z_w < z1can ) then
                    fact_c = cp_i
@@ -533,18 +433,15 @@
             end if
             hfx(i,k,j) = fact_g * grnhfx(i,j) + fact_c * canhfx(i,j)
 
-    !!            write(msg,2)i,k,j,z_w,grnhfx(i,j),hfx(i,k,j)
-    !!2           format('hfx:',3i4,6e11.3)
-    !!            call message(msg)
-
             ! --- vapor flux
-
             fact_g = xlv_i * EXP( - alfg_i * z_w )
+
             if (z_w < z1can) then
                    fact_c = xlv_i
             else
                    fact_c = xlv_i * EXP( - alfc_i * (z_w - z1can) )
             end if
+
             qfx(i,k,j) = fact_g * grnqfx(i,j) + fact_c * canqfx(i,j)
 
 
@@ -1029,13 +926,13 @@
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
-      real, parameter :: DEFAULT_T2 = 0.0, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
+      real, parameter :: DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
 
       integer, parameter :: N_POINTS_IN_HALO = 5
       real (kind = REAL32) :: att_real32
 
- 
+
       return_value%file_name = trim (file_name)
 
         ! Init projection
@@ -1080,7 +977,7 @@
 
       return_value%sr_x = geogrid%sr_x
       return_value%sr_y = geogrid%sr_y
-      
+
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
@@ -1158,6 +1055,10 @@
       return_value%q2_stag = DEFAULT_Q2
       allocate (return_value%psfc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%psfc_stag = DEFAULT_PSFC
+      allocate (return_value%ua(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%ua = 0.0
+      allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%va = 0.0
 
       allocate (return_value%c1h(return_value%kms:return_value%kme))
       return_value%c1h = DEFAULT_C1H
@@ -1246,89 +1147,6 @@
 
     end subroutine Get_latcloncs
 
-    subroutine interpolate_2d(  &
-          ims2,ime2,jms2,jme2, & ! array coarse grid
-          its2,ite2,jts2,jte2, & ! dimensions coarse grid
-          ims1,ime1,jms1,jme1, & ! array coarse grid
-          its1,ite1,jts1,jte1, & ! dimensions fine grid
-          ir,jr,               & ! refinement ratio
-          rip2,rjp2,rip1,rjp1, & ! (rip2,rjp2) on grid 2 lines up with (rip1,rjp1) on grid 1
-          v2, &                  ! in coarse grid
-          v1  )                  ! out fine grid
-      implicit none
-
-      !*** purpose
-      ! interpolate nodal values in mesh2 to nodal values in mesh1
-      ! interpolation runs over the mesh2 region its2:ite2,jts2:jte2
-      ! only the part of mesh 1 in the region its1:ite1,jts1:jte1 is modified
-
-      !*** arguments
-
-      integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
-      integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
-      integer, intent(in)::ir,jr
-      real,intent(in):: rjp1,rip1,rjp2,rip2
-      real, intent(out)::v1(ims1:ime1,jms1:jme1)
-      real, intent(in)::v2(ims2:ime2,jms2:jme2)
-
-      !*** local
-      integer:: i1,i2,j1,j2,is,ie,js,je
-      real:: tx,ty,rx,ry
-      real:: rio,rjo
-      intrinsic::ceiling,floor
-
-
-      !*** executable
-
-      ! compute mesh ratios
-      rx=1./ir
-      ry=1./jr
-
-      do j2=jts2,jte2-1             ! loop over mesh 2 cells
-        rjo=rjp1+jr*(j2-rjp2)       ! mesh 1 coordinate of the mesh 2 patch start
-        js=max(jts1,ceiling(rjo))   ! lower bound of mesh 1 patch for this mesh 2 cell
-        je=min(jte1,floor(rjo)+jr)  ! upper bound of mesh 1 patch for this mesh 2 cell
-        do i2=its2,ite2-1
-          rio=rip1+ir*(i2-rip2)
-          is=max(its1,ceiling(rio))
-          ie=min(ite1,floor(rio)+ir)
-          do j1=js,je
-            ty = (j1-rjo)*ry
-            do i1=is,ie
-              ! in case mesh 1 node lies on the boundary of several mesh 2 cells
-              ! the result will be written multiple times with the same value
-              ! up to a rounding error
-              tx = (i1-rio)*rx
-              !print *,'coarse ',i2,j2,'to',i2+1,j2+1,' fine ',is,js,' to ',ie,je
-              v1(i1,j1)=                     &
-                    (1-tx)*(1-ty)*v2(i2,j2)  &
-               +    (1-tx)*ty  *v2(i2,j2+1)  &
-               +      tx*(1-ty)*v2(i2+1,j2)  &
-               +        tx*ty  *v2(i2+1,j2+1)
-            enddo
-          enddo
-        enddo
-      enddo
-
-    end subroutine interpolate_2d
-
-    ! general conditional expression
-    pure integer function ifval(l,i,j)
-
-      implicit none
-
-      logical, intent(in)::l
-      integer, intent(in)::i,j
-
-
-      if(l)then
-        ifval=i
-      else
-        ifval=j
-      endif
-
-    end function ifval
-
     subroutine Interp_var2grid_nearest (this, lats_in, lons_in, var_name, vals_out)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
@@ -1372,6 +1190,24 @@
 
         case ('t2')
           var_wrf = this%t2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('q2')
+          var_wrf = this%q2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('psfc')
+          var_wrf = this%psfc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('rain')
+          var_wrf = this%rainnc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) &
+                   + this%rainc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+        case ('fz0')
+          var_wrf = this%z0_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('uf')
+          var_wrf = this%ua(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
+        case ('vf')
+          var_wrf = this%va(this%ids:this%ide - 1, this%jds:this%jde - 1)
 
         case default
           write (ERROR_UNIT, *) 'Unknown variable name to interpolate'
@@ -1425,401 +1261,6 @@
 
     end subroutine Interp_var2grid_nearest
 
-    subroutine Interpolate_wind2fire(this, config_flags,  & ! for debug output, <= 0 no output
-          fire_wind_height,                               & ! interpolation height
-          ids,ide, kds,kde, jds,jde,                      & ! atm grid dimensions
-          ims,ime, kms,kme, jms,jme,                      &
-          ips,ipe,jps,jpe,                                &
-          its,ite,jts,jte,                                &
-          ifds, ifde, jfds, jfde,                         & ! fire grid dimensions
-          ifms, ifme, jfms, jfme,                         &
-          ifts,ifte,jfts,jfte,                            &
-          ir,jr,                                          & ! atm/fire grid ratio
-          u,v,                                            & ! atm grid arrays in
-          ph,phb,                                         &
-          z0,                                             &
-          uf,vf,z0f)                                        ! fire grid arrays out
-
-      implicit none
-
-      class (wrf_t), intent(in) :: this
-      type (namelist_t), intent(in)          :: config_flags
-      real, intent(in):: fire_wind_height                 ! height above the terrain for vertical interpolation
-      integer, intent(in)::                             &
-          ids,ide, kds,kde, jds,jde,                    & ! atm domain bounds
-          ims,ime, kms,kme, jms,jme,                    & ! atm memory bounds
-          ips,ipe,jps,jpe,                              &
-          its,ite,jts,jte,                              & ! atm tile bounds
-          ifds, ifde, jfds, jfde,                       & ! fire domain bounds
-          ifms, ifme, jfms, jfme,                       & ! fire memory bounds
-          ifts,ifte,jfts,jfte,                          & ! fire tile bounds
-          ir,jr                                         ! atm/fire grid refinement ratio
-      real,intent(in),dimension(ims:ime,kms:kme,jms:jme)::&
-          u,v,                                          & ! atm wind velocity, staggered
-          ph,phb                                          ! geopotential
-      real,intent(in),dimension(ims:ime,jms:jme) :: z0    ! roughness height
-      real,intent(out), dimension(ifms:ifme,jfms:jfme)::&
-          uf,vf                                           ! wind velocity fire grid nodes
-      real,intent(in),dimension(ifms:ifme,jfms:jfme)::z0f ! roughness length in fire grid
-
-
-      !*** local
-      real, dimension(its-2:ite+2,jts-2:jte+2):: ua,va   ! atm winds, interpolated over height, still staggered grid
-      real, dimension(its-2:ite+2,kds:kde,jts-2:jte+2):: altw,altub,altvb,hgtu,hgtv ! altitudes
-      integer:: i,j,k,ite1,jte1
-      integer::itst,itet,jtst,jtet,itsu,iteu,jtsu,jteu,itsv,itev,jtsv,jtev
-      integer::kdmax,ips1,jps1
-      integer::itsou,iteou,jtsou,jteou,itsov,iteov,jtsov,jteov
-      real:: loght,loglast,logz0,logfwh,ht,zr
-      real::r_nan
-      integer::i_nan
-      equivalence (i_nan,r_nan)
-      real::fire_wind_height_local,z0fc
-      real::ust_d,wsf,wsf1,uf_temp,vf_temp
-      real,parameter::vk_kappa=0.4
-
-      !*** executable
-      ! debug init local arrays
-      i_nan=2147483647
-      ua=r_nan
-      va=r_nan
-      altw=r_nan
-      altub=r_nan
-      hgtu=r_nan
-      hgtv=r_nan
-
-      !                            ^ j
-      !        ------------        |
-      !        |          |         ----> i
-      !        u    p     |
-      !        |          |    nodes in cell (i,j)
-      !        ------v-----    view from top
-      !
-      !             v(ide,jde+1)
-      !            -------x------
-      !            |            |
-      !            |            |
-      ! u(ide,jde) x      x     x u(ide+1,jde)
-      !            | p(ide,hde) |
-      !            |            |   p=ph,phb,z0,...
-      !            -------x------
-      !              v(ide,jde)
-      !
-      ! staggered values set u(ids:ide+1,jds:jde) v(ids:ide,jds:jde+1)
-      ! p=ph+phb set at (ids:ide,jds:jde)
-      ! location of u(i,j) needs p(i-1,j) and p(i,j)
-      ! location of v(i,j) needs p(i,j-1) and p(i,j)
-      ! *** NOTE need HALO in ph, phb
-      ! so we can compute only u(ids+1:ide,jds:jde) v(ids:ide,jds+1,jde)
-      ! unless we extend p at the boundary
-      ! but because we care about the fire way in the inside it does not matter
-      ! if the fire gets close to domain boundary the simulation is over anyway
-
-      ite1=snode(ite,ide,1)
-      jte1=snode(jte,jde,1)
-
-      ! indexing
-
-      ! file for u
-      itst=ifval(ids.eq.its,its,its-1)
-      itet=ifval(ide.eq.ite,ite,ite+1)
-      jtst=ifval(jds.ge.jts,jts,jts-1)
-      jtet=ifval(jde.eq.jte,jte,jte+1)
-
-      kdmax=kde-1   ! max layer to interpolate from, can be less
-
-      do j = jtst,jtet
-        do k=kds,kdmax+1
-          do i = itst,itet
-            altw(i,k,j) = (ph(i,k,j)+phb(i,k,j)) / G             ! altitude of the bottom w-point
-          enddo
-        enddo
-      enddo
-
-      ! values at u points
-      itsu=ifval(ids.eq.its,its+1,its)  ! staggered direction
-      iteu=ifval(ide.eq.ite,ite,ite+1)  ! staggered direction
-      jtsu=ifval(jds.ge.jts,jts,jts-1)
-      jteu=ifval(jde.eq.jte,jte,jte+1)
-
-      do j = jtsu,jteu
-        do k=kds,kdmax+1
-          do i = itsu,iteu
-            altub(i,k,j)= 0.5*(altw(i-1,k,j)+altw(i,k,j))      ! altitude of the bottom point under u-point
-          enddo
-        enddo
-        do k=kds,kdmax
-          do i = itsu,iteu
-            hgtu(i,k,j) =  0.5*(altub(i,k,j)+altub(i,k+1,j)) - altub(i,kds,j)  ! height of the u-point above the ground
-          enddo
-        enddo
-      enddo
-
-      ! values at v points
-      jtsv=ifval(jds.eq.jts,jts+1,jts)  ! staggered direction
-      jtev=ifval(jde.eq.jte,jte,jte+1)  ! staggered direction
-      itsv=ifval(ids.ge.its,its,its-1)
-      itev=ifval(ide.eq.ite,ite,ite+1)
-
-      do j = jtsv,jtev
-        do k=kds,kdmax+1
-          do i = itsv,itev
-            altvb(i,k,j)= 0.5*(altw(i,k,j-1)+altw(i,k,j))      ! altitude of the bottom point under v-point
-          enddo
-        enddo
-        do k=kds,kdmax
-          do i = itsv,itev
-            hgtv(i,k,j) =  0.5*(altvb(i,k,j)+altvb(i,k+1,j)) - altvb(i,kds,j)  ! height of the v-point above the ground
-          enddo
-        enddo
-      enddo
-
-      ! DME
-      if (config_flags%fire_lsm_zcoupling) then
-        logfwh = log(config_flags%fire_lsm_zcoupling_ref)
-        fire_wind_height_local = config_flags%fire_lsm_zcoupling_ref
-      else
-        logfwh = log(fire_wind_height)
-        fire_wind_height_local = fire_wind_height
-      endif
-
-          ! interpolate u, staggered in X
-
-          do j = jtsu,jteu            ! compute on domain by 1 smaller, otherwise z0 and ph not available
-      !    do i = itsu,iteu        ! compute with halo 2
-            do i = itsu,iteu
-              zr = 0.5*(z0(i,j)+z0(i-1,j)) ! interpolated roughness length under this u point
-              if(fire_wind_height_local > zr)then       !
-                do k=kds,kdmax
-                  ht = hgtu(i,k,j)      ! height of this u point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(zr)
-                      ua(i,j)= u(i,k,j)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgtu(i,k-1,j))
-                      ua(i,j)= u(i,k-1,j) + (u(i,k,j) - u(i,k-1,j)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 10
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    ua(i,j)=u(i,k,j)
-                  endif
-                enddo
-      10        continue
-              else  ! roughness higher than the fire wind height
-                ua(i,j)=0.
-              endif
-            enddo
-          enddo
-
-          do j = jtsu,jteu
-            ua(itsu-1,j)=ua(itsu,j)
-          enddo
-
-          ! interpolate v, staggered in Y
-
-          do j = jtsv,jtev
-            do i = itsv,itev
-              zr = 0.5*(z0(i,j-1)+z0(i,j)) ! roughness length under this v point
-              if(fire_wind_height_local > zr)then       !
-                do k=kds,kdmax
-                  ht = hgtv(i,k,j)      ! height of this u point above the ground
-                  if( .not. ht < fire_wind_height_local) then ! found layer k this point is in
-                    loght = log(ht)
-                    if(k.eq.kds)then               ! first layer, log linear interpolation from 0 at zr
-                      logz0 = log(zr)
-                      va(i,j)= v(i,k,j)*(logfwh-logz0)/(loght-logz0)
-                    else                           ! log linear interpolation
-                      loglast=log(hgtv(i,k-1,j))
-                      va(i,j)= v(i,k-1,j) + (v(i,k,j) - v(i,k-1,j)) * ( logfwh - loglast) / (loght - loglast)
-                    endif
-                    goto 11
-                  endif
-                  if(k.eq.kdmax)then                 ! last layer, still not high enough
-                    va(i,j)=v(i,k,j)
-                  endif
-                enddo
-      11        continue
-              else  ! roughness higher than the fire wind height
-                va(i,j)=0.
-              endif
-            enddo
-          enddo
-
-          do i = itsv,itev
-            va(i,jtsv-1)=va(i,jtsv)
-          enddo
-          ips1 = ifval(ips.eq.ids,ips+1,ips)
-
-          call continue_at_boundary(1,1,0., & ! x direction
-             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
-             ids+1,ide,jds,jde, &     ! domain dims - where u defined
-             itsu,iteu,jtsu,jteu, & ! tile dims - in nonextended direction one beyond if at patch boundary but not domain
-             itsou,iteou,jtsou,jteou, & ! out, where set
-             ua)                           ! array
-
-          jps1 = ifval(jps.eq.jds,jps+1,jps)
-
-          call continue_at_boundary(1,1,0., & ! y direction
-             its-2,ite+2,jts-2,jte+2,       & ! memory dims atm grid tile
-             ids,ide,jds+1,jde, &      ! domain dims - where v wind defined
-             itsv,itev,jtsv,jtev, & ! tile dims
-             itsov,iteov,jtsov,jteov, & ! where set
-             va)                           ! array
-
-      !      ---------------
-      !     | F | F | F | F |   Example of atmospheric and fire grid with
-      !     |-------|-------|   ir=jr=4.
-      !     | F | F | F | F |   Winds are given at the midpoints of the sides of the atmosphere grid,
-      !     ua------z-------|   interpolated to midpoints of the cells of the fine fire grid F.
-      !     | F | F | F | F |   This is (1,1) cell of atmosphere grid, and [*] is the (1,1) cell of the fire grid.
-      !     |---------------|   ua(1,1) <--> uf(0.5,2.5)
-      !     | * | F | F | F |   va(1,1) <--> vf(2.5,0.5)
-      !      -------va------    za(1,1) <--> zf(2.5,2.5)
-      !
-      !   ^ x2
-      !   |  --------va(1,2)---------
-      !   | |            |           |   Example of atmospheric and fire grid with
-      !   | |            |           |   ir=jr=1.
-      !   | |          za,zf         |   Winds are given at the midpoints of the sides of the atmosphere grid,
-      !   | ua(1,1)----uf,vf-----ua(2,1) interpolated to midpoints of the cells of the (the same) fire grid
-      !   | |           (1,1)        |   ua(1,1) <--> uf(0.5,1)
-      !   | |            |           |   va(1,1) <--> vf(1,0.5)
-      !   | |            |           |   za(1,1) <--> zf(1,1)
-      !   |  --------va(1,1)---------
-      !   |--------------------> x1
-      !
-      ! Meshes are aligned by the lower left cell of the domain. Then in the above figure
-      ! u = node with the ua component of the wind at (ids,jds), midpoint of side
-      ! v = node with the va component of the wind at (ids,jds), midpoint of side
-      ! * = fire grid node at (ifds,jfds)
-      ! z = node with height, midpoint of cell
-      !
-      ! ua(ids,jds)=uf(ifds-0.5,jfds+jr*0.5-0.5)         = uf(ifds-0.5,jfds+(jr-1)*0.5)
-      ! va(ids,jds)=vf(ifds+ir*0.5-0.5,jfds-0.5)         = vf(ifds+(ir-1)*0.5,jfds-0.5)
-      ! za(ids,jds)=zf(ifds+ir*0.5-0.5,jfds+jr*0.5-0.5)  = zf(ifds+(ir-1)*0.5,jfds+(jr-1)*0.5)
-
-          ! ifts1=max(snode(ifts,ifps,-1),ifds) ! go 1 beyond patch boundary but not at domain boundary
-          ! ifte1=min(snode(ifte,ifpe,+1),ifde)
-          ! jfts1=max(snode(jfts,jfps,-1),jfds)
-          ! jfte1=min(snode(jfte,jfpe,+1),jfde)
-
-          call interpolate_2d(  &
-              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
-              itsou,iteou,jtsou,jteou,& ! where set
-              ifms,ifme,jfms,jfme,    & ! array dims fire grid
-              ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to
-              ir,jr,                  & ! refinement ratio
-              real(ids),real(jds),ifds-0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-              ua,                     & ! in atm grid
-              uf)                      ! out fire grid
-
-          call interpolate_2d(  &
-              its-2,ite+2,jts-2,jte+2,& ! memory dims atm grid tile
-              itsov,iteov,jtsov,jteov,& ! where set
-              ifms,ifme,jfms,jfme,    & ! array dims fire grid
-              ifts,ifte,jfts,jfte,& ! dimensions on the fire grid to interpolate to
-              ir,jr,                  & ! refinement ratio
-              real(ids),real(jds),ifds+(ir-1)*0.5,jfds-0.5, & ! line up by lower left corner of domain
-              va,                     & ! in atm grid
-              vf)                      ! out fire grid
-
-      ! DME here code to extrapolate mid-flame height velocity -> fire_lsm_zcoupling = .true.
-      if (config_flags%fire_lsm_zcoupling) then
-        do j = jfts,jfte
-          do i = ifts,ifte
-            uf_temp=uf(i,j)
-            vf_temp=vf(i,j)
-            wsf=max(sqrt(uf_temp**2.+vf_temp**2.),0.1)
-            z0fc=z0f(i,j)
-            ust_d=wsf*vk_kappa/log(config_flags%fire_lsm_zcoupling_ref/z0fc)
-            wsf1=(ust_d/vk_kappa)*log((fire_wind_height+z0fc)/z0fc)
-            uf(i,j)=wsf1*uf_temp/wsf
-            vf(i,j)=wsf1*vf_temp/wsf
-          enddo
-        enddo
-      endif
-
-      return
-
-      end subroutine Interpolate_wind2fire
-
-      subroutine Interpolate_z2fire(this,      & ! for debug output, <= 0 no output
-            ifds,ifde, jfds,jfde,              & ! fire grid dimensions
-            ifms,ifme, jfms,jfme,              &
-            ifts,ifte, jfts,jfte,              &
-            ir, jr,                            & ! atm/fire grid ratio
-            zs,                                & ! atm grid arrays in
-            zsf, flag_z0)                          ! fire grid arrays out
-
-        implicit none
-        !*** purpose: interpolate height or any other 2d variable defined at mesh cell centers
-
-        !*** arguments
-        class (wrf_t), intent (in) :: this
-        integer, intent(in) :: ifds,ifde, jfds,jfde,     & ! fire domain bounds
-                               ifms,ifme, jfms,jfme,     & ! fire memory bounds
-                               ifts,ifte, jfts,jfte,     & ! fire tile bounds
-                               ir, jr                        ! atm/fire grid refinement ratio
-        real, intent(in), dimension(this%ims:this%ime, this%jms:this%jme) :: zs  ! terrain height at atm cell centers & ! terrain height
-        real,intent(out), dimension(ifms:ifme, jfms:jfme) :: &
-            zsf                                              ! terrain height fire grid nodes
-        integer,intent(in) :: flag_z0
-
-
-        !*** local
-        real, dimension(this%its-2:this%ite+2,this%jts-2:this%jte+2) :: za      ! terrain height
-        integer :: i,j,jts1,jte1,its1,ite1,jfts1,jfte1,ifts1,ifte1,itso,jtso,iteo,jteo
-
-        ! terrain height
-
-        jts1 = max(this%jts-1, this%jds) ! lower loop limit by one less when at end of domain
-        its1 = max(this%its-1, this%ids) ! ASSUMES THE HALO IS THERE if patch != domain
-        jte1 = min(this%jte+1, this%jde)
-        ite1 = min(this%ite+1, this%ide)
-
-        do j = jts1,jte1
-            do i = its1,ite1
-                ! copy to local array
-                za(i, j) = zs(i, j)
-            enddo
-        enddo
-
-        call continue_at_boundary(1,1,0., & ! do x direction or y direction
-        this%its-2,this%ite+2,this%jts-2,this%jte+2,           &                ! memory dims
-        this%ids,this%ide,this%jds,this%jde, &            ! domain dims - winds defined up to +1
-        its1,ite1,jts1,jte1, &                ! tile dims
-        itso,jtso,iteo,jteo, &
-        za)                               ! array
-
-        ! interpolate to tile plus strip along domain boundary if at boundary
-        jfts1 = snode(jfts, jfds, -1) ! lower loop limit by one less when at end of domain
-        ifts1 = snode(ifts, ifds, -1)
-        jfte1 = snode(jfte, jfde, +1)
-        ifte1 = snode(ifte, ifde, +1)
-
-        call interpolate_2d(  &
-            this%its-2,this%ite+2,this%jts-2,this%jte+2,     & ! memory dims atm grid tile
-            its1-1,ite1+1,jts1-1,jte1+1, & ! where atm grid values set
-            ifms,ifme,jfms,jfme,         & ! array dims fire grid
-            ifts1,ifte1,jfts1,jfte1,     & ! dimensions fire grid tile
-            ir,jr,                       & ! refinement ratio
-            real(this%ids),real(this%jds),ifds+(ir-1)*0.5,jfds+(jr-1)*0.5, & ! line up by lower left corner of domain
-            za,                     & ! in atm grid
-            zsf)                      ! out fire grid
-
-        if (flag_z0 .eq. 1 ) then
-          do j=jfts1,jfte1
-            do i=ifts1,ifte1
-              zsf(i, j) = max(zsf(i, j), 0.001)
-            enddo
-          enddo
-        endif
-
-    end subroutine Interpolate_z2fire
-
     subroutine Print_domain (this)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -1848,58 +1289,6 @@
 
     end subroutine Print_domain
 
-    subroutine Read_wrf_input (this)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      real :: check_val
-      integer :: io_stat, wrf_input_unit
-
-
-      open (newunit = wrf_input_unit, file = 'wrf_input.dat', iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening the wrf_input.dat file'
-        stop
-      end if
-
-      check_val = 0
-      read (wrf_input_unit, *, iostat = io_stat) this%u3d_stag
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading wrf_input.dat'
-        stop
-      end if
-
-      read (wrf_input_unit, *) this%v3d_stag
-      read (wrf_input_unit, *) this%ph_stag
-      read (wrf_input_unit, *) this%phb_stag
-      read (wrf_input_unit, *) this%rho_stag
-      read (wrf_input_unit, *) this%z_at_w_stag
-      read (wrf_input_unit, *) this%dz8w_stag
-      read (wrf_input_unit, *) this%z0_stag
-      read (wrf_input_unit, *) this%mut_stag
-      read (wrf_input_unit, *) check_val
-
-      write (OUTPUT_UNIT, *) check_val
-
-      close (wrf_input_unit)
-
-    end subroutine Read_wrf_input
-
-    ! function to go beyond domain boundary if tile is next to it
-    pure integer function snode(t,d,i)
-      implicit none
-      integer, intent(in)::t,d,i
-      if(t.ne.d)then
-          snode=t
-      else
-          snode=t+i
-      endif
-    end function snode
-
     subroutine Update_atm_state (this, datetime_now)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -1907,17 +1296,10 @@
       implicit none
 
       class (wrf_t), intent(in out) :: this
-!      type (namelist_t), intent (in) :: config_flags
       type (datetime_t), intent (in) :: datetime_now
 
       logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
-
-
-!      must go outside
-!      If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
-!        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
-!        if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
 
           ! Update t2_stag
@@ -2030,9 +1412,6 @@
           end do
         end do
         call this%Destroy_rho ()
-
-!        call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
-!      end if If_update_atm
 
     end subroutine Update_atm_state
 

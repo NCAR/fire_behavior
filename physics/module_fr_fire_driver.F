@@ -172,7 +172,6 @@ subroutine fire_driver_em ( grid , config_flags )
         endif
     endif
 
-
     ignitions_done = 0
 
       ! check the tiles
@@ -237,7 +236,7 @@ subroutine fire_driver_em ( grid , config_flags )
         grid%dx,grid%dy,                                  & ! fire mesh spacing
         ignition_line,                          & ! description of ignition lines
         ignitions_done,ignited_tile,            &
-        grid%fxlong,grid%fxlat,grid%unit_fxlong,grid%unit_fxlat,    & ! fire mesh coordinates
+        grid%lons,grid%lats,grid%unit_fxlong,grid%unit_fxlat,    & ! fire mesh coordinates
         grid%lfn,                                    & ! state: level function
         grid%lfn_hist,                               & ! PAJ: to init obs fire perimeter
         config_flags%fire_is_real_perim,                     & ! PAJ: to init obs fire perimeter

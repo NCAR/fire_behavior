@@ -565,6 +565,7 @@ module fire_behavior_nuopc
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
     integer                     :: i, j
+    real                        :: wspd
     character(len=160)          :: msgString
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph, atm_pres
 
@@ -622,7 +623,7 @@ module fire_behavior_nuopc
 
       do i = grid%ifds, grid%ifde
         grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
-        grid%fire_t2(i,j) = max (grid%fire_t2(i,j), .001)
+        grid%fire_t2(i,j) = max (grid%fire_t2(i,j), 123.4) ! avoid arithmatic error
         grid%fire_psfc(i,j) = max (grid%fire_psfc(i,j), .001)
 !        grid%fire_rain(i,j) = max (grid%fire_t2(i,j), .001)
       end do
@@ -642,12 +643,20 @@ module fire_behavior_nuopc
     
     do j = 1, grid%jfde
       do i = 1, grid%ifde
-        call grid%Interpolate_wind3d (config_flags,  & ! for debug output, <= 0 no output
+        call grid%Interpolate_profile (config_flags,  & ! for debug output, <= 0 no output
             config_flags%fire_wind_height,           & ! interpolation height
-            grid%ifds, grid%ifde, grid%kfds, grid%kfde, grid%jfds, grid%jfde,    & ! fire grid dimensions
+            grid%kfds, grid%kfde,                    & ! fire grid dimensions
             atm_u3d(i,j,:),atm_v3d(i,j,:),           & ! atm grid arrays in
             atm_ph(i,j,:),                           &
             grid%uf(i,j),grid%vf(i,j),grid%fz0(i,j))
+
+        ! avoid arithmatic error
+        wspd = (grid%uf(i,j) ** 2. + grid%vf(i,j) ** 2.) ** .5
+        if (wspd < 0.001) then
+          grid%uf(i,j) = sign(0.001, grid%uf(i,j))
+          grid%vf(i,j) = sign(0.001, grid%vf(i,j))
+        endif
+
       enddo
     enddo
 
