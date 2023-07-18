@@ -24,14 +24,16 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_psfc(:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_rain(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_rainrte(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_rainacc(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
-  logical :: rainrate = .TRUE.
+  logical :: imp_rainrte = .FALSE.
+  logical :: imp_rainacc = .FALSE.
 
   contains
 
@@ -155,9 +157,9 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: inst_rainfall_amount
+    ! importable field: accumulated_lwe_thickness_of_precipitation_amount
     call NUOPC_Advertise(importState, &
-      StandardName="inst_rainfall_amount", rc=rc)
+      StandardName="accumulated_lwe_thickness_of_precipitation_amount", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -397,6 +399,7 @@ module fire_behavior_nuopc
        return  ! bail out
 
      if (NUOPC_IsConnected(importState, fieldName="mean_prec_rate")) then
+       imp_rainrte = .TRUE.
        ! importable field on Grid: mean_prec_rate
        field = ESMF_FieldCreate(name="mean_prec_rate", grid=fire_grid, &
          typekind=ESMF_TYPEKIND_R8, rc=rc)
@@ -404,34 +407,46 @@ module fire_behavior_nuopc
          line=__LINE__, &
          file=__FILE__)) &
          return  ! bail out
-       call ESMF_StateRemove(importState, (/"inst_rainfall_amount"/), rc=rc)
-     elseif (NUOPC_IsConnected(importState, fieldName="inst_rainfall_amount")) then
+       call NUOPC_Realize(importState, field=field, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+       ! Get Field memory
+       call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_rainrte, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+     else
+       imp_rainrte = .FALSE.
+       call ESMF_StateRemove(importState, (/"mean_prec_rate"/), rc=rc)
+     endif
+
+     if (NUOPC_IsConnected(importState, fieldName="accumulated_lwe_thickness_of_precipitation_amount")) then
+       imp_rainacc = .TRUE.
        ! importable field on Grid: inst_rainfall_amount
-       field = ESMF_FieldCreate(name="inst_rainfall_amount", grid=fire_grid, &
+       field = ESMF_FieldCreate(name="accumulated_lwe_thickness_of_precipitation_amount", grid=fire_grid, &
          typekind=ESMF_TYPEKIND_R8, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
          return  ! bail out
-       rainrate = .FALSE.
-       call ESMF_StateRemove(importState, (/"mean_prec_rate"/), rc=rc)
+       call NUOPC_Realize(importState, field=field, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+       ! Get Field memory
+       call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_rainacc, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
      else
-       call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
-         msg="missing rainfall import", &
-         line=__LINE__, file=__FILE__, rcToReturn=rc)
-         return
+       imp_rainacc = .FALSE.
+       call ESMF_StateRemove(importState, (/"accumulated_lwe_thickness_of_precipitation_amount"/), rc=rc)
      endif
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_rain, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
 
      ! importable field on Grid: inst_spec_humid_height2m
      field = ESMF_FieldCreate(name="inst_spec_humid_height2m", grid=fire_grid, &
@@ -611,12 +626,17 @@ module fire_behavior_nuopc
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
-    ! convert m s-1 to m
     print *, ts
-    if (rainrate) then
-      grid%fire_rain(1:grid%nx,1:grid%ny) = grid%fire_rain(1:grid%nx,1:grid%ny) + ptr_rain(clb(1):cub(1),clb(2):cub(2)) * ts
+    if (imp_rainrte) then
+      ! convert m s-1 to m and accumulate
+      grid%fire_rain(1:grid%nx,1:grid%ny) = grid%fire_rain(1:grid%nx,1:grid%ny) + ( ptr_rainrte(clb(1):cub(1),clb(2):cub(2)) * ts )
+    elseif (imp_rainacc) then
+      grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rainacc(clb(1):cub(1),clb(2):cub(2))
     else
-      grid%fire_rain(1:grid%nx,1:grid%ny) = ptr_rain(clb(1):cub(1),clb(2):cub(2))
+      call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
+        msg="missing rainfall import", &
+        line=__LINE__, file=__FILE__, rcToReturn=rc)
+      return
     endif
 
     do j = grid%jfds, grid%jfde
