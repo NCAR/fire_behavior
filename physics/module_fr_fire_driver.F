@@ -18,8 +18,7 @@ module module_fr_fire_driver
 !
 
 use module_fr_fire_model, only: Fire_model
-use module_fr_fire_phys, only : fire_params, Init_fuel_cats, &
-                                Set_fire_params
+use module_fr_fire_phys, only : Init_fuel_cats, Set_fire_params
 use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
@@ -46,24 +45,7 @@ contains
     type (state_fire_t), target :: grid
     type (namelist_t), intent(in) :: config_flags
 
-    type(fire_params) :: fp
     real :: time_start
-
-
-      ! pointers to be passed to fire rate of spread formulas
-    fp%vx => grid%uf         ! W-E winds used in fire module
-    fp%vy => grid%vf         ! S-N winds used in fire module
-    fp%zsf => grid%zsf       ! terrain height
-    fp%dzdxf => grid%dzdxf   ! terrain grad
-    fp%dzdyf => grid%dzdyf   ! terrain grad
-    fp%bbb => grid%bbb       ! a rate of spread formula coeff
-    fp%betafl => grid%betafl ! a rate of spread formula variable
-    fp%phiwc => grid%phiwc   ! a rate of spread formula coeff
-    fp%r_0 => grid%r_0       ! a rate of spread formula variable
-    fp%fgip => grid%fgip     ! a rate of spread formula coeff
-    fp%ischap => grid%ischap ! a rate of spread formula switch
-    fp%iboros => grid%iboros ! Ib divided by ROS
-    fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
       ! get ignition data
     call fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
@@ -85,7 +67,7 @@ contains
         grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
         grid%dx,grid%dy,                         &
         grid%nfuel_cat,grid%fuel_time, &
-        fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+        grid,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
       ! initialize model state to no fire
     time_start = grid%itimestep * grid%dt
@@ -109,24 +91,7 @@ subroutine fire_driver_em ( grid , config_flags )
     integer :: ignitions_done              ! number of isolated ignitions
     integer :: ignited_tile(fire_num_ignitions) ! number of gridpts ignited in a given ignition
     real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
-    type(fire_params)::fp
     real:: time_start
-
-
-    ! pointers to be passed to fire rate of spread formulas
-    fp%vx => grid%uf         ! W-E winds used in fire module
-    fp%vy => grid%vf         ! S-N winds used in fire module
-    fp%zsf => grid%zsf       ! terrain height 
-    fp%dzdxf => grid%dzdxf   ! terrain grad 
-    fp%dzdyf => grid%dzdyf   ! terrain grad 
-    fp%bbb => grid%bbb       ! a rate of spread formula coeff 
-    fp%betafl => grid%betafl ! a rate of spread formula variable 
-    fp%phiwc => grid%phiwc   ! a rate of spread formula coeff 
-    fp%r_0 => grid%r_0       ! a rate of spread formula variable
-    fp%fgip => grid%fgip     ! a rate of spread formula coeff 
-    fp%ischap => grid%ischap ! a rate of spread formula switch
-    fp%iboros => grid%iboros ! Ib divided by ROS
-    fp%fmc_g => grid%fmc_g   ! fuel moisture, ground
 
     ! time - assume dt does not change
     time_start = grid%itimestep * grid%dt
@@ -184,7 +149,7 @@ subroutine fire_driver_em ( grid , config_flags )
                   grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
                   grid%dx,grid%dy,                         &
                   grid%nfuel_cat,grid%fuel_time, &
-                  fp,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+                  grid,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
     endif
 
@@ -208,7 +173,7 @@ subroutine fire_driver_em ( grid , config_flags )
         grid%fgrnhfx,grid%fgrnqfx,                        & ! output: heat fluxes
         grid%ros,                                    & ! output: rate of spread for display
         grid%fuel_time,                              & ! save derived internal data
-        fp,                                     & ! fire coefficients
+        grid,                                        & ! fire coefficients
         config_flags%fire_fuel_left_method, config_flags%fire_fuel_left_irl, config_flags%fire_fuel_left_jrl, &
         config_flags%fire_boundary_guard, config_flags%fire_grows_only, config_flags%fire_upwinding, &
         config_flags%fire_upwind_split, config_flags%fire_upwinding_reinit, &

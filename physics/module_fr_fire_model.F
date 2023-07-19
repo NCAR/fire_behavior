@@ -6,7 +6,9 @@ module module_fr_fire_model
                                Ignite_fire, Prop_ls_rk3
   use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
-  use module_fr_fire_phys, only: Heat_fluxes, fire_params
+  use module_fr_fire_phys, only: Heat_fluxes
+
+  use state_mod, only: state_fire_t
 
   private
 
@@ -33,7 +35,7 @@ module module_fr_fire_model
         grnhfx,grnqfx,                          & ! output: heat fluxes
         ros,                                    & ! output: rate of spread
         fuel_time,                              & ! save derived internal data
-        fp,                                     &
+        grid,                                   &
         fuel_left_method, fuel_left_irl, fuel_left_jrl, &
         boundary_guard, fire_grows_only, fire_upwinding, &
         fire_upwind_split, fire_upwinding_reinit, &
@@ -97,7 +99,7 @@ real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
     grnhfx,grnqfx, &                        ! heat fluxes J/m^2/s  (cell)             
     ros                                     ! output: rate of spread
 real, intent(inout),dimension(ifms:ifme,jfms:jfme):: fuel_time
-type(fire_params),intent(inout)::fp
+type (state_fire_t), target :: grid
 
 real, dimension(ifts:ifte,jfts:jfte)::fuel_frac_burnt,fuel_frac_end
 integer::ignited,ig,i,j
@@ -120,13 +122,13 @@ ignitions_done=0
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        fp%vx,fp%vy)/((ifde-ifds+1)*(jfde-jfds+1))
+        grid%uf,grid%vf)/((ifde-ifds+1)*(jfde-jfds+1))
       mw=fun_real(RNRM_MAX,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        fp%vx,fp%vy)
+        grid%uf,grid%vf)
 !$OMP MASTER 
       write(msg,91)time_start,'Average wind        ',aw,'m/s'
       call message(msg,fire_print_msg,stat_lev)
@@ -144,8 +146,7 @@ ignitions_done=0
     ! will call module_fr_fire_speed::normal_spread for propagation speed
     ! We cannot simply compute the spread rate here because that will change with the
     ! angle of the wind and the direction of propagation, thus it is done in subroutine
-    ! normal_spread at each fire time step. Instead, we pass arguments that 
-    ! the speed function may use as fp. 
+    ! normal_spread at each fire time step.
 
 !   propagate level set function in time
 !   set lfn_out tign
@@ -165,7 +166,7 @@ ignitions_done=0
              tbound,                                    &
              lfn,                                       &
              lfn_0,lfn_1,lfn_2,                         & 
-             lfn_out,tign,ros, fp                       &
+             lfn_out,tign,ros, grid                     &
          ) 
 
        call tign_update(ifts,ifte,jfts,jfte, & 
@@ -178,7 +179,7 @@ ignitions_done=0
 
        call calc_flame_length(ifts,ifte,jfts,jfte, & 
                               ifms,ifme,jfms,jfme, &
-                              ros,fp%iboros,flame_length,ros_front,fire_area)
+                              ros,grid%iboros,flame_length,ros_front,fire_area)
 
        if (fire_lsm_reinit) then ! DME added call to reinitialize level-set function
           
@@ -275,11 +276,11 @@ ignitions_done=0
                    ifts,ifte,jfts,jfte, &
                    fuel_frac_burnt,'model: fuel_frac burned',fire_print_msg)
         
-    call heat_fluxes(dt,fp,                       &
+    call heat_fluxes(dt,grid,                     &
         ifms,ifme,jfms,jfme,                      &
         ifts,ifte,jfts,jfte,                      &
         ifts,ifte,jfts,jfte,                      &  ! fuel_frac_burned is tile dimensioned
-        fp%fgip,                                     &
+        grid%fgip,                                &
         fuel_frac_burnt,                          & !
         grnhfx,grnqfx)                              !out
 

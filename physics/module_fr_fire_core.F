@@ -1,8 +1,10 @@
 
 module module_fr_fire_core
 
-use module_fr_fire_phys, only: fire_params , Fire_ros
+use module_fr_fire_phys, only: Fire_ros
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
+
+use state_mod, only: state_fire_t
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 
@@ -1239,7 +1241,7 @@ subroutine prop_ls_rk3(               &
                 lfn_in,                  &
                 lfn_0,lfn_1,lfn_2,       & 
                 lfn_out,tign,ros,        &           
-                fp                       &
+                grid                     &
                    )
 
 
@@ -1310,7 +1312,7 @@ real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0
 real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
 real,intent(in)::dx,dy,ts,dt
 real,intent(out)::tbound
-type(fire_params),intent(in)::fp
+type (state_fire_t), target :: grid
 
 real,dimension(ifms:ifme,jfms:jfme):: tend
 ! scalars
@@ -1366,7 +1368,7 @@ call message(msg,fire_print_msg)
     lfn_0,               &                       ! arrays in
     tbound,              &                       ! scalars out 
     tend, ros,           &                       ! arrays out        
-    fp                   &                       ! params
+    grid                 &                       ! params
 )
 
     do j=jfts,jfte 
@@ -1397,7 +1399,7 @@ call message(msg,fire_print_msg)
     lfn_1,               &                             
     tbound2,             &                              
     tend,ros,            &                           
-    fp                   &
+    grid                 &
 )
 
     do j=jfts,jfte
@@ -1428,7 +1430,7 @@ call message(msg,fire_print_msg)
     lfn_2,               &                            
     tbound3,             &                            
     tend,ros,            &                           
-    fp                   &
+    grid                 &
 )
 
     do j=jfts,jfte
@@ -1803,7 +1805,7 @@ subroutine tend_ls( &
     lfn,                &              ! arrays in
     tbound,             &              ! scalars out 
     tend, ros,          &              ! arrays out
-    fp                  &
+    grid                &
 )
 
 implicit none
@@ -1822,7 +1824,7 @@ real,dimension(ims:ime,jms:jme),intent(inout)::lfn ! level set function
 real,dimension(ims:ime,jms:jme),intent(out)::tend  ! tendency (rhs of the level set pde)
 real,dimension(ims:ime,jms:jme),intent(out)::ros   ! rate of spread 
 real,intent(out)::tbound                           ! max allowed time step
-type(fire_params),intent(in)::fp
+type (state_fire_t), target :: grid
 
 !*** local 
 real:: te,diffLx,diffLy,diffRx,diffRy, & 
@@ -1894,16 +1896,16 @@ threshold_AV=fire_viscosity_ngp*dx
                   diff2y=select_2nd(rr,dy,lfn(i,j),lfn(i,j-1),lfn(i,j+1))
                   grad=sqrt(diff2x*diff2x + diff2y*diff2y)
               case(6) ! 3rd-order WENO (DME)
-                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*fp%vx(i,j)+ &
-                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*fp%vy(i,j)
+                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
+                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
                   signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
                   signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
                   diff2x=select_weno3(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j),signo_x)
                   diff2y=select_weno3(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2),signo_y)
                   grad=sqrt(diff2x*diff2x + diff2y*diff2y)
               case(7) ! 5th-order WENO (DME)
-                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*fp%vx(i,j)+ &
-                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*fp%vy(i,j)
+                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
+                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
                   signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
                   signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
                   diff2x=select_weno5(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i-3,j),lfn(i+1,j),lfn(i+2,j),lfn(i+3,j),signo_x)
@@ -1911,8 +1913,8 @@ threshold_AV=fire_viscosity_ngp*dx
                   grad=sqrt(diff2x*diff2x + diff2y*diff2y)
               case(8) ! high-order local band method WENO3/ENO1 (DME)
                   if (abs(lfn(i,j)).lt.threshold_HLu) then
-                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*fp%vx(i,j)+ &
-                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*fp%vy(i,j)
+                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
+                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
                     signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
                     signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
                     diff2x=select_weno3(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j),signo_x)
@@ -1925,8 +1927,8 @@ threshold_AV=fire_viscosity_ngp*dx
                   endif
               case(9) ! high-order local band method WENO5/ENO1 (DME)
                   if (abs(lfn(i,j)).lt.threshold_HLu) then
-                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*fp%vx(i,j)+ &
-                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*fp%vy(i,j)
+                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
+                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
                     signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
                     signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
                     diff2x=select_weno5(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i-3,j),lfn(i+1,j),lfn(i+2,j),lfn(i+3,j),signo_x)
@@ -1947,10 +1949,10 @@ threshold_AV=fire_viscosity_ngp*dx
             nvy=diff2y/scale 
 
             ! wind speed in direction of spread
-            speed =  fp%vx(i,j)*nvx + fp%vy(i,j)*nvy
+            speed =  grid%uf(i,j)*nvx + grid%vf(i,j)*nvy
             ! get rate of spread from wind speed and slope
             call fire_ros(ros_base,ros_wind,ros_slope, &
-            nvx,nvy,i,j,fp,fire_advection)
+            nvx,nvy,i,j,grid,fire_advection)
             rr=ros_base + ros_wind + fire_slope_factor*ros_slope
 
             if(fire_grows_only.gt.0)rr=max(rr,0.)
@@ -1969,18 +1971,18 @@ threshold_AV=fire_viscosity_ngp*dx
 
 		! advection in wind direction 
                 if (abs(speed)> eps) then
-                    advx=fp%vx(i,j)*ros_wind/speed
-                    advy=fp%vy(i,j)*ros_wind/speed
+                    advx=grid%uf(i,j)*ros_wind/speed
+                    advy=grid%vf(i,j)*ros_wind/speed
                 else 
                     advx=0
                     advy=0
                 endif
 
-                tanphi =  fp%dzdxf(i,j)*nvx + fp%dzdyf(i,j)*nvy
+                tanphi =  grid%dzdxf(i,j)*nvx + grid%dzdyf(i,j)*nvy
 		! advection from slope direction 
                 if(abs(tanphi)>eps) then
-                    advx=advx+fp%dzdxf(i,j)*ros_slope/tanphi
-                    advy=advy+fp%dzdyf(i,j)*ros_slope/tanphi
+                    advx=advx+grid%dzdxf(i,j)*ros_slope/tanphi
+                    advy=advy+grid%dzdyf(i,j)*ros_slope/tanphi
                 endif
 
                 if(fire_upwind_split.eq.1)then   
