@@ -3,17 +3,252 @@ module module_fr_fire_fuel_moisture_model
 
 use constants_mod, only : XLV
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
-use module_fr_fire_phys, only: fuelmc_g, max_moisture_classes, moisture_classes, &
-                               rain_threshold, saturation_moisture, saturation_rain, &
-                               wetting_model, rec_drying_lag_sec, rec_wetting_lag_sec, &
-                               drying_model, fmc_gc_initialization, fmc_gc_initial_value, fmc_gw
+
+use state_mod, only: state_fire_t
+use namelist_mod, only: namelist_t
 
 PRIVATE
 
 ! subroutines and functions 
-PUBLIC:: fuel_moisture,advance_moisture
+PUBLIC:: init_fuel_moisture,fuel_moisture,advance_moisture,check_for_moisture
+PUBLIC::mfuelcats,nf,nfuelcats,zf,no_fuel_cat,fuelmc_g,fuelmc_c,fgi
+
+!***************************************************************************************!
+!***                                  Fuel moisture model                            ***!
+!***************************************************************************************!
+!*** subroutine advance_moisure: a step of time-delay differential equation for each ***!
+!***    fuel class (10h, 100h, 1000h) on Earth surface atmospheric mesh, towards     ***!
+!***    fuel moisture content equilibrium from the atmosphere state on the surface   ***!
+!*** subroutine fuel_moisture: interpolate to fire mesh and average the fuel         ***!
+!***    moisture contents from the fuel classes to the fuel present in the fire mesh ***!
+!***    cell with weights given in fuel description                                  ***!
+!*** See https://www.openwfm.org/wiki/Fuel_moisture_model for further details        ***!
+!***    including additional namelist.input and namelist.fire variables.             ***!
+!*** Developed 09/2011-09/2012 and merged from https://github.com/openwfm/wrf-fire   ***!
+!***    with common ancestor as submitted to V3.3 in 01/2017 commit 3f78267b38e0f0a3 ***!
+!*** Reference: J. Mandel, S. Amram, J.D. Beezley, G. Kelman, A.K. Kochanski, V.Y.   ***!
+!***    Kondratenko, B.H. Lynn, B. Regev, M. Vejmelka, Recent advances and           ***!
+!***    applications of WRF-SFIRE. Natural Hazards and Earth System Science, 14,     ***!
+!***    2829-2845, 2014, doi:10.5194/nhess-14-2829-2014                              ***!
+!***************************************************************************************!
+
+!! To add moisture classes:
+!  1. change parameter max_moisture_classes below
+!  2. change the default of nfmc to the same value in Registry/registry.fire
+!  3. add the appropriate lines real::fmc_gw<number>= <default values>
+!  4. add default
+
+!*** dimensions
+  INTEGER, PARAMETER :: mfuelcats = 30     ! allowable number of fuel categories
+  INTEGER, PARAMETER ::max_moisture_classes=5
+!***
+
+  integer, save:: moisture_classes=5
+  real, dimension(max_moisture_classes), save:: drying_lag,wetting_lag,saturation_moisture,saturation_rain, &
+         rain_threshold,rec_drying_lag_sec,rec_wetting_lag_sec,fmc_gc_initial_value
+  integer, dimension(max_moisture_classes), save:: drying_model,wetting_model,fmc_gc_initialization
+   ! relative weights of moisture class for each fuel category
+   integer::itmp
+   CHARACTER (len=80), DIMENSION(max_moisture_classes), save :: moisture_class_name
+  REAL, save:: fmc_1h, fmc_10h, fmc_100h, fmc_1000h, fmc_live
+
+  data moisture_class_name /'1-h','10-h','100-h','1000-h','Live'/
+  data drying_lag          /1., 10., 100., 1000.,1e9/  ! time lag (h) approaching equilibrium moisture
+  data wetting_lag         /1.4,14., 140., 1400.,1e9/  ! time lag (h) for approaching saturation in rain
+  data saturation_moisture /2.5, 2.5, 2.5 ,2.5, 2.5/  ! saturation moisture contents (1) in rain
+  data saturation_rain     /8.0, 8.0, 8.0, 8.0, 8.0/  ! stronger rain matters only in duration (mm/h)
+  data rain_threshold      /0.05,0.05,0.05,0.05,0.05/ ! rain intensity this small is same as nothing
+  data drying_model        /1,   1,   1,   1,   1 / ! future proofing
+  data wetting_model       /1,   1,   1,   1,   1 / ! future proofing
+  data fmc_gc_initialization/2,  2,   2,   2,   3 / ! initialization 0=input, 1=from fuelmc_g,
+                                                    ! 2=from equilibrium, 3=from fmc_1h,...,fmc_live
+  data fmc_gc_initial_value/0.,  0.,  0.,  0.,  0./ ! initial value used in the model, to be the actual value fmc_1h,...,fmc_live or read in
+  data fmc_1h /0.08/, fmc_10h/0.08/, fmc_100h/0.08/, fmc_1000h/0.08/, fmc_live/0.3/
+  ! live fuel moisture following https://www.nwcg.gov/publications/pms437/fuel-moisture/live-fuel-moisture-content
+  ! from Rothermel, 1983 Table II-2 p.13 https://www.fs.usda.gov/treesearch/pubs/24635
+  ! 300% Fresh foliage, annuals developing early in the growing cycle
+  ! 200% Maturing foliage, still developing, with full turgor
+  ! 100% Mature foliage, new growth complete and comparable to older perennial foliage
+  ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
+  ! 30%  Completely cured, treat as dead fuel
+
+! =========================================================================
+
+! scalar fuel coefficients
+   REAL, SAVE:: fuelmc_g,fuelmc_c ! FUELMC_G = moisture content of surface fuel
+                                  ! FUELMC_C = moisture content of canopy fuel
+
+! defaults, may be changed in init_fuel_cats
+   DATA fuelmc_g / 0.08  /                ! set = 0 for dry surface fuel
+   DATA fuelmc_c / 1.00  /                ! set = 0 for dry canopy
+
+! fuel categorytables
+   INTEGER, PARAMETER :: nf=14              ! number of fuel categories in data stmts
+   INTEGER, SAVE      :: nfuelcats = 13     ! number of fuel categories that are specified
+   INTEGER, PARAMETER :: zf = mfuelcats-nf  ! number of zero fillers in data stmt
+   INTEGER, SAVE      :: no_fuel_cat = 14   ! special category outside of 1:nfuelcats
+   REAL   , DIMENSION( mfuelcats ), save :: fgi_1h,fgi_10h,fgi_100h,fgi_1000h,fgi_live, fgi, &
+                                            fgi_t,fmc_gwt
+   REAL,   DIMENSION(mfuelcats,max_moisture_classes), save :: fgi_c, fmc_gw ! fuel moisture class weights
+
+! fuel loading 1-h, 10-h, 100-h, 1000-h, live following Albini 1976 as reprinted in Anderson 1982 Table 1 (for proportions only)
+!                     1      2      3      4      5      6      7      8      9     10     11     12     13     14
+  DATA fgi_1h    / 0.74,   2.00,  3.01,  5.01,  1.00,  1.50,  1.13,  1.50,  2.92,  3.01,  1.50,  4.01,  7.01,   0.0,   zf*0./
+  DATA fgi_10h   / 0.00,   1.00,  0.00,  4.01,  0.50,  2.50,  1.87,  1.00,  0.41,  2.00,  4.51, 14.03, 23.04,   0.0,   zf*0./
+  DATA fgi_100h  / 0.00,   0.50,  0.00,  2.00,  0.00,  2.00,  1.50,  2.50,  0.15,  5.01,  5.51, 16.53, 28.05,   0.0,   zf*0./
+  DATA fgi_1000h / 0.0,    0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,    0.0,   zf*0./
+  DATA fgi_live  / 0.00,   0.50,  0.000, 5.01,  2.00,  0.00,  0.37,  0.00,  0.00,  2.00,  0.00,  2.3,   0.00,   0.0,   zf*0./
+
+! total fuel loading kg/m^2
+  DATA fgi       / 0.166,  0.896, 0.674, 3.591, 0.784, 1.344, 1.091, 1.120, 0.780, 2.692, 2.582, 7.749, 13.024, 1.e-7, zf*0.  /
 
 contains
+
+subroutine init_fuel_moisture( grid, config_flags )
+
+    implicit none
+
+    type (state_fire_t), target :: grid
+    type (namelist_t), intent (in) :: config_flags
+
+    !*** local
+    integer:: i, k
+    character(len=128):: msg
+    real:: rat
+
+    grid%fmoist_lasttime = grid%itimestep * grid%dt
+    grid%fmoist_nexttime = grid%fmoist_lasttime
+
+    ! From read_namelist_fire
+    if (nfuelcats>mfuelcats) then
+        write(msg,*)'nfuelcats=',nfuelcats,' is too large, increase mfuelcats'
+        call crash(msg)
+    endif
+    if (no_fuel_cat >= 1 .and. no_fuel_cat <= nfuelcats)then
+        write(msg,*)'no_fuel_cat=',no_fuel_cat,' may not be between 1 and nfuelcats=',nfuelcats
+        call crash(msg)
+    endif
+
+    ! convert fuel loads in the fuel classes to internal as weights adding up to one
+    !
+    ! copy the fuel weights and scale to 1
+
+    ! just checking
+    if (max_moisture_classes.ne.5)then
+        call crash('Must have 5 fuel classes, modify source code if not')
+    endif
+    !**************************************************************************************************
+    ! WARNING: initialization from scalars tied to a particular model with 5 fuel moisture classes
+    ! the rest of the code can be used for various models with different number of fuel moisture classes
+    !
+    fgi_c(1:mfuelcats,1)=fgi_1h
+    fgi_c(1:mfuelcats,2)=fgi_10h
+    fgi_c(1:mfuelcats,3)=fgi_100h
+    fgi_c(1:mfuelcats,4)=fgi_1000h
+    fgi_c(1:mfuelcats,5)=fgi_live
+    fmc_gc_initial_value(1)=fmc_1h
+    fmc_gc_initial_value(2)=fmc_10h
+    fmc_gc_initial_value(3)=fmc_100h
+    fmc_gc_initial_value(4)=fmc_1000h
+    fmc_gc_initial_value(5)=fmc_live
+    !
+    ! end initialization from scalars tied to a particular model with 5 fuel moisture classes
+    ! WARNING: delete this and set fgi_c and fmc_gc_initial_value directly for more general models!
+    !**************************************************************************************************
+
+    call message('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
+        config_flags%fire_print_msg)
+    do i=1,mfuelcats
+            fgi_t(i) = 0.
+            do k=1,max_moisture_classes
+                if(fgi_c(i,k).ge.0.)then
+                    fgi_t(i) = fgi_t(i) + fgi_c(i,k)
+                else ! no need for OMP CRITICAL this needs to run in master thread anyway
+                    write(msg,*)'fuel load in category',i,' fuel class ',k,' is ',fgi_c(i,k),',must be nonegative.'
+                    call crash(msg)
+                endif
+            enddo
+            if (fgi_t(i)>0. .or. fgi(i)>0.)then
+                if (fgi_t(i)>0.) then
+                     rat = fgi(i)/fgi_t(i)
+                else
+                     rat = 0.
+                endif
+                write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
+                    'fuel category',i,'fuel load',fgi(i),'total by class',fgi_t(i), 'ratio',rat
+                call message(msg,config_flags%fire_print_msg)
+            endif
+            ! fuel moisture averaging weights for fuel classes in category i
+            fmc_gwt(i)=0.
+            do k=1,max_moisture_classes
+               if (fgi_t(i) > 0.) then
+                   fmc_gw(i,k) = fgi_c(i,k) / fgi_t(i)
+                   fmc_gwt(i) = fmc_gwt(i) + fmc_gw(i,k)
+               else
+                   fmc_gw(i,k) = 0.
+               endif
+            enddo
+    enddo
+
+    ! moisture model derived scalars
+    do i=1,moisture_classes
+        rec_drying_lag_sec(i)  = 1.0/(3600.0*drying_lag(i))
+        rec_wetting_lag_sec(i) = 1.0/(3600.0*wetting_lag(i))
+    enddo
+
+end subroutine init_fuel_moisture
+
+subroutine check_for_moisture( grid, config_flags )
+
+implicit none
+
+type (state_fire_t), target :: grid
+type (namelist_t), intent (in) :: config_flags
+
+character(len=128)msg
+real:: time_start
+real:: moisture_time
+
+    ! time - assume dt does not change
+    time_start = grid%itimestep * grid%dt
+
+    ! decide what to run
+    if(config_flags%fire_fmc_read.ne.0.and.config_flags%fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
+
+    grid%run_advance_moisture = .false. ! default
+    moisture_time = time_start
+
+    if(config_flags%fmoist_run)then
+        if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
+            if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
+                write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
+                    config_flags%fmoist_freq
+                call message(msg,config_flags%fire_print_msg)
+                grid%run_advance_moisture = .true.
+            endif
+        else
+            if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
+                write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
+                call message(msg,config_flags%fire_print_msg)
+                grid%run_advance_moisture = .true.
+            endif
+        endif
+        if(grid%run_advance_moisture)then ! decide on timing
+            grid%dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
+            grid%fmoist_lasttime = moisture_time
+            if(config_flags%fmoist_freq > 0)then
+                write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',grid%dt_moisture,'s running every ', &
+                    config_flags%fmoist_freq,' steps'
+                call message(msg,config_flags%fire_print_msg)
+            else
+                grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
+                write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',grid%dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
+                call message(msg,config_flags%fire_print_msg)
+            endif
+        endif
+    endif
+
+end subroutine check_for_moisture
 
 subroutine fuel_moisture(                &
     nfmc,                                &

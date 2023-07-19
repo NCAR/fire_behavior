@@ -88,6 +88,9 @@
 
       real :: fmoist_lasttime       ! "last time the moisture model was run" "s"
       real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
+      real :: dt_moisture           ! Time since moisture model run the last time
+      logical :: run_advance_moisture ! Whether the moisture model should be advanced
+      
       real :: u_frame               ! "FRAME X WIND"         "m s-1"
       real :: v_frame               ! "FRAME Y WIND"         "m s-1"
       real :: unit_fxlong, unit_fxlat

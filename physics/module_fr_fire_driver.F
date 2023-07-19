@@ -20,7 +20,7 @@ module module_fr_fire_driver
 use module_fr_fire_model, only: Fire_model
 use module_fr_fire_phys, only : fire_params, Init_fuel_cats, &
                                 Set_fire_params
-use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture
+use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
 use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
 use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
@@ -70,13 +70,12 @@ contains
 
       ! initialize moisture model
     if (config_flags%fmoist_run) then
-        grid%fmoist_lasttime = grid%itimestep * grid%dt
-        grid%fmoist_nexttime = grid%fmoist_lasttime
+        call init_fuel_moisture ( grid, config_flags )
     endif
 
       ! init rest of fuel tables with derived constants
       ! properties of fuel categories and moisture classes from namelist.fire
-    call init_fuel_cats (config_flags%fmoist_run, config_flags%fire_print_msg)
+    call init_fuel_cats ()
 
       ! uses nfuel_cat to set the other fuel data arrays
       ! needs zsf on halo width 1 to compute the terrain gradient
@@ -110,12 +109,8 @@ subroutine fire_driver_em ( grid , config_flags )
     integer :: ignitions_done              ! number of isolated ignitions
     integer :: ignited_tile(fire_num_ignitions) ! number of gridpts ignited in a given ignition
     real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
-    character(len=128)msg
     type(fire_params)::fp
     real:: time_start
-    real:: moisture_time
-    logical:: run_advance_moisture
-    real::    dt_moisture
 
 
     ! pointers to be passed to fire rate of spread formulas
@@ -136,41 +131,7 @@ subroutine fire_driver_em ( grid , config_flags )
     ! time - assume dt does not change
     time_start = grid%itimestep * grid%dt
 
-    ! decide what to run
-    if(config_flags%fire_fmc_read.ne.0.and.config_flags%fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
-
-    moisture_time = time_start
-    run_advance_moisture = .false. ! default
-    
-    if(config_flags%fmoist_run)then
-        if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
-            if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
-                write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
-                    config_flags%fmoist_freq
-                call message(msg,config_flags%fire_print_msg)
-                run_advance_moisture = .true.
-            endif
-        else
-            if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
-                write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
-                call message(msg,config_flags%fire_print_msg)
-                run_advance_moisture = .true.
-            endif
-        endif
-        if(run_advance_moisture)then ! decide on timing
-            dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
-            grid%fmoist_lasttime = moisture_time
-            if(config_flags%fmoist_freq > 0)then
-                write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',dt_moisture,'s running every ', &
-                    config_flags%fmoist_freq,' steps'
-                call message(msg,config_flags%fire_print_msg)
-            else
-                grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
-                write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
-                call message(msg,config_flags%fire_print_msg)
-            endif
-        endif
-    endif
+    call check_for_moisture( grid, config_flags )
 
     ignitions_done = 0
 
@@ -178,7 +139,7 @@ subroutine fire_driver_em ( grid , config_flags )
     call check_mesh_2dim(grid%ifts-2,grid%ifte+2,grid%jfts-2,grid%jfte+2,grid%ifms,grid%ifme,grid%jfms,grid%jfme,&
         config_flags%fire_print_msg)! check if fire node tile fits in memory
 
-    if(run_advance_moisture)then
+    if(grid%run_advance_moisture)then
           ! one timestep of the moisture model
           call message('advance_moisture start',config_flags%fire_print_msg)
           call advance_moisture(    &
@@ -187,7 +148,7 @@ subroutine fire_driver_em ( grid , config_flags )
                   grid%ifts,grid%ifte,  grid%jfts,grid%jfte,      & ! fire tile dimensions
                   config_flags%fire_print_msg,             &
                   config_flags%nfmc,                       & ! number of moisture fields
-                  dt_moisture,                & ! moisture model time step
+                  grid%dt_moisture,                & ! moisture model time step
                   config_flags%fmep_decay_tlag,            & ! moisture extended model assim. diffs decay tlag
                   grid%fire_rain,                  & ! accumulated rain
                   grid%fire_t2, grid%fire_q2, grid%fire_psfc,& ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
