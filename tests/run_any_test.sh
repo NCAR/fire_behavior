@@ -236,8 +236,7 @@ standalone_exe="../../install/bin/fire_behavior_standalone"
 #################################################
 # Tasks for standalone and esmx
 
-file_wrf=rsl.out.0000
-[[ ${thistest} == test4 ]] && file_wrf=rsl.out.0000_10s
+file_wrf=test_solution.txt
 file_output=${thistest}_output.txt
 
 TEST_DIR="$PWD"

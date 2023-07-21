@@ -20,7 +20,7 @@ test8p5=1 # Check Max latent heat flux
 #################################################
 #
 
-file_wrf=./test8/test8_solution.txt
+file_wrf=./test8/test_solution.txt
 file_exe=../nuopc/esmApp.exe
 file_output=test8_output.txt
 
