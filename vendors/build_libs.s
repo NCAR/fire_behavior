@@ -3,7 +3,7 @@
 ########################################################
 #
 url_esmf="https://github.com/esmf-org/esmf"
-tag_esmf="v8.4.0"
+tag_esmf="v8.5.0"
 
 url_zlib="https://github.com/madler/zlib"
 tag_zlib="v1.2.9"
@@ -23,7 +23,7 @@ enable_netcdf4=1
 #
 ########################################################
 #
-step1=0 # Install ESMF lib
+step1=1 # Install ESMF lib
 step2=0 # Install NetCDF libs
 #
 ########################################################
