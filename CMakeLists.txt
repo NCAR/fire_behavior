@@ -41,6 +41,7 @@ list(APPEND _wrffire_physics physics/module_fr_fire_core.F
 			     physics/module_fr_fire_model.F
 			     physics/module_fr_fire_phys.F
 			     physics/module_fr_fire_fuel_moisture_model.F
+			     physics/module_fr_fire_fuel_anderson_mod.F
 			     physics/module_fr_fire_util.F)
 
 # Driver
