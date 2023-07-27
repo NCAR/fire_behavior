@@ -25,6 +25,7 @@ use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
 use state_mod, only: state_fire_t
 use namelist_mod, only: namelist_t
+use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
 
   implicit none
 
@@ -38,11 +39,12 @@ use namelist_mod, only: namelist_t
 
 contains
 
-  subroutine init_fire_driver (grid, config_flags)
+  subroutine init_fire_driver (grid, fuel_model, config_flags)
 
     implicit none
 
     type (state_fire_t), target :: grid
+    type (fuel_anderson_t), target :: fuel_model
     type (namelist_t), intent(in) :: config_flags
 
     real :: time_start
@@ -57,7 +59,7 @@ contains
 
       ! init rest of fuel tables with derived constants
       ! properties of fuel categories and moisture classes from namelist.fire
-    call init_fuel_cats ()
+    call init_fuel_cats (fuel_model)
 
       ! uses nfuel_cat to set the other fuel data arrays
       ! needs zsf on halo width 1 to compute the terrain gradient
@@ -67,7 +69,7 @@ contains
         grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
         grid%dx,grid%dy,                         &
         grid%nfuel_cat,grid%fuel_time, &
-        grid,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+        grid,fuel_model,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
       ! initialize model state to no fire
     time_start = grid%itimestep * grid%dt
@@ -81,11 +83,12 @@ contains
 
   end subroutine init_fire_driver
 
-subroutine fire_driver_em ( grid , config_flags )
+subroutine fire_driver_em ( grid , fuel_model, config_flags )
 
     implicit none
 
     type (state_fire_t), target :: grid
+    type (fuel_anderson_t), target :: fuel_model
     type (namelist_t), intent (in) :: config_flags
 
     integer :: ignitions_done              ! number of isolated ignitions
@@ -149,7 +152,7 @@ subroutine fire_driver_em ( grid , config_flags )
                   grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
                   grid%dx,grid%dy,                         &
                   grid%nfuel_cat,grid%fuel_time, &
-                  grid,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+                  grid,fuel_model,config_flags%fire_fmc_read,config_flags%fire_print_msg)
 
     endif
 

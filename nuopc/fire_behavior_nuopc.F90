@@ -9,6 +9,7 @@ module fire_behavior_nuopc
     modelSS    => SetServices
 
   use state_mod, only : state_fire_t
+  use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
@@ -20,6 +21,7 @@ module fire_behavior_nuopc
   public SetVM, SetServices
 
   type (state_fire_t) :: grid
+  type (fuel_anderson_t) :: fuel_model
   type (namelist_t) :: config_flags
   real(ESMF_KIND_R8), pointer     :: ptr_z0(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_t2(:,:)
@@ -103,7 +105,7 @@ module fire_behavior_nuopc
       ! Read namelist
     call config_flags%Initialization (file_name = 'namelist.input')
 
-    call Init_fire_state (grid, config_flags)
+    call Init_fire_state (grid, fuel_model, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------
 
@@ -684,7 +686,7 @@ module fire_behavior_nuopc
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
-    call Advance_state (grid, config_flags)
+    call Advance_state (grid, fuel_model, config_flags)
 
     call grid%Handle_output (config_flags)
 

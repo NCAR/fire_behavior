@@ -1,6 +1,7 @@
   module initialize_mod
 
     use state_mod, only : state_fire_t
+    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use wrf_mod, only : wrf_t
@@ -30,13 +31,14 @@
 
     end subroutine Init_atm_state
 
-    subroutine Init_fire_state (grid, config_flags, wrf)
+    subroutine Init_fire_state (grid, fuel_model, config_flags, wrf)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
       implicit none
 
       type (state_fire_t), intent (in out) :: grid
+      type (fuel_anderson_t), intent (in) :: fuel_model
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out), optional :: wrf
 
@@ -61,7 +63,7 @@
 
         ! Fire init
       call message ('Init_fire_state: FIRE initialization start',config_flags%fire_print_msg)
-      call init_fire_driver (grid, config_flags)
+      call init_fire_driver (grid, fuel_model, config_flags)
       call message ('Init_fire_state: FIRE initialization complete',config_flags%fire_print_msg)
 
       if (DEBUG_LOCAL) then

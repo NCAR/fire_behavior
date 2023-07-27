@@ -7,6 +7,7 @@ use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, nfuelcats, zf, no_f
                                               fuelmc_g, fuelmc_c, fgi
 
 use state_mod, only: state_fire_t
+use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
 
 PRIVATE
 
@@ -45,30 +46,6 @@ PUBLIC:: read_namelist_fire
 !D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
 !D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S) 
 
-! =============================================================================
-! Anderson 13 surface fire fuel models, along with some
-!          estimated canopy properties (for crown fire).
-! =============================================================================
-!  --- Grass-dominated fuel models
-!  FUEL MODEL 1: Short grass (1 ft)
-!  FUEL MODEL 2: Timber (grass and understory)
-!  FUEL MODEL 3: Tall grass (2.5 ft)
-!  --- Shrub-dominated fuel models
-!  FUEL MODEL 4: Chaparral (6 ft)
-!  FUEL MODEL 5: Brush (2 ft) 
-!  FUEL MODEL 6: Dormant brush, hardwood slash
-!  FUEL MODEL 7: Southern rough
-!  --- Forest litter-dominated fuel models
-!  FUEL MODEL 8: Closed timber litter
-!  FUEL MODEL 9: Hardwood litter
-!  FUEL MODEL 10: Timber (litter + understory)
-!  --- Logging debris-dominated fuel models
-!  FUEL MODEL 11: Light logging slash
-!  FUEL MODEL 12: Medium logging slash
-!  FUEL MODEL 13: Heavy logging slash
-!  --- Fuel-free 
-!  FUEL MODEL 14: no fuel
-
 ! scalar fuel coefficients
    REAL, SAVE:: cmbcnst,hfgl
 ! computed values
@@ -82,58 +59,15 @@ PUBLIC:: read_namelist_fire
 !  real, parameter :: xlv      = 2.5e6                  ! to make it selfcontained
 !  real, parameter :: cp      =  7.*287./2              ! to make it selfcontained
 
-
-! fuel categorytables
-   CHARACTER (len=80), DIMENSION(mfuelcats ), save :: fuel_name
-   INTEGER, DIMENSION( mfuelcats ), save :: ichap
-   REAL   , DIMENSION( mfuelcats ), save :: windrf,weight,fci,fci_d,fct,fcbr, &
-                                            fueldepthm,fueldens,fuelmce,   &
-                                            savr,st,se
-   DATA fuel_name /'1: Short grass (1 ft)', &
-     '2: Timber (grass and understory)', &
-     '3: Tall grass (2.5 ft)', &
-     '4: Chaparral (6 ft)', &
-     '5: Brush (2 ft) ', &
-     '6: Dormant brush, hardwood slash', &
-     '7: Southern rough', &
-     '8: Closed timber litter', &
-     '9: Hardwood litter', &
-     '10: Timber (litter + understory)', &
-     '11: Light logging slash', &
-     '12: Medium logging slash', &
-     '13: Heavy logging slash', &
-     '14: no fuel', zf* ' '/
-
-   DATA windrf /0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44, &     
-                0.36, 0.36, 0.36,  0.36,  0.43,  0.46,  1e-7, zf*0 /
-   DATA fueldepthm /0.305,  0.305,  0.762, 1.829, 0.61,  0.762,0.762, &
-                    0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305,zf*0. /
-   DATA savr / 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
-               1889., 2484., 1764., 1182., 1145., 1159., 3500., zf*0. /
-   DATA fuelmce / 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40,  &
-                  0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12 , zf*0. / 
-   DATA fueldens / nf * 32., zf*0. /   ! 32 if solid, 19 if rotten.
-   DATA st / nf* 0.0555 , zf*0./
-   DATA se / nf* 0.010 , zf*0./
-! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
-!              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
-!              (11)-(13) could be 300-1600
-   DATA weight / 7.,  7.,  7., 180., 100., 100., 100.,  &
-              900., 900., 900., 900., 900., 900., 7. , zf*0./ 
-! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
-   DATA fci_d / 0., 0., 0., 1.123, 0., 0., 0.,  &
-            1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0., zf*0./
-   DATA fct / 60., 60., 60., 60., 60., 60., 60.,  &
-            60., 120., 180., 180., 180., 180. , 60. , zf*0.   /
-   DATA ichap / 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , zf*0/
-!  DATA fmc_gw05 / 0.000, 0.023, 0.000, 0.230, 0.092, 0.000, 0.017, 0.000, 0.000, 0.092, 0.000, 0.000, 0.000, zf*0/
+   REAL   , DIMENSION( mfuelcats ), save :: fci,fcbr
 
 ! =========================================================================
 contains
 
-subroutine init_fuel_cats()
+subroutine init_fuel_cats(fuel_model)
 implicit none
 !*** purpose: initialize fuel tables and variables by constants
+type (fuel_anderson_t), target :: fuel_model
 !*** local
 integer:: i,j,k,ii
 integer:: kk
@@ -147,9 +81,9 @@ fuelheat = cmbcnst * 4.30e-04     ! convert J/kg to BTU/lb
 ! compute derived fuel category coefficients 
 
 DO i = 1,nfuelcats
-    fci(i) = (1.+fuelmc_c)*fci_d(i)
-    if(fct(i) .ne.  0.)then
-        fcbr(i) = fci_d(i)/fct(i) !  avoid division by zero
+    fci(i) = (1.+fuelmc_c)*fuel_model%fci_d(i)
+    if(fuel_model%fct(i) .ne.  0.)then
+        fcbr(i) = fuel_model%fci_d(i)/fuel_model%fct(i) !  avoid division by zero
     else
         fcbr(i) = 0
     endif
@@ -164,7 +98,7 @@ subroutine set_fire_params( &
                            ifts,ifte,jfts,jfte, &
                            fdx,fdy,             &
                            nfuel_cat,fuel_time, &
-                           grid, fire_fmc_read, fire_print_msg ) 
+                           grid, fuel_model, fire_fmc_read, fire_print_msg ) 
 
 implicit none
 
@@ -172,6 +106,7 @@ implicit none
 
 !*** arguments
 type (state_fire_t), target :: grid
+type (fuel_anderson_t), target :: fuel_model
 integer, intent(in)::ifds,ifde,jfds,jfde                        ! fire domain bounds
 integer, intent(in)::ifts,ifte,jfts,jfte                        ! fire tile bounds
 integer, intent(in)::ifms,ifme,jfms,jfme                        ! memory array bounds
@@ -294,13 +229,13 @@ do j=jfts,jfte
             call crash('set_fire_params: fuel category out of bounds')
         endif
 
-        fuel_time(i,j)=weight(k)/0.85 ! cell based
+        fuel_time(i,j)=fuel_model%weight(k)/0.85 ! cell based
         
         ! set fuel time constant: weight=1000 => 40% decrease over 10 min
         ! fuel decreases as exp(-t/fuel_time) 
         ! exp(-600*0.85/1000) = approx 0.6 
 
-        grid%ischap(i,j)=ichap(k)
+        grid%ischap(i,j)=fuel_model%ichap(k)
         grid%fgip(i,j)=fgi(k)
         ! PAJM: is it possible that if fire_fmc_read == 0, needed by the FMC model, grid%fmc_g is not initialized?
         if(fire_fmc_read.eq.1)then
@@ -313,34 +248,34 @@ do j=jfts,jfte
         bmst     = grid%fmc_g(i,j) / (1.+grid%fmc_g(i,j))
         fuelloadm= (1.-bmst) * fgi(k)  !  fuelload without moisture
         fuelload = fuelloadm * (.3048)**2 * 2.205    ! to lb/ft^2
-        fueldepth = fueldepthm(k)/0.3048               ! to ft
-        grid%betafl(i,j) = fuelload/(fueldepth * fueldens(k))! packing ratio
-        betaop = 3.348 * savr(k)**(-0.8189)     ! optimum packing ratio
+        fueldepth = fuel_model%fueldepthm(k)/0.3048               ! to ft
+        grid%betafl(i,j) = fuelload/(fueldepth * fuel_model%fueldens(k))! packing ratio
+        betaop = 3.348 * fuel_model%savr(k)**(-0.8189)     ! optimum packing ratio
         qig = 250. + 1116.*grid%fmc_g(i,j)            ! heat of preignition, btu/lb
-        epsilon = exp(-138./savr(k) )    ! effective heating number
+        epsilon = exp(-138./fuel_model%savr(k) )    ! effective heating number
         rhob = fuelload/fueldepth    ! ovendry bulk density, lb/ft^3
 
-        c = 7.47 * exp( -0.133 * savr(k)**0.55)    ! const in wind coef
-        grid%bbb(i,j) = 0.02526 * savr(k)**0.54      ! const in wind coef
-        e = 0.715 * exp( -3.59e-4 * savr(k))       ! const in wind coef
+        c = 7.47 * exp( -0.133 * fuel_model%savr(k)**0.55)    ! const in wind coef
+        grid%bbb(i,j) = 0.02526 * fuel_model%savr(k)**0.54      ! const in wind coef
+        e = 0.715 * exp( -3.59e-4 * fuel_model%savr(k))       ! const in wind coef
         grid%phiwc(i,j) = c * (grid%betafl(i,j)/betaop)**(-e)
 
-        rtemp2 = savr(k)**1.5
+        rtemp2 = fuel_model%savr(k)**1.5
         gammax = rtemp2/(495. + 0.0594*rtemp2)              ! maximum rxn vel, 1/min
-        a = 1./(4.774 * savr(k)**0.1 - 7.27)   ! coef for optimum rxn vel
+        a = 1./(4.774 * fuel_model%savr(k)**0.1 - 7.27)   ! coef for optimum rxn vel
         ratio = grid%betafl(i,j)/betaop
         gamma = gammax *(ratio**a) *exp(a*(1.-ratio)) !optimum rxn vel, 1/min
 
-        wn = fuelload/(1 + st(k))       ! net fuel loading, lb/ft^2
-        rtemp1 = grid%fmc_g(i,j)/fuelmce(k)
+        wn = fuelload/(1 + fuel_model%st(k))       ! net fuel loading, lb/ft^2
+        rtemp1 = grid%fmc_g(i,j)/fuel_model%fuelmce(k)
         etam = 1.-2.59*rtemp1 +5.11*rtemp1**2 -3.52*rtemp1**3  !moist damp coef
-        etas = 0.174* se(k)**(-0.19)                ! mineral damping coef
+        etas = 0.174* fuel_model%se(k)**(-0.19)                ! mineral damping coef
         ir = gamma * wn * fuelheat * etam * etas  !rxn intensity,btu/ft^2 min
         ! irm = ir * 1055./( 0.3048**2 * 60.) * 1.e-6     !for mw/m^2
-        grid%iboros(i,j) = ir * 1055./( 0.3048**2 * 60.) * 1.e-3 * (60.*12.6/savr(k))     ! I_R x t_r (kJ m^-2)
+        grid%iboros(i,j) = ir * 1055./( 0.3048**2 * 60.) * 1.e-3 * (60.*12.6/fuel_model%savr(k))     ! I_R x t_r (kJ m^-2)
 
-        xifr = exp( (0.792 + 0.681*savr(k)**0.5) &
-            * (grid%betafl(i,j)+0.1)) /(192. + 0.2595*savr(k)) ! propagating flux ratio
+        xifr = exp( (0.792 + 0.681*fuel_model%savr(k)**0.5) &
+            * (grid%betafl(i,j)+0.1)) /(192. + 0.2595*fuel_model%savr(k)) ! propagating flux ratio
 
 !        ... r_0 is the spread rate for a fire on flat ground with no wind.
         grid%r_0(i,j) = ir*xifr/(rhob * epsilon *qig)    ! default spread rate in ft/min
