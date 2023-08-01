@@ -35,8 +35,6 @@
 
     type :: fuel_anderson_t
       character (len = 80), dimension(N_FUEL_CAT + 1) :: fuel_name
-        ! fgi: initial total mass of surface fuel [kg/m2]
-        !     ranges from ~5 (fast burnup) to 1000 ( ~40% decr over 10 min)
         ! fueldepthm: fuel depth [m]  (in feet in Anderson 1982)
       real, dimension(N_FUEL_CAT + 1) :: fueldepthm = [ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
                                                         0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305 ]
@@ -47,6 +45,23 @@
         !       grass: 3500., 10 hr fuel: 109., 100 hr fuel: 30.
       real, dimension(N_FUEL_CAT + 1) :: savr = [ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
                                                   1889., 2484., 1764., 1182., 1145., 1159., 3500. ]
+        ! total fuel loading kg/m2
+        ! fgi: initial total mass of surface fuel [kg/m2]
+        !     ranges from ~5 (fast burnup) to 1000 ( ~40% decr over 10 min) ????
+      real, dimension(N_FUEL_CAT + 1) :: fgi = [ 0.166, 0.896, 0.674, 3.591, 0.784, 1.344, 1.091, &
+                                                 1.120, 0.780, 2.692, 2.582, 7.749, 13.024, 1.e-7 ]
+        ! fuel loading 1-h, 10-h, 100-h, 1000-h, and live following Albini 1976 as reprinted in
+        ! Anderson 1982 Table 1 (for proportions only)
+      real, dimension(N_FUEL_CAT + 1) :: fgi_1h =  [ 0.74,   2.00,  3.01,  5.01,  1.00,  1.50,  1.13, &
+                                                     1.50,  2.92,  3.01,  1.50,  4.01,  7.01,   0.0 ]
+      real, dimension(N_FUEL_CAT + 1) :: fgi_10h = [ 0.00,   1.00,  0.00,  4.01,  0.50,  2.50,  1.87, &
+                                                     1.00,  0.41,  2.00,  4.51, 14.03, 23.04,   0.0 ]
+      real, dimension(N_FUEL_CAT + 1) :: fgi_100h = [ 0.00,   0.50,  0.00,  2.00,  0.00,  2.00,  1.50, &
+                                                      2.50,  0.15,  5.01,  5.51, 16.53, 28.05,   0.0 ]
+      real, dimension(N_FUEL_CAT + 1) :: fgi_1000h = 0.0
+      real, dimension(N_FUEL_CAT + 1) :: fgi_live = [ 0.00,   0.50,  0.000, 5.01,  2.00,  0.00,  0.37, &
+                                                      0.00,  0.00,  2.00,  0.00,  2.3,   0.00,   0.0 ]
+
         ! fueldens: ovendry particle density [lb/ft3]
       real, dimension(N_FUEL_CAT + 1) :: fueldens = 32.0
         ! st: fuel particle total mineral content

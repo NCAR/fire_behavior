@@ -35,19 +35,19 @@
 
     private
 
-    public :: Init_fuel_moisture, Fuel_moisture, Advance_moisture, Check_for_moisture, &
-        MFUELCATS, nf, zf, fgi
+    public :: Init_fuel_moisture, Fuel_moisture, Advance_moisture, Check_for_moisture
+        
 
-    integer, parameter :: MFUELCATS = 30     ! allowable number of fuel categories
-    integer, parameter :: max_moisture_classes = 5
+    integer, parameter :: MFUELCATS = N_FUEL_CAT + 1
+    integer, parameter :: MAX_MOISTURE_CLASSES = 5
 
     integer :: moisture_classes = 5
-    real, dimension(max_moisture_classes) :: drying_lag,wetting_lag,saturation_moisture,saturation_rain, &
+    real, dimension(MAX_MOISTURE_CLASSES) :: drying_lag,wetting_lag,saturation_moisture,saturation_rain, &
          rain_threshold,rec_drying_lag_sec,rec_wetting_lag_sec,fmc_gc_initial_value
-    integer, dimension(max_moisture_classes) :: drying_model,wetting_model,fmc_gc_initialization
+    integer, dimension(MAX_MOISTURE_CLASSES) :: drying_model,wetting_model,fmc_gc_initialization
       ! relative weights of moisture class for each fuel category
     integer::itmp
-    character (len = 80), dimension (max_moisture_classes) :: moisture_class_name
+    character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
     real :: fmc_1h, fmc_10h, fmc_100h, fmc_1000h, fmc_live
 
     data moisture_class_name /'1-h','10-h','100-h','1000-h','Live'/
@@ -70,33 +70,19 @@
       ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
       ! 30%  Completely cured, treat as dead fuel
 
-      ! number of fuel categories in data stmts
-    integer, parameter :: nf = 14
-      ! number of zero fillers in data stmt
-    integer, parameter :: zf = MFUELCATS - nf
-    real, dimension (MFUELCATS) :: fgi_1h,fgi_10h,fgi_100h,fgi_1000h,fgi_live, fgi, fgi_t,fmc_gwt
+    real, dimension (MFUELCATS) :: fgi_t, fmc_gwt
       ! fuel moisture class weights
-    real, dimension (MFUELCATS, max_moisture_classes) :: fgi_c, fmc_gw
-
-      ! fuel loading 1-h, 10-h, 100-h, 1000-h, live following Albini 1976 as reprinted in Anderson 1982 Table 1 (for proportions only)
-      !              1      2      3      4      5      6      7      8      9     10     11     12     13     14
-    data fgi_1h    / 0.74,   2.00,  3.01,  5.01,  1.00,  1.50,  1.13,  1.50,  2.92,  3.01,  1.50,  4.01,  7.01,   0.0,   zf*0./
-    data fgi_10h   / 0.00,   1.00,  0.00,  4.01,  0.50,  2.50,  1.87,  1.00,  0.41,  2.00,  4.51, 14.03, 23.04,   0.0,   zf*0./
-    data fgi_100h  / 0.00,   0.50,  0.00,  2.00,  0.00,  2.00,  1.50,  2.50,  0.15,  5.01,  5.51, 16.53, 28.05,   0.0,   zf*0./
-    data fgi_1000h / 0.0,    0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,   0.0,    0.0,   zf*0./
-    data fgi_live  / 0.00,   0.50,  0.000, 5.01,  2.00,  0.00,  0.37,  0.00,  0.00,  2.00,  0.00,  2.3,   0.00,   0.0,   zf*0./
-
-      ! total fuel loading kg/m^2
-    data fgi       / 0.166,  0.896, 0.674, 3.591, 0.784, 1.344, 1.091, 1.120, 0.780, 2.692, 2.582, 7.749, 13.024, 1.e-7, zf*0.  /
+    real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fgi_c, fmc_gw
 
   contains
 
-    subroutine Init_fuel_moisture( grid, config_flags )
+    subroutine Init_fuel_moisture (grid, config_flags, fuel_model)
 
       implicit none
 
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
+      type (fuel_anderson_t), intent (in) :: fuel_model
 
       integer:: i, k
       character(len=128):: msg
@@ -119,42 +105,42 @@
 
         ! WARNING: initialization from scalars tied to a particular model with 5 fuel moisture classes
         ! the rest of the code can be used for various models with different number of fuel moisture classes
-      fgi_c(1:MFUELCATS,1)=fgi_1h
-      fgi_c(1:MFUELCATS,2)=fgi_10h
-      fgi_c(1:MFUELCATS,3)=fgi_100h
-      fgi_c(1:MFUELCATS,4)=fgi_1000h
-      fgi_c(1:MFUELCATS,5)=fgi_live
+      fgi_c(1:MFUELCATS, 1) = fuel_model%fgi_1h
+      fgi_c(1:MFUELCATS, 2) = fuel_model%fgi_10h
+      fgi_c(1:MFUELCATS, 3) = fuel_model%fgi_100h
+      fgi_c(1:MFUELCATS, 4) = fuel_model%fgi_1000h
+      fgi_c(1:MFUELCATS, 5) = fuel_model%fgi_live
       fmc_gc_initial_value(1)=fmc_1h
       fmc_gc_initial_value(2)=fmc_10h
       fmc_gc_initial_value(3)=fmc_100h
       fmc_gc_initial_value(4)=fmc_1000h
       fmc_gc_initial_value(5)=fmc_live
 
-      call message('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
+      call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
           config_flags%fire_print_msg)
       do i = 1, MFUELCATS
-            fgi_t(i) = 0.
-            do k=1,max_moisture_classes
-                if(fgi_c(i,k).ge.0.)then
-                    fgi_t(i) = fgi_t(i) + fgi_c(i,k)
-                else ! no need for OMP CRITICAL this needs to run in master thread anyway
-                    write(msg,*)'fuel load in category',i,' fuel class ',k,' is ',fgi_c(i,k),',must be nonegative.'
-                    call crash(msg)
-                endif
-            enddo
-            if (fgi_t(i)>0. .or. fgi(i)>0.)then
-                if (fgi_t(i)>0.) then
-                     rat = fgi(i)/fgi_t(i)
+            fgi_t(i) = 0.0
+            do k = 1, MAX_MOISTURE_CLASSES
+                if(fgi_c(i,k) >= 0.0) then
+                    fgi_t(i) = fgi_t(i) + fgi_c(i, k)
                 else
-                     rat = 0.
+                    write (msg, *) 'fuel load in category', i, ' fuel class ', k, ' is ', fgi_c(i, k), ',must be nonegative.'
+                    call Crash (msg)
                 endif
+            end do
+            if (fgi_t(i) > 0.0 .or. fuel_model%fgi(i) > 0.0) then
+                if (fgi_t(i) > 0.0) then
+                     rat = fuel_model%fgi(i) / fgi_t(i)
+                else
+                     rat = 0.0
+                end if
                 write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
-                    'fuel category',i,'fuel load',fgi(i),'total by class',fgi_t(i), 'ratio',rat
-                call message(msg,config_flags%fire_print_msg)
-            endif
+                    'fuel category', i, 'fuel load', fuel_model%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
+                call Message (msg, config_flags%fire_print_msg)
+            end if
             ! fuel moisture averaging weights for fuel classes in category i
             fmc_gwt(i)=0.
-            do k=1,max_moisture_classes
+            do k = 1, MAX_MOISTURE_CLASSES
                if (fgi_t(i) > 0.) then
                    fmc_gw(i,k) = fgi_c(i,k) / fgi_t(i)
                    fmc_gwt(i) = fmc_gwt(i) + fmc_gw(i,k)
@@ -170,7 +156,7 @@
         rec_wetting_lag_sec(i) = 1.0/(3600.0*wetting_lag(i))
       end do
 
-    end subroutine init_fuel_moisture
+    end subroutine Init_fuel_moisture
 
 subroutine check_for_moisture( grid, config_flags )
 
@@ -343,10 +329,10 @@ if(msglevel>1)then
     call message(msg,fire_print_msg)
 endif
 
-if(moisture_classes > nfmc .or. moisture_classes > max_moisture_classes)then
+if(moisture_classes > nfmc .or. moisture_classes > MAX_MOISTURE_CLASSES)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
     write(msg,*)'advance_moisture: moisture_classes=',moisture_classes, &
-       ' > nfmc=',nfmc,' or >  max_moisture_classes=',max_moisture_classes
+       ' > nfmc=',nfmc,' or >  max_moisture_classes=',MAX_MOISTURE_CLASSES
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
     call crash(msg)
 endif

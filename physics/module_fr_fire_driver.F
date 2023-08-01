@@ -38,7 +38,7 @@
       call Fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
 
         ! Init fuel moisture model
-      if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
+      if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
 
       call fuel_model%Initialization (config_flags%fuelmc_c)
 

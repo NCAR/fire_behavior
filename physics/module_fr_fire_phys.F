@@ -3,7 +3,6 @@
 
     use constants_mod, only : XLV
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
-    use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, zf, fgi
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -19,8 +18,6 @@
     real, parameter :: HFGL = 17.e4
       ! fuelheat: fuel particle low heat content [btu/lb]
     real, parameter :: FUELHEAT = CMBCNST * 4.30e-04     ! convert J/kg to BTU/lb
-
-    real, dimension (mfuelcats), save :: fci, fcbr
 
   contains
 
@@ -165,7 +162,7 @@ do j=jfts,jfte
         ! exp(-600*0.85/1000) = approx 0.6 
 
         grid%ischap(i,j)=fuel_model%ichap(k)
-        grid%fgip(i,j)=fgi(k)
+        grid%fgip(i,j)=fuel_model%fgi(k)
         ! PAJM: is it possible that if fire_fmc_read == 0, needed by the FMC model, grid%fmc_g is not initialized?
         ! This line not needed since fmc_g is initialized from the config_flags in the init_state sub
         if (config_flags%fire_fmc_read == 1) grid%fmc_g(i, j) = config_flags%fuelmc_g
@@ -174,7 +171,7 @@ do j=jfts,jfte
         !        don't need to be recalculated later.
         
         bmst     = grid%fmc_g(i,j) / (1.+grid%fmc_g(i,j))
-        fuelloadm= (1.-bmst) * fgi(k)  !  fuelload without moisture
+        fuelloadm= (1.-bmst) * fuel_model%fgi(k)  !  fuelload without moisture
         fuelload = fuelloadm * (.3048)**2 * 2.205    ! to lb/ft^2
         fueldepth = fuel_model%fueldepthm(k)/0.3048               ! to ft
         grid%betafl(i,j) = fuelload/(fueldepth * fuel_model%fueldens(k))! packing ratio
