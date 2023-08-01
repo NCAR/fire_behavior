@@ -40,10 +40,9 @@
         ! Init fuel moisture model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
 
-        ! Init fuels
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
-        ! uses nfuel_cat to set the other fuel data arrays
+        ! Set rate of spread variables
       call Set_fire_params (   &
           grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
           grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
@@ -52,7 +51,7 @@
           grid%nfuel_cat,grid%fuel_time, &
           grid,fuel_model,config_flags)
 
-        ! initialize model state to no fire
+        ! Init state to no fire
       time_start = grid%itimestep * grid%dt
       call Init_no_fire  ( &
           grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
