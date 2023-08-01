@@ -1,4 +1,29 @@
-module module_fr_fire_fuel_anderson_mod
+  module module_fr_fire_fuel_anderson_mod
+
+    ! =============================================================================
+    ! Anderson 13 surface fire fuel models, along with some
+    !          estimated canopy properties (for crown fire).
+    ! =============================================================================
+    !  --- Grass-dominated fuel models
+    !  FUEL MODEL 1: Short grass (1 ft)
+    !  FUEL MODEL 2: Timber (grass and understory)
+    !  FUEL MODEL 3: Tall grass (2.5 ft)
+    !  --- Shrub-dominated fuel models
+    !  FUEL MODEL 4: Chaparral (6 ft)
+    !  FUEL MODEL 5: Brush (2 ft)
+    !  FUEL MODEL 6: Dormant brush, hardwood slash
+    !  FUEL MODEL 7: Southern rough
+    !  --- Forest litter-dominated fuel models
+    !  FUEL MODEL 8: Closed timber litter
+    !  FUEL MODEL 9: Hardwood litter
+    !  FUEL MODEL 10: Timber (litter + understory)
+    !  --- Logging debris-dominated fuel models
+    !  FUEL MODEL 11: Light logging slash
+    !  FUEL MODEL 12: Medium logging slash
+    !  FUEL MODEL 13: Heavy logging slash
+    !  --- Fuel-free
+    !  FUEL MODEL 14: no fuel
+    ! =============================================================================
 
     use module_fr_fire_fuel_moisture_model, only: nfuelcats
 
@@ -8,40 +33,15 @@ module module_fr_fire_fuel_anderson_mod
 
     public :: fuel_anderson_t
 
-! =============================================================================
-! Anderson 13 surface fire fuel models, along with some
-!          estimated canopy properties (for crown fire).
-! =============================================================================
-!  --- Grass-dominated fuel models
-!  FUEL MODEL 1: Short grass (1 ft)
-!  FUEL MODEL 2: Timber (grass and understory)
-!  FUEL MODEL 3: Tall grass (2.5 ft)
-!  --- Shrub-dominated fuel models
-!  FUEL MODEL 4: Chaparral (6 ft)
-!  FUEL MODEL 5: Brush (2 ft)
-!  FUEL MODEL 6: Dormant brush, hardwood slash
-!  FUEL MODEL 7: Southern rough
-!  --- Forest litter-dominated fuel models
-!  FUEL MODEL 8: Closed timber litter
-!  FUEL MODEL 9: Hardwood litter
-!  FUEL MODEL 10: Timber (litter + understory)
-!  --- Logging debris-dominated fuel models
-!  FUEL MODEL 11: Light logging slash
-!  FUEL MODEL 12: Medium logging slash
-!  FUEL MODEL 13: Heavy logging slash
-!  --- Fuel-free
-!  FUEL MODEL 14: no fuel
-
-   type :: fuel_anderson_t
-      ! fuel categorytables
-      CHARACTER (len=80), DIMENSION(:), allocatable :: fuel_name
-      INTEGER, DIMENSION(:), allocatable :: ichap
-      REAL   , DIMENSION(:), allocatable :: windrf,weight,fci_d,fct,    &
+    type :: fuel_anderson_t
+      character (len = 80), dimension(:), allocatable :: fuel_name
+      integer, dimension(:), allocatable :: ichap
+      real, dimension(:), allocatable :: windrf,weight,fci_d,fct,    &
                                             fueldepthm,fueldens,fuelmce,   &
                                             savr,st,se
-     contains
-      procedure, public :: Initialization => Init_anderson_fuel_model
-   end type fuel_anderson_t
+    contains
+       procedure, public :: Initialization => Init_anderson_fuel_model
+    end type fuel_anderson_t
 
   contains
 
@@ -50,6 +50,7 @@ module module_fr_fire_fuel_anderson_mod
       implicit none
 
       class (fuel_anderson_t), intent(in out) :: this
+
 
       allocate (this%fuel_name(nfuelcats+1))
       allocate (this%windrf(nfuelcats+1))
@@ -88,23 +89,24 @@ module module_fr_fire_fuel_anderson_mod
       this%fuelmce(1:nfuelcats+1) = (/ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40,  &
                                        0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12   /)
       this%fueldens(1:nfuelcats+1) = (/ 32., 32., 32., 32., 32., 32., 32., &
-                                        32., 32., 32., 32., 32., 32., 32.  /)   ! 32 if solid, 19 if rotten.
+                                        32., 32., 32., 32., 32., 32., 32.  /)
       this%st(1:nfuelcats+1) = (/ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
                                   0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555  /)
       this%se(1:nfuelcats+1) = (/ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
                                   0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010  /)
-   ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
-   !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
-   !              (11)-(13) could be 300-1600
+          ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
+          !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
+          !              (11)-(13) could be 300-1600
       this%weight(1:nfuelcats+1) = (/ 7.,  7.,  7., 180., 100., 100., 100.,   &
                                       900., 900., 900., 900., 900., 900., 7.  /)
-   ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
+          ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
       this%fci_d(1:nfuelcats+1) = (/ 0., 0., 0., 1.123, 0., 0., 0.,               &
                                      1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0. /)
       this%fct(1:nfuelcats+1) = (/ 60., 60., 60., 60., 60., 60., 60.,      &
                                    60., 120., 180., 180., 180., 180. , 60. /)
       this%ichap(1:nfuelcats+1) = (/ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /)
 
-   end subroutine Init_anderson_fuel_model
+    end subroutine Init_anderson_fuel_model
 
-end module module_fr_fire_fuel_anderson_mod
+  end module module_fr_fire_fuel_anderson_mod
+
