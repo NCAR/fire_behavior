@@ -9,7 +9,7 @@
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
-    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, Init_anderson_fuel_model
+    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
 
     implicit none
 
@@ -41,7 +41,7 @@
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
 
         ! Init fuels
-      call Init_anderson_fuel_model (fuel_model)
+      call fuel_model%Initialization ()
         ! Legacy call to be updated
       call Init_fuel_cats (fuel_model)
 
@@ -130,7 +130,7 @@
           ! fuel moisture may have changed, reset the precomputed ros parameters
           ! uses nfuel_cat to set the other fuel data arrays
           ! needs zsf on halo width 1 to compute the terrain gradient
-        call Init_anderson_fuel_model (fuel_model)
+        call fuel_model%Initialization ()
 
         call set_fire_params(        &
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &

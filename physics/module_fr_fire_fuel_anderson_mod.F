@@ -6,7 +6,7 @@ module module_fr_fire_fuel_anderson_mod
 
     private
 
-    public :: fuel_anderson_t, Init_anderson_fuel_model
+    public :: fuel_anderson_t
 
 ! =============================================================================
 ! Anderson 13 surface fire fuel models, along with some
@@ -39,6 +39,8 @@ module module_fr_fire_fuel_anderson_mod
       REAL   , DIMENSION(:), allocatable :: windrf,weight,fci_d,fct,    &
                                             fueldepthm,fueldens,fuelmce,   &
                                             savr,st,se
+     contains
+      procedure, public :: Initialization => Init_anderson_fuel_model
    end type fuel_anderson_t
 
   contains
