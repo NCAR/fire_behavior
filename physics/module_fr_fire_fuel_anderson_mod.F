@@ -50,8 +50,9 @@
         !     ranges from ~5 (fast burnup) to 1000 ( ~40% decr over 10 min) ????
       real, dimension(N_FUEL_CAT + 1) :: fgi = [ 0.166, 0.896, 0.674, 3.591, 0.784, 1.344, 1.091, &
                                                  1.120, 0.780, 2.692, 2.582, 7.749, 13.024, 1.e-7 ]
-        ! fuel loading 1-h, 10-h, 100-h, 1000-h, and live following Albini 1976 as reprinted in
-        ! Anderson 1982 Table 1 (for proportions only)
+        ! fuel loading 1-h, 10-h, 100-h, 1000-h, and live  [ton/acre]
+        ! following Albini 1976 as reprinted in Anderson 1982 Table 1 (for proportions only)
+        ! to convert ton/acre to 1 km/m2 multiply by 4.4609
       real, dimension(N_FUEL_CAT + 1) :: fgi_1h =  [ 0.74,   2.00,  3.01,  5.01,  1.00,  1.50,  1.13, &
                                                      1.50,  2.92,  3.01,  1.50,  4.01,  7.01,   0.0 ]
       real, dimension(N_FUEL_CAT + 1) :: fgi_10h = [ 0.00,   1.00,  0.00,  4.01,  0.50,  2.50,  1.87, &
