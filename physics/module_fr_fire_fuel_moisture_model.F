@@ -84,9 +84,9 @@
       type (namelist_t), intent (in) :: config_flags
       type (fuel_anderson_t), intent (in) :: fuel_model
 
-      integer:: i, k
-      character(len=128):: msg
-      real:: rat
+      integer :: i, k
+      character (len = 128) :: msg
+      real :: rat
 
 
       grid%fmoist_lasttime = grid%itimestep * grid%dt
@@ -119,41 +119,43 @@
       call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
           config_flags%fire_print_msg)
       do i = 1, MFUELCATS
-            fgi_t(i) = 0.0
-            do k = 1, MAX_MOISTURE_CLASSES
-                if(fgi_c(i,k) >= 0.0) then
-                    fgi_t(i) = fgi_t(i) + fgi_c(i, k)
-                else
-                    write (msg, *) 'fuel load in category', i, ' fuel class ', k, ' is ', fgi_c(i, k), ',must be nonegative.'
-                    call Crash (msg)
-                endif
-            end do
-            if (fgi_t(i) > 0.0 .or. fuel_model%fgi(i) > 0.0) then
-                if (fgi_t(i) > 0.0) then
-                     rat = fuel_model%fgi(i) / fgi_t(i)
-                else
-                     rat = 0.0
-                end if
-                write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
-                    'fuel category', i, 'fuel load', fuel_model%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
-                call Message (msg, config_flags%fire_print_msg)
-            end if
-            ! fuel moisture averaging weights for fuel classes in category i
-            fmc_gwt(i)=0.
-            do k = 1, MAX_MOISTURE_CLASSES
-               if (fgi_t(i) > 0.) then
-                   fmc_gw(i,k) = fgi_c(i,k) / fgi_t(i)
-                   fmc_gwt(i) = fmc_gwt(i) + fmc_gw(i,k)
-               else
-                   fmc_gw(i,k) = 0.
-               endif
-            enddo
-      enddo
+        fgi_t(i) = 0.0
+        do k = 1, MAX_MOISTURE_CLASSES
+          if(fgi_c(i,k) >= 0.0) then
+            fgi_t(i) = fgi_t(i) + fgi_c(i, k)
+          else
+            write (msg, *) 'fuel load in category', i, ' fuel class ', k, ' is ', fgi_c(i, k), ',must be nonegative.'
+            call Crash (msg)
+          end if
+        end do
+
+        if (fgi_t(i) > 0.0 .or. fuel_model%fgi(i) > 0.0) then
+          if (fgi_t(i) > 0.0) then
+            rat = fuel_model%fgi(i) / fgi_t(i)
+          else
+            rat = 0.0
+          end if
+          write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
+              'fuel category', i, 'fuel load', fuel_model%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
+          call Message (msg, config_flags%fire_print_msg)
+        end if
+
+          ! fuel moisture averaging weights for fuel classes in category i
+        fmc_gwt(i) = 0.0
+        do k = 1, MAX_MOISTURE_CLASSES
+          if (fgi_t(i) > 0.) then
+            fmc_gw(i,k) = fgi_c(i,k) / fgi_t(i)
+            fmc_gwt(i) = fmc_gwt(i) + fmc_gw(i,k)
+          else
+            fmc_gw(i,k) = 0.
+          end if
+        end do
+      end do
 
         ! moisture model derived scalars
       do i = 1, moisture_classes
-        rec_drying_lag_sec(i)  = 1.0/(3600.0*drying_lag(i))
-        rec_wetting_lag_sec(i) = 1.0/(3600.0*wetting_lag(i))
+        rec_drying_lag_sec(i) = 1.0 / (3600.0 * drying_lag(i))
+        rec_wetting_lag_sec(i) = 1.0 / (3600.0 * wetting_lag(i))
       end do
 
     end subroutine Init_fuel_moisture
