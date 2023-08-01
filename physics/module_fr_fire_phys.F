@@ -24,24 +24,7 @@
     !D      BMST           RATIO OF LATENT TO SENSIBLE HEAT FROM SFC BURN:
     !                        % of total fuel mass that is water (not quite
     !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
-    !                        so BMST = FUELMC_G / (1 + FUELMC_G)  where
-    !
-    !  Data arrays indexed by fuel category:
-    !       FGI            INITIAL TOTAL MASS OF SURFACE FUEL (KG/M**2)
-    !       FUELDEPTHM     FUEL DEPTH, IN M  (CONVERTED TO FT)              
-    !       SAVR           FUEL PARTICLE SURFACE-AREA-TO-VOLUME RATIO, 1/FT
-    !                         GRASS: 3500., 10 hr fuel: 109.,  100 hr fuel: 30.
-    !       FUELMCE        MOISTURE CONTENT OF EXTINCTION; 0.30 FOR MANY DEAD FUELS; 0.15 FOR GRASS
-    !       FUELDENS       OVENDRY PARTICLE DENSITY, LB/FT^3
-    !       ST             FUEL PARTICLE TOTAL MINERAL CONTENT
-    !       SE             FUEL PARTICLE EFFECTIVE MINERAL CONTENT
-    !       WEIGHT         WEIGHTING PARAMETER THAT DETERMINES THE SLOPE OF THE MASS LOSS CURVE
-    !                        RANGES FROM ~5 (FAST BURNUP) TO 1000 ( ~40% DECR OVER 10 MIN).
-    !       FCI_D          INITIAL DRY MASS OF CANOPY FUEL
-    !       FCT            BURN OUT TIME FOR CANOPY FUEL, AFTER DRY (S)
-    !       ichap          Set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
-    !D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
-    !D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S) 
+    !                        so BMST = FUELMC_G / (1 + FUELMC_G)
 
       ! scalar fuel coefficients
     REAL, SAVE:: cmbcnst,hfgl

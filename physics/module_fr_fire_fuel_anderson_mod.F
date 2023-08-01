@@ -25,24 +25,6 @@
     !  FUEL MODEL 14: no fuel
     ! =============================================================================
 
-    !  Data arrays indexed by fuel category:
-    !       FGI            INITIAL TOTAL MASS OF SURFACE FUEL (KG/M**2)
-    !       FUELDEPTHM     FUEL DEPTH, IN M  (CONVERTED TO FT)              
-    !       SAVR           FUEL PARTICLE SURFACE-AREA-TO-VOLUME RATIO, 1/FT
-    !                         GRASS: 3500., 10 hr fuel: 109.,  100 hr fuel: 30.
-    !       FUELMCE        MOISTURE CONTENT OF EXTINCTION; 0.30 FOR MANY DEAD FUELS; 0.15 FOR GRASS
-    !       FUELDENS       OVENDRY PARTICLE DENSITY, LB/FT^3
-    !       ST             FUEL PARTICLE TOTAL MINERAL CONTENT
-    !       SE             FUEL PARTICLE EFFECTIVE MINERAL CONTENT
-    !       WEIGHT         WEIGHTING PARAMETER THAT DETERMINES THE SLOPE OF THE MASS LOSS CURVE
-    !                        RANGES FROM ~5 (FAST BURNUP) TO 1000 ( ~40% DECR OVER 10 MIN).
-    !       FCI_D          INITIAL DRY MASS OF CANOPY FUEL
-    !       FCT            BURN OUT TIME FOR CANOPY FUEL, AFTER DRY (S)
-    !       ichap          Set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
-    !D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
-    !D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S)
-    ! =============================================================================
-
     implicit none
 
     private
@@ -53,29 +35,45 @@
 
     type :: fuel_anderson_t
       character (len = 80), dimension(N_FUEL_CAT + 1) :: fuel_name
+        ! fgi: initial total mass of surface fuel [kg/m2]
+        !     ranges from ~5 (fast burnup) to 1000 ( ~40% decr over 10 min)
+        ! fueldepthm: fuel depth [m]  (in feet in Anderson 1982)
       real, dimension(N_FUEL_CAT + 1) :: fueldepthm = [ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
                                                         0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305 ]
+        ! fuelmce: moisture content of extinction (Anderson 1982)
       real, dimension(N_FUEL_CAT + 1) :: fuelmce = [ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40, &
                                                      0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12 ]
+        ! savr: fuel particle surface-area-to-volume ratio, [1/ft]
+        !       grass: 3500., 10 hr fuel: 109., 100 hr fuel: 30.
       real, dimension(N_FUEL_CAT + 1) :: savr = [ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
                                                   1889., 2484., 1764., 1182., 1145., 1159., 3500. ]
+        ! fueldens: ovendry particle density [lb/ft3]
       real, dimension(N_FUEL_CAT + 1) :: fueldens = 32.0
+        ! st: fuel particle total mineral content
       real, dimension(N_FUEL_CAT + 1) :: st = 0.0555
+        ! se: fuel particle effective mineral content
       real, dimension(N_FUEL_CAT + 1) :: se = 0.010
-          ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
-          !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
-          !              (11)-(13) could be 300-1600
+        ! weight: weighting parameter that determines the slope of the mass loss curve
+        ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
+        !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
+        !              (11)-(13) could be 300-1600
       real, dimension(N_FUEL_CAT + 1) :: weight = [ 7.,  7.,  7., 180., 100., 100., 100., &
                                                     900., 900., 900., 900., 900., 900., 7. ]
+        ! ichap: set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
       integer, dimension(N_FUEL_CAT + 1) :: ichap = [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
-       ! Canopy
+        ! Canopy
+        ! fct: burn out time for canopy fuel, after dry [s]
       real, dimension(N_FUEL_CAT + 1) :: fct = [ 60., 60., 60., 60., 60., 60., 60., &
                                                  60., 120., 180., 180., 180., 180. , 60. ]
-          ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
+        ! fci_d: initial dry mass of canopy fuel
+        ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
       real, dimension(N_FUEL_CAT + 1) :: fci_d = [ 0., 0., 0., 1.123, 0., 0., 0., &
                                                    1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0. ]
       real, dimension(N_FUEL_CAT + 1) :: windrf = [ 0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44,  &
                                                     0.36, 0.36, 0.36,  0.36,  0.43,  0.46,  1.0e-7 ]
+        ! fci: initial total mass of canopy fuel
+        ! fcbr: fuel canopy burn rate (kg/m2/s)
+      real, dimension(N_FUEL_CAT + 1) :: fcbr, fci
     contains
        procedure, public :: Initialization => Init_anderson_fuel_model
     end type fuel_anderson_t
