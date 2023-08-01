@@ -25,7 +25,7 @@ use module_fr_fire_core, only: ignition_line_type, Init_no_fire
 
 use state_mod, only: state_fire_t
 use namelist_mod, only: namelist_t
-use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
+use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, Init_anderson_fuel_model
 
   implicit none
 
@@ -39,15 +39,16 @@ use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
 
 contains
 
-  subroutine init_fire_driver (grid, fuel_model, config_flags)
+  subroutine init_fire_driver (grid, config_flags)
 
     implicit none
 
     type (state_fire_t), target :: grid
-    type (fuel_anderson_t), target :: fuel_model
     type (namelist_t), intent(in) :: config_flags
 
     real :: time_start
+    type (fuel_anderson_t) :: fuel_model
+
 
       ! get ignition data
     call fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
@@ -56,6 +57,8 @@ contains
     if (config_flags%fmoist_run) then
         call init_fuel_moisture ( grid, config_flags )
     endif
+
+    call Init_anderson_fuel_model (fuel_model)
 
       ! init rest of fuel tables with derived constants
       ! properties of fuel categories and moisture classes from namelist.fire
@@ -83,20 +86,21 @@ contains
 
   end subroutine init_fire_driver
 
-subroutine fire_driver_em ( grid , fuel_model, config_flags )
+subroutine fire_driver_em (grid, config_flags)
 
     implicit none
 
     type (state_fire_t), target :: grid
-    type (fuel_anderson_t), target :: fuel_model
     type (namelist_t), intent (in) :: config_flags
 
     integer :: ignitions_done              ! number of isolated ignitions
     integer :: ignited_tile(fire_num_ignitions) ! number of gridpts ignited in a given ignition
     real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
     real:: time_start
+    type (fuel_anderson_t) :: fuel_model
 
-    ! time - assume dt does not change
+
+      ! time - assume dt does not change
     time_start = grid%itimestep * grid%dt
 
     call check_for_moisture( grid, config_flags )
@@ -146,6 +150,8 @@ subroutine fire_driver_em ( grid , fuel_model, config_flags )
           ! fuel moisture may have changed, reset the precomputed ros parameters
           ! uses nfuel_cat to set the other fuel data arrays
           ! needs zsf on halo width 1 to compute the terrain gradient
+          call Init_anderson_fuel_model (fuel_model)
+
           call set_fire_params(        &       ! also on restart
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
                   grid%ifms,grid%ifme,grid%jfms,grid%jfme, &

@@ -34,7 +34,7 @@ clean:
 	rm -f ./*.o ./*.mod ./*.exe
 
   # Dependencies
-fire_behavior_nuopc.o: ../state/state_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o ../physics/module_fr_fire_fuel_anderson_mod.o
+fire_behavior_nuopc.o: ../state/state_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o
 
 wrf_nuopc.o: ../io/wrf_mod.o ../share/datetime_mod.o ../io/namelist_mod.o ../driver/initialize_mod.o
 
