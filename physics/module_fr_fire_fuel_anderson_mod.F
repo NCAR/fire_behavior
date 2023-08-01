@@ -59,12 +59,9 @@
                                                      0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12 ]
       real, dimension(N_FUEL_CAT + 1) :: savr = [ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
                                                   1889., 2484., 1764., 1182., 1145., 1159., 3500. ]
-      real, dimension(N_FUEL_CAT + 1) :: fueldens = [ 32., 32., 32., 32., 32., 32., 32., &
-                                                      32., 32., 32., 32., 32., 32., 32. ]
-      real, dimension(N_FUEL_CAT + 1) :: st = [ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
-                                                0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555 ]
-      real, dimension(N_FUEL_CAT + 1) :: se = [ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
-                                                0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010 ]
+      real, dimension(N_FUEL_CAT + 1) :: fueldens = 32.0
+      real, dimension(N_FUEL_CAT + 1) :: st = 0.0555
+      real, dimension(N_FUEL_CAT + 1) :: se = 0.010
           ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
           !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
           !              (11)-(13) could be 300-1600
