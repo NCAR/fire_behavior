@@ -25,13 +25,31 @@
     !  FUEL MODEL 14: no fuel
     ! =============================================================================
 
-    use module_fr_fire_fuel_moisture_model, only: nfuelcats
+    !  Data arrays indexed by fuel category:
+    !       FGI            INITIAL TOTAL MASS OF SURFACE FUEL (KG/M**2)
+    !       FUELDEPTHM     FUEL DEPTH, IN M  (CONVERTED TO FT)              
+    !       SAVR           FUEL PARTICLE SURFACE-AREA-TO-VOLUME RATIO, 1/FT
+    !                         GRASS: 3500., 10 hr fuel: 109.,  100 hr fuel: 30.
+    !       FUELMCE        MOISTURE CONTENT OF EXTINCTION; 0.30 FOR MANY DEAD FUELS; 0.15 FOR GRASS
+    !       FUELDENS       OVENDRY PARTICLE DENSITY, LB/FT^3
+    !       ST             FUEL PARTICLE TOTAL MINERAL CONTENT
+    !       SE             FUEL PARTICLE EFFECTIVE MINERAL CONTENT
+    !       WEIGHT         WEIGHTING PARAMETER THAT DETERMINES THE SLOPE OF THE MASS LOSS CURVE
+    !                        RANGES FROM ~5 (FAST BURNUP) TO 1000 ( ~40% DECR OVER 10 MIN).
+    !       FCI_D          INITIAL DRY MASS OF CANOPY FUEL
+    !       FCT            BURN OUT TIME FOR CANOPY FUEL, AFTER DRY (S)
+    !       ichap          Set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
+    !D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
+    !D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S)
+    ! =============================================================================
 
     implicit none
 
     private
 
-    public :: fuel_anderson_t
+    public :: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
+
+    integer, parameter :: N_FUEL_CAT = 13, NO_FUEL_CAT = 14
 
     type :: fuel_anderson_t
       character (len = 80), dimension(:), allocatable :: fuel_name
@@ -52,18 +70,18 @@
       class (fuel_anderson_t), intent(in out) :: this
 
 
-      allocate (this%fuel_name(nfuelcats+1))
-      allocate (this%windrf(nfuelcats+1))
-      allocate (this%fueldepthm(nfuelcats+1))
-      allocate (this%savr(nfuelcats+1))
-      allocate (this%fuelmce(nfuelcats+1))
-      allocate (this%fueldens(nfuelcats+1))
-      allocate (this%st(nfuelcats+1))
-      allocate (this%se(nfuelcats+1))
-      allocate (this%weight(nfuelcats+1))
-      allocate (this%fci_d(nfuelcats+1))
-      allocate (this%fct(nfuelcats+1))
-      allocate (this%ichap(nfuelcats+1))
+      allocate (this%fuel_name(N_FUEL_CAT+1))
+      allocate (this%windrf(N_FUEL_CAT+1))
+      allocate (this%fueldepthm(N_FUEL_CAT+1))
+      allocate (this%savr(N_FUEL_CAT+1))
+      allocate (this%fuelmce(N_FUEL_CAT+1))
+      allocate (this%fueldens(N_FUEL_CAT+1))
+      allocate (this%st(N_FUEL_CAT+1))
+      allocate (this%se(N_FUEL_CAT+1))
+      allocate (this%weight(N_FUEL_CAT+1))
+      allocate (this%fci_d(N_FUEL_CAT+1))
+      allocate (this%fct(N_FUEL_CAT+1))
+      allocate (this%ichap(N_FUEL_CAT+1))
 
       this%fuel_name(1)  = '1: Short grass (1 ft)'
       this%fuel_name(2)  = '2: Timber (grass and understory)'
@@ -80,31 +98,31 @@
       this%fuel_name(13) = '13: Heavy logging slash'
       this%fuel_name(14) = '14: no fuel'
 
-      this%windrf(1:nfuelcats+1) = (/ 0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44,  &
+      this%windrf(1:N_FUEL_CAT+1) = (/ 0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44,  &
                                       0.36, 0.36, 0.36,  0.36,  0.43,  0.46,  1.0e-7 /)
-      this%fueldepthm(1:nfuelcats+1) = (/ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
+      this%fueldepthm(1:N_FUEL_CAT+1) = (/ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
                                           0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305 /)
-      this%savr(1:nfuelcats+1) = (/ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
+      this%savr(1:N_FUEL_CAT+1) = (/ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
                                     1889., 2484., 1764., 1182., 1145., 1159., 3500.   /)
-      this%fuelmce(1:nfuelcats+1) = (/ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40,  &
+      this%fuelmce(1:N_FUEL_CAT+1) = (/ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40,  &
                                        0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12   /)
-      this%fueldens(1:nfuelcats+1) = (/ 32., 32., 32., 32., 32., 32., 32., &
+      this%fueldens(1:N_FUEL_CAT+1) = (/ 32., 32., 32., 32., 32., 32., 32., &
                                         32., 32., 32., 32., 32., 32., 32.  /)
-      this%st(1:nfuelcats+1) = (/ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
+      this%st(1:N_FUEL_CAT+1) = (/ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
                                   0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555  /)
-      this%se(1:nfuelcats+1) = (/ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
+      this%se(1:N_FUEL_CAT+1) = (/ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
                                   0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010  /)
           ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
           !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
           !              (11)-(13) could be 300-1600
-      this%weight(1:nfuelcats+1) = (/ 7.,  7.,  7., 180., 100., 100., 100.,   &
+      this%weight(1:N_FUEL_CAT+1) = (/ 7.,  7.,  7., 180., 100., 100., 100.,   &
                                       900., 900., 900., 900., 900., 900., 7.  /)
           ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
-      this%fci_d(1:nfuelcats+1) = (/ 0., 0., 0., 1.123, 0., 0., 0.,               &
+      this%fci_d(1:N_FUEL_CAT+1) = (/ 0., 0., 0., 1.123, 0., 0., 0.,               &
                                      1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0. /)
-      this%fct(1:nfuelcats+1) = (/ 60., 60., 60., 60., 60., 60., 60.,      &
+      this%fct(1:N_FUEL_CAT+1) = (/ 60., 60., 60., 60., 60., 60., 60.,      &
                                    60., 120., 180., 180., 180., 180. , 60. /)
-      this%ichap(1:nfuelcats+1) = (/ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /)
+      this%ichap(1:N_FUEL_CAT+1) = (/ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /)
 
     end subroutine Init_anderson_fuel_model
 

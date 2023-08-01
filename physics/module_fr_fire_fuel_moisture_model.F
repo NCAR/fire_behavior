@@ -6,12 +6,14 @@ use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
 
 use state_mod, only: state_fire_t
 use namelist_mod, only: namelist_t
+    use module_fr_fire_fuel_anderson_mod, only: N_FUEL_CAT
+
 
 PRIVATE
 
 ! subroutines and functions 
 PUBLIC:: init_fuel_moisture,fuel_moisture,advance_moisture,check_for_moisture
-PUBLIC::mfuelcats,nf,nfuelcats,zf,no_fuel_cat,fuelmc_g,fuelmc_c,fgi
+PUBLIC::mfuelcats,nf,zf,fuelmc_g,fuelmc_c,fgi
 
 !***************************************************************************************!
 !***                                  Fuel moisture model                            ***!
@@ -84,9 +86,7 @@ PUBLIC::mfuelcats,nf,nfuelcats,zf,no_fuel_cat,fuelmc_g,fuelmc_c,fgi
 
 ! fuel categorytables
    INTEGER, PARAMETER :: nf=14              ! number of fuel categories in data stmts
-   INTEGER, SAVE      :: nfuelcats = 13     ! number of fuel categories that are specified
    INTEGER, PARAMETER :: zf = mfuelcats-nf  ! number of zero fillers in data stmt
-   INTEGER, SAVE      :: no_fuel_cat = 14   ! special category outside of 1:nfuelcats
    REAL   , DIMENSION( mfuelcats ), save :: fgi_1h,fgi_10h,fgi_100h,fgi_1000h,fgi_live, fgi, &
                                             fgi_t,fmc_gwt
    REAL,   DIMENSION(mfuelcats,max_moisture_classes), save :: fgi_c, fmc_gw ! fuel moisture class weights
@@ -120,12 +120,8 @@ subroutine init_fuel_moisture( grid, config_flags )
     grid%fmoist_nexttime = grid%fmoist_lasttime
 
     ! From read_namelist_fire
-    if (nfuelcats>mfuelcats) then
-        write(msg,*)'nfuelcats=',nfuelcats,' is too large, increase mfuelcats'
-        call crash(msg)
-    endif
-    if (no_fuel_cat >= 1 .and. no_fuel_cat <= nfuelcats)then
-        write(msg,*)'no_fuel_cat=',no_fuel_cat,' may not be between 1 and nfuelcats=',nfuelcats
+    if (N_FUEL_CAT > mfuelcats) then
+        write(msg,*)'N_FUEL_CAT =',N_FUEL_CAT,' is too large, increase mfuelcats'
         call crash(msg)
     endif
 

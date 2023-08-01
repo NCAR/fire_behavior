@@ -1,53 +1,50 @@
-!
-module module_fr_fire_phys
 
-use constants_mod, only : XLV
-use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
-use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, nfuelcats, zf, no_fuel_cat, &
+  module module_fr_fire_phys
+
+    use constants_mod, only : XLV
+    use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
+    use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, zf, &
                                               fuelmc_g, fuelmc_c, fgi
 
-use state_mod, only: state_fire_t
-use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
+    use state_mod, only: state_fire_t
+    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
 
-PRIVATE
+    private
 
-! subroutines and functions 
-PUBLIC:: init_fuel_cats,fire_ros,heat_fluxes,set_fire_params
-PUBLIC:: read_namelist_fire
+    public :: Init_fuel_cats, Fire_ros, Heat_fluxes, Set_fire_params
 
-! =========================================================================
+    !
+    !D means quantity derived from the others
+    !
+    !  Scalar constants (data same for all fuel categories):
+    !       HFGL           SURFACE FIRE HEAT FLUX THRESHOLD TO IGNITE CANOPY (W/m^2)
+    !       CMBCNST        JOULES PER KG OF DRY FUEL
+    !       FUELHEAT       FUEL PARTICLE LOW HEAT CONTENT, BTU/LB
+    !       FUELMC_G       FUEL PARTICLE (SURFACE) MOISTURE CONTENT
+    !D      BMST           RATIO OF LATENT TO SENSIBLE HEAT FROM SFC BURN:
+    !                        % of total fuel mass that is water (not quite
+    !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
+    !                        so BMST = FUELMC_G / (1 + FUELMC_G)  where
+    !
+    !  Data arrays indexed by fuel category:
+    !       FGI            INITIAL TOTAL MASS OF SURFACE FUEL (KG/M**2)
+    !       FUELDEPTHM     FUEL DEPTH, IN M  (CONVERTED TO FT)              
+    !       SAVR           FUEL PARTICLE SURFACE-AREA-TO-VOLUME RATIO, 1/FT
+    !                         GRASS: 3500., 10 hr fuel: 109.,  100 hr fuel: 30.
+    !       FUELMCE        MOISTURE CONTENT OF EXTINCTION; 0.30 FOR MANY DEAD FUELS; 0.15 FOR GRASS
+    !       FUELDENS       OVENDRY PARTICLE DENSITY, LB/FT^3
+    !       ST             FUEL PARTICLE TOTAL MINERAL CONTENT
+    !       SE             FUEL PARTICLE EFFECTIVE MINERAL CONTENT
+    !       WEIGHT         WEIGHTING PARAMETER THAT DETERMINES THE SLOPE OF THE MASS LOSS CURVE
+    !                        RANGES FROM ~5 (FAST BURNUP) TO 1000 ( ~40% DECR OVER 10 MIN).
+    !       FCI_D          INITIAL DRY MASS OF CANOPY FUEL
+    !       FCT            BURN OUT TIME FOR CANOPY FUEL, AFTER DRY (S)
+    !       ichap          Set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
+    !D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
+    !D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S) 
 
-!D in col 2 means quantity derived from the others
-!
-!  Scalar constants (data same for all fuel categories):
-!       HFGL           SURFACE FIRE HEAT FLUX THRESHOLD TO IGNITE CANOPY (W/m^2)
-!       CMBCNST        JOULES PER KG OF DRY FUEL
-!       FUELHEAT       FUEL PARTICLE LOW HEAT CONTENT, BTU/LB
-!       FUELMC_G       FUEL PARTICLE (SURFACE) MOISTURE CONTENT
-!D      BMST           RATIO OF LATENT TO SENSIBLE HEAT FROM SFC BURN:
-!                        % of total fuel mass that is water (not quite
-!                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
-!                        so BMST = FUELMC_G / (1 + FUELMC_G)  where
-!
-!  Data arrays indexed by fuel category:
-!       FGI            INITIAL TOTAL MASS OF SURFACE FUEL (KG/M**2)
-!       FUELDEPTHM     FUEL DEPTH, IN M  (CONVERTED TO FT)              
-!       SAVR           FUEL PARTICLE SURFACE-AREA-TO-VOLUME RATIO, 1/FT
-!                         GRASS: 3500., 10 hr fuel: 109.,  100 hr fuel: 30.
-!       FUELMCE        MOISTURE CONTENT OF EXTINCTION; 0.30 FOR MANY DEAD FUELS; 0.15 FOR GRASS
-!       FUELDENS       OVENDRY PARTICLE DENSITY, LB/FT^3
-!       ST             FUEL PARTICLE TOTAL MINERAL CONTENT
-!       SE             FUEL PARTICLE EFFECTIVE MINERAL CONTENT
-!       WEIGHT         WEIGHTING PARAMETER THAT DETERMINES THE SLOPE OF THE MASS LOSS CURVE
-!                        RANGES FROM ~5 (FAST BURNUP) TO 1000 ( ~40% DECR OVER 10 MIN).
-!       FCI_D          INITIAL DRY MASS OF CANOPY FUEL
-!       FCT            BURN OUT TIME FOR CANOPY FUEL, AFTER DRY (S)
-!       ichap          Set=1 if fuel is chaparral and want the rate of spread treated differently, 0 if not
-!D      FCI            INITIAL TOTAL MASS OF CANOPY FUEL
-!D      FCBR           FUEL CANOPY BURN RATE (KG/M**2/S) 
-
-! scalar fuel coefficients
-   REAL, SAVE:: cmbcnst,hfgl
+      ! scalar fuel coefficients
+    REAL, SAVE:: cmbcnst,hfgl
 ! computed values
    REAL, SAVE:: fuelheat
 
@@ -59,40 +56,36 @@ PUBLIC:: read_namelist_fire
 !  real, parameter :: xlv      = 2.5e6                  ! to make it selfcontained
 !  real, parameter :: cp      =  7.*287./2              ! to make it selfcontained
 
-   REAL   , DIMENSION( mfuelcats ), save :: fci,fcbr
+    REAL   , DIMENSION( mfuelcats ), save :: fci,fcbr
 
-! =========================================================================
-contains
+  contains
 
-subroutine init_fuel_cats(fuel_model)
-implicit none
-!*** purpose: initialize fuel tables and variables by constants
-type (fuel_anderson_t), target :: fuel_model
-!*** local
-integer:: i,j,k,ii
-integer:: kk
-character(len=128):: msg
-!*** executable
+    subroutine init_fuel_cats(fuel_model)
 
-! compute derived scalars
+      implicit none
 
-fuelheat = cmbcnst * 4.30e-04     ! convert J/kg to BTU/lb
+      type (fuel_anderson_t), target :: fuel_model
 
-! compute derived fuel category coefficients 
-
-DO i = 1,nfuelcats
-    fci(i) = (1.+fuelmc_c)*fuel_model%fci_d(i)
-    if(fuel_model%fct(i) .ne.  0.)then
-        fcbr(i) = fuel_model%fci_d(i)/fuel_model%fct(i) !  avoid division by zero
-    else
-        fcbr(i) = 0
-    endif
-END DO
-
-end subroutine init_fuel_cats
+      integer:: i,j,k,ii
+      integer:: kk
+      character(len=128):: msg
 
 
-subroutine set_fire_params( &
+      fuelheat = cmbcnst * 4.30e-04     ! convert J/kg to BTU/lb
+
+      DO i = 1, N_FUEL_CAT
+        fci(i) = (1.+fuelmc_c)*fuel_model%fci_d(i)
+          !  avoid division by zero
+        if(fuel_model%fct(i) /= 0.0) then
+          fcbr(i) = fuel_model%fci_d(i)/fuel_model%fct(i)
+        else
+          fcbr(i) = 0
+        end if
+      END DO
+
+    end subroutine init_fuel_cats
+
+    subroutine set_fire_params( &
                            ifds,ifde,jfds,jfde, &
                            ifms,ifme,jfms,jfme, &
                            ifts,ifte,jfts,jfte, &
@@ -211,7 +204,7 @@ do j=jfts,jfte
    do i=ifts,ifte
      ! fuel category 
      k=ksb(int(nfuel_cat(i,j))) ! DME S&B05
-     if(k.eq.no_fuel_cat)then   ! no fuel 
+     if(k.eq.NO_FUEL_CAT)then   ! no fuel 
         grid%fgip(i,j)=0.            ! no mass 
         grid%ischap(i,j)=0.
         grid%betafl(i,j)=1.          ! DME: set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
@@ -221,7 +214,7 @@ do j=jfts,jfte
         grid%r_0(i,j)=0.             ! no fuel, no spread.
         grid%iboros(i,j)=0.   ! DME Ib/ROS zero for no fuel
      else
-        if(k.lt.1.or.k.gt.nfuelcats)then
+        if(k.lt.1.or.k.gt.N_FUEL_CAT)then
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
             write(msg,'(3(a,i5))')'nfuel_cat(', i ,',',j,')=',k
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
