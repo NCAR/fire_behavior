@@ -52,11 +52,33 @@
     integer, parameter :: N_FUEL_CAT = 13, NO_FUEL_CAT = 14
 
     type :: fuel_anderson_t
-      character (len = 80), dimension(:), allocatable :: fuel_name
-      integer, dimension(:), allocatable :: ichap
-      real, dimension(:), allocatable :: windrf,weight,fci_d,fct,    &
-                                            fueldepthm,fueldens,fuelmce,   &
-                                            savr,st,se
+      character (len = 80), dimension(N_FUEL_CAT + 1) :: fuel_name
+      real, dimension(N_FUEL_CAT + 1) :: fueldepthm = [ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
+                                                        0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305 ]
+      real, dimension(N_FUEL_CAT + 1) :: fuelmce = [ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40, &
+                                                     0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12 ]
+      real, dimension(N_FUEL_CAT + 1) :: savr = [ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
+                                                  1889., 2484., 1764., 1182., 1145., 1159., 3500. ]
+      real, dimension(N_FUEL_CAT + 1) :: fueldens = [ 32., 32., 32., 32., 32., 32., 32., &
+                                                      32., 32., 32., 32., 32., 32., 32. ]
+      real, dimension(N_FUEL_CAT + 1) :: st = [ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
+                                                0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555 ]
+      real, dimension(N_FUEL_CAT + 1) :: se = [ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
+                                                0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010 ]
+          ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
+          !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
+          !              (11)-(13) could be 300-1600
+      real, dimension(N_FUEL_CAT + 1) :: weight = [ 7.,  7.,  7., 180., 100., 100., 100., &
+                                                    900., 900., 900., 900., 900., 900., 7. ]
+      integer, dimension(N_FUEL_CAT + 1) :: ichap = [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+       ! Canopy
+      real, dimension(N_FUEL_CAT + 1) :: fct = [ 60., 60., 60., 60., 60., 60., 60., &
+                                                 60., 120., 180., 180., 180., 180. , 60. ]
+          ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
+      real, dimension(N_FUEL_CAT + 1) :: fci_d = [ 0., 0., 0., 1.123, 0., 0., 0., &
+                                                   1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0. ]
+      real, dimension(N_FUEL_CAT + 1) :: windrf = [ 0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44,  &
+                                                    0.36, 0.36, 0.36,  0.36,  0.43,  0.46,  1.0e-7 ]
     contains
        procedure, public :: Initialization => Init_anderson_fuel_model
     end type fuel_anderson_t
@@ -69,19 +91,6 @@
 
       class (fuel_anderson_t), intent(in out) :: this
 
-
-      allocate (this%fuel_name(N_FUEL_CAT+1))
-      allocate (this%windrf(N_FUEL_CAT+1))
-      allocate (this%fueldepthm(N_FUEL_CAT+1))
-      allocate (this%savr(N_FUEL_CAT+1))
-      allocate (this%fuelmce(N_FUEL_CAT+1))
-      allocate (this%fueldens(N_FUEL_CAT+1))
-      allocate (this%st(N_FUEL_CAT+1))
-      allocate (this%se(N_FUEL_CAT+1))
-      allocate (this%weight(N_FUEL_CAT+1))
-      allocate (this%fci_d(N_FUEL_CAT+1))
-      allocate (this%fct(N_FUEL_CAT+1))
-      allocate (this%ichap(N_FUEL_CAT+1))
 
       this%fuel_name(1)  = '1: Short grass (1 ft)'
       this%fuel_name(2)  = '2: Timber (grass and understory)'
@@ -97,32 +106,6 @@
       this%fuel_name(12) = '12: Medium logging slash'
       this%fuel_name(13) = '13: Heavy logging slash'
       this%fuel_name(14) = '14: no fuel'
-
-      this%windrf(1:N_FUEL_CAT+1) = (/ 0.36, 0.36, 0.44,  0.55,  0.42,  0.44,  0.44,  &
-                                      0.36, 0.36, 0.36,  0.36,  0.43,  0.46,  1.0e-7 /)
-      this%fueldepthm(1:N_FUEL_CAT+1) = (/ 0.305,  0.305,  0.762, 1.829, 0.61, 0.762, 0.762, &
-                                          0.0610, 0.0610, 0.305, 0.305, 0.701, 0.914, 0.305 /)
-      this%savr(1:N_FUEL_CAT+1) = (/ 3500., 2784., 1500., 1739., 1683., 1564., 1562.,  &
-                                    1889., 2484., 1764., 1182., 1145., 1159., 3500.   /)
-      this%fuelmce(1:N_FUEL_CAT+1) = (/ 0.12, 0.15, 0.25, 0.20, 0.20, 0.25, 0.40,  &
-                                       0.30, 0.25, 0.25, 0.15, 0.20, 0.25, 0.12   /)
-      this%fueldens(1:N_FUEL_CAT+1) = (/ 32., 32., 32., 32., 32., 32., 32., &
-                                        32., 32., 32., 32., 32., 32., 32.  /)
-      this%st(1:N_FUEL_CAT+1) = (/ 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, &
-                                  0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555, 0.0555  /)
-      this%se(1:N_FUEL_CAT+1) = (/ 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010, &
-                                  0.010, 0.010, 0.010, 0.010, 0.010, 0.010, 0.010  /)
-          ! ----- Notes on weight: (4) - best fit of data from D. Latham (pers. comm.);
-          !              (5)-(7) could be 60-120; (8)-(10) could be 300-1600;
-          !              (11)-(13) could be 300-1600
-      this%weight(1:N_FUEL_CAT+1) = (/ 7.,  7.,  7., 180., 100., 100., 100.,   &
-                                      900., 900., 900., 900., 900., 900., 7.  /)
-          ! ----- 1.12083 is 5 tons/acre.  5-50 tons/acre orig., 100-300 after blowdown
-      this%fci_d(1:N_FUEL_CAT+1) = (/ 0., 0., 0., 1.123, 0., 0., 0.,               &
-                                     1.121, 1.121, 1.121, 1.121, 1.121, 1.121, 0. /)
-      this%fct(1:N_FUEL_CAT+1) = (/ 60., 60., 60., 60., 60., 60., 60.,      &
-                                   60., 120., 180., 180., 180., 180. , 60. /)
-      this%ichap(1:N_FUEL_CAT+1) = (/ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 /)
 
     end subroutine Init_anderson_fuel_model
 
