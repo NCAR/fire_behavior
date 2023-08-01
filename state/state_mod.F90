@@ -242,8 +242,6 @@
       this%nx = this%ifde
       this%ny = this%jfde
 
-
-
       allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
       this%uf = 0.
@@ -256,6 +254,7 @@
       allocate (this%ischap(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%iboros(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fmc_g(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%fmc_g = config_flags%fuelmc_g
       allocate (this%lfn(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_hist(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_0(this%ifms:this%ifme, this%jfms:this%jfme))

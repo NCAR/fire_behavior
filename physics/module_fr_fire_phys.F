@@ -3,91 +3,44 @@
 
     use constants_mod, only : XLV
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
-    use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, zf, &
-                                              fuelmc_g, fuelmc_c, fgi
+    use module_fr_fire_fuel_moisture_model, only: mfuelcats, nf, zf, fgi
 
     use state_mod, only: state_fire_t
+    use namelist_mod, only: namelist_t
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
 
     private
 
-    public :: Init_fuel_cats, Fire_ros, Heat_fluxes, Set_fire_params
+    public :: Fire_ros, Heat_fluxes, Set_fire_params
 
-    !
-    !D means quantity derived from the others
-    !
-    !  Scalar constants (data same for all fuel categories):
-    !       HFGL           SURFACE FIRE HEAT FLUX THRESHOLD TO IGNITE CANOPY (W/m^2)
-    !       CMBCNST        JOULES PER KG OF DRY FUEL
-    !       FUELHEAT       FUEL PARTICLE LOW HEAT CONTENT, BTU/LB
-    !       FUELMC_G       FUEL PARTICLE (SURFACE) MOISTURE CONTENT
+      ! cmbcnst: joules per kg of dry fuel
+    real, parameter :: CMBCNST = 17.433e+06
+      ! hfgl: surface fire heat flux threshold to ignite canopy [W/m2]
+    real, parameter :: HFGL = 17.e4
+      ! fuelheat: fuel particle low heat content [btu/lb]
+    real, parameter :: FUELHEAT = CMBCNST * 4.30e-04     ! convert J/kg to BTU/lb
+
+    real, dimension (mfuelcats), save :: fci, fcbr
+
+  contains
+
+    subroutine Set_fire_params (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+        fdx, fdy, nfuel_cat, fuel_time, grid, fuel_model, config_flags)
+
+      implicit none
+
     !D      BMST           RATIO OF LATENT TO SENSIBLE HEAT FROM SFC BURN:
     !                        % of total fuel mass that is water (not quite
     !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
     !                        so BMST = FUELMC_G / (1 + FUELMC_G)
 
-      ! scalar fuel coefficients
-    REAL, SAVE:: cmbcnst,hfgl
-! computed values
-   REAL, SAVE:: fuelheat
-
-! defaults, may be changed in init_fuel_cats
-   DATA cmbcnst  / 17.433e+06/             ! J/kg dry fuel
-   DATA hfgl     / 17.e4 /                ! W/m^2
-!  REAL, PARAMETER :: bmst     = fuelmc_g/(1+fuelmc_g)
-!  REAL, PARAMETER :: fuelheat = cmbcnst * 4.30e-04     ! convert J/kg to BTU/lb
-!  real, parameter :: xlv      = 2.5e6                  ! to make it selfcontained
-!  real, parameter :: cp      =  7.*287./2              ! to make it selfcontained
-
-    REAL   , DIMENSION( mfuelcats ), save :: fci,fcbr
-
-  contains
-
-    subroutine init_fuel_cats(fuel_model)
-
-      implicit none
-
-      type (fuel_anderson_t), target :: fuel_model
-
-      integer:: i,j,k,ii
-      integer:: kk
-      character(len=128):: msg
-
-
-      fuelheat = cmbcnst * 4.30e-04     ! convert J/kg to BTU/lb
-
-      DO i = 1, N_FUEL_CAT
-        fci(i) = (1.+fuelmc_c)*fuel_model%fci_d(i)
-          !  avoid division by zero
-        if(fuel_model%fct(i) /= 0.0) then
-          fcbr(i) = fuel_model%fci_d(i)/fuel_model%fct(i)
-        else
-          fcbr(i) = 0
-        end if
-      END DO
-
-    end subroutine init_fuel_cats
-
-    subroutine set_fire_params( &
-                           ifds,ifde,jfds,jfde, &
-                           ifms,ifme,jfms,jfme, &
-                           ifts,ifte,jfts,jfte, &
-                           fdx,fdy,             &
-                           nfuel_cat,fuel_time, &
-                           grid, fuel_model, fire_fmc_read, fire_print_msg ) 
-
-implicit none
-
-!*** purpose: Set all fire model params arrays, constant values.
-
-!*** arguments
 type (state_fire_t), target :: grid
 type (fuel_anderson_t), target :: fuel_model
 integer, intent(in)::ifds,ifde,jfds,jfde                        ! fire domain bounds
 integer, intent(in)::ifts,ifte,jfts,jfte                        ! fire tile bounds
 integer, intent(in)::ifms,ifme,jfms,jfme                        ! memory array bounds
 real, intent(in):: fdx,fdy                                      ! fire mesh spacing
-integer,intent(in)::fire_fmc_read, fire_print_msg
+type (namelist_t), intent(in) :: config_flags
 real, intent(in),dimension(ifms:ifme, jfms:jfme)::nfuel_cat  ! fuel data
 real, intent(out), dimension(ifms:ifme, jfms:jfme)::fuel_time   ! fire params arrays
 
@@ -201,8 +154,8 @@ do j=jfts,jfte
 !$OMP CRITICAL(FIRE_PHYS_CRIT)
             write(msg,'(3(a,i5))')'nfuel_cat(', i ,',',j,')=',k
 !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-            call message(msg,fire_print_msg)
-            call crash('set_fire_params: fuel category out of bounds')
+            call message(msg,config_flags%fire_print_msg)
+            call crash('Set_fire_params: fuel category out of bounds')
         endif
 
         fuel_time(i,j)=fuel_model%weight(k)/0.85 ! cell based
@@ -214,9 +167,8 @@ do j=jfts,jfte
         grid%ischap(i,j)=fuel_model%ichap(k)
         grid%fgip(i,j)=fgi(k)
         ! PAJM: is it possible that if fire_fmc_read == 0, needed by the FMC model, grid%fmc_g is not initialized?
-        if(fire_fmc_read.eq.1)then
-           grid%fmc_g(i,j)=fuelmc_g
-        endif
+        ! This line not needed since fmc_g is initialized from the config_flags in the init_state sub
+        if (config_flags%fire_fmc_read == 1) grid%fmc_g(i, j) = config_flags%fuelmc_g
 
         !     ...Settings of fire spread parameters from Rothermel follows. These
         !        don't need to be recalculated later.
@@ -260,7 +212,7 @@ do j=jfts,jfte
   enddo
 enddo
 
-end subroutine set_fire_params
+end subroutine Set_fire_params
 
 !
 !*******************

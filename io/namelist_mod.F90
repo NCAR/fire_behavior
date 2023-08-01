@@ -50,6 +50,8 @@
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
       integer :: tracer_opt = 0               ! 3) Activates smoke tracer
       real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
+      real :: fuelmc_g = 0.08                 ! Fuel moisture content ground
+      real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
         ! Ignitions
       integer :: fire_num_ignitions = 0 ! "number of ignition lines"
@@ -194,6 +196,8 @@
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
       integer :: tracer_opt = 0               ! 3) Activates smoke tracer
       real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
+      real :: fuelmc_g = 0.08                 ! Fuel moisture content ground
+      real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
         ! ignitions
       integer :: fire_num_ignitions = 0
@@ -229,7 +233,7 @@
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
           fmoist_freq, fmoist_dt, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
-          fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, tracer_opt, fire_tracer_smoke, &
+          fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, tracer_opt, fire_tracer_smoke, fuelmc_g, fuelmc_c, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -300,6 +304,8 @@
       this%fmep_decay_tlag = fmep_decay_tlag
       this%tracer_opt = tracer_opt
       this%fire_tracer_smoke = fire_tracer_smoke
+      this%fuelmc_g = fuelmc_g
+      this%fuelmc_c = fuelmc_c
 
       this%fire_num_ignitions = fire_num_ignitions
 

@@ -13,7 +13,7 @@ PRIVATE
 
 ! subroutines and functions 
 PUBLIC:: init_fuel_moisture,fuel_moisture,advance_moisture,check_for_moisture
-PUBLIC::mfuelcats,nf,zf,fuelmc_g,fuelmc_c,fgi
+PUBLIC::mfuelcats,nf,zf,fgi
 
 !***************************************************************************************!
 !***                                  Fuel moisture model                            ***!
@@ -75,14 +75,6 @@ PUBLIC::mfuelcats,nf,zf,fuelmc_g,fuelmc_c,fgi
   ! 30%  Completely cured, treat as dead fuel
 
 ! =========================================================================
-
-! scalar fuel coefficients
-   REAL, SAVE:: fuelmc_g,fuelmc_c ! FUELMC_G = moisture content of surface fuel
-                                  ! FUELMC_C = moisture content of canopy fuel
-
-! defaults, may be changed in init_fuel_cats
-   DATA fuelmc_g / 0.08  /                ! set = 0 for dry surface fuel
-   DATA fuelmc_c / 1.00  /                ! set = 0 for dry canopy
 
 ! fuel categorytables
    INTEGER, PARAMETER :: nf=14              ! number of fuel categories in data stmts
@@ -319,7 +311,8 @@ subroutine advance_moisture(    &
     fmc_gc,                     & ! fuel moisture by class, updated
     fmep,                       & ! fuel moisture extended model parameters
     fmc_equi,                   & ! fuel moisture equilibrium by class, for diagnostics only
-    fmc_lag                     & ! fuel moisture tendency by classe, for diagnostics only
+    fmc_lag,                    & ! fuel moisture tendency by classe, for diagnostics only
+    fuelmc_g                    & ! fuel moisture content ground from namelist
     )
 
 implicit none
@@ -338,6 +331,7 @@ real, intent(inout), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
 real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
 real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi, fmc_lag
 real, intent(out), dimension(ifms:ifme,jfms:jfme)::rh_fire 
+real, intent(in) :: fuelmc_g
 
 !*** global
 ! fuel properties moisture set by init_fuel_cats

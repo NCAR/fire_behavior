@@ -2,7 +2,7 @@
   module module_fr_fire_driver
 
     use module_fr_fire_model, only: Fire_model
-    use module_fr_fire_phys, only : Init_fuel_cats, Set_fire_params
+    use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
     use module_fr_fire_core, only: ignition_line_type, Init_no_fire
@@ -41,9 +41,7 @@
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
 
         ! Init fuels
-      call fuel_model%Initialization ()
-        ! Legacy call to be updated
-      call Init_fuel_cats (fuel_model)
+      call fuel_model%Initialization (config_flags%fuelmc_c)
 
         ! uses nfuel_cat to set the other fuel data arrays
       call Set_fire_params (   &
@@ -52,7 +50,7 @@
           grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
           grid%dx,grid%dy,                         &
           grid%nfuel_cat,grid%fuel_time, &
-          grid,fuel_model,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+          grid,fuel_model,config_flags)
 
         ! initialize model state to no fire
       time_start = grid%itimestep * grid%dt
@@ -109,8 +107,9 @@
                   grid%fire_rh_fire,               & ! relative humidity, diagnostics
                   grid%fmc_gc,                     & ! fuel moisture fields updated, by class, assumed set to something reasonable
                   grid%fmep,                       & ! fuel moisture extended model parameters
-                  grid%fmc_equi,                   &  ! fuel moisture fields updated, by class equilibrium diagnostic
-                  grid%fmc_lag                     &  ! fuel moisture fields updated, by class tendency diagnostic
+                  grid%fmc_equi,                   & ! fuel moisture fields updated, by class equilibrium diagnostic
+                  grid%fmc_lag,                    & ! fuel moisture fields updated, by class tendency diagnostic
+                  config_flags%fuelmc_g            & ! fuel moisture content ground from namelist
                   )
         call Message ('advance_moisture end',config_flags%fire_print_msg)
 
@@ -130,15 +129,15 @@
           ! fuel moisture may have changed, reset the precomputed ros parameters
           ! uses nfuel_cat to set the other fuel data arrays
           ! needs zsf on halo width 1 to compute the terrain gradient
-        call fuel_model%Initialization ()
+        call fuel_model%Initialization (config_flags%fuelmc_c)
 
-        call set_fire_params(        &
+        call Set_fire_params(        &
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
                   grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
                   grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
                   grid%dx,grid%dy,                         &
                   grid%nfuel_cat,grid%fuel_time, &
-                  grid,fuel_model,config_flags%fire_fmc_read,config_flags%fire_print_msg)
+                  grid, fuel_model, config_flags)
 
       endif
 

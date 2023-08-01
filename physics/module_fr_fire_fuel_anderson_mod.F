@@ -80,11 +80,14 @@
 
   contains
 
-   subroutine Init_anderson_fuel_model (this)
+   subroutine Init_anderson_fuel_model (this, fuelmc_c)
 
       implicit none
 
       class (fuel_anderson_t), intent(in out) :: this
+      real, intent (in) :: fuelmc_c
+
+      integer :: i
 
 
       this%fuel_name(1)  = '1: Short grass (1 ft)'
@@ -101,6 +104,17 @@
       this%fuel_name(12) = '12: Medium logging slash'
       this%fuel_name(13) = '13: Heavy logging slash'
       this%fuel_name(14) = '14: no fuel'
+
+      this%fci = 0.0
+      this%fcbr = 0.0
+      do i = 1, N_FUEL_CAT
+        this%fci(i) = (1.0 + fuelmc_c) * this%fci_d(i)
+        if(this%fct(i) /= 0.0) then
+          this%fcbr(i) = this%fci_d(i) / this%fct(i)
+        else
+          this%fcbr(i) = 0.0
+        end if
+      end do
 
     end subroutine Init_anderson_fuel_model
 
