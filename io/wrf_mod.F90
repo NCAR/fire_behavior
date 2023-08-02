@@ -662,7 +662,6 @@
       nt = this%Get_datetime_index (datetime)
       call Get_netcdf_var (trim (this%file_name), 'V', var4d)
       nmass = size (var4d, dim = 2)
-      print *, 'shape v', shape(var4d)
       this%v3d = 0.5 * (var4d(:, 1:nmass - 1, :, nt) + var4d(:, 2:nmass, :, nt))
       deallocate (var4d)
 

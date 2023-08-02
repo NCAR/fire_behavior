@@ -626,7 +626,6 @@ module fire_behavior_nuopc
     grid%fire_q2(1:grid%nx,1:grid%ny) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(1:grid%nx,1:grid%ny) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(1:grid%nx,1:grid%ny) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
-    print *, ts
     if (imp_rainrte) then
       ! convert m s-1 to m and accumulate
       grid%fire_rain(1:grid%nx,1:grid%ny) = grid%fire_rain(1:grid%nx,1:grid%ny) + ( ptr_rainrte(clb(1):cub(1),clb(2):cub(2)) * ts )
