@@ -15,7 +15,7 @@ use state_mod, only: state_fire_t
 private
 
 public :: ignition_line_type, ignition_line, &
-          Fuel_left, Init_no_fire, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+          Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
           Ignite_fire, Prop_ls_rk3
 
 ! describe one ignition line
@@ -35,47 +35,6 @@ type ignition_line_type
 end type ignition_line_type
 
 contains
-
-subroutine init_no_fire(&
-    ifds,ifde,jfds,jfde, &
-    ifms,ifme,jfms,jfme, &
-    ifts,ifte,jfts,jfte, &
-    fdx,fdy,time_now,    & ! scalars in
-    fire_print_msg,      &
-    fuel_frac,fire_area,lfn,tign)    ! arrays out            
-implicit none
-             
-!*** purpose: initialize model to no fire
-
-integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
-integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
-integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
-integer, intent(in):: fire_print_msg
-real, intent(in) :: fdx,fdy,time_now        ! mesh spacing, time
-real, intent(out), dimension (ifms:ifme,jfms:jfme) :: & 
-                   fuel_frac,fire_area,lfn,tign       ! model state
-
-!*** calls
-intrinsic epsilon
-                                                
-!*** local
-integer:: i,j
-real lfn_init,time_init
-
-lfn_init = 2*max((ifde-ifds+1)*fdx,(jfde-jfds+1)*fdy)      ! more than domain diameter
-time_init=time_now + max(time_now,1.0)*epsilon(time_now) ! a bit in future
- 
-do j=jfts,jfte
-    do i=ifts,ifte
-        fuel_frac(i,j)=1.          ! fuel at start is 1 by definition
-        fire_area(i,j)=0.          ! nothing burning
-        tign(i,j) = time_init      ! ignition in future
-        lfn(i,j) = lfn_init        ! no fire 
-    enddo
-enddo
-call message('init_no_fire: state set to no fire',fire_print_msg)
-
-end subroutine init_no_fire
 
 subroutine ignite_fire( ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
                         ifms,ifme,jfms,jfme,                      &

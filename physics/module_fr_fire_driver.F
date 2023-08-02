@@ -5,7 +5,7 @@
     use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
-    use module_fr_fire_core, only: ignition_line_type, Init_no_fire
+    use module_fr_fire_core, only: ignition_line_type
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -30,7 +30,6 @@
       type (state_fire_t), target :: grid
       type (namelist_t), intent(in) :: config_flags
 
-      real :: time_start
       type (fuel_anderson_t) :: fuel_model
 
 
@@ -50,16 +49,6 @@
           grid%dx,grid%dy,                         &
           grid%nfuel_cat,grid%fuel_time, &
           grid,fuel_model,config_flags)
-
-        ! Init state to no fire
-      time_start = grid%itimestep * grid%dt
-      call Init_no_fire  ( &
-          grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
-          grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-          grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-          grid%dx,grid%dy,time_start,    &
-          config_flags%fire_print_msg,   &
-          grid%fuel_frac,grid%fire_area,grid%lfn,grid%tign_g)
 
     end subroutine Init_fire_driver
 

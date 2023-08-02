@@ -255,7 +255,12 @@
       allocate (this%iboros(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fmc_g(this%ifms:this%ifme, this%jfms:this%jfme))
       this%fmc_g = config_flags%fuelmc_g
+
+        ! Init lfn more than the largest domain side
       allocate (this%lfn(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%lfn(this%ifds:this%ifde, this%jfds:this%jfde) = 2.0 * &
+          max ((this%ifde - this%ifds + 1) * this%dx, (this%jfde - this%jfds + 1) * this%dy)
+
       allocate (this%lfn_hist(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_0(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_1(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -266,9 +271,17 @@
       allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
+
+        ! Init tign_g a bit into the future
       allocate (this%tign_g(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%tign_g(this%ifds:this%ifde, this%jfds:this%jfde) = epsilon (this%tign_g)
+
       allocate (this%fuel_frac(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
+
       allocate (this%fire_area(this%ifms:this%ifme, this%jfms:this%jfme))
+      this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
+
       allocate (this%burnt_area_dt(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fgrnhfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fgrnqfx(this%ifms:this%ifme, this%jfms:this%jfme))
