@@ -18,6 +18,7 @@
     public :: Fire_driver_em, Init_fire_driver
 
     type (ignition_line_t), dimension(:), allocatable :: ignition_lines
+    type (fuel_anderson_t) :: fuel_model
 
   contains
 
@@ -28,13 +29,9 @@
       type (state_fire_t), target :: grid
       type (namelist_t), intent(in) :: config_flags
 
-      type (fuel_anderson_t) :: fuel_model
 
-
-        ! Get ignition data
       call Initialize_ignitions (config_flags, ignition_lines)
 
-        ! Init fuel moisture model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
 
       call fuel_model%Initialization (config_flags%fuelmc_c)
@@ -61,7 +58,6 @@
       integer :: ignited_tile(config_flags%fire_num_ignitions) ! number of gridpts ignited in a given ignition
       real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
       real:: time_start
-      type (fuel_anderson_t) :: fuel_model
 
 
         ! time - assume dt does not change
@@ -115,8 +111,6 @@
           ! fuel moisture may have changed, reset the precomputed ros parameters
           ! uses nfuel_cat to set the other fuel data arrays
           ! needs zsf on halo width 1 to compute the terrain gradient
-        call fuel_model%Initialization (config_flags%fuelmc_c)
-
         call Set_fire_params(        &
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
                   grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
