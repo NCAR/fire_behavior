@@ -20,11 +20,13 @@
     !***    2829-2845, 2014, doi:10.5194/nhess-14-2829-2014                              ***!
     !***************************************************************************************!
 
-    ! To add moisture classes:
-    !  1. change parameter max_moisture_classes below
-    !  2. change the default of nfmc to the same value in Registry/registry.fire
-    !  3. add the appropriate lines real::fmc_gw<number>= <default values>
-    !  4. add default
+    ! live fuel moisture guidance following https://www.nwcg.gov/publications/pms437/fuel-moisture/live-fuel-moisture-content
+    ! from Rothermel, 1983 Table II-2 p.13 https://www.fs.usda.gov/treesearch/pubs/24635
+    ! 300% Fresh foliage, annuals developing early in the growing cycle
+    ! 200% Maturing foliage, still developing, with full turgor
+    ! 100% Mature foliage, new growth complete and comparable to older perennial foliage
+    ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
+    ! 30%  Completely cured, treat as dead fuel
 
     use constants_mod, only : XLV
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
@@ -48,7 +50,6 @@
       ! relative weights of moisture class for each fuel category
     integer::itmp
     character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
-    real :: fmc_1h, fmc_10h, fmc_100h, fmc_1000h, fmc_live
 
     data moisture_class_name /'1-h','10-h','100-h','1000-h','Live'/
     data drying_lag          /1., 10., 100., 1000.,1e9/  ! time lag (h) approaching equilibrium moisture
@@ -61,18 +62,9 @@
     data fmc_gc_initialization/2,  2,   2,   2,   3 / ! initialization 0=input, 1=from fuelmc_g,
                                                     ! 2=from equilibrium, 3=from fmc_1h,...,fmc_live
     data fmc_gc_initial_value/0.,  0.,  0.,  0.,  0./ ! initial value used in the model, to be the actual value fmc_1h,...,fmc_live or read in
-    data fmc_1h /0.08/, fmc_10h/0.08/, fmc_100h/0.08/, fmc_1000h/0.08/, fmc_live/0.3/
-      ! live fuel moisture following https://www.nwcg.gov/publications/pms437/fuel-moisture/live-fuel-moisture-content
-      ! from Rothermel, 1983 Table II-2 p.13 https://www.fs.usda.gov/treesearch/pubs/24635
-      ! 300% Fresh foliage, annuals developing early in the growing cycle
-      ! 200% Maturing foliage, still developing, with full turgor
-      ! 100% Mature foliage, new growth complete and comparable to older perennial foliage
-      ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
-      ! 30%  Completely cured, treat as dead fuel
 
-    real, dimension (MFUELCATS) :: fgi_t, fmc_gwt
       ! fuel moisture class weights
-    real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fgi_c, fmc_gw
+    real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fmc_gw
 
   contains
 
@@ -84,6 +76,8 @@
       type (namelist_t), intent (in) :: config_flags
       type (fuel_anderson_t), intent (in) :: fuel_model
 
+      real, dimension (MFUELCATS) :: fgi_t, fmc_gwt
+      real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fgi_c
       integer :: i, k
       character (len = 128) :: msg
       real :: rat
@@ -110,11 +104,11 @@
       fgi_c(1:MFUELCATS, 3) = fuel_model%fgi_100h
       fgi_c(1:MFUELCATS, 4) = fuel_model%fgi_1000h
       fgi_c(1:MFUELCATS, 5) = fuel_model%fgi_live
-      fmc_gc_initial_value(1)=fmc_1h
-      fmc_gc_initial_value(2)=fmc_10h
-      fmc_gc_initial_value(3)=fmc_100h
-      fmc_gc_initial_value(4)=fmc_1000h
-      fmc_gc_initial_value(5)=fmc_live
+      fmc_gc_initial_value(1) = config_flags%fuelmc_g
+      fmc_gc_initial_value(2) = config_flags%fuelmc_g
+      fmc_gc_initial_value(3) = config_flags%fuelmc_g
+      fmc_gc_initial_value(4) = config_flags%fuelmc_g
+      fmc_gc_initial_value(5) = config_flags%fuelmc_g_live
 
       call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
           config_flags%fire_print_msg)
