@@ -5,7 +5,7 @@
     use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
-    use ignition_line_mod, only: ignition_line_type, Initialize_ignitions
+    use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -17,7 +17,7 @@
 
     public :: Fire_driver_em, Init_fire_driver
 
-    type (ignition_line_type), dimension(:), allocatable :: ignition_lines
+    type (ignition_line_t), dimension(:), allocatable :: ignition_lines
 
   contains
 

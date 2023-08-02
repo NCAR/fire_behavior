@@ -7,12 +7,12 @@
 
     private
 
-    public :: ignition_line_type, Initialize_ignitions
+    public :: ignition_line_t, Initialize_ignitions
 
     integer :: fire_num_ignitions
     integer, parameter :: FIRE_MAX_IGNITIONS = 5
 
-    type ignition_line_type
+    type ignition_line_t
       real  ros, &        ! subscale rate of spread during the ignition process
           stop_time, &    ! when the ignition process stops from ignition start (s)
           wind_red,  &    ! wind reduction factor at the ignition line
@@ -25,7 +25,7 @@
           start_time, &   ! ignition time for the start point from simulation start (s)
           end_time, &     ! ignition time for the end poin from simulation start (s)
           radius          ! all within this radius ignites immediately
-    end type ignition_line_type
+    end type ignition_line_t
 
   contains
 
@@ -34,10 +34,10 @@
       implicit none
 
       type (namelist_t), intent (in) :: config_flags
-      type (ignition_line_type), dimension (:), allocatable, intent (out) :: ignition_lines
+      type (ignition_line_t), dimension (:), allocatable, intent (out) :: ignition_lines
 
       integer, parameter :: N_IGNS_INIT = 5
-      type (ignition_line_type), dimension (N_IGNS_INIT) :: ignition_line
+      type (ignition_line_t), dimension (N_IGNS_INIT) :: ignition_line
       integer :: i
 
 

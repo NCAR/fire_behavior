@@ -6,7 +6,7 @@ module module_fr_fire_model
   use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
   use module_fr_fire_phys, only: Heat_fluxes
-  use ignition_line_mod, only: ignition_line_type
+  use ignition_line_mod, only: ignition_line_t
 
   use state_mod, only: state_fire_t
 
@@ -76,7 +76,7 @@ logical, intent(in) :: fire_lsm_reinit
 real,intent(in) :: time_start,dt            ! starting time, time step
 real,intent(in) :: fdx,fdy                  ! spacing of the fire mesh
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
-type(ignition_line_type), dimension (:), intent(in):: ignition_line ! descriptions of ignition lines
+type(ignition_line_t), dimension (:), intent(in):: ignition_line ! descriptions of ignition lines
 integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
 integer, intent(out):: ignitions_done              ! number of isolated ignitions
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 

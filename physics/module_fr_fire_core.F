@@ -5,7 +5,7 @@ use module_fr_fire_phys, only: Fire_ros
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 use state_mod, only: state_fire_t
-use ignition_line_mod, only : ignition_line_type
+use ignition_line_mod, only : ignition_line_t
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 
@@ -49,7 +49,7 @@ integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
 integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
 integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
 integer, intent(in):: fire_print_msg
-type(ignition_line_type), intent(in):: ignition_line    ! description of the ignition line
+type(ignition_line_t), intent(in):: ignition_line    ! description of the ignition line
 real, intent(in):: start_ts,end_ts          ! the time step start and end 
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
     coord_xf,coord_yf                       !  node coordinates  
