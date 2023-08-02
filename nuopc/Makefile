@@ -24,7 +24,8 @@ esmApp.exe: esmApp.o esm.o fire_behavior_nuopc.o wrf_nuopc.o ../share/proj_lc_mo
 	../io/geogrid_mod.o ../io/wrf_mod.o ../io/netcdf_mod.o ../io/namelist_mod.o ../state/state_mod.o ../driver/initialize_mod.o ../driver/advance_mod.o \
 	../physics/module_fr_fire_driver.o ../physics/module_fr_fire_util.o \
 	../physics/module_fr_fire_model.o ../physics/module_fr_fire_core.o ../physics/module_fr_fire_phys.o \
-        ../physics/module_fr_fire_fuel_moisture_model.o ../physics/module_fr_fire_fuel_anderson_mod.o
+        ../physics/module_fr_fire_fuel_moisture_model.o ../physics/module_fr_fire_fuel_anderson_mod.o \
+	../physics/ignition_line_mod.o
 	$(ESMF_F90LINKER) $(ESMF_F90LINKOPTS) $(ESMF_F90LINKPATHS) $(ESMF_F90LINKRPATHS) -o $@ $^ $(ESMF_F90ESMFLINKLIBS) $(NETCDF_LIBS)
 
 %.o : %.F90

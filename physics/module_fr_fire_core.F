@@ -5,6 +5,7 @@ use module_fr_fire_phys, only: Fire_ros
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 use state_mod, only: state_fire_t
+use ignition_line_mod, only : ignition_line_type
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 
@@ -14,25 +15,9 @@ use state_mod, only: state_fire_t
 
 private
 
-public :: ignition_line_type, ignition_line, &
+public ::  &
           Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
           Ignite_fire, Prop_ls_rk3
-
-! describe one ignition line
-type ignition_line_type
-  REAL  ros, &          ! subscale rate of spread during the ignition process
-        stop_time, &    ! when the ignition process stops from ignition start (s)
-        wind_red,  &    ! wind reduction factor at the ignition line
-        wrdist,   &     ! distance from the ignition line when the wind reduction stops
-        wrupwind, &     ! use distance interpolated between 0. = nearest 1. = upwind
-        start_x, &      ! x coordinate of the ignition line start point (m, or long/lat)
-        start_y, &      ! y coordinate of the ignition line start point
-        end_x, &        ! x coordinate of the ignition line end point
-        end_y, &        ! y coordinate of the ignition line end point
-        start_time, &   ! ignition time for the start point from simulation start (s)
-        end_time, &     ! ignition time for the end poin from simulation start (s)
-        radius          ! all within this radius ignites immediately
-end type ignition_line_type
 
 contains
 

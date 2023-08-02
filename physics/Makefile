@@ -21,15 +21,18 @@ clean:
 	rm -f ./*.o ./*.mod  ./*.f90
 
   # Dependencies
-module_fr_fire_driver.o: module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_core.o module_fr_fire_model.o \
-	module_fr_fire_fuel_moisture_model.o module_fr_fire_fuel_anderson_mod.o ../io/namelist_mod.o ../state/state_mod.o
+module_fr_fire_driver.o: module_fr_fire_util.o module_fr_fire_phys.o module_fr_fire_model.o \
+	module_fr_fire_fuel_moisture_model.o module_fr_fire_fuel_anderson_mod.o ignition_line_mod.o \
+	../io/namelist_mod.o ../state/state_mod.o
 
-module_fr_fire_model.o: module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o
+module_fr_fire_model.o: module_fr_fire_core.o module_fr_fire_phys.o module_fr_fire_util.o ignition_line_mod.o
 
-module_fr_fire_core.o: module_fr_fire_phys.o module_fr_fire_util.o
+module_fr_fire_core.o: module_fr_fire_phys.o module_fr_fire_util.o ignition_line_mod.o
 
 module_fr_fire_phys.o: module_fr_fire_fuel_moisture_model.o module_fr_fire_util.o ../share/constants_mod.o \
         module_fr_fire_fuel_anderson_mod.o ../io/namelist_mod.o
 
 module_fr_fire_fuel_moisture_model.o: module_fr_fire_fuel_anderson_mod.o module_fr_fire_util.o
+
+ignition_line_mod.o: ../io/namelist_mod.o
 

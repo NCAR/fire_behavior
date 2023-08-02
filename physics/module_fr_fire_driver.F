@@ -5,7 +5,7 @@
     use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
-    use module_fr_fire_core, only: ignition_line_type
+    use ignition_line_mod, only: ignition_line_type, fire_num_ignitions, ignition_line, Initialize_ignitions
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -15,11 +15,7 @@
 
     private
 
-    public Fire_driver_em, Init_fire_driver
-
-    integer :: fire_num_ignitions
-    integer, parameter :: FIRE_MAX_IGNITIONS = 5
-    type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS) :: ignition_line
+    public :: Fire_driver_em, Init_fire_driver
 
   contains
 
@@ -34,7 +30,7 @@
 
 
         ! Get ignition data
-      call Fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
+      call Initialize_ignitions (config_flags)
 
         ! Init fuel moisture model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
@@ -160,78 +156,5 @@
           config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg )
 
     end subroutine Fire_driver_em
-
-    subroutine Fire_ignition_convert (config_flags, ignition_line, fire_num_ignitions)
-
-      use namelist_mod, only : namelist_t
-
-      implicit none
-
-      type (namelist_t), intent (in) :: config_flags
-      type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS), intent (out):: ignition_line
-      integer, intent(out) :: fire_num_ignitions
-
-      integer, parameter :: FIRE_MAX_IGNITIONS_IN_NAMELIST = 5
-      integer :: i
-
-
-      if (FIRE_MAX_IGNITIONS < FIRE_MAX_IGNITIONS_IN_NAMELIST) call crash ('FIRE_MAX_IGNITIONS too small')
-
-      ignition_line(1)%start_x = config_flags%fire_ignition_start_lon1
-      ignition_line(1)%start_y = config_flags%fire_ignition_start_lat1
-      ignition_line(1)%end_x = config_flags%fire_ignition_end_lon1
-      ignition_line(1)%end_y = config_flags%fire_ignition_end_lat1
-      ignition_line(1)%ros = config_flags%fire_ignition_ros1
-      ignition_line(1)%radius = config_flags%fire_ignition_radius1
-      ignition_line(1)%start_time = config_flags%fire_ignition_start_time1
-      ignition_line(1)%end_time = config_flags%fire_ignition_end_time1
-
-      ignition_line(2)%start_x = config_flags%fire_ignition_start_lon2
-      ignition_line(2)%start_y = config_flags%fire_ignition_start_lat2
-      ignition_line(2)%end_x = config_flags%fire_ignition_end_lon2
-      ignition_line(2)%end_y = config_flags%fire_ignition_end_lat2
-      ignition_line(2)%ros = config_flags%fire_ignition_ros2
-      ignition_line(2)%radius = config_flags%fire_ignition_radius2
-      ignition_line(2)%start_time = config_flags%fire_ignition_start_time2
-      ignition_line(2)%end_time = config_flags%fire_ignition_end_time2
-
-      ignition_line(3)%start_x = config_flags%fire_ignition_start_lon3
-      ignition_line(3)%start_y = config_flags%fire_ignition_start_lat3
-      ignition_line(3)%end_x = config_flags%fire_ignition_end_lon3
-      ignition_line(3)%end_y = config_flags%fire_ignition_end_lat3
-      ignition_line(3)%ros = config_flags%fire_ignition_ros3
-      ignition_line(3)%radius = config_flags%fire_ignition_radius3
-      ignition_line(3)%start_time = config_flags%fire_ignition_start_time3
-      ignition_line(3)%end_time = config_flags%fire_ignition_end_time3
-
-      ignition_line(4)%start_x = config_flags%fire_ignition_start_lon4
-      ignition_line(4)%start_y = config_flags%fire_ignition_start_lat4
-      ignition_line(4)%end_x = config_flags%fire_ignition_end_lon4
-      ignition_line(4)%end_y = config_flags%fire_ignition_end_lat4
-      ignition_line(4)%ros = config_flags%fire_ignition_ros4
-      ignition_line(4)%radius = config_flags%fire_ignition_radius4
-      ignition_line(4)%start_time = config_flags%fire_ignition_start_time4
-      ignition_line(4)%end_time = config_flags%fire_ignition_end_time4
-
-      ignition_line(5)%start_x = config_flags%fire_ignition_start_lon5
-      ignition_line(5)%start_y = config_flags%fire_ignition_start_lat5
-      ignition_line(5)%end_x = config_flags%fire_ignition_end_lon5
-      ignition_line(5)%end_y = config_flags%fire_ignition_end_lat5
-      ignition_line(5)%ros = config_flags%fire_ignition_ros5
-      ignition_line(5)%radius = config_flags%fire_ignition_radius5
-      ignition_line(5)%start_time = config_flags%fire_ignition_start_time5
-      ignition_line(5)%end_time = config_flags%fire_ignition_end_time5
-
-      fire_num_ignitions = 0
-      do i = 1, min (FIRE_MAX_IGNITIONS_IN_NAMELIST, config_flags%fire_num_ignitions)
-          ! Count the ignitions
-        if (ignition_line(i)%radius > 0.0) fire_num_ignitions = i
-          ! Expand ignition data given as zero
-        if (ignition_line(i)%end_x == 0.0) ignition_line(i)%end_x = ignition_line(i)%start_x
-        if (ignition_line(i)%end_y == 0.0) ignition_line(i)%end_y = ignition_line(i)%start_y
-        if (ignition_line(i)%end_time == 0.0) ignition_line(i)%end_time = ignition_line(i)%start_time
-      end do
-
-    end subroutine Fire_ignition_convert
 
   end module module_fr_fire_driver
