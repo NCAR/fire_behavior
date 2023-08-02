@@ -5,7 +5,7 @@
     use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
-    use ignition_line_mod, only: ignition_line_type, fire_num_ignitions, ignition_line, Initialize_ignitions
+    use ignition_line_mod, only: ignition_line_type, Initialize_ignitions
 
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -16,6 +16,8 @@
     private
 
     public :: Fire_driver_em, Init_fire_driver
+
+    type (ignition_line_type), dimension(:), allocatable :: ignition_lines
 
   contains
 
@@ -30,7 +32,7 @@
 
 
         ! Get ignition data
-      call Initialize_ignitions (config_flags)
+      call Initialize_ignitions (config_flags, ignition_lines)
 
         ! Init fuel moisture model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
@@ -56,7 +58,7 @@
       type (namelist_t), intent (in) :: config_flags
 
       integer :: ignitions_done              ! number of isolated ignitions
-      integer :: ignited_tile(fire_num_ignitions) ! number of gridpts ignited in a given ignition
+      integer :: ignited_tile(config_flags%fire_num_ignitions) ! number of gridpts ignited in a given ignition
       real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
       real:: time_start
       type (fuel_anderson_t) :: fuel_model
@@ -126,13 +128,13 @@
       endif
 
       call fire_model (                            &
-          fire_num_ignitions,                          & ! switches
+          config_flags%fire_num_ignitions,                          & ! switches
           grid%ifds,grid%ifde,grid%jfds,grid%jfde,                    & ! fire domain dims
           grid%ifms,grid%ifme,grid%jfms,grid%jfme,                    & ! fire memory dims
           grid%ifts,grid%ifte,grid%jfts,grid%jfte,                    & ! fire patch dims
           time_start,grid%dt,                          & ! time and increment
           grid%dx,grid%dy,                                  & ! fire mesh spacing
-          ignition_line,                          & ! description of ignition lines
+          ignition_lines,                          & ! description of ignition lines
           ignitions_done,ignited_tile,            &
           grid%lons,grid%lats,grid%unit_fxlong,grid%unit_fxlat,    & ! fire mesh coordinates
           grid%lfn,                                    & ! state: level function

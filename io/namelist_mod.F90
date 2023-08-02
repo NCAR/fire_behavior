@@ -4,9 +4,10 @@
 
     private
 
-    public :: namelist_t, NUM_FMC
+    public :: namelist_t, NUM_FMC, FIRE_MAX_IGNITIONS_IN_NAMELIST
 
     integer, parameter :: NUM_FMC = 5
+    integer, parameter :: FIRE_MAX_IGNITIONS_IN_NAMELIST = 5
 
     type :: namelist_t
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &

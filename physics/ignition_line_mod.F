@@ -1,12 +1,13 @@
   module ignition_line_mod
 
-    use namelist_mod, only: namelist_t
+    use namelist_mod, only: namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
+    use module_fr_fire_util, only: Crash
 
     implicit none
 
     private
 
-    public :: ignition_line_type, Initialize_ignitions, ignition_line, fire_num_ignitions
+    public :: ignition_line_type, Initialize_ignitions
 
     integer :: fire_num_ignitions
     integer, parameter :: FIRE_MAX_IGNITIONS = 5
@@ -26,21 +27,21 @@
           radius          ! all within this radius ignites immediately
     end type ignition_line_type
 
-    type (ignition_line_type), dimension (FIRE_MAX_IGNITIONS) :: ignition_line
-
   contains
 
-    subroutine Initialize_ignitions (config_flags)
+    subroutine Initialize_ignitions (config_flags, ignition_lines)
 
       implicit none
 
       type (namelist_t), intent (in) :: config_flags
+      type (ignition_line_type), dimension (:), allocatable, intent (out) :: ignition_lines
 
-      integer, parameter :: FIRE_MAX_IGNITIONS_IN_NAMELIST = 5
+      integer, parameter :: N_IGNS_INIT = 5
+      type (ignition_line_type), dimension (N_IGNS_INIT) :: ignition_line
       integer :: i
 
 
-      if (FIRE_MAX_IGNITIONS < FIRE_MAX_IGNITIONS_IN_NAMELIST) call crash ('FIRE_MAX_IGNITIONS too small')
+      if (config_flags%fire_num_ignitions > FIRE_MAX_IGNITIONS_IN_NAMELIST) call Crash ('FIRE_MAX_IGNITIONS_IN_NAMELIST too small')
 
       ignition_line(1)%start_x = config_flags%fire_ignition_start_lon1
       ignition_line(1)%start_y = config_flags%fire_ignition_start_lat1
@@ -87,15 +88,16 @@
       ignition_line(5)%start_time = config_flags%fire_ignition_start_time5
       ignition_line(5)%end_time = config_flags%fire_ignition_end_time5
 
-      fire_num_ignitions = 0
-      do i = 1, min (FIRE_MAX_IGNITIONS_IN_NAMELIST, config_flags%fire_num_ignitions)
+      do i = 1, config_flags%fire_num_ignitions
           ! Count the ignitions
-        if (ignition_line(i)%radius > 0.0) fire_num_ignitions = i
+        if (ignition_line(i)%radius <= 0.0) call Crash ('Radius ignition line must be > 0')
           ! Expand ignition data given as zero
         if (ignition_line(i)%end_x == 0.0) ignition_line(i)%end_x = ignition_line(i)%start_x
         if (ignition_line(i)%end_y == 0.0) ignition_line(i)%end_y = ignition_line(i)%start_y
         if (ignition_line(i)%end_time == 0.0) ignition_line(i)%end_time = ignition_line(i)%start_time
       end do
+
+      ignition_lines = ignition_line(1:config_flags%fire_num_ignitions)
 
     end subroutine Initialize_ignitions
 
