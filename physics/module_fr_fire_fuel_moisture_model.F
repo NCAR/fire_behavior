@@ -39,30 +39,25 @@
 
     public :: Init_fuel_moisture, Fuel_moisture, Advance_moisture, Check_for_moisture
         
-
-    integer, parameter :: MFUELCATS = N_FUEL_CAT + 1
-    integer, parameter :: MAX_MOISTURE_CLASSES = 5
-
-    integer :: moisture_classes = 5
-    real, dimension(MAX_MOISTURE_CLASSES) :: drying_lag,wetting_lag,saturation_moisture,saturation_rain, &
-         rain_threshold,rec_drying_lag_sec,rec_wetting_lag_sec,fmc_gc_initial_value
-    integer, dimension(MAX_MOISTURE_CLASSES) :: drying_model,wetting_model,fmc_gc_initialization
-      ! relative weights of moisture class for each fuel category
-    integer::itmp
+    integer, parameter :: MFUELCATS = N_FUEL_CAT + 1, MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5
     character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
-
-    data moisture_class_name /'1-h','10-h','100-h','1000-h','Live'/
-    data drying_lag          /1., 10., 100., 1000.,1e9/  ! time lag (h) approaching equilibrium moisture
-    data wetting_lag         /1.4,14., 140., 1400.,1e9/  ! time lag (h) for approaching saturation in rain
-    data saturation_moisture /2.5, 2.5, 2.5 ,2.5, 2.5/  ! saturation moisture contents (1) in rain
-    data saturation_rain     /8.0, 8.0, 8.0, 8.0, 8.0/  ! stronger rain matters only in duration (mm/h)
-    data rain_threshold      /0.05,0.05,0.05,0.05,0.05/ ! rain intensity this small is same as nothing
-    data drying_model        /1,   1,   1,   1,   1 / ! future proofing
-    data wetting_model       /1,   1,   1,   1,   1 / ! future proofing
-    data fmc_gc_initialization/2,  2,   2,   2,   3 / ! initialization 0=input, 1=from fuelmc_g,
-                                                    ! 2=from equilibrium, 3=from fmc_1h,...,fmc_live
-    data fmc_gc_initial_value/0.,  0.,  0.,  0.,  0./ ! initial value used in the model, to be the actual value fmc_1h,...,fmc_live or read in
-
+    data moisture_class_name /'1-h', '10-h', '100-h', '1000-h', 'Live'/
+                                                          ! time lag [h] approaching equilibrium moisture
+    real, dimension(MAX_MOISTURE_CLASSES), parameter :: drying_lag = [ 1.0, 10.0, 100.0, 1000.0, 1e9 ], &
+                                                          ! time lag [h] for approaching saturation in rain
+                                                        wetting_lag = [ 1.4, 14.0, 140.0, 1400.0, 1e9 ], &
+                                                          ! saturation moisture contents (1) in rain
+                                                        saturation_moisture = [ 2.5, 2.5, 2.5 ,2.5, 2.5 ], &
+                                                          ! stronger rain matters only in duration [mm/h]
+                                                        saturation_rain = [ 8.0, 8.0, 8.0, 8.0, 8.0 ], &
+                                                          ! rain intensity this small is same as nothing
+                                                        rain_threshold = [ 0.05, 0.05, 0.05, 0.05, 0.05 ]
+    integer, dimension(MAX_MOISTURE_CLASSES), parameter :: drying_model = [ 1,   1,   1,   1,   1 ], &
+                                                           wetting_model = [ 1,   1,   1,   1,   1 ], &
+                                                             ! initialization 0=input, 1=from fuelmc_g,
+                                                             !                2=from equilibrium, 3=from fmc_1h,...,fmc_live
+                                                           fmc_gc_initialization = [ 2,  2,   2,   2,   3 ]
+    real, dimension(MAX_MOISTURE_CLASSES) :: rec_drying_lag_sec, rec_wetting_lag_sec, fmc_gc_initial_value
       ! fuel moisture class weights
     real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fmc_gw
 
@@ -95,7 +90,7 @@
         ! convert fuel loads in the fuel classes to internal as weights adding up to one
         ! copy the fuel weights and scale to 1
         ! just checking
-      if (max_moisture_classes /= 5) call crash('Must have 5 fuel classes, modify source code if not')
+      if (MAX_MOISTURE_CLASSES /= 5) call crash('Must have 5 fuel classes, modify source code if not')
 
         ! WARNING: initialization from scalars tied to a particular model with 5 fuel moisture classes
         ! the rest of the code can be used for various models with different number of fuel moisture classes
@@ -147,7 +142,7 @@
       end do
 
         ! moisture model derived scalars
-      do i = 1, moisture_classes
+      do i = 1, MOISTURE_CLASSES
         rec_drying_lag_sec(i) = 1.0 / (3600.0 * drying_lag(i))
         rec_wetting_lag_sec(i) = 1.0 / (3600.0 * wetting_lag(i))
       end do
@@ -244,7 +239,7 @@ do j=jfts,jfte
     enddo
 enddo
 
-do k=1,moisture_classes
+do k=1,MOISTURE_CLASSES
 
     ! add moisture contents for class k to the fuel moisture
     do j=jfts,jfte
@@ -320,14 +315,14 @@ real::epsilon,Pws,Pw
 
 if(msglevel>1)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
-    write(msg,'(a,f10.2,a,i4,a,i4)')'advance moisture dt=',moisture_dt,'s using ',moisture_classes,' classes from possible ',nfmc
+    write(msg,'(a,f10.2,a,i4,a,i4)')'advance moisture dt=',moisture_dt,'s using ',MOISTURE_CLASSES,' classes from possible ',nfmc
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
     call message(msg,fire_print_msg)
 endif
 
-if(moisture_classes > nfmc .or. moisture_classes > MAX_MOISTURE_CLASSES)then
+if(MOISTURE_CLASSES > nfmc .or. MOISTURE_CLASSES > MAX_MOISTURE_CLASSES)then
 !$OMP CRITICAL(SFIRE_PHYS_CRIT)
-    write(msg,*)'advance_moisture: moisture_classes=',moisture_classes, &
+    write(msg,*)'advance_moisture: moisture_classes=',MOISTURE_CLASSES, &
        ' > nfmc=',nfmc,' or >  max_moisture_classes=',MAX_MOISTURE_CLASSES
 !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
     call crash(msg)
@@ -359,7 +354,7 @@ rhmin=huge(rhmin)
 rainmax=-huge(rainmax)
 rainmin= huge(rainmin)
 do j=jfts,jfte
-    do k=1,moisture_classes
+    do k=1,MOISTURE_CLASSES
         do i=ifts,ifte
             ! old fuel moisture contents
             ! compute the rain intensity from the difference of accumulated rain
