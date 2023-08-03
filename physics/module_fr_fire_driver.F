@@ -31,21 +31,15 @@
       type (namelist_t), intent(in) :: config_flags
 
 
-
       call Initialize_ignitions (config_flags, ignition_lines)
 
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
 
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
-        ! Set rate of spread variables
-      call ros_model%Set_ros_parameters (   &
-          grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
-          grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-          grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-          grid%dx,grid%dy,                         &
-          grid%nfuel_cat,grid%fuel_time, &
-          grid,fuel_model,config_flags)
+      call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+          grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
+          grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, grid, fuel_model,config_flags)
 
     end subroutine Init_fire_driver
 
@@ -56,9 +50,11 @@
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
 
-      integer :: ignitions_done              ! number of isolated ignitions
-      integer :: ignited_tile(config_flags%fire_num_ignitions) ! number of gridpts ignited in a given ignition
-      real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme)::lfn_out  
+        ! number of isolated ignitions
+      integer :: ignitions_done
+        ! number of gridpts ignited in a given ignition
+      integer :: ignited_tile(config_flags%fire_num_ignitions)
+      real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme) :: lfn_out
       real:: time_start
 
 
@@ -74,54 +70,26 @@
           config_flags%fire_print_msg)! check if fire node tile fits in memory
 
       if (grid%run_advance_moisture) then
-          ! one timestep of the moisture model
         call Message ('advance_moisture start', config_flags%fire_print_msg)
-        call Advance_moisture(    &
-                  grid%itimestep.eq.1,             & ! initialize?
-                  grid%ifms,grid%ifme,  grid%jfms,grid%jfme,      & ! fire memory dimensions
-                  grid%ifts,grid%ifte,  grid%jfts,grid%jfte,      & ! fire tile dimensions
-                  config_flags%fire_print_msg,             &
-                  config_flags%nfmc,                       & ! number of moisture fields
-                  grid%dt_moisture,                & ! moisture model time step
-                  config_flags%fmep_decay_tlag,            & ! moisture extended model assim. diffs decay tlag
-                  grid%fire_rain,                  & ! accumulated rain
-                  grid%fire_t2, grid%fire_q2, grid%fire_psfc,& ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
-                  grid%fire_rain_old,              & ! previous value of accumulated rain
-                  grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old,   & ! previous values of the atmospheric state at surface
-                  grid%fire_rh_fire,               & ! relative humidity, diagnostics
-                  grid%fmc_gc,                     & ! fuel moisture fields updated, by class, assumed set to something reasonable
-                  grid%fmep,                       & ! fuel moisture extended model parameters
-                  grid%fmc_equi,                   & ! fuel moisture fields updated, by class equilibrium diagnostic
-                  grid%fmc_lag,                    & ! fuel moisture fields updated, by class tendency diagnostic
-                  config_flags%fuelmc_g            & ! fuel moisture content ground from namelist
-                  )
+        call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
+            config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
+            grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
+            grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
+            grid%fmc_lag, config_flags%fuelmc_g)
         call Message ('advance_moisture end',config_flags%fire_print_msg)
 
         call Message ('fuel_moisture start',config_flags%fire_print_msg)
-        call Fuel_moisture (         &
-              config_flags%nfmc,                   &
-              grid%ifds, grid%ifde, grid%jfds, grid%jfde, & ! fire grid dimensions
-              grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-              grid%ifts,grid%ifte,grid%jfts,grid%jfte,    &
-              config_flags%fire_print_msg,         &
-              grid%nfuel_cat,              & ! fuel data
-              grid%fmc_gc,                 & ! moisture contents by class on atmospheric grid
-              grid%fmc_g                   & ! weighted fuel moisture contents on fire grid
-              )
-        call message('fuel_moisture end',config_flags%fire_print_msg)
+        call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts,grid%ifte,grid%jfts,grid%jfte,    &
+            config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
+        call Message ('fuel_moisture end',config_flags%fire_print_msg)
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
-          ! uses nfuel_cat to set the other fuel data arrays
-          ! needs zsf on halo width 1 to compute the terrain gradient
-        call ros_model%Set_ros_parameters (        &
-                  grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
-                  grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
-                  grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
-                  grid%dx,grid%dy,                         &
-                  grid%nfuel_cat,grid%fuel_time, &
-                  grid, fuel_model, config_flags)
-
-      endif
+        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
+            grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
+      end if
 
       call fire_model (                            &
           config_flags%fire_num_ignitions,                          & ! switches
