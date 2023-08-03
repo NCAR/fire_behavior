@@ -2,14 +2,13 @@
   module module_fr_fire_driver
 
     use module_fr_fire_model, only: Fire_model
-    use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
-    use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
+    use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
+    use module_fr_fire_util, only: Check_mesh_2dim
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
-
-    use state_mod, only: state_fire_t
-    use namelist_mod, only: namelist_t
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
     use ros_wrffire_mod, only : ros_wrffire_t
+    use state_mod, only: state_fire_t
+    use namelist_mod, only: namelist_t
 
     implicit none
 
@@ -62,34 +61,11 @@
       real:: time_start
 
 
+      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
+
         ! time - assume dt does not change
       time_start = grid%itimestep * grid%dt
       ignitions_done = 0
-
-      call Check_for_moisture (grid, config_flags)
-
-      if (grid%run_advance_moisture) then
-        call Message ('advance_moisture start', config_flags%fire_print_msg)
-        call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
-            config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
-            grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
-            grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
-            grid%fmc_lag, config_flags%fuelmc_g)
-        call Message ('advance_moisture end',config_flags%fire_print_msg)
-
-        call Message ('fuel_moisture start',config_flags%fire_print_msg)
-        call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts,grid%ifte,grid%jfts,grid%jfte,    &
-            config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
-        call Message ('fuel_moisture end',config_flags%fire_print_msg)
-
-          ! fuel moisture may have changed, reset the precomputed ros parameters
-        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
-            grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
-      end if
-
       call fire_model (                            &
           config_flags%fire_num_ignitions,                          & ! switches
           ros_model, &

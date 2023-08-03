@@ -1,4 +1,3 @@
-
   module module_fr_fire_fuel_moisture_model
 
     !***************************************************************************************!
@@ -30,14 +29,14 @@
 
     use constants_mod, only : XLV
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
-
+    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
+    use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
-    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
 
     private
 
-    public :: Init_fuel_moisture, Fuel_moisture, Advance_moisture, Check_for_moisture
+    public :: Init_fuel_moisture, Fuel_moisture_model
         
     integer, parameter :: MFUELCATS = N_FUEL_CAT + 1, MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5
     character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
@@ -149,12 +148,14 @@
 
     end subroutine Init_fuel_moisture
 
-subroutine check_for_moisture( grid, config_flags )
+    subroutine Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
 implicit none
 
 type (state_fire_t), target :: grid
 type (namelist_t), intent (in) :: config_flags
+type (fuel_anderson_t), intent (in) :: fuel_model
+type (ros_wrffire_t), intent (in) :: ros_model
 
 character(len=128)msg
 real:: time_start
@@ -169,7 +170,6 @@ real:: moisture_time
     grid%run_advance_moisture = .false. ! default
     moisture_time = time_start
 
-    if(config_flags%fmoist_run)then
         if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
             if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
                 write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
@@ -197,9 +197,30 @@ real:: moisture_time
                 call message(msg,config_flags%fire_print_msg)
             endif
         endif
-    endif
 
-end subroutine check_for_moisture
+      if (grid%run_advance_moisture) then
+        call Message ('advance_moisture start', config_flags%fire_print_msg)
+        call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
+            config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
+            grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
+            grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
+            grid%fmc_lag, config_flags%fuelmc_g)
+        call Message ('advance_moisture end',config_flags%fire_print_msg)
+
+        call Message ('fuel_moisture start',config_flags%fire_print_msg)
+        call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts,grid%ifte,grid%jfts,grid%jfte,    &
+            config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
+        call Message ('fuel_moisture end',config_flags%fire_print_msg)
+
+          ! fuel moisture may have changed, reset the precomputed ros parameters
+        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
+            grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
+      end if
+
+    end subroutine Fuel_moisture_model
 
 subroutine fuel_moisture(                &
     nfmc,                                &
@@ -528,9 +549,6 @@ enddo
 
 end subroutine copy2old
 
-subroutine get_equi_moist
-end subroutine get_equi_moist
-
 end subroutine advance_moisture
 
-end module module_fr_fire_fuel_moisture_model
+  end module module_fr_fire_fuel_moisture_model
