@@ -16,7 +16,7 @@ use ignition_line_mod, only : ignition_line_t
 private
 
 public ::  &
-          Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+          Fuel_left, Tign_update, Reinit_ls_rk3, &
           Ignite_fire, Prop_ls_rk3
 
 contains
@@ -1705,35 +1705,6 @@ call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
                lfn_out,'prop_ls: lfn out',fire_print_msg)
 
 end subroutine tign_update
-
-subroutine calc_flame_length(ifts,ifte,jfts,jfte, &
-                             ifms,ifme,jfms,jfme, &
-                             ros,iboros,flame_length,ros_fl,fire_area)
-
-! Diagnoses flame length
-! Domingo Munoz-Esparza, NCAR/RAL
-
-implicit none
-
-integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme
-real,dimension(ifms:ifme,jfms:jfme),intent(in)::ros,iboros,fire_area
-real,dimension(ifms:ifme,jfms:jfme),intent(out)::flame_length,ros_fl
-! local
-integer::i,j
-
-do j=jfts,jfte
-  do i=ifts,ifte
-    if (fire_area(i,j).gt.0.0 .AND. fire_area(i,j).lt.1.0) then
-      flame_length(i,j)=0.0775*(iboros(i,j)*ros(i,j))**0.46 ! flame length according to Byram (1959)
-      ros_fl(i,j)=ros(i,j)
-    else
-      flame_length(i,j)=0.0
-      ros_fl(i,j)=0.0
-    endif
-  enddo
-enddo
-
-end subroutine calc_flame_length
 
 subroutine tend_ls( &
     ids,ide,jds,jde,    &              ! domain - nodes where lfn defined

@@ -1,11 +1,11 @@
 
 module module_fr_fire_model
 
-  use module_fr_fire_core, only: Fuel_left, Tign_update, Calc_flame_length, Reinit_ls_rk3, &
+  use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, &
                                Ignite_fire, Prop_ls_rk3
   use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
-  use module_fr_fire_phys, only: Heat_fluxes
+  use module_fr_fire_phys, only: Calc_flame_length, Heat_fluxes
   use ignition_line_mod, only: ignition_line_t
 
   use state_mod, only: state_fire_t
@@ -177,9 +177,8 @@ ignitions_done=0
                         lfn,lfn_out,tign     &             
                        )
 
-       call calc_flame_length(ifts,ifte,jfts,jfte, & 
-                              ifms,ifme,jfms,jfme, &
-                              ros,grid%iboros,flame_length,ros_front,fire_area)
+       call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+           ros, grid%iboros, flame_length, ros_front, fire_area)
 
        if (fire_lsm_reinit) then ! DME added call to reinitialize level-set function
           
