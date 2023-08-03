@@ -1,7 +1,7 @@
 
 module module_fr_fire_core
 
-use module_fr_fire_phys, only: Fire_ros
+use ros_wrffire_mod, only: Fire_ros
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 use state_mod, only: state_fire_t

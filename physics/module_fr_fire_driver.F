@@ -2,7 +2,6 @@
   module module_fr_fire_driver
 
     use module_fr_fire_model, only: Fire_model
-    use module_fr_fire_phys, only: Set_fire_params
     use module_fr_fire_fuel_moisture_model, only: Advance_moisture, Fuel_moisture, Init_fuel_moisture, Check_for_moisture
     use module_fr_fire_util, only: Crash, Check_mesh_2dim, Message
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
@@ -10,6 +9,7 @@
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
+    use ros_wrffire_mod, only : Set_fire_params
 
     implicit none
 
