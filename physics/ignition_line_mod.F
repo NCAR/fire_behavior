@@ -12,7 +12,7 @@
     integer :: fire_num_ignitions
     integer, parameter :: FIRE_MAX_IGNITIONS = 5
 
-    type ignition_line_t
+    type :: ignition_line_t
       real  ros, &        ! subscale rate of spread during the ignition process
           start_x, &      ! x coordinate of the ignition line start point (m, or long/lat)
           start_y, &      ! y coordinate of the ignition line start point
