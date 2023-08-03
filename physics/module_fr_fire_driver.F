@@ -31,6 +31,10 @@
       type (namelist_t), intent(in) :: config_flags
 
 
+        ! check if tile fits in memory
+      call Check_mesh_2dim(grid%ifts-2,grid%ifte+2,grid%jfts-2,grid%jfte+2,grid%ifms,grid%ifme,grid%jfms,grid%jfme,&
+          config_flags%fire_print_msg)
+
       call Initialize_ignitions (config_flags, ignition_lines)
 
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
@@ -60,14 +64,9 @@
 
         ! time - assume dt does not change
       time_start = grid%itimestep * grid%dt
-
-      call Check_for_moisture (grid, config_flags)
-
       ignitions_done = 0
 
-        ! check the tiles
-      call Check_mesh_2dim(grid%ifts-2,grid%ifte+2,grid%jfts-2,grid%jfte+2,grid%ifms,grid%ifme,grid%jfms,grid%jfme,&
-          config_flags%fire_print_msg)! check if fire node tile fits in memory
+      call Check_for_moisture (grid, config_flags)
 
       if (grid%run_advance_moisture) then
         call Message ('advance_moisture start', config_flags%fire_print_msg)
