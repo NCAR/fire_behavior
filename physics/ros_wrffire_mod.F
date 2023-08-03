@@ -1,6 +1,6 @@
   module ros_wrffire_mod
 
-    use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_PUND
+    use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
     use state_mod, only : state_fire_t
     use namelist_mod, only: namelist_t
@@ -13,7 +13,7 @@
     public :: fire_ros, set_fire_params
 
       ! fuelheat: fuel particle low heat content [btu/lb]
-    real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_PUND
+    real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
 
   contains
 
