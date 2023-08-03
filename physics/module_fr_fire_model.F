@@ -7,6 +7,7 @@ module module_fr_fire_model
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
   use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
   use ignition_line_mod, only: ignition_line_t
+  use ros_wrffire_mod, only : ros_wrffire_t
 
   use state_mod, only: state_fire_t
 
@@ -18,6 +19,7 @@ module module_fr_fire_model
 
     subroutine fire_model (                    &
         num_ignitions,                          & ! number of ignitions before advancing
+        ros_model, &
         ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
         ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
         ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
@@ -64,6 +66,7 @@ module module_fr_fire_model
       implicit none
 
 integer, intent(in) :: num_ignitions        ! number of ignition lines
+type (ros_wrffire_t), intent (in) :: ros_model
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
 integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
@@ -166,7 +169,8 @@ ignitions_done=0
              tbound,                                    &
              lfn,                                       &
              lfn_0,lfn_1,lfn_2,                         & 
-             lfn_out,tign,ros, grid                     &
+             lfn_out,tign,ros, grid,                    &
+             ros_model &
          ) 
 
        call tign_update(ifts,ifte,jfts,jfte, & 

@@ -1,11 +1,12 @@
 
 module module_fr_fire_core
 
-use ros_wrffire_mod, only: Fire_ros
+use ros_wrffire_mod, only: ros_wrffire_t
 use module_fr_fire_util, only: Message, Crash, Print_2d_stats
 
 use state_mod, only: state_fire_t
 use ignition_line_mod, only : ignition_line_t
+use ros_wrffire_mod, only : ros_wrffire_t
 
 ! The mathematical core of the fire spread model. No physical constants here.
 ! 
@@ -1185,7 +1186,8 @@ subroutine prop_ls_rk3(               &
                 lfn_in,                  &
                 lfn_0,lfn_1,lfn_2,       & 
                 lfn_out,tign,ros,        &           
-                grid                     &
+                grid,                    &
+                ros_model &
                    )
 
 
@@ -1257,6 +1259,7 @@ real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
 real,intent(in)::dx,dy,ts,dt
 real,intent(out)::tbound
 type (state_fire_t), target :: grid
+type (ros_wrffire_t), intent (in) :: ros_model
 
 real,dimension(ifms:ifme,jfms:jfme):: tend
 ! scalars
@@ -1312,7 +1315,8 @@ call message(msg,fire_print_msg)
     lfn_0,               &                       ! arrays in
     tbound,              &                       ! scalars out 
     tend, ros,           &                       ! arrays out        
-    grid                 &                       ! params
+    grid,                &                       ! params
+    ros_model &
 )
 
     do j=jfts,jfte 
@@ -1343,7 +1347,8 @@ call message(msg,fire_print_msg)
     lfn_1,               &                             
     tbound2,             &                              
     tend,ros,            &                           
-    grid                 &
+    grid,                &
+    ros_model &
 )
 
     do j=jfts,jfte
@@ -1374,7 +1379,8 @@ call message(msg,fire_print_msg)
     lfn_2,               &                            
     tbound3,             &                            
     tend,ros,            &                           
-    grid                 &
+    grid,                &
+    ros_model &
 )
 
     do j=jfts,jfte
@@ -1720,7 +1726,8 @@ subroutine tend_ls( &
     lfn,                &              ! arrays in
     tbound,             &              ! scalars out 
     tend, ros,          &              ! arrays out
-    grid                &
+    grid,               &
+    ros_model &
 )
 
 implicit none
@@ -1740,6 +1747,7 @@ real,dimension(ims:ime,jms:jme),intent(out)::tend  ! tendency (rhs of the level 
 real,dimension(ims:ime,jms:jme),intent(out)::ros   ! rate of spread 
 real,intent(out)::tbound                           ! max allowed time step
 type (state_fire_t), target :: grid
+type (ros_wrffire_t), intent (in) :: ros_model
 
 !*** local 
 real:: te,diffLx,diffLy,diffRx,diffRy, & 
@@ -1866,8 +1874,8 @@ threshold_AV=fire_viscosity_ngp*dx
             ! wind speed in direction of spread
             speed =  grid%uf(i,j)*nvx + grid%vf(i,j)*nvy
             ! get rate of spread from wind speed and slope
-            call fire_ros(ros_base,ros_wind,ros_slope, &
-            nvx,nvy,i,j,grid,fire_advection)
+            call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
+            nvx, nvy, i, j, grid, fire_advection)
             rr=ros_base + ros_wind + fire_slope_factor*ros_slope
 
             if(fire_grows_only.gt.0)rr=max(rr,0.)

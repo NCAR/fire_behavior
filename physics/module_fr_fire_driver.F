@@ -9,7 +9,7 @@
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
-    use ros_wrffire_mod, only : Set_fire_params
+    use ros_wrffire_mod, only : ros_wrffire_t
 
     implicit none
 
@@ -19,6 +19,7 @@
 
     type (ignition_line_t), dimension(:), allocatable :: ignition_lines
     type (fuel_anderson_t) :: fuel_model
+    type (ros_wrffire_t) :: ros_model
 
   contains
 
@@ -30,6 +31,7 @@
       type (namelist_t), intent(in) :: config_flags
 
 
+
       call Initialize_ignitions (config_flags, ignition_lines)
 
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
@@ -37,7 +39,7 @@
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
         ! Set rate of spread variables
-      call Set_fire_params (   &
+      call ros_model%Set_ros_parameters (   &
           grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
           grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
           grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
@@ -111,7 +113,7 @@
           ! fuel moisture may have changed, reset the precomputed ros parameters
           ! uses nfuel_cat to set the other fuel data arrays
           ! needs zsf on halo width 1 to compute the terrain gradient
-        call Set_fire_params(        &
+        call ros_model%Set_ros_parameters (        &
                   grid%ifds,grid%ifde,grid%jfds,grid%jfde, &
                   grid%ifms,grid%ifme,grid%jfms,grid%jfme, &
                   grid%ifts,grid%ifte,grid%jfts,grid%jfte, &
@@ -123,6 +125,7 @@
 
       call fire_model (                            &
           config_flags%fire_num_ignitions,                          & ! switches
+          ros_model, &
           grid%ifds,grid%ifde,grid%jfds,grid%jfde,                    & ! fire domain dims
           grid%ifms,grid%ifme,grid%jfms,grid%jfme,                    & ! fire memory dims
           grid%ifts,grid%ifte,grid%jfts,grid%jfte,                    & ! fire patch dims

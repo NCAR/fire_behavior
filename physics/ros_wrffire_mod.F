@@ -2,22 +2,28 @@
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
+    use module_fr_fire_util, only: Crash, Message
     use state_mod, only : state_fire_t
     use namelist_mod, only: namelist_t
-    use module_fr_fire_util, only: Crash, Message
 
     implicit none
 
     private
 
-    public :: fire_ros, set_fire_params
+    public :: ros_wrffire_t
 
       ! fuelheat: fuel particle low heat content [btu/lb]
     real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
 
+    type :: ros_wrffire_t
+    contains
+      procedure, public :: Calc_ros => Calc_ros_wrffire
+      procedure, public :: Set_ros_parameters => Set_ros_parameters_wrffire
+    end type ros_wrffire_t
+
   contains
 
-    subroutine fire_ros (ros_base, ros_wind, ros_slope, nvx, nvy, i, j, grid, fire_advection)
+    subroutine Calc_ros_wrffire (this, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, grid, fire_advection)
 
       implicit none
 
@@ -30,6 +36,7 @@
       !      
       !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
+      class (ros_wrffire_t), intent (in) :: this
       real, intent(out) :: ros_base, ros_wind, ros_slope ! rate of spread contribution due to fuel, wind, and slope
       real, intent(in) :: nvx, nvy
       integer, intent(in) :: i,j         ! node mesh coordinates
@@ -105,9 +112,9 @@
         ros_slope = ros_slope - excess * ros_slope/ (ros_wind + ros_slope)
       endif
 
-    end subroutine fire_ros
+    end subroutine Calc_ros_wrffire
 
-    subroutine Set_fire_params (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+    subroutine Set_ros_parameters_wrffire (this, ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
         fdx, fdy, nfuel_cat, fuel_time, grid, fuel_model, config_flags)
 
       implicit none
@@ -117,6 +124,7 @@
     !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
     !                        so BMST = FUELMC_G / (1 + FUELMC_G)
 
+      class (ros_wrffire_t), intent (in) :: this
 type (state_fire_t), target :: grid
 type (fuel_anderson_t), target :: fuel_model
 integer, intent(in)::ifds,ifde,jfds,jfde                        ! fire domain bounds
@@ -296,6 +304,6 @@ do j=jfts,jfte
   enddo
 enddo
 
-end subroutine Set_fire_params
+    end subroutine Set_ros_parameters_wrffire
 
   end module ros_wrffire_mod
