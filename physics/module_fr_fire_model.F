@@ -5,7 +5,7 @@ module module_fr_fire_model
                                Ignite_fire, Prop_ls_rk3
   use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, &
                                Message, Print_2d_stats, Crash, Check_mesh_2dim
-  use module_fr_fire_phys, only: Calc_flame_length, Heat_fluxes
+  use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
   use ignition_line_mod, only: ignition_line_t
 
   use state_mod, only: state_fire_t
@@ -275,13 +275,8 @@ ignitions_done=0
                    ifts,ifte,jfts,jfte, &
                    fuel_frac_burnt,'model: fuel_frac burned',fire_print_msg)
         
-    call heat_fluxes(dt,grid,                     &
-        ifms,ifme,jfms,jfme,                      &
-        ifts,ifte,jfts,jfte,                      &
-        ifts,ifte,jfts,jfte,                      &  ! fuel_frac_burned is tile dimensioned
-        grid%fgip,                                &
-        fuel_frac_burnt,                          & !
-        grnhfx,grnqfx)                              !out
+    call Calc_fire_fluxes (dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+        ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grnhfx,grnqfx)
 
     if(fire_print_msg.ge.stat_lev)then
       tfa=fun_real(REAL_SUM,  &

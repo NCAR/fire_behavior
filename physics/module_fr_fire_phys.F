@@ -10,7 +10,7 @@
 
     private
 
-    public :: Calc_flame_length, Fire_ros, Heat_fluxes, Set_fire_params
+    public :: Calc_flame_length, Calc_fire_fluxes, Fire_ros, Set_fire_params
 
       ! cmbcnst: joules per kg of dry fuel
     real, parameter :: CMBCNST = 17.433e+06
@@ -238,52 +238,36 @@ enddo
 
 end subroutine Set_fire_params
 
-!
-!*******************
-!
+    subroutine Calc_fire_fluxes (dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+      iffs, iffe, jffs, jffe, fgip, fuel_frac_burnt, grnhft, grnqft)
 
-subroutine heat_fluxes(dt,grid,                   &
-        ifms,ifme,jfms,jfme,                      &  ! memory dims
-        ifts,ifte,jfts,jfte,                      &  ! tile dims
-        iffs,iffe,jffs,jffe,                      &  ! fuel_frac_burnt dims
-        fgip,fuel_frac_burnt,                     & !in
-        grnhft,grnqft)                              !out
-implicit none
+      implicit none
 
-!*** purpose        
-! compute the heat fluxes on the fire grid cells
+      type (state_fire_t), target :: grid
+      real, intent(in)::dt          ! dt  the fire time step (the fire model advances time by this)
+      integer, intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,iffs,iffe,jffs,jffe   ! dimensions                   
+      real, intent(in),dimension(ifms:ifme,jfms:jfme):: fgip
+      real, intent(in),dimension(iffs:iffe,jffs:jffe):: fuel_frac_burnt
+      real, intent(out),dimension(ifms:ifme,jfms:jfme):: grnhft,grnqft
 
-!*** arguments
-type (state_fire_t), target :: grid
-real, intent(in)::dt          ! dt  the fire time step (the fire model advances time by this)
-integer, intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,iffs,iffe,jffs,jffe   ! dimensions                   
-real, intent(in),dimension(ifms:ifme,jfms:jfme):: fgip
-real, intent(in),dimension(iffs:iffe,jffs:jffe):: fuel_frac_burnt
-real, intent(out),dimension(ifms:ifme,jfms:jfme):: grnhft,grnqft
+      integer::i,j
+      real:: dmass,bmst
+      logical::latent
 
-!*** local
-integer::i,j
-real:: dmass,bmst
-logical::latent
 
-!*** executable        
-do j=jfts,jfte
-    do i=ifts,ifte
-         dmass =                     &     ! surface fuel dry mass burnt this call (kg/m^2)
-             fgip(i,j)               &     ! init mass from fuel model no (kg/m^2) = fgi(nfuel_cat(i,j)
-             * fuel_frac_burnt(i,j)        ! fraction burned this call    (1)
-         bmst     = grid%fmc_g(i,j)/(1.+grid%fmc_g(i,j))        ! bmst varies by (i,j)
-         grnhft(i,j) = (dmass/dt)*(1.-bmst)*cmbcnst         ! surface fire sensible heat flux W/m^2
-         grnqft(i,j) = (bmst+(1.-bmst)*.56)*(dmass/dt)*XLV  ! surface fire latent heat flux W/m
-         ! xlv is defined in module_model_constants.. Assume 56% of cellulose molecule mass is water.
-    enddo
-enddo
+      do j=jfts,jfte
+          do i=ifts,ifte
+               dmass =                     &     ! surface fuel dry mass burnt this call (kg/m^2)
+                   fgip(i,j)               &     ! init mass from fuel model no (kg/m^2) = fgi(nfuel_cat(i,j)
+                   * fuel_frac_burnt(i,j)        ! fraction burned this call    (1)
+               bmst     = grid%fmc_g(i,j)/(1.+grid%fmc_g(i,j))        ! bmst varies by (i,j)
+               grnhft(i,j) = (dmass/dt)*(1.-bmst)*cmbcnst         ! surface fire sensible heat flux W/m^2
+               grnqft(i,j) = (bmst+(1.-bmst)*.56)*(dmass/dt)*XLV  ! surface fire latent heat flux W/m
+               ! xlv is defined in module_model_constants.. Assume 56% of cellulose molecule mass is water.
+          enddo
+      enddo
 
-end subroutine heat_fluxes
-
-!
-!**********************
-!            
+    end subroutine Calc_fire_fluxes
 
   subroutine fire_ros(ros_base,ros_wind,ros_slope, &
     nvx,nvy,i,j,grid,fire_advection)
