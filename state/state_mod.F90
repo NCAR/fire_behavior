@@ -48,6 +48,7 @@
       real, dimension(:, :), allocatable :: lfn_s1 ! "level set function for reinitialization integration" "1"
       real, dimension(:, :), allocatable :: lfn_s2 ! "level set function for reinitialization integration" "1"
       real, dimension(:, :), allocatable :: lfn_s3 ! "level set function for reinitialization integration" "1"
+      real, dimension(:, :), allocatable :: lfn_out
       real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
       real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
@@ -269,6 +270,7 @@
       allocate (this%lfn_s1(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_s2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%lfn_out(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
 

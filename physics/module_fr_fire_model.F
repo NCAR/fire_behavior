@@ -18,15 +18,14 @@ module module_fr_fire_model
   contains
 
     subroutine fire_model (                    &
-        num_ignitions,                          & ! number of ignitions before advancing
+        fire_num_ignitions,                          & ! number of ignitions before advancing
         ros_model, &
         ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
         ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
         ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
-        time_start,dt,                          & ! time and increment
+        dt,                          & 
         fdx,fdy,                                & ! fire mesh spacing,
         ignition_line,                          & ! small array of ignition line descriptions
-        ignitions_done,ignited_tile,            &
         coord_xf,coord_yf,unit_xf,unit_yf,      & ! fire mesh coordinates
         lfn,                                & ! state: level function
         lfn_hist,                           & ! PAJ: to init obs fire perimeter.
@@ -65,7 +64,7 @@ module module_fr_fire_model
 
       implicit none
 
-integer, intent(in) :: num_ignitions        ! number of ignition lines
+integer, intent(in) :: fire_num_ignitions        ! number of ignition lines
 type (ros_wrffire_t), intent (in) :: ros_model
 integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
 integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
@@ -76,12 +75,10 @@ integer, intent(in) :: fuel_left_method,fuel_left_irl,fuel_left_jrl, &
                        fire_viscosity_ngp,fire_advection,fire_lsm_band_ngp, &
                        fire_print_msg
 logical, intent(in) :: fire_lsm_reinit
-real,intent(in) :: time_start,dt            ! starting time, time step
+real,intent(in) :: dt            ! starting time, time step
 real,intent(in) :: fdx,fdy                  ! spacing of the fire mesh
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 type(ignition_line_t), dimension (:), intent(in):: ignition_line ! descriptions of ignition lines
-integer, intent(out):: ignited_tile(num_ignitions) ! number of gridpts ignited in a given ignition
-integer, intent(out):: ignitions_done              ! number of isolated ignitions
 real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
     coord_xf,coord_yf                       !  node coordinates  
 real, intent(in):: unit_xf,unit_yf          !  coordinate units in m
@@ -109,14 +106,21 @@ integer::ignited,ig,i,j
 real::tbound,tfa,thf,mhf,tqf,mqf,aw,mw
 character(len=128)::msg
 integer:: stat_lev=1
-  real :: start_time_ig, end_time_ig
+  real :: start_time_ig, end_time_ig, time_start
   real, parameter :: EPSILON = 0.00001
+        ! number of isolated ignitions
+      integer :: ignitions_done
+        ! number of gridpts ignited in a given ignition
+      integer :: ignited_tile(fire_num_ignitions)
+
+
 
 
 call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme,fire_print_msg)
 
 ! init flags
 ignitions_done=0
+      time_start = grid%itimestep * grid%dt
 
 ! ifun4: do the timestep
     if(fire_print_msg.ge.stat_lev)then
@@ -228,7 +232,7 @@ ignitions_done=0
       enddo
     enddo
   elseif (.not. fire_is_real_perim) then
-    do ig = 1,num_ignitions
+    do ig = 1,fire_num_ignitions
     
 !  for now, check for ignition every time step...
 !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 

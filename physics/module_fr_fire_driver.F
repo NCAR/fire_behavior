@@ -53,35 +53,24 @@
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
 
-        ! number of isolated ignitions
-      integer :: ignitions_done
-        ! number of gridpts ignited in a given ignition
-      integer :: ignited_tile(config_flags%fire_num_ignitions)
-      real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme) :: lfn_out
-      real:: time_start
-
 
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
-        ! time - assume dt does not change
-      time_start = grid%itimestep * grid%dt
-      ignitions_done = 0
       call fire_model (                            &
           config_flags%fire_num_ignitions,                          & ! switches
           ros_model, &
           grid%ifds,grid%ifde,grid%jfds,grid%jfde,                    & ! fire domain dims
           grid%ifms,grid%ifme,grid%jfms,grid%jfme,                    & ! fire memory dims
           grid%ifts,grid%ifte,grid%jfts,grid%jfte,                    & ! fire patch dims
-          time_start,grid%dt,                          & ! time and increment
+          grid%dt,                          & ! time and increment
           grid%dx,grid%dy,                                  & ! fire mesh spacing
           ignition_lines,                          & ! description of ignition lines
-          ignitions_done,ignited_tile,            &
           grid%lons,grid%lats,grid%unit_fxlong,grid%unit_fxlat,    & ! fire mesh coordinates
           grid%lfn,                                    & ! state: level function
           grid%lfn_hist,                               & ! PAJ: to init obs fire perimeter
           config_flags%fire_is_real_perim,                     & ! PAJ: to init obs fire perimeter
           grid%lfn_0,grid%lfn_1,grid%lfn_2,grid%lfn_s0,grid%lfn_s1,grid%lfn_s2,grid%lfn_s3,grid%flame_length,grid%ros_front,  & ! state
-          lfn_out,grid%tign_g,grid%fuel_frac,                 & ! state: ign time, fuel left
+          grid%lfn_out,grid%tign_g,grid%fuel_frac,                 & ! state: ign time, fuel left
           grid%fire_area,                              & ! output: fraction of cell burning
           grid%burnt_area_dt,                          &
           grid%fgrnhfx,grid%fgrnqfx,                        & ! output: heat fluxes
