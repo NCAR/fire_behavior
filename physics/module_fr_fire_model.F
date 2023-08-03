@@ -10,6 +10,7 @@ module module_fr_fire_model
   use ros_wrffire_mod, only : ros_wrffire_t
 
   use state_mod, only: state_fire_t
+  use namelist_mod, only : namelist_t
 
   private
 
@@ -17,34 +18,7 @@ module module_fr_fire_model
 
   contains
 
-    subroutine fire_model (                    &
-        fire_num_ignitions,                          & ! number of ignitions before advancing
-        ros_model, &
-        ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
-        ifms,ifme,jfms,jfme,                    & ! fire memory dims - how declared
-        ifts,ifte,jfts,jfte,                    & ! fire tile dims  - this thread
-        dt,                          & 
-        fdx,fdy,                                & ! fire mesh spacing,
-        ignition_line,                          & ! small array of ignition line descriptions
-        coord_xf,coord_yf,unit_xf,unit_yf,      & ! fire mesh coordinates
-        lfn,                                & ! state: level function
-        lfn_hist,                           & ! PAJ: to init obs fire perimeter.
-        fire_is_real_perim,                 & ! PAJ: to init obs fire perimeter.
-        lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front, & ! state
-        lfn_out,tign,fuel_frac,fire_area,   & ! state: level function, ign time, fuel left, area burning
-        burnt_area_dt,                          & 
-        grnhfx,grnqfx,                          & ! output: heat fluxes
-        ros,                                    & ! output: rate of spread
-        fuel_time,                              & ! save derived internal data
-        grid,                                   &
-        fuel_left_method, fuel_left_irl, fuel_left_jrl, &
-        boundary_guard, fire_grows_only, fire_upwinding, &
-        fire_upwind_split, fire_upwinding_reinit, &
-        fire_lsm_reinit, fire_lsm_reinit_iter, &
-        fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_slope_factor, &
-        fire_lsm_band_ngp, fire_print_msg )
+    subroutine fire_model (config_flags, ros_model, ignition_line, grid)
 
 ! This subroutine implements the fire spread model.
 ! All quantities are on the fire grid. It inputs
@@ -64,66 +38,49 @@ module module_fr_fire_model
 
       implicit none
 
-integer, intent(in) :: fire_num_ignitions        ! number of ignition lines
-type (ros_wrffire_t), intent (in) :: ros_model
-integer, intent(in) :: ifds,ifde,jfds,jfde  ! fire domain bounds
-integer, intent(in) :: ifts,ifte,jfts,jfte  ! fire tile bounds         
-integer, intent(in) :: ifms,ifme,jfms,jfme  ! fire memory array bounds
-integer, intent(in) :: fuel_left_method,fuel_left_irl,fuel_left_jrl, &
-                       boundary_guard,fire_grows_only,fire_upwinding, &
-                       fire_upwind_split,fire_upwinding_reinit,fire_lsm_reinit_iter, &
-                       fire_viscosity_ngp,fire_advection,fire_lsm_band_ngp, &
-                       fire_print_msg
-logical, intent(in) :: fire_lsm_reinit
-real,intent(in) :: dt            ! starting time, time step
-real,intent(in) :: fdx,fdy                  ! spacing of the fire mesh
-real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
-type(ignition_line_t), dimension (:), intent(in):: ignition_line ! descriptions of ignition lines
-real, dimension(ifms:ifme, jfms:jfme), intent(in):: & 
-    coord_xf,coord_yf                       !  node coordinates  
-real, intent(in):: unit_xf,unit_yf          !  coordinate units in m
-  real, intent(in), dimension(ifms:ifme,jfms:jfme):: lfn_hist   
-  logical, intent(in) :: fire_is_real_perim
-real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
-    lfn   , &                               ! level function: fire is where lfn<0 (node)
-    tign  , &                               ! absolute time of ignition (node)
-    fuel_frac                               ! fuel fraction (node), currently redundant
-real, intent(inout), dimension(ifms:ifme,jfms:jfme):: &
-    lfn_0,lfn_1,lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,flame_length,ros_front           ! level function stages
-real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
-    fire_area                               ! fraction of each cell burning
-real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
-    burnt_area_dt 
-real, intent(out), dimension(ifms:ifme,jfms:jfme):: &
-    lfn_out, &                              !                              
-    grnhfx,grnqfx, &                        ! heat fluxes J/m^2/s  (cell)             
-    ros                                     ! output: rate of spread
-real, intent(inout),dimension(ifms:ifme,jfms:jfme):: fuel_time
-type (state_fire_t), target :: grid
+      type (namelist_t), intent (in) :: config_flags
+      type (ros_wrffire_t), intent (in) :: ros_model
+      type(ignition_line_t), dimension (:), intent(in):: ignition_line
+      type (state_fire_t), intent (in out) :: grid
 
-real, dimension(ifts:ifte,jfts:jfte)::fuel_frac_burnt,fuel_frac_end
-integer::ignited,ig,i,j
-real::tbound,tfa,thf,mhf,tqf,mqf,aw,mw
-character(len=128)::msg
-integer:: stat_lev=1
-  real :: start_time_ig, end_time_ig, time_start
-  real, parameter :: EPSILON = 0.00001
+      real, dimension(grid%ifts:grid%ifte, grid%jfts:grid%jfte) :: fuel_frac_burnt, fuel_frac_end
+
+      integer :: ifds,ifde,jfds,jfde, ifts,ifte,jfts,jfte, ifms,ifme,jfms,jfme
+      integer :: ignited,ig,i,j
+      real :: tbound,tfa,thf,mhf,tqf,mqf,aw,mw
+      character (len = 128) :: msg
+      integer :: stat_lev = 1
+      real :: start_time_ig, end_time_ig, time_start
+      real, parameter :: EPSILON = 0.00001
         ! number of isolated ignitions
       integer :: ignitions_done
         ! number of gridpts ignited in a given ignition
-      integer :: ignited_tile(fire_num_ignitions)
+      integer :: ignited_tile(config_flags%fire_num_ignitions)
 
+      
+      ifds = grid%ifds
+      ifde = grid%ifde
+      jfds = grid%jfds
+      jfde = grid%jfde
 
+      ifts = grid%ifts
+      ifte = grid%ifte
+      jfts = grid%jfts
+      jfte = grid%jfte
 
+      ifms = grid%ifms
+      ifme = grid%ifme
+      jfms = grid%jfms
+      jfme = grid%jfme
 
-call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme,fire_print_msg)
+call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme,config_flags%fire_print_msg)
 
 ! init flags
 ignitions_done=0
       time_start = grid%itimestep * grid%dt
 
 ! ifun4: do the timestep
-    if(fire_print_msg.ge.stat_lev)then
+    if(config_flags%fire_print_msg.ge.stat_lev)then
       aw=fun_real(RNRM_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
@@ -138,15 +95,15 @@ ignitions_done=0
         grid%uf,grid%vf)
 !$OMP MASTER 
       write(msg,91)time_start,'Average wind        ',aw,'m/s'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
       write(msg,91)time_start,'Maximum wind        ',mw,'m/s'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
 !$OMP END MASTER 
     endif
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &
-                   fuel_frac,'model: fuel_frac start',fire_print_msg)
+                   grid%fuel_frac,'model: fuel_frac start',config_flags%fire_print_msg)
 
     ! advance the model from time_start to time_start+dt
     ! return the fuel fraction burnt this call in each fire cell
@@ -163,43 +120,43 @@ ignitions_done=0
              ifds,ifde,jfds,jfde,                       & 
              ifms,ifme,jfms,jfme,                       &
              ifts,ifte,jfts,jfte,                       &
-             time_start,dt,fdx,fdy,                     &
-             fire_grows_only,                           &
-             fire_upwinding,fire_upwind_split,          &
-             fire_viscosity, fire_viscosity_bg,         &
-             fire_viscosity_band, fire_viscosity_ngp,   &
-             fire_advection, fire_slope_factor,         &
-             fire_lsm_band_ngp, fire_print_msg,         &
+             time_start,grid%dt,grid%dx,grid%dy,                     &
+             config_flags%fire_grows_only,              &
+             config_flags%fire_upwinding, config_flags%fire_upwind_split,          &
+             config_flags%fire_viscosity, config_flags%fire_viscosity_bg,         &
+             config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp,   &
+             config_flags%fire_advection, config_flags%fire_slope_factor,         &
+             config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg,         &
              tbound,                                    &
-             lfn,                                       &
-             lfn_0,lfn_1,lfn_2,                         & 
-             lfn_out,tign,ros, grid,                    &
+             grid%lfn,                                       &
+             grid%lfn_0,grid%lfn_1,grid%lfn_2,                         & 
+             grid%lfn_out,grid%tign_g,grid%ros, grid,                    &
              ros_model &
          ) 
 
        call tign_update(ifts,ifte,jfts,jfte, & 
                         ifms,ifme,jfms,jfme, &                    
                         ifds,jfds,ifde,jfde, &
-                        time_start,dt,boundary_guard, &
-                        fire_print_msg, &
-                        lfn,lfn_out,tign     &             
+                        time_start,grid%dt, config_flags%fire_boundary_guard, &
+                        config_flags%fire_print_msg, &
+                        grid%lfn,grid%lfn_out, grid%tign_g     &             
                        )
 
        call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-           ros, grid%iboros, flame_length, ros_front, fire_area)
+           grid%ros, grid%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
 
-       if (fire_lsm_reinit) then ! DME added call to reinitialize level-set function
+       if (config_flags%fire_lsm_reinit) then ! DME added call to reinitialize level-set function
           
            call reinit_ls_rk3(                                       &
                           ifts,ifte,jfts,jfte,                       &                  
                           ifms,ifme,jfms,jfme,                       &                     
                           ifds,ifde,jfds,jfde,                       &                     
-                          time_start,dt,fdx,fdy,                     &
-                          fire_upwinding_reinit,fire_lsm_reinit_iter,&
-                          fire_lsm_band_ngp,                         &
-                          lfn,                                       &
-                          lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3,         &
-                          lfn_out,tign                               &
+                          time_start,grid%dt,grid%dx,grid%dy,                     &
+                          config_flags%fire_upwinding_reinit, config_flags%fire_lsm_reinit_iter,&
+                          config_flags%fire_lsm_band_ngp,                         &
+                          grid%lfn,                                       &
+                          grid%lfn_2,grid%lfn_s0, grid%lfn_s1, grid%lfn_s2, grid%lfn_s3,         &
+                          grid%lfn_out, grid%tign_g                               &
                          )
        endif ! fire_lsm_reinit
 
@@ -209,7 +166,7 @@ ignitions_done=0
 
        do j=jfts,jfte
            do i=ifts,ifte
-               lfn(i,j)=lfn_out(i,j)
+               grid%lfn(i, j) = grid%lfn_out(i, j)
                ! if want to try timestep again treat tign the same way here
                ! even if tign does not need a halo
            enddo
@@ -220,19 +177,19 @@ ignitions_done=0
   start_time_ig = ignition_line(ig)%start_time 
   end_time_ig  = ignition_line(ig)%end_time
 
-  if ( fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + dt) then
+  if ( config_flags%fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
     ignited = 0
     do j = jfts, jfte
       do i = ifts, ifte
-        lfn(i, j) = lfn_hist(i, j)
-        if (abs(lfn(i, j)) < EPSILON) then
-          tign(i, j)= time_start
+        grid%lfn(i, j) = grid%lfn_hist(i, j)
+        if (abs(grid%lfn(i, j)) < EPSILON) then
+          grid%tign_g(i, j)= time_start
           ignited = ignited + 1
         end if
       enddo
     enddo
-  elseif (.not. fire_is_real_perim) then
-    do ig = 1,fire_num_ignitions
+  elseif (.not. config_flags%fire_is_real_perim) then
+    do ig = 1,config_flags%fire_num_ignitions
     
 !  for now, check for ignition every time step...
 !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 
@@ -240,11 +197,11 @@ ignitions_done=0
                 ifds,ifde,jfds,jfde,                      & ! fire domain dims - the whole domain
                 ifms,ifme,jfms,jfme,                      &
                 ifts,ifte,jfts,jfte,                      &
-                fire_print_msg,                           &
+                config_flags%fire_print_msg,                           &
                 ignition_line(ig),                        &
-                time_start,time_start+dt,                 &
-                coord_xf,coord_yf,unit_xf,unit_yf,        & 
-                lfn,tign,ignited)
+                time_start,time_start+grid%dt,                 &
+                grid%lons,grid%lats,grid%unit_fxlong,grid%unit_fxlat,        & 
+                grid%lfn, grid%tign_g,ignited)
 
             ignitions_done=ignitions_done+1
             ignited_tile(ignitions_done)=ignited
@@ -255,7 +212,7 @@ ignitions_done=0
  end if
             
     call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
-                   lfn,'fire_model: lfn out',fire_print_msg)
+                   grid%lfn,'fire_model: lfn out',config_flags%fire_print_msg)
     
 !ifun6 ! timestep postprocessing
     ! compute the heat fluxes from the fuel burned
@@ -264,77 +221,77 @@ ignitions_done=0
         ifms,ifme,jfms,jfme, &
         ifts,ifte,jfts,jfte, &
         ifts,ifte,jfts,jfte, &
-        lfn,tign,fuel_time,time_start+dt,fuel_frac_end,fire_area,fuel_left_method, &
-        fuel_left_irl, fuel_left_jrl, fire_print_msg) !fuel_frac_end is private and tile based
+        grid%lfn,grid%tign_g,grid%fuel_time, time_start+grid%dt,fuel_frac_end, grid%fire_area, config_flags%fire_fuel_left_method, &
+        config_flags%fire_fuel_left_irl, config_flags%fire_fuel_left_jrl, config_flags%fire_print_msg) !fuel_frac_end is private and tile based
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifts,ifte,jfts,jfte, &
-                   fuel_frac_end,'model: fuel_frac end',fire_print_msg)
+                   fuel_frac_end,'model: fuel_frac end',config_flags%fire_print_msg)
     
     do j=jfts,jfte
         do i=ifts,ifte
-            fuel_frac_burnt(i,j)=fuel_frac(i,j)-fuel_frac_end(i,j) ! fuel lost this timestep
-            burnt_area_dt(i,j)=fuel_frac_burnt(i,j)
-            fuel_frac(i,j)=fuel_frac_end(i,j) ! copy new value to state array
+            fuel_frac_burnt(i,j)=grid%fuel_frac(i,j)-fuel_frac_end(i,j) ! fuel lost this timestep
+            grid%burnt_area_dt(i,j)=fuel_frac_burnt(i,j)
+            grid%fuel_frac(i,j)=fuel_frac_end(i,j) ! copy new value to state array
         enddo
     enddo
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifts,ifte,jfts,jfte, &
-                   fuel_frac_burnt,'model: fuel_frac burned',fire_print_msg)
+                   fuel_frac_burnt,'model: fuel_frac burned',config_flags%fire_print_msg)
         
-    call Calc_fire_fluxes (dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grnhfx,grnqfx)
+    call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+        ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
 
-    if(fire_print_msg.ge.stat_lev)then
+    if(config_flags%fire_print_msg.ge.stat_lev)then
       tfa=fun_real(REAL_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        fire_area,fire_area) * fdx * fdy
+        grid%fire_area,grid%fire_area) * grid%dx * grid%dy
       thf=fun_real(REAL_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        grnhfx,grnhfx) * fdx * fdy
+        grid%fgrnhfx,grid%fgrnhfx) * grid%dx * grid%dy
       mhf=fun_real(REAL_MAX,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        grnhfx,grnhfx) 
+        grid%fgrnhfx,grid%fgrnhfx) 
       tqf=fun_real(REAL_SUM,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        grnqfx,grnqfx) * fdx * fdy
+        grid%fgrnqfx,grid%fgrnqfx) * grid%dx * grid%dy
       mqf=fun_real(REAL_MAX,  &
         ifms,ifme,1,1,jfms,jfme, &                ! memory dims
         ifds,ifde,1,1,jfds,jfde, &                ! domain dims
         ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
         0,0,0,       &                            ! staggering
-        grnqfx,grnqfx) 
+        grid%fgrnqfx,grid%fgrnqfx) 
 !$OMP MASTER 
       write(msg,91)time_start,'Fire area           ',tfa,'m^2'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
       write(msg,91)time_start,'Heat output         ',thf,'W'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
       write(msg,91)time_start,'Max heat flux       ',mhf,'W/m^2'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
       write(msg,91)time_start,'Latent heat output  ',tqf,'W'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
       write(msg,91)time_start,'Max latent heat flux',mqf,'W/m^2'
-      call message(msg,fire_print_msg,stat_lev)
+      call message(msg,config_flags%fire_print_msg,stat_lev)
 !$OMP END MASTER
 91  format('Time ',f11.3,' s ',a,e12.3,1x,a)
     endif
 
     call print_2d_stats(ifts,ifte,jfts,jfte, &
                    ifms,ifme,jfms,jfme, &
-                   grnhfx,'model: heat flux(J/m^2/s)',fire_print_msg)
+                   grid%fgrnhfx,'model: heat flux(J/m^2/s)',config_flags%fire_print_msg)
 
   end subroutine fire_model
 
