@@ -66,14 +66,14 @@
 
       if (config_flags%fire_print_msg.ge.stat_lev)then
         aw=Fun_real(RNRM_SUM,  &
-            ifms,ifme,1,1,jfms,jfme, &              ! memory dims
-          ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-          ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &              ! memory dims
+          ifds,ifde,jfds,jfde, &                ! domain dims
+          ifts,ifte,jfts,jfte, &                ! patch or tile dims
           grid%uf,grid%vf)/((ifde-ifds+1)*(jfde-jfds+1))
         mw=Fun_real(RNRM_MAX,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%uf,grid%vf)
         !$OMP MASTER 
         write (msg, 91) time_start,'Average wind        ',aw,'m/s'
@@ -219,33 +219,33 @@
 
       If_pring_summary: if (config_flags%fire_print_msg .ge. stat_lev) then
         tfa = Fun_real (REAL_SUM,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fire_area,grid%fire_area) * grid%dx * grid%dy
 
         thf = Fun_real (REAL_SUM,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnhfx,grid%fgrnhfx) * grid%dx * grid%dy
 
         mhf = Fun_real (REAL_MAX,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnhfx,grid%fgrnhfx) 
 
         tqf = Fun_real (REAL_SUM,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnqfx,grid%fgrnqfx) * grid%dx * grid%dy
 
         mqf = Fun_real(REAL_MAX,  &
-            ifms,ifme,1,1,jfms,jfme, &                ! memory dims
-            ifds,ifde,1,1,jfds,jfde, &                ! domain dims
-            ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
+            ifms,ifme,jfms,jfme, &                ! memory dims
+            ifds,ifde,jfds,jfde, &                ! domain dims
+            ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnqfx,grid%fgrnqfx) 
 
         !$OMP MASTER 

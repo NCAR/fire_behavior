@@ -168,9 +168,9 @@
     end subroutine Print_tile_stats
 
     real function fun_real(fun,  & 
-        ims,ime,kms,kme,jms,jme, &                ! memory dims
-        ids,ide,kds,kde,jds,jde, &                ! domain dims
-        ips,ipe,kps,kpe,jps,jpe, &                ! patch or tile dims
+        ims,ime,jms,jme, &                ! memory dims
+        ids,ide,jds,jde, &                ! domain dims
+        ips,ipe,jps,jpe, &                ! patch or tile dims
         a,b)                      
 
 #ifdef DM_PARALLEL
@@ -180,13 +180,13 @@
       implicit none
 
       integer, intent(in)::  fun, &
-          ims, ime, kms, kme, jms, jme, &
-          ids, ide, kds, kde, jds, jde, &
-          ips, ipe, kps, kpe, jps, jpe
-      real, intent(in),dimension(ims:ime, kms:kme, jms:jme) :: a, b
+          ims, ime, jms, jme, &
+          ids, ide, jds, jde, &
+          ips, ipe, jps, jpe
+      real, intent(in),dimension(ims:ime, jms:jme) :: a, b
 
       real :: lsum,void
-      integer :: i, j, k, n
+      integer :: i, j, n
       real, save :: psum, gsum
       real :: rel
       logical :: dosum, domax
@@ -197,40 +197,32 @@
         void = 0.0
         lsum = void
         do j = jps, jpe
-          do k = kps, kpe
-            do i = ips, ipe
-              lsum = lsum + a(i,k,j)
-            end do
+          do i = ips, ipe
+            lsum = lsum + a(i,j)
           end do
         end do
       else if (fun .eq. RNRM_SUM) then
         void = 0.0
         lsum = void
         do j = jps, jpe
-          do k = kps, kpe
-            do i = ips, ipe
-              lsum = lsum + sqrt (a(i, k, j) * a(i, k, j) + b(i, k, j) * b(i, k, j))
-            end do
+          do i = ips, ipe
+            lsum = lsum + sqrt (a(i, j) * a(i, j) + b(i, j) * b(i, j))
           end do
         end do
       else if (fun .eq. REAL_MAX) then
         void = - huge (lsum)
         lsum = void
         do j = jps, jpe
-          do k = kps, kpe
-            do i = ips, ipe
-              lsum = max (lsum, a(i, k, j))
-            end do
+          do i = ips, ipe
+            lsum = max (lsum, a(i, j))
           end do
         end do
       else if (fun .eq. RNRM_MAX) then
         void = 0.0
         lsum = void
         do j = jps, jpe
-          do k = kps, kpe
-            do i = ips, ipe
-              lsum = max (lsum, sqrt (a(i, k, j) * a(i, k, j) + b(i, k, j) * b(i, k, j)))
-            end do
+          do i = ips, ipe
+            lsum = max (lsum, sqrt (a(i, j) * a(i, j) + b(i, j) * b(i, j)))
           end do
         end do
       else
