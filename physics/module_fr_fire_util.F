@@ -204,6 +204,8 @@
       USE module_dm , only : wrf_dm_sum_real , wrf_dm_max_real
 #endif
 
+      implicit none
+
       integer, intent(in)::  fun, &
           ims, ime, kms, kme, jms, jme, &  ! memory dims
           ids, ide, kds, kde, jds, jde, &  ! domain dims
