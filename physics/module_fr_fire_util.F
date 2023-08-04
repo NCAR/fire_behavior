@@ -5,7 +5,7 @@
     private
 
     public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Message, Crash, Check_mesh_2dim, Print_tile_stats
+        Message, Crash, Check_dims, Print_tile_stats
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
@@ -66,27 +66,27 @@
 
     end subroutine Message
 
-    subroutine Check_mesh_2dim (ids, ide, jds, jde, ims, ime, jms, jme, fire_print_msg)
+    subroutine Check_dims (ifs, ife, jfs, jfe, ifms, ifme, jfms, jfme, fire_print_msg)
 
       implicit none
 
-      integer, intent(in) :: ids, ide, jds, jde, ims, ime, jms, jme, fire_print_msg
+      integer, intent(in) :: ifs, ife, jfs, jfe, ifms, ifme, jfms, jfme, fire_print_msg
 
       character (len = 128) msg
  
 
-      if (ids < ims .or. ide > ime .or. jds < jms .or. jde > jme) then
+      if (ifs < ifms .or. ife > ifme .or. jfs < jfms .or. jfe > jfme) then
         !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write (msg, *) 'mesh dimensions:  ', ids, ide, jds, jde
+        write (msg, *) 'mesh dimensions:  ', ifs, ife, jfs, jfe
         call Message (msg, fire_print_msg)
-        write(msg, *) 'memory dimensions:',ims,ime,jms,jme
+        write (msg, *) 'memory dimensions:', ifms, ifme, jfms, jfme
         !$OMP END CRITICAL(FIRE_UTIL_CRIT)
         call Message (msg, fire_print_msg)
 
-        call Crash ('Check_mesh_2dim: memory dimensions too small')
+        call Crash ('Check_dims: memory dimensions too small')
       end if
 
-    end subroutine Check_mesh_2dim
+    end subroutine Check_dims
 
     subroutine Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, a, var_name, fire_print_msg)
 

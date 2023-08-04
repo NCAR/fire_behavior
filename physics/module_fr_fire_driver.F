@@ -3,7 +3,7 @@
 
     use module_fr_fire_model, only: Fire_model
     use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
-    use module_fr_fire_util, only: Check_mesh_2dim
+    use module_fr_fire_util, only: Check_dims
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -31,7 +31,7 @@
 
 
         ! check if tile fits in memory
-      call Check_mesh_2dim (grid%ifts - 2, grid%ifte + 2, grid%jfts - 2, grid%jfte + 2, grid%ifms, &
+      call Check_dims (grid%ifts - 2, grid%ifte + 2, grid%jfts - 2, grid%jfte + 2, grid%ifms, &
           grid%ifme, grid%jfms, grid%jfme, config_flags%fire_print_msg)
 
       call Initialize_ignitions (config_flags, ignition_lines)

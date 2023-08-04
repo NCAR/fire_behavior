@@ -798,7 +798,7 @@ external dggglm
 !executable statements
 
 ! a very crude approximation - replace by a better code
-! call check_mesh_2dim(ids,ide+1,jds,jde+1,ims,ime,jms,jme)
+! call check_dims(ids,ide+1,jds,jde+1,ims,ime,jms,jme)
 t00=tign00-time_now
 if(lfn00>=0. .or. t00>0.)t00=0.
 t01=tign01-time_now

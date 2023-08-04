@@ -2,7 +2,7 @@
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3,  Ignite_fire, Prop_ls_rk3
     use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, Message, &
-        Print_tile_stats, Crash, Check_mesh_2dim
+        Print_tile_stats, Crash, Check_dims
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
     use ignition_line_mod, only: ignition_line_t
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -58,7 +58,7 @@
       jfms = grid%jfms
       jfme = grid%jfme
 
-      call Check_mesh_2dim (ifts - 1, ifte + 1, jfts - 1, jfte + 1, ifms, ifme, jfms, jfme, config_flags%fire_print_msg)
+      call Check_dims (ifts - 1, ifte + 1, jfts - 1, jfte + 1, ifms, ifme, jfms, jfme, config_flags%fire_print_msg)
 
         ! init flags
       ignitions_done = 0
