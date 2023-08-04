@@ -4,7 +4,7 @@
 
     private
 
-    public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, fun_real, &
+    public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
         Message, Crash, Check_mesh_2dim, Print_tile_stats
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
@@ -167,7 +167,7 @@
 
     end subroutine Print_tile_stats
 
-    real function fun_real (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b)
+    real function Calc_domain_stats (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b) result (return_value)
 
 #ifdef DM_PARALLEL
       USE module_dm , only : wrf_dm_sum_real , wrf_dm_max_real
@@ -175,15 +175,12 @@
 
       implicit none
 
-      integer, intent(in)::  fun, &
-          ifms, ifme, jfms, jfme, &
-          ifts, ifte, jfts, jfte
+      integer, intent(in)::  fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
       real, intent(in), dimension(ifms:ifme, jfms:jfme) :: a, b
 
-      real :: lsum,void
-      integer :: i, j, n
+      real :: lsum, void
+      integer :: i, j
       real, save :: psum, gsum
-      real :: rel
       logical :: dosum, domax
       character (len = 256) :: msg
 
@@ -261,8 +258,8 @@
       !$OMP BARRIER
       ! now gsum is known to all threads
 
-      fun_real = gsum
+      return_value = gsum
 
-    end function fun_real
+    end function Calc_domain_stats
 
   end module module_fr_fire_util

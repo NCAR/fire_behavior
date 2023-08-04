@@ -1,7 +1,7 @@
   module module_fr_fire_model
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3,  Ignite_fire, Prop_ls_rk3
-    use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, Message, &
+    use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, Message, &
         Print_tile_stats, Crash, Check_mesh_2dim
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
     use ignition_line_mod, only: ignition_line_t
@@ -65,11 +65,11 @@
       time_start = grid%itimestep * grid%dt
 
       if (config_flags%fire_print_msg.ge.stat_lev)then
-        aw=Fun_real(RNRM_SUM,  &
+        aw = Calc_domain_stats (RNRM_SUM,  &
             ifms,ifme,jfms,jfme, &              ! memory dims
           ifts,ifte,jfts,jfte, &                ! patch or tile dims
           grid%uf,grid%vf)/((ifde-ifds+1)*(jfde-jfds+1))
-        mw=Fun_real(RNRM_MAX,  &
+        mw = Calc_domain_stats (RNRM_MAX,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%uf,grid%vf)
@@ -216,27 +216,27 @@
           ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
 
       If_pring_summary: if (config_flags%fire_print_msg .ge. stat_lev) then
-        tfa = Fun_real (REAL_SUM,  &
+        tfa = Calc_domain_stats (REAL_SUM,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fire_area,grid%fire_area) * grid%dx * grid%dy
 
-        thf = Fun_real (REAL_SUM,  &
+        thf = Calc_domain_stats (REAL_SUM,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnhfx,grid%fgrnhfx) * grid%dx * grid%dy
 
-        mhf = Fun_real (REAL_MAX,  &
+        mhf = Calc_domain_stats (REAL_MAX,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnhfx,grid%fgrnhfx) 
 
-        tqf = Fun_real (REAL_SUM,  &
+        tqf = Calc_domain_stats (REAL_SUM,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnqfx,grid%fgrnqfx) * grid%dx * grid%dy
 
-        mqf = Fun_real(REAL_MAX,  &
+        mqf = Calc_domain_stats (REAL_MAX,  &
             ifms,ifme,jfms,jfme, &                ! memory dims
             ifts,ifte,jfts,jfte, &                ! patch or tile dims
             grid%fgrnqfx,grid%fgrnqfx) 
