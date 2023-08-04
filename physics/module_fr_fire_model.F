@@ -58,7 +58,7 @@
       jfms = grid%jfms
       jfme = grid%jfme
 
-      call check_mesh_2dim(ifts-1,ifte+1,jfts-1,jfte+1,ifms,ifme,jfms,jfme,config_flags%fire_print_msg)
+      call Check_mesh_2dim (ifts - 1, ifte + 1, jfts - 1, jfte + 1, ifms, ifme, jfms, jfme, config_flags%fire_print_msg)
 
         ! init flags
       ignitions_done = 0

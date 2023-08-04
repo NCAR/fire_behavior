@@ -2,7 +2,6 @@
   module module_fr_fire_phys
 
     use constants_mod, only : XLV, CMBCNST
-    use module_fr_fire_util, only: Crash, Check_mesh_2dim, Print_2d_stats, Message
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
 
