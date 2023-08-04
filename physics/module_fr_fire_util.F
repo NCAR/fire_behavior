@@ -167,26 +167,10 @@
 
     end subroutine Print_tile_stats
 
-    pure integer function ifval(l,i,j)
-
-      implicit none
-
-      logical, intent (in) :: l
-      integer, intent (in) :: i, j
-
-      if (l) then
-        ifval = i
-      else
-        ifval = j
-      end if
-
-    end function ifval
-
     real function fun_real(fun,  & 
         ims,ime,kms,kme,jms,jme, &                ! memory dims
         ids,ide,kds,kde,jds,jde, &                ! domain dims
         ips,ipe,kps,kpe,jps,jpe, &                ! patch or tile dims
-        istag,kstag,jstag,       &                ! staggering
         a,b)                      
 
 #ifdef DM_PARALLEL
@@ -196,33 +180,25 @@
       implicit none
 
       integer, intent(in)::  fun, &
-          ims, ime, kms, kme, jms, jme, &  ! memory dims
-          ids, ide, kds, kde, jds, jde, &  ! domain dims
-          ips, ipe, kps, kpe, jps, jpe, &  ! patch dims
-          istag, kstag, jstag              ! staggering
+          ims, ime, kms, kme, jms, jme, &
+          ids, ide, kds, kde, jds, jde, &
+          ips, ipe, kps, kpe, jps, jpe
       real, intent(in),dimension(ims:ime, kms:kme, jms:jme) :: a, b
 
       real :: lsum,void
-      integer :: i,j,k,n,ipe1,jpe1,kpe1,iel,thread,is,js,ks
+      integer :: i, j, k, n
       real, save :: psum, gsum
       real :: rel
       logical :: dosum, domax
       character (len = 256) :: msg
 
 
-      ipe1 = ifval (ipe .eq. ide .and. istag .ne. 0, ipe + 1, ipe)
-      kpe1 = ifval (kpe .eq. kde .and. kstag .ne. 0, kpe + 1, kpe)
-      jpe1 = ifval (jpe .eq. jde .and. jstag .ne. 0, jpe + 1, jpe)
-      is = ifval (istag .ne. 0, 1, 0)
-      ks = ifval (kstag .ne. 0, 1, 0)
-      js = ifval (jstag .ne. 0, 1, 0)
-
       if(fun .eq. REAL_SUM) then
         void = 0.0
         lsum = void
-        do j = jps, jpe1
-          do k = kps, kpe1
-            do i = ips, ipe1
+        do j = jps, jpe
+          do k = kps, kpe
+            do i = ips, ipe
               lsum = lsum + a(i,k,j)
             end do
           end do
@@ -230,9 +206,9 @@
       else if (fun .eq. RNRM_SUM) then
         void = 0.0
         lsum = void
-        do j = jps, jpe1
-          do k = kps, kpe1
-            do i = ips, ipe1
+        do j = jps, jpe
+          do k = kps, kpe
+            do i = ips, ipe
               lsum = lsum + sqrt (a(i, k, j) * a(i, k, j) + b(i, k, j) * b(i, k, j))
             end do
           end do
@@ -240,9 +216,9 @@
       else if (fun .eq. REAL_MAX) then
         void = - huge (lsum)
         lsum = void
-        do j = jps, jpe1
-          do k = kps, kpe1
-            do i = ips, ipe1
+        do j = jps, jpe
+          do k = kps, kpe
+            do i = ips, ipe
               lsum = max (lsum, a(i, k, j))
             end do
           end do
@@ -250,9 +226,9 @@
       else if (fun .eq. RNRM_MAX) then
         void = 0.0
         lsum = void
-        do j = jps, jpe1
-          do k = kps, kpe1
-            do i = ips, ipe1
+        do j = jps, jpe
+          do k = kps, kpe
+            do i = ips, ipe
               lsum = max (lsum, sqrt (a(i, k, j) * a(i, k, j) + b(i, k, j) * b(i, k, j)))
             end do
           end do

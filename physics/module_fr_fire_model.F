@@ -65,17 +65,15 @@
       time_start = grid%itimestep * grid%dt
 
       if (config_flags%fire_print_msg.ge.stat_lev)then
-        aw=fun_real(RNRM_SUM,  &
+        aw=Fun_real(RNRM_SUM,  &
             ifms,ifme,1,1,jfms,jfme, &              ! memory dims
           ifds,ifde,1,1,jfds,jfde, &                ! domain dims
           ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-          0,0,0,       &                            ! staggering
           grid%uf,grid%vf)/((ifde-ifds+1)*(jfde-jfds+1))
-        mw=fun_real(RNRM_MAX,  &
+        mw=Fun_real(RNRM_MAX,  &
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%uf,grid%vf)
         !$OMP MASTER 
         write (msg, 91) time_start,'Average wind        ',aw,'m/s'
@@ -224,35 +222,30 @@
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%fire_area,grid%fire_area) * grid%dx * grid%dy
 
         thf = Fun_real (REAL_SUM,  &
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%fgrnhfx,grid%fgrnhfx) * grid%dx * grid%dy
 
         mhf = Fun_real (REAL_MAX,  &
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%fgrnhfx,grid%fgrnhfx) 
 
         tqf = Fun_real (REAL_SUM,  &
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%fgrnqfx,grid%fgrnqfx) * grid%dx * grid%dy
 
         mqf = Fun_real(REAL_MAX,  &
             ifms,ifme,1,1,jfms,jfme, &                ! memory dims
             ifds,ifde,1,1,jfds,jfde, &                ! domain dims
             ifts,ifte,1,1,jfts,jfte, &                ! patch or tile dims
-            0,0,0,       &                            ! staggering
             grid%fgrnqfx,grid%fgrnqfx) 
 
         !$OMP MASTER 
