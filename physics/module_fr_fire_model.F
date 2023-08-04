@@ -2,7 +2,7 @@
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3,  Ignite_fire, Prop_ls_rk3
     use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Fun_real, Message, &
-        Print_2d_stats, Crash, Check_mesh_2dim
+        Print_tile_stats, Crash, Check_mesh_2dim
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
     use ignition_line_mod, only: ignition_line_t
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -86,7 +86,7 @@
         !$OMP END MASTER 
       end if
 
-      call Print_2d_stats (ifts,ifte,jfts,jfte, ifms,ifme,jfms,jfme, &
+      call Print_tile_stats (ifts,ifte,jfts,jfte, ifms,ifme,jfms,jfme, &
           grid%fuel_frac,'model: fuel_frac start',config_flags%fire_print_msg)
 
         ! advance the model from time_start to time_start+dt
@@ -188,7 +188,7 @@
         end do
       end if
            
-      call Print_2d_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+      call Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           grid%lfn, 'fire_model: lfn out', config_flags%fire_print_msg)
     
         !ifun6 ! timestep postprocessing
@@ -202,7 +202,7 @@
           config_flags%fire_fuel_left_method, config_flags%fire_fuel_left_irl, &
           config_flags%fire_fuel_left_jrl, config_flags%fire_print_msg) !fuel_frac_end is private and tile based
 
-      call Print_2d_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
+      call Print_tile_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
           fuel_frac_end, 'model: fuel_frac end', config_flags%fire_print_msg)
     
       do j = jfts, jfte
@@ -213,7 +213,7 @@
         end do
       end do
 
-      call Print_2d_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
+      call Print_tile_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
           fuel_frac_burnt,'model: fuel_frac burned',config_flags%fire_print_msg)
         
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
@@ -275,7 +275,7 @@
  91     format('Time ',f11.3,' s ',a,e12.3,1x,a)
       end if If_pring_summary
 
-      call Print_2d_stats (ifts,ifte,jfts,jfte, ifms,ifme,jfms,jfme, &
+      call Print_tile_stats (ifts,ifte,jfts,jfte, ifms,ifme,jfms,jfme, &
           grid%fgrnhfx,'model: heat flux(J/m^2/s)',config_flags%fire_print_msg)
 
     end subroutine fire_model

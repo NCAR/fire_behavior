@@ -5,11 +5,34 @@
     private
 
     public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, fun_real, &
-        Message, Crash, Check_mesh_2dim, Print_2d_stats
+        Message, Crash, Check_mesh_2dim, Print_tile_stats
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
   contains
+
+    subroutine Check_for_nan (is, ie, js, je, ims, ime, jms, jme, var2d)
+
+      implicit none
+
+      integer, intent (in) :: is, ie, js, je, ims, ime, jms, jme
+      real, intent (in) :: var2d(ims:ime, jms:jme)
+
+      integer :: i, j
+      real :: sum_var2d
+      character (len = 128) :: msg
+
+
+      sum_var2d = 0.0
+      do j = js, je
+        do i = is, ie
+           sum_var2d = sum_var2d + var2d(i, j)
+        end do
+      end do
+
+      if (sum_var2d /= sum_var2d) call Crash ('NaN detected')
+
+    end subroutine Check_for_nan
 
     subroutine Crash (msg)
 
@@ -65,96 +88,84 @@
 
     end subroutine Check_mesh_2dim
 
-    subroutine Print_stat_line (name, ips, ipe, jps, jpe, min_a, max_a, avg_a, fire_print_msg)
+    subroutine Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, a, var_name, fire_print_msg)
 
       implicit none
 
-      integer, intent (in) :: ips, ipe, jps, jpe, fire_print_msg
-      character (len = *), intent(in) :: name
-      real, intent(in) :: min_a, max_a, avg_a
-
-      character (len = 128) :: msg
-      character (len = 24) :: id
-
-
-      if (fire_print_msg .eq. 0) return
-
-      id = name
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write(msg,'(a, 4i4, 3g11.3)') id, ips, ipe, jps, jpe, min_a, max_a, avg_a
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      call Message (msg, fire_print_msg)
-
-      if (.not. avg_a .eq. avg_a) call Crash ('NaN detected')
-
-    end subroutine Print_stat_line
-
-    subroutine Print_2d_stats(ips,ipe,jps,jpe, &
-                         ims,ime,jms,jme, &
-                         a,name,fire_print_msg)
-
-      implicit none
-
-      integer, intent (in) :: ips, ipe, jps, jpe, ims, ime, jms, jme
+      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       integer, intent (in) :: fire_print_msg
-      real, intent (in) :: a(ims:ime, jms:jme)
-      character (len = *), intent (in) :: name
+      real, intent (in) :: a(ifms:ifme, jfms:jfme)
+      character (len = *), intent (in) :: var_name
 
       integer :: i, j
       real :: avg_a, max_a, min_a, t, aa, bb
       character (len = 128) :: msg
 
-        ! if(fire_print_msg.eq.0)return
-        ! check for nans in any case
-      bb = 0.0
-      do j = jps, jpe
-        do i = ips, ipe
-           bb = bb + a(i, j)
-        end do
-      end do
-      if(bb .eq. bb .and. fire_print_msg .eq. 0) return
+
+      if (fire_print_msg == 0) return
 
         ! Calc min, max, and mean
       avg_a = 0
       max_a = - huge (max_a)
       min_a = huge (min_a)
       t = huge (t)
-      do j = jps, jpe
-        do i = ips, ipe
+      do j = jfts, jfte
+        do i = ifts, ifte
           aa = a(i, j)
-          if (aa .ne. aa .or. .not. aa .le. t .or. .not. aa .ge. -t) goto 9
+          if (aa .ne. aa .or. .not. aa .le. t .or. .not. aa .ge. -t) call Handle_exception (var_name, i, j, aa)
           max_a = max (max_a, aa)
           min_a = min (min_a, aa)
           avg_a = avg_a + aa
         end do
       end do
 
-      if (bb .ne. bb) goto 10 ! should never happen 
-      if (fire_print_msg .eq. 0) return
+      avg_a = avg_a / real ((ifte - ifts + 1) * (jfte - jfts + 1))
 
-      avg_a = avg_a / ((ipe - ips + 1) * (jpe - jps + 1))
+      call Print_stats (var_name, ifts, ifte, jfts, jfte, min_a, max_a, avg_a, fire_print_msg)
 
-      call Print_stat_line (name, ips, ipe, jps, jpe, min_a, max_a, avg_a, fire_print_msg)
+    contains
 
-      return
+      subroutine Handle_exception (var_name, i, j, aa)
 
- 9    continue
+        implicit none
 
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write (msg, 1) name, i, j, aa
-      call Message (msg, fire_print_msg)
- 1    format (a30, '(', i6, ',', i6, ') = ', g13.5)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+        character (len = *), intent(in) :: var_name
+        integer, intent (in) :: i, j
+        real, intent (in) :: aa
 
-      call Print_stat_line (name, ips, ipe, jps, jpe, aa, aa, aa, fire_print_msg)
-      if (aa .ne. aa) goto 10
-      msg = 'Invalid floating point number detected in ' // name
-      call Crash (msg)
 
- 10   msg = 'NaN detected in '//name
-      call Crash (msg)
+        !$OMP CRITICAL
+        write (msg, 1) var_name, i, j, aa
+        call Message (msg, fire_print_msg)
+ 1      format (a30, '(', i6, ',', i6, ') = ', g13.5)
+        !$OMP END CRITICAL
 
-    end subroutine Print_2d_stats
+        call Crash ('Invalid floating point number detected in ' // var_name)
+        if (aa .ne. aa) call Crash ('NaN detected in ' // var_name)
+
+      end subroutine Handle_exception
+
+      subroutine Print_stats (var_name, ifts, ifte, jfts, jfte, min_a, max_a, avg_a, fire_print_msg)
+
+        implicit none
+
+        integer, intent (in) :: ifts, ifte, jfts, jfte, fire_print_msg
+        character (len = *), intent(in) :: var_name
+        real, intent(in) :: min_a, max_a, avg_a
+
+        character (len = 128) :: msg
+        character (len = 24) :: id
+
+
+        id = trim (var_name)
+        !$OMP CRITICAL(FIRE_UTIL_CRIT)
+        write (msg,'(a, 4i4, 3g11.3)') id, ifts, ifte, jfts, jfte, min_a, max_a, avg_a
+        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+        call Message (msg, fire_print_msg)
+
+      end subroutine Print_stats
+
+    end subroutine Print_tile_stats
 
     pure integer function ifval(l,i,j)
 

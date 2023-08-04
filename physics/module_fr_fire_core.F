@@ -2,7 +2,7 @@
 module module_fr_fire_core
 
 use ros_wrffire_mod, only: ros_wrffire_t
-use module_fr_fire_util, only: Message, Crash, Print_2d_stats
+use module_fr_fire_util, only: Message, Crash, Print_tile_stats
 
 use state_mod, only: state_fire_t
 use ignition_line_mod, only : ignition_line_t
@@ -1707,7 +1707,7 @@ do i=ifts,ifte
   endif
 enddo
     
-call print_2d_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
+call Print_tile_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
                lfn_out,'prop_ls: lfn out',fire_print_msg)
 
 end subroutine tign_update
@@ -1948,7 +1948,7 @@ threshold_AV=fire_viscosity_ngp*dx
         enddo
     enddo        
 
-    call print_2d_stats(its,ite,jts,jte,ims,ime,jms,jme, & 
+    call Print_tile_stats(its,ite,jts,jte,ims,ime,jms,jme, & 
                    tend,'tend_ls: tend out',fire_print_msg)
 
     ! the final CFL bound
