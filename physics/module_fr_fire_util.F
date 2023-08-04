@@ -167,11 +167,7 @@
 
     end subroutine Print_tile_stats
 
-    real function fun_real(fun,  & 
-        ims,ime,jms,jme, &                ! memory dims
-        ids,ide,jds,jde, &                ! domain dims
-        ips,ipe,jps,jpe, &                ! patch or tile dims
-        a,b)                      
+    real function fun_real (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b)
 
 #ifdef DM_PARALLEL
       USE module_dm , only : wrf_dm_sum_real , wrf_dm_max_real
@@ -180,10 +176,9 @@
       implicit none
 
       integer, intent(in)::  fun, &
-          ims, ime, jms, jme, &
-          ids, ide, jds, jde, &
-          ips, ipe, jps, jpe
-      real, intent(in),dimension(ims:ime, jms:jme) :: a, b
+          ifms, ifme, jfms, jfme, &
+          ifts, ifte, jfts, jfte
+      real, intent(in), dimension(ifms:ifme, jfms:jfme) :: a, b
 
       real :: lsum,void
       integer :: i, j, n
@@ -196,32 +191,32 @@
       if(fun .eq. REAL_SUM) then
         void = 0.0
         lsum = void
-        do j = jps, jpe
-          do i = ips, ipe
+        do j = jfts, jfte
+          do i = ifts, ifte
             lsum = lsum + a(i,j)
           end do
         end do
       else if (fun .eq. RNRM_SUM) then
         void = 0.0
         lsum = void
-        do j = jps, jpe
-          do i = ips, ipe
+        do j = jfts, jfte
+          do i = ifts, ifte
             lsum = lsum + sqrt (a(i, j) * a(i, j) + b(i, j) * b(i, j))
           end do
         end do
       else if (fun .eq. REAL_MAX) then
         void = - huge (lsum)
         lsum = void
-        do j = jps, jpe
-          do i = ips, ipe
+        do j = jfts, jfte
+          do i = ifts, ifte
             lsum = max (lsum, a(i, j))
           end do
         end do
       else if (fun .eq. RNRM_MAX) then
         void = 0.0
         lsum = void
-        do j = jps, jpe
-          do i = ips, ipe
+        do j = jfts, jfte
+          do i = ifts, ifte
             lsum = max (lsum, sqrt (a(i, j) * a(i, j) + b(i, j) * b(i, j)))
           end do
         end do
