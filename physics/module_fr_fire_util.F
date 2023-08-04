@@ -89,18 +89,18 @@
 
     end subroutine Print_stat_line
 
-    subroutine Print_3d_stats(ips,ipe,kps,kpe,jps,jpe, &
-                         ims,ime,kms,kme,jms,jme, &
+    subroutine Print_2d_stats(ips,ipe,jps,jpe, &
+                         ims,ime,jms,jme, &
                          a,name,fire_print_msg)
 
       implicit none
 
-      integer, intent (in) :: ips, ipe, jps, jpe, ims, ime, jms, jme, kms, kme, kps, kpe
+      integer, intent (in) :: ips, ipe, jps, jpe, ims, ime, jms, jme
       integer, intent (in) :: fire_print_msg
-      real, intent (in) :: a(ims:ime, kms:kme, jms:jme)
+      real, intent (in) :: a(ims:ime, jms:jme)
       character (len = *), intent (in) :: name
 
-      integer :: i, j, k
+      integer :: i, j
       real :: avg_a, max_a, min_a, t, aa, bb
       character (len = 128) :: msg
 
@@ -108,10 +108,8 @@
         ! check for nans in any case
       bb = 0.0
       do j = jps, jpe
-        do k = kps, kpe
-          do i = ips, ipe
-             bb = bb + a(i, k, j)
-          end do
+        do i = ips, ipe
+           bb = bb + a(i, j)
         end do
       end do
       if(bb .eq. bb .and. fire_print_msg .eq. 0) return
@@ -122,21 +120,19 @@
       min_a = huge (min_a)
       t = huge (t)
       do j = jps, jpe
-        do k = kps, kpe
-          do i = ips, ipe
-            aa = a(i, k, j)
-            if (aa .ne. aa .or. .not. aa .le. t .or. .not. aa .ge. -t) goto 9
-            max_a = max (max_a, aa)
-            min_a = min (min_a, aa)
-            avg_a = avg_a + aa
-          end do
+        do i = ips, ipe
+          aa = a(i, j)
+          if (aa .ne. aa .or. .not. aa .le. t .or. .not. aa .ge. -t) goto 9
+          max_a = max (max_a, aa)
+          min_a = min (min_a, aa)
+          avg_a = avg_a + aa
         end do
       end do
 
       if (bb .ne. bb) goto 10 ! should never happen 
       if (fire_print_msg .eq. 0) return
 
-      avg_a = avg_a / ((ipe-ips+1)*(jpe-jps+1)*(kpe-kps+1))
+      avg_a = avg_a / ((ipe - ips + 1) * (jpe - jps + 1))
 
       call Print_stat_line (name, ips, ipe, jps, jpe, min_a, max_a, avg_a, fire_print_msg)
 
@@ -145,9 +141,9 @@
  9    continue
 
       !$OMP CRITICAL(FIRE_UTIL_CRIT)
-      write (msg, 1) name, i, k, j, aa
+      write (msg, 1) name, i, j, aa
       call Message (msg, fire_print_msg)
- 1    format (a30, '(', i6, ',', i6, ', ', i6, ') = ', g13.5)
+ 1    format (a30, '(', i6, ',', i6, ') = ', g13.5)
       !$OMP END CRITICAL(FIRE_UTIL_CRIT)
 
       call Print_stat_line (name, ips, ipe, jps, jpe, aa, aa, aa, fire_print_msg)
@@ -157,24 +153,6 @@
 
  10   msg = 'NaN detected in '//name
       call Crash (msg)
-
-    end subroutine Print_3d_stats
-
-    subroutine Print_2d_stats(ips, ipe, jps, jpe, &
-                         ims, ime, jms, jme, &
-                         a, name, fire_print_msg)
-
-      implicit none
-
-      integer, intent(in) :: ips, ipe, jps, jpe, ims, ime, jms, jme
-      integer, intent(in) :: fire_print_msg
-      real, intent (in) :: a(ims:ime, jms:jme)
-      character (len = *), intent (in) :: name
-
-
-      call Print_3d_stats(ips, ipe, 1, 1, jps, jpe, &
-                        ims, ime, 1, 1, jms, jme, &
-                        a, name, fire_print_msg)
 
     end subroutine Print_2d_stats
 
