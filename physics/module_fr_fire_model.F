@@ -102,7 +102,7 @@
              time_start,grid%dt,grid%dx,grid%dy,                     &
              config_flags%fire_grows_only,              &
              config_flags%fire_upwinding, config_flags%fire_upwind_split,          &
-             config_flags%fire_viscosity, config_flags%fire_viscosity_bg,         &
+             config_flags%fire_viscosity, config_flags%fire_lfn_ext_up, config_flags%fire_viscosity_bg,         &
              config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp,   &
              config_flags%fire_advection, config_flags%fire_slope_factor,         &
              config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg,         &
@@ -131,10 +131,11 @@
                           time_start,grid%dt,grid%dx,grid%dy,                     &
                           config_flags%fire_upwinding_reinit, config_flags%fire_lsm_reinit_iter,&
                           config_flags%fire_lsm_band_ngp,                         &
+                          config_flags%fire_lfn_ext_up,                                          &
                           grid%lfn,                                       &
                           grid%lfn_2,grid%lfn_s0, grid%lfn_s1, grid%lfn_s2, grid%lfn_s3,         &
-                          grid%lfn_out, grid%tign_g                               &
-                         )
+                          grid%lfn_out, grid%tign_g,                               &
+                          config_flags%fire_print_msg)
       end if
 
         ! ifun5: copy the result of timestep back to input

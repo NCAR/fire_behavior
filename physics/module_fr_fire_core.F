@@ -2,7 +2,7 @@
 module module_fr_fire_core
 
 use ros_wrffire_mod, only: ros_wrffire_t
-use module_fr_fire_util, only: Message, Crash, Print_tile_stats
+use module_fr_fire_util, only: Message, Crash, Print_tile_stats, Continue_at_boundary
 
 use state_mod, only: state_fire_t
 use ignition_line_mod, only : ignition_line_t
@@ -1178,7 +1178,7 @@ subroutine prop_ls_rk3(               &
                 ts,dt,dx,dy,             &
                 fire_grows_only,         &
                 fire_upwinding, fire_upwind_split, &
-                fire_viscosity, fire_viscosity_bg, &
+                fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
                 fire_viscosity_band, fire_viscosity_ngp, &
                 fire_advection, fire_slope_factor,       &
                 fire_lsm_band_ngp, fire_print_msg,       &
@@ -1253,6 +1253,7 @@ integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
 integer,intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
                     fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
+real,intent(in)::fire_lfn_ext_up
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0 
 real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
@@ -1308,7 +1309,7 @@ call message(msg,fire_print_msg)
     ts,dt,dx,dy,         &                       ! scalars in
     fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
-    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
     fire_lsm_band_ngp, fire_print_msg,   &
@@ -1340,7 +1341,7 @@ call message(msg,fire_print_msg)
     ts+dt,dt,dx,dy,      &
     fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
-    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
     fire_lsm_band_ngp, fire_print_msg,   &
@@ -1372,7 +1373,7 @@ call message(msg,fire_print_msg)
     ts+dt,dt,dx,dy,      &
     fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
-    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
     fire_lsm_band_ngp, fire_print_msg,   &
@@ -1420,10 +1421,11 @@ subroutine reinit_ls_rk3(                       &
                 ts,dt,dx,dy,                       &
                 fire_upwinding_reinit, fire_lsm_reinit_iter, &
                 fire_lsm_band_ngp,                 &
+                fire_lfn_ext_up,                   &
                 lfn_in,                            & 
                 lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3, & 
-                lfn_out,tign                       &
-                ) 
+                lfn_out,tign,                      &
+                fire_print_msg) 
 
 
 implicit none
@@ -1443,16 +1445,19 @@ implicit none
 integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme
 integer,intent(in)::ifds,ifde,jfds,jfde
 integer,intent(in)::fire_upwinding_reinit,fire_lsm_reinit_iter,fire_lsm_band_ngp
+real,intent(in)::fire_lfn_ext_up
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3
 real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_out
 real,intent(in)::dx,dy,ts,dt
+integer,intent(in)::fire_print_msg
 real::dt_s
 real,dimension(ifts:ifte,jfts:jfte):: tend_1,tend_2,tend_3
 real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,time_now
 integer::nts,i,j,k,kk
 intrinsic epsilon
 character(len=128)::msg
+integer::itso,iteo,jtso,jteo
 real::threshold_HLl,threshold_HLu
 integer,parameter::bdy_eno1=10
 !*** executable
@@ -1472,6 +1477,13 @@ threshold_HLu=fire_lsm_band_ngp*dx
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
 
+    call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
+    ifms,ifme,jfms,jfme, &                             ! memory dims
+    ifds,ifde,jfds,jfde, &                             ! domain
+    ifts,ifte,jfts,jfte, &                             ! tile
+    itso,iteo,jtso,jteo, &                             ! where set now
+    lfn_s3,fire_print_msg)
+
 dt_s=0.01*dx
 do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each time step is enoguh)
     ! Runge-Kutta step 1 !
@@ -1488,6 +1500,13 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S1.inc"
 #endif
 
+    call continue_at_boundary(1,1,fire_lfn_ext_up, &
+    ifms,ifme,jfms,jfme, &
+    ifds,ifde,jfds,jfde, &
+    ifts,ifte,jfts,jfte, &
+    itso,iteo,jtso,jteo, &
+    lfn_s1,fire_print_msg)
+
     ! Runge-Kutta step 2 !
 
     call advance_ls_reinit( &
@@ -1502,6 +1521,13 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S2.inc"
 #endif
 
+    call continue_at_boundary(1,1,fire_lfn_ext_up, &
+    ifms,ifme,jfms,jfme, &
+    ifds,ifde,jfds,jfde, &
+    ifts,ifte,jfts,jfte, &
+    itso,iteo,jtso,jteo, &
+    lfn_s2,fire_print_msg)
+
     ! Runge-Kutta step 3 !
 
     call advance_ls_reinit( &
@@ -1515,6 +1541,13 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #ifdef DM_PARALLEL
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
+
+    call continue_at_boundary(1,1,fire_lfn_ext_up, &
+    ifms,ifme,jfms,jfme, &
+    ifds,ifde,jfds,jfde, &
+    ifts,ifte,jfts,jfte, &
+    itso,iteo,jtso,jteo, &
+    lfn_s3,fire_print_msg)
 
 enddo ! end iterations for steady state solution of reinitialization PDE
 
@@ -1719,7 +1752,7 @@ subroutine tend_ls( &
     t,dt,dx,dy,         &              ! scalars in
     fire_grows_only,    &
     fire_upwinding, fire_upwind_split, &
-    fire_viscosity, fire_viscosity_bg, &
+    fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
     fire_lsm_band_ngp, fire_print_msg,  &
@@ -1740,6 +1773,7 @@ integer, intent(in)::ids,ide,jds,jde
 integer, intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
                      fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
+real,intent(in)::fire_lfn_ext_up
 real,intent(in)::t                                 ! time
 real,intent(in)::dt,dx,dy                          ! mesh step
 real,dimension(ims:ime,jms:jme),intent(inout)::lfn ! level set function 
@@ -1754,7 +1788,7 @@ real:: te,diffLx,diffLy,diffRx,diffRy, &
    diffCx,diffCy,diff2x,diff2y,grad,rr, &
    ros_base,ros_wind,ros_slope,ros_back,advx,advy,scale,nvx,nvy, &
    speed,tanphi
-integer::i,j
+integer::i,j,itso,iteo,jtso,jteo
 character(len=128)msg
 
 ! constants
@@ -1779,6 +1813,13 @@ intrinsic max,min,sqrt,nint,tiny,huge
 threshold_HLl=-fire_lsm_band_ngp*dx 
 threshold_HLu=fire_lsm_band_ngp*dx
 threshold_AV=fire_viscosity_ngp*dx
+
+    call continue_at_boundary(1,1,fire_lfn_ext_up, &   !extend by extrapolation but never down 
+    ims,ime,jms,jme, &                                 ! memory dims
+    ids,ide,jds,jde, &                                 ! domain
+    its,ite,jts,jte, &                                 ! tile
+    itso,iteo,jtso,jteo, &                             ! where set now
+    lfn,fire_print_msg)                                               ! field 
 
     tbound=0    
     do j=jts,jte
