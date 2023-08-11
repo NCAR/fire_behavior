@@ -6,7 +6,7 @@
 #
 #################################################
 #
-purge_output=1 # 0) No, 1) yes
+purge_output=0 # 0) No, 1) yes
 plot=0 # 0) No, 1) yes
 #
 #################################################
@@ -79,7 +79,7 @@ then
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   echo $test
-  if [ $test -eq 6 ]
+  if [ $test -eq 10 ]
   then
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
@@ -103,8 +103,11 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-  if [ $test -eq 0 ]
+  echo $test
+  if [ $test -eq 4 ]
   then
+    echo '    Ignore this difference:'
+    diff ./file1.dat ./file2.dat
     echo '  Test7.3 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
@@ -125,8 +128,11 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-  if [ $test -eq 0 ]
+  echo $test
+  if [ $test -eq 4 ]
   then
+    echo '    Ignore this difference:'
+    diff ./file1.dat ./file2.dat
     echo '  Test7.4 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else

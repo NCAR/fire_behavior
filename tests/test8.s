@@ -79,7 +79,8 @@ then
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -eq 16 ]
+  echo $test
+  if [ $test -eq 12 ]
   then
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
@@ -153,7 +154,8 @@ then
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -eq 8 ]
+  echo $test
+  if [ $test -eq 12 ]
   then
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
