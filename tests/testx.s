@@ -2,7 +2,7 @@
 #
 #################################################
 #
-# Purpose: Test for a real wildland fire ingesting data from wrfoutput file
+# Purpose: Test for a artificial wildland fire ingesting data from ESMX_Data
 #
 #################################################
 #
@@ -11,27 +11,27 @@ plot=0 # 0) No, 1) yes
 #
 #################################################
 #
-test8p1=1 # Check fire area
-test8p2=1 # Check heat output
-test8p3=1 # Check latent heat output
-test8p4=1 # Check Max heat flux
-test8p5=1 # Check Max latent heat flux
+testxp1=1 # Check fire area
+testxp2=1 # Check heat output
+testxp3=1 # Check latent heat output
+testxp4=1 # Check Max heat flux
+testxp5=1 # Check Max latent heat flux
 #
 #################################################
 #
 
-file_wrf=./test8/test_solution.txt
-file_exe=../install/bin/fire_behavior.exe
-file_output=test8_output.txt
+file_baseline=./testx/test_solution.txt
+file_exe=../install/bin/esmx_fire
+file_output=testx_output.txt
 
-cp ./test8/wrf.nc .
-cp ./test8/namelist.input .
-cp ./test8/geo_em.d01.nc .
+cp ./testx/namelist.input .
+cp ./testx/geo_em.d01.nc .
+cp ./testx/testx.yaml .
 
 rm -f  ./$file_output
 if [ -f $file_exe ]
 then
-  $file_exe  > ./$file_output
+  $file_exe testx.yaml > ./$file_output
 else
   echo 'Please compile the code first'
   exit 1
@@ -45,23 +45,23 @@ pass=false
 # ----------------------------------------
 #
 
-echo "TEST 8:"
+echo "TEST X:"
 
-if [ $test8p1 -eq 1 ]
+if [ $testxp1 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
   var="Fire area"
-  grep "$var" $file_output  | awk '{print $2, $6}' > ./file1.dat
-  grep "$var" $file_wrf     | awk '{print $2, $6}' > ./file2.dat
+  grep "$var" $file_output   | awk '{print $2, $6}' > ./file1.dat
+  grep "$var" $file_baseline | awk '{print $2, $6}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
   if [ $test -eq 0 ]
   then
-    echo '  Test8.1 PASSED'
+    echo '  TestX.1 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.1 FAILS'
+    echo '  TestX.1 FAILS'
   fi
 
 fi
@@ -70,25 +70,22 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p2 -eq 1 ]
+if [ $testxp2 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
   var="Heat output"   # 6
-  grep "$var" $file_output  | awk '{print $2, $6}' > ./file1.dat
-  grep "$var" $file_wrf     | awk '{print $2, $6}' > ./file2.dat
+  grep "$var" $file_output   | awk '{print $2, $6}' > ./file1.dat
+  grep "$var" $file_baseline | awk '{print $2, $6}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  echo $test
-  if [ $test -eq 12 ]
+  if [ $test -eq 0 ]
   then
-    echo '    Ignore this difference:'
-    diff ./file1.dat ./file2.dat
-    echo '  Test8.2 PASSED'
+    echo '  TestX.2 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.2 FAILS'
+    echo '  TestX.2 FAILS'
   fi
 fi
 
@@ -96,23 +93,21 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p3 -eq 1 ]
+if [ $testxp3 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
   var="Latent heat output" # 7
-  grep "$var" $file_output  | awk '{print $2, $7}' > ./file1.dat
-  grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
+  grep "$var" $file_output   | awk '{print $2, $7}' > ./file1.dat
+  grep "$var" $file_baseline | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
-  if [ $test -eq 4 ]
+  if [ $test -eq 0 ]
   then
-    echo '    Ignore this difference:'
-    diff ./file1.dat ./file2.dat
-    echo '  Test8.3 PASSED'
+    echo '  TestX.3 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.3 FAILS'
+    echo '  TestX.3 FAILS'
   fi
 fi
 
@@ -120,24 +115,22 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p4 -eq 1 ]
+if [ $testxp4 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
   var="Max heat flux" # 7
-  grep "$var" $file_output  | awk '{print $2, $7}' > ./file1.dat
-  grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
+  grep "$var" $file_output   | awk '{print $2, $7}' > ./file1.dat
+  grep "$var" $file_baseline | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -eq  8 ]
+  if [ $test -eq 0 ]
   then
-    echo '    Ignore this difference:'
-    diff ./file1.dat ./file2.dat
-    echo '  Test8.4 PASSED'
+    echo '  TestX.4 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.4 FAILS'
+    echo '  TestX.4 FAILS'
   fi
 fi
 
@@ -145,25 +138,24 @@ fi
 # ----------------------------------------
 #
 
-if [ $test8p5 -eq 1 ]
+if [ $testxp5 -eq 1 ]
 then
   n_tests=$(expr $n_tests + 1)
   rm -f ./file1.dat ./file2.dat
   var="Max latent heat flux" # 8
-  grep "$var" $file_output  | awk '{print $2, $8}' > ./file1.dat
-  grep "$var" $file_wrf     | awk '{print $2, $8}' > ./file2.dat
+  grep "$var" $file_output   | awk '{print $2, $8}' > ./file1.dat
+  grep "$var" $file_baseline | awk '{print $2, $8}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  echo $test
-  if [ $test -eq 12 ]
+  if [ $test -lt 4 ]
   then
+    echo '  TestX.5 PASSED'
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
-    echo '  Test8.5 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
-    echo '  Test8.5 FAILS'
+    echo '  TestX.5 FAILS'
   fi
 fi
 
@@ -172,14 +164,14 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./geo_em.d01.nc ./namelist.input testx.yaml
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output
   rm -f ./fire_output_2012-06-25_18:00:??.nc
 fi
 
-  # Print summary of Test 5
+  # Print summary of Test 8
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
@@ -206,9 +198,7 @@ then
 fi
 
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
-rm -f ./wrf.nc
-
-rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
+rm -f PET0.ESMF_LogFile ATMD_final_export.nc
 
 if [ $pass = true ]
 then

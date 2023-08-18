@@ -21,7 +21,7 @@ test8p5=1 # Check Max latent heat flux
 #
 
 file_wrf=./test8/test_solution.txt
-file_exe=../nuopc/esmApp.exe
+file_exe=../install/bin/fire_behavior_esmf
 file_output=test8_output.txt
 
 cp ./test8/wrf.nc .
@@ -39,6 +39,7 @@ fi
 
 n_tests=0
 n_test_passed=0
+pass=false
 
 #
 # ----------------------------------------
@@ -183,9 +184,11 @@ if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
   echo ''
+  pass=true
 else
   echo "FAILED: $n_test_passed PASSED of $n_tests"
   echo ''
+  pass=false
 fi
 
   # plots
@@ -205,3 +208,9 @@ fi
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
 rm -f ./wrf.nc PET0.ESMF_LogFile
 
+if [ $pass = true ]
+then
+  exit 0
+else
+  exit 1
+fi

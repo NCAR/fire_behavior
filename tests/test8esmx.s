@@ -21,7 +21,7 @@ test8p5=1 # Check Max latent heat flux
 #
 
 file_wrf=./test8/test_solution.txt
-file_exe=../install/bin/fire_behavior.exe
+file_exe=../install/bin/esmx_fire
 file_output=test8_output.txt
 
 cp ./test8/wrf.nc .
@@ -81,7 +81,7 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
   echo $test
-  if [ $test -eq 12 ]
+  if [ $test -eq 4 ]
   then
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
@@ -105,6 +105,8 @@ then
   grep "$var" $file_wrf     | awk '{print $2, $7}' > ./file2.dat
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
+    # Here we allow one difference since we are not expecting bit4bit results
+  echo $test
   if [ $test -eq 4 ]
   then
     echo '    Ignore this difference:'
@@ -130,10 +132,8 @@ then
 
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
-  if [ $test -eq  8 ]
+  if [ $test -eq 0 ]
   then
-    echo '    Ignore this difference:'
-    diff ./file1.dat ./file2.dat
     echo '  Test8.4 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
@@ -156,11 +156,11 @@ then
   test=$(diff ./file1.dat ./file2.dat | wc -l)
     # Here we allow one difference since we are not expecting bit4bit results
   echo $test
-  if [ $test -eq 12 ]
+  if [ $test -eq 8 ]
   then
+    echo '  Test8.5 PASSED'
     echo '    Ignore this difference:'
     diff ./file1.dat ./file2.dat
-    echo '  Test8.5 PASSED'
     n_test_passed=$(expr $n_test_passed + 1)
   else
     echo '  Test8.5 FAILS'
@@ -179,7 +179,7 @@ then
   rm -f ./fire_output_2012-06-25_18:00:??.nc
 fi
 
-  # Print summary of Test 5
+  # Print summary of Test 8
 if [ $n_test_passed -eq $n_tests ]
 then
   echo "SUCCESS: $n_test_passed PASSED of $n_tests"
@@ -206,9 +206,7 @@ then
 fi
 
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
-rm -f ./wrf.nc
-
-rm -f ./latlons_fire.dat ./latlons_wrf_and_wrfbis.dat
+rm -f ./wrf.nc PET0.ESMF_LogFile
 
 if [ $pass = true ]
 then

@@ -1,43 +1,55 @@
 #!/bin/bash
+set -e
 
 # usage instructions
 usage () {
   printf "Usage: $0 [OPTIONS]...\n"
   printf "\n"
   printf "OPTIONS\n"
-  printf "  --system=SYSTEM\n"
-  printf "      name of machine (e.g. 'cheyenne')\n"
-  printf "  --env-skip\n"
-  printf "      do not use environment file\n"
-  printf "  --env-dir=ENV_DIR\n"
-  printf "      path to environment files\n"
+  printf "  --env-auto\n"
+  printf "      load preconfigured environment based on system\n"
   printf "  --env-file=ENV_FILE\n"
-  printf "      environment file\n"
+  printf "      load environment from file\n"
   printf "  --build-dir=BUILD_DIR\n"
   printf "      build directory\n"
   printf "  --build-type=BUILD_TYPE\n"
   printf "      build type; valid options are 'debug', 'release',\n"
   printf "      'relWithDebInfo'\n"
-  printf "  --install-dir=INSTALL_DIR\n"
+  printf "  --build-jobs=BUILD_JOBS\n"
+  printf "      number of jobs used for building esmx and components\n"
+  printf "  --nuopc, -n\n"
+  printf "      build NUOPC library and module\n"
+  printf "  --esmx, -x\n"
+  printf "      build ESMX application (includes NUOPC)\n"
+  printf "  --prefix=INSTALL_PREFIX\n"
   printf "      installation prefix\n"
   printf "  --verbose, -v\n"
   printf "      build with verbose output\n"
+  printf "  --test[=TEST_NAME], -t[=TEST_NAME]\n"
+  printf "      run tests\n"
+  printf "  --clean\n"
+  printf "      delete build and install directories\n"
   printf "\n"
 }
 
 # print settings
 settings () {
-  printf "Settings:\n"
-  printf "\n"
-  printf "  SYSTEM=${SYSTEM}\n"
-  printf "  ENV_SKIP=${ENV_SKIP}\n"
-  printf "  ENV_DIR=${ENV_DIR}\n"
-  printf "  ENV_FILE=${ENV_FILE}\n"
-  printf "  BUILD_DIR=${BUILD_DIR}\n"
-  printf "  BUILD_TYPE=${BUILD_TYPE}\n"
-  printf "  INSTALL_DIR=${INSTALL_DIR}\n"
-  printf "  VERBOSE=${VERBOSE}\n"
-  printf "\n"
+  printf "#######################################################\n"
+  printf "Settings:\n\n"
+  printf "\tSYSTEM=${SYSTEM}\n"
+  printf "\tENV_AUTO=${ENV_AUTO}\n"
+  printf "\tENV_FILE=${ENV_FILE}\n"
+  printf "\tBUILD_DIR=${BUILD_DIR}\n"
+  printf "\tBUILD_TYPE=${BUILD_TYPE}\n"
+  printf "\tBUILD_JOBS=${BUILD_JOBS}\n"
+  printf "\tNUOPC=${NUOPC}\n"
+  printf "\tESMX=${ESMX}\n"
+  printf "\tINSTALL_PREFIX=${INSTALL_PREFIX}\n"
+  printf "\tVERBOSE=${VERBOSE}\n"
+  printf "\tTEST=${TEST}\n"
+  printf "\tTEST_NAME=${TEST_NAME}\n"
+  printf "\tCLEAN=${CLEAN}\n"
+  printf "#######################################################\n"
 }
 
 # find system name
@@ -52,32 +64,33 @@ find_system () {
 # default settings
 FIRE_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SYSTEM=""
-ENV_SKIP=false
+ENV_AUTO=false
 ENV_DIR="${FIRE_DIR}/env"
 ENV_FILE=""
-BUILD_DIR="${FIRE_DIR}/ufs_fire_build"
+BUILD_DIR="${FIRE_DIR}/build"
 BUILD_TYPE="release"
-INSTALL_DIR="${FIRE_DIR}/install"
+BUILD_JOBS=""
+INSTALL_PREFIX="${FIRE_DIR}/install"
+NUOPC=false
+ESMX=false
 VERBOSE=false
+TEST=false
+TEST_NAME=""
+CLEAN=false
 
 #------------------------------------------------------------------------------
 
-# required arguments
-if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
-  usage
-  exit 0
-fi
-
 # process arguments
+POSITIONAL_ARGS=()
 while :; do
   case $1 in
     --help|-h) usage; exit 0 ;;
     --system=?*) SYSTEM=${1#*=} ;;
     --system) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --system=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --env-skip) ENV_SKIP=true ;;
-    --env-skip=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
-    --env-skip=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --env-auto) ENV_AUTO=true ;;
+    --env-auto=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --env-auto=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --env-dir=?*) ENV_DIR=${1#*=} ;;
     --env-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --env-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
@@ -90,19 +103,41 @@ while :; do
     --build-type=?*) BUILD_TYPE=${1#*=} ;;
     --build-type) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --build-type=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --install-dir=?*) INSTALL_DIR=${1#*=} ;;
-    --install-dir) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
-    --install-dir=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --build-jobs=?*) BUILD_JOBS=${1#*=} ;;
+    --build-jobs) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --build-jobs=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --prefix=?*) INSTALL_PREFIX=${1#*=} ;;
+    --prefix) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --prefix=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --nuopc|-n) NUOPC=true ;;
+    --nuopc=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --nuopc=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --esmx|-x) NUOPC=true; ESMX=true ;;
+    --esmx=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --esmx=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --verbose|-v) VERBOSE=true ;;
     --verbose=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --verbose=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --test|-t) TEST=true ;;
+    --test=?*|-t=?*) TEST=true; TEST_NAME=${1#*=} ;;
+    --test=) TEST=true ;;
+    --clean) CLEAN=true ;;
+    --clean=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --clean=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     -?*) printf "ERROR: Unknown option $1\n"; usage; exit 1 ;;
-    *) break
+    ?*) POSITIONAL_ARGS+=("${1}") ;;
+    *) break ;;
   esac
   shift
 done
+set -- "${POSITIONAL_ARGS[@]}"
 
-set -e
+if [[ $# -ge 1 ]]; then
+  printf "ERROR: Unknown argument $1\n"
+  usage
+  exit 1
+fi
+
 #------------------------------------------------------------------------------
 
 # automatically determine system
@@ -110,96 +145,116 @@ if [ -z "${SYSTEM}" ] ; then
   SYSTEM=$(find_system)
 fi
 
-# automatically determine environment file
-if [ -z "${ENV_FILE}" ] ; then
-  if [ "${SYSTEM}" == "cheyenne" ] ; then
-    ENV_FILE="${SYSTEM}/19.1.1"
-  else
-    ENV_FILE="unknown"
-  fi
-fi
-
 # print settings
 if [ "${VERBOSE}" = true ] ; then
   settings
 fi
 
-# load environment
-if [ "${ENV_SKIP}" = false ] ; then
-  if [ ! -f "${ENV_DIR}/${ENV_FILE}" ]; then
-    printf "ERROR: ${ENV_FILE} does not exist in ${ENV_DIR}.\n"
-    printf "\n"
+# auto environment
+if [ "${ENV_AUTO}" = true ] ; then
+  case ${SYSTEM} in
+    cheyenne) AUTOFILE="${ENV_DIR}/cheyenne/gnu-10.1.0";;
+    *) printf "ERROR: unspecified --env-auto for ${SYSTEM}\n"; exit 1 ;;
+  esac
+  if [ -f "${AUTOFILE}" ]; then
+    source ${AUTOFILE}
+  else
+    printf "ERROR: ${AUTOFILE} does not exist\n"
     exit 1
   fi
-  source ${ENV_DIR}/${ENV_FILE}
+fi
+
+# user environment
+if [ ! -z "${ENV_FILE}" ]; then
+  if [ -f "${ENV_FILE}" ]; then
+    source ${ENV_FILE}
+  else
+    printf "ERROR: ${ENV_FILE} does not exist\n"
+    exit 1
+  fi
 fi
 
 set -u
 
-#------------------------------------------------------------------------------
-# set ESMF_ESMXDIR using ESMFMKFILE
-if [ ! -f "${ESMFMKFILE}" ]; then
-  echo "ERROR: ESMFMKFILE does not exists."
-  exit 1
+# clean
+if [ "${CLEAN}" = true ]; then
+  rm -rf ${BUILD_DIR}
 fi
-ESMF_ESMXDIR=`grep "ESMF_ESMXDIR" ${ESMFMKFILE}`
-export ESMF_ESMXDIR=${ESMF_ESMXDIR#*=}
 
-#------------------------------------------------------------------------------
-mkdir -p ${BUILD_DIR}
-mkdir -p ${FIRE_DIR}/build
+# generate
+CMAKE_SETTINGS=("")
+if [ ! -z "${BUILD_TYPE}" ]; then
+  CMAKE_SETTINGS+=("-DCMAKE_BUILD_TYPE=${BUILD_TYPE}")
+fi
+if [ ! -z "${INSTALL_PREFIX}" ]; then
+  CMAKE_SETTINGS+=("-DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}")
+  CMAKE_SETTINGS+=("-DCMAKE_PREFIX_PATH=${INSTALL_PREFIX}")
+fi
+if [ "${NUOPC}" = true ]; then
+  CMAKE_SETTINGS+=("-DNUOPC=ON")
+else
+  CMAKE_SETTINGS+=("-DNUOPC=OFF")
+fi
+if [ "${ESMX}" = true ]; then
+  CMAKE_SETTINGS+=("-DESMX=ON")
+else
+  CMAKE_SETTINGS+=("-DESMX=OFF")
+fi
+cmake -S${FIRE_DIR} -B${BUILD_DIR} ${CMAKE_SETTINGS[@]}
+if [ "$?" !=  "0" ]; then
+  echo "$0 Failed: (cmake)"
+  exit -1
+fi
 
-# cmake settings
-CMAKE_SETTINGS="-DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
-#CMAKE_SETTINGS="${CMAKE_SETTINGS} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR}"
-
-# make settings
-MAKE_SETTINGS=""
+# build
+BUILD_SETTINGS=("")
 if [ "${VERBOSE}" = true ]; then
-  MAKE_SETTINGS="VERBOSE=1"
+  BUILD_SETTINGS+=("-v")
+fi
+if [ ! -z "${BUILD_JOBS}" ]; then
+  BUILD_SETTINGS+=("-j ${BUILD_JOBS}")
+fi
+cmake --build ${BUILD_DIR} ${BUILD_SETTINGS[@]}
+if [ "$?" !=  "0" ]; then
+  echo "$0 Failed: (cmake --build)"
+  exit -2
 fi
 
-# build the code
-# cd ${BUILD_DIR}
-# cmake ${FIRE_DIR} ${CMAKE_SETTINGS}
-# make -j ${BUILD_JOBS:-4} ${MAKE_SETTINGS}
-# make install
+# install
+INSTALL_SETTINGS=("")
+cmake --install ${BUILD_DIR} ${INSTALL_SETTINGS[@]}
+if [ "$?" !=  "0" ]; then
+  echo "$0 Failed: (cmake --install)"
+  exit -3
+fi
 
-#------------------------------------------------------------------------------
-# remove link
-[[ -L "${FIRE_DIR}/esmx" ]] && rm ${FIRE_DIR}/esmx
+# build and install esmx
+if [ "${ESMX}" = true ]; then
+  cmake --build ${BUILD_DIR} ${BUILD_SETTINGS[@]} --target esmx
+  if [ "$?" !=  "0" ]; then
+    echo "$0 Failed: (cmake --build)"
+    exit -4
+  fi
+  cmake --install ${BUILD_DIR} ${INSTALL_SETTINGS[@]} --component esmx
+  if [ "$?" !=  "0" ]; then
+    echo "$0 Failed: (cmake --install)"
+    exit -5
+  fi
+fi
 
-echo "Using python: $(which python3)"
-python3 --version
-echo $(python3 -c "import yaml")
-
-echo "-------------------------------------------------------"
-
-
-# build and install: standalone model and fire_behavior_nuopc 
-cmake -S${FIRE_DIR} -B${BUILD_DIR} \
-  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
-  -DCMAKE_MODULE_PATH="${ESMF_ESMXDIR}/Driver/cmake" 
-cmake --build ${BUILD_DIR} -v
-cmake --install ${BUILD_DIR}
-
-echo "working on patch for esmx driver..."
-# patch mymodel.cmake for esmx_driver
-# to be moved to ESMX build system
-echo "target_link_libraries(esmx_driver PUBLIC fire_behavior_nuopc)" >> "${INSTALL_DIR}"/cmake/fire_behavior_nuopc.cmake
-
-# build and install esmx application
-cmake -S${ESMF_ESMXDIR} -Bbuild \
-  -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} \
-  -DCMAKE_PREFIX_PATH=${INSTALL_DIR} 
-
-cmake --build ./build -v
-cmake --install ./build
-
-if [[ $? -ne 0 ]]
-then
-    echo "Error"
-    exit 1
-else 
-    ln -sf build/esmx .
+# test
+TEST_SETTINGS=("")
+if [ "${VERBOSE}" = true ]; then
+  TEST_SETTINGS=("--output-on-failure")
+  TEST_SETTINGS=("--verbose")
+fi
+if [ ! -z "${TEST_NAME}" ]; then
+  TEST_SETTINGS+=("--tests-regex ${TEST_NAME}")
+fi 
+if [ "${TEST}" = true ]; then
+  ctest --test-dir ${BUILD_DIR}/tests ${TEST_SETTINGS[@]} 
+  if [ "$?" !=  "0" ]; then
+    echo "$0 Failed: (ctest)"
+    exit -6
+  fi
 fi

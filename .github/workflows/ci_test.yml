@@ -1,0 +1,167 @@
+name: Fire Behavior CI Workflow
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      build-type:
+        description: 'Build Type'
+        required: true
+        type: choice
+        options:
+          - release
+          - debug
+          - relWithDebInfo
+        default: release
+      test-args:
+        description: 'Test ID'
+        required: false
+        default: ''
+      enable-nuopc:
+        description: 'Enable NUOPC'
+        required: true
+        type: boolean
+        default: true
+      enable-esmx:
+        description: 'Enable ESMX'
+        required: true
+        type: boolean
+        default: true
+
+env:
+  build-type: 'release'
+  tests: ''
+  nuopc-flag: true
+  esmx-flag: true
+  hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
+  netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
+  netcdff-url: 'https://github.com/Unidata/netcdf-fortran/archive/v4.5.4.tar.gz'
+  esmf-url: 'https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz'
+
+jobs:
+  fire_behavior_linux_test:
+    name: Fire Behavior Test
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{matrix.os}}
+
+    steps:
+    - name: Cache Dependencies
+      id: cache-build-dependencies
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-build-dependencies
+      with:
+        path: "~/stack"
+        key: ${{env.cache-name}}-${{matrix.os}}
+        restore-keys: |
+          ${{env.cache-name}}-${{matrix.os}}
+    - name: Dependency Directory Setup
+      run: |
+        export STACK_DIR=${HOME}/stack
+        mkdir -p ${STACK_DIR}/{include,lib,lib64,bin}
+        export LD_LIBRARY_PATH=${STACK_DIR}/lib64:${STACK_DIR}/lib:${LD_LIBRARY_PATH}
+        echo "STACK_DIR=${STACK_DIR}" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+        echo "${STACK_DIR}/bin" >> $GITHUB_PATH
+    - name: Install HDF5
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir hdf5
+          cd hdf5
+          curl -L ${{env.hdf5-url}} | tar --strip-components=2 -xz
+          ./configure --quiet --enable-silent-rules --enable-fortran --prefix=$STACK_DIR
+          make all install
+          cd ..
+        fi
+        echo "HDF5_DIR=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install NetCDF-C
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir netcdf-c
+          cd netcdf-c
+          curl -L ${{env.netcdf-url}} | tar --strip-components=1 -xz
+          CPPFLAGS=-I${STACK_DIR}/include LDFLAGS=-L${STACK_DIR}/lib ./configure --quiet --enable-silent-rules --prefix=$STACK_DIR
+          make all install
+          cd ..
+        fi
+        echo "NETCDF_DIR=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install NetCDF-Fortran
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir netcdf-fortran
+          cd netcdf-fortran
+          curl -L ${{env.netcdff-url}} | tar --strip-components=1 -xz
+          CPPFLAGS=-I${STACK_DIR}/include LDFLAGS=-L${STACK_DIR}/lib ./configure --quiet --enable-silent-rules --prefix=${STACK_DIR}
+          make all install
+        fi
+        echo "NETCDFF_DIR=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install ESMF
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+        ESMF_COMM: "mpiuni"
+        ESMF_BOPT: "O"
+        ESMF_SITE: "default"
+        ESMF_COMPILER: "gfortran"
+        ESMF_OS: "Linux"
+        ESMF_NETCDF: "split"
+        ESMF_NETCDF_LIBPATH: "${STACK_DIR}/lib"
+        ESMF_NETCDF_INCLUDE: "${STACK_DIR}/include"
+        ESMF_NETCDF_LIBS: "-lnetcdf -lnetcdff"
+        ESMF_INSTALL_MODDIR: "mod"
+        ESMF_INSTALL_BINDIR: "bin"
+        ESMF_INSTALL_LIBDIR: "lib"
+        ESMF_INSTALL_PREFIX: "${STACK_DIR}"
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir esmf
+          cd esmf
+          export ESMF_DIR=`pwd`
+          curl -L ${{env.esmf-url}} | tar --strip-components=1 -xz
+          make all install
+          cd ..
+        fi
+        echo "ESMFMKFILE=$STACK_DIR/lib/esmf.mk" >> $GITHUB_ENV
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+    - name: Manual Dispatch Configuration
+      if: ${{github.event_name == 'workflow_dispatch'}}
+      env:
+        build-type: "${{github.event.inputs.build-type}}"
+        tests: "${{github.event.inputs.test-args}}"
+        nuopc-flag: "${{github.event.inputs.enable-nuopc == 'true'}}"
+        esmx-flag: "${{github.event.inputs.enable-esmx == 'true'}}"
+      run: |
+        echo "build-type=${{env.build-type}}" >> $GITHUB_ENV
+        echo "tests=${{env.tests}}" >> $GITHUB_ENV
+        echo "nuopc-flag=${{env.nuopc-flag}}" >> $GITHUB_ENV
+        echo "esmx-flag=${{env.esmx-flag}}" >> $GITHUB_ENV
+    - name: Build and Test
+      run: |
+        OPTIONS=("")
+        if [ -z "${{env.tests}}" ]; then
+          OPTIONS+=("--test")
+        else
+          OPTIONS+=("--test='${{env.tests}}'")
+        fi
+        if ${{env.nuopc-flag}}; then
+          OPTIONS+=("--nuopc")
+        fi
+        if ${{env.esmx-flag}}; then
+          OPTIONS+=("--esmx")
+        fi
+        ./compile.sh --build-type=${{env.build-type}} ${OPTIONS[@]}
+    - name: Archive Test Results
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: fire-behavior-test-${{matrix.os}}
+        path: build/tests/Testing/Temporary/LastTest.log

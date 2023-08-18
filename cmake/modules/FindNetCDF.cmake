@@ -40,6 +40,7 @@
 #
 #   - NetCDF_ROOT                 - root of NetCDF installation
 #   - NetCDF_PATH                 - root of NetCDF installation
+#   - NetCDF_DIR                  - root of NetCDF installation
 #
 # The search process begins with locating NetCDF Include headers.  If these are in a non-standard location,
 # set one of the following CMake or environment variables to point to the location:
@@ -95,7 +96,7 @@ list( REMOVE_DUPLICATES _search_components )
 ## Search hints for finding include directories and libraries
 foreach( _comp IN ITEMS "_" "_C_" "_Fortran_" "_CXX_" )
   foreach( _name IN ITEMS NetCDF4 NetCDF NETCDF4 NETCDF )
-    foreach( _var IN ITEMS ROOT PATH )
+    foreach( _var IN ITEMS ROOT PATH DIR)
       list(APPEND _search_hints ${${_name}${_comp}${_var}} $ENV{${_name}${_comp}${_var}} )
       list(APPEND _include_search_hints
                 ${${_name}${_comp}INCLUDE_DIR} $ENV{${_name}${_comp}INCLUDE_DIR}
