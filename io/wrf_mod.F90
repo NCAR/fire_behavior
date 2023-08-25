@@ -37,8 +37,6 @@
       real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
       real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
       real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :, :), allocatable :: rthfrten ! "temperature tendency" "K/s"
-      real, dimension(:, :, :), allocatable :: rqvfrten ! "RQVFRTEN" "humidity tendency" Stagger in z
 
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
@@ -937,11 +935,6 @@
       return_value%c1h = DEFAULT_C1H
       allocate (return_value%c2h(return_value%kms:return_value%kme))
       return_value%c2h = DEFAULT_C2H
-
-      allocate (return_value%rthfrten(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      allocate (return_value%rqvfrten(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
 
       allocate (return_value%avg_fuel_frac(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
