@@ -30,8 +30,6 @@
 
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
-      integer :: num_tiles
-      integer, dimension (:), allocatable :: i_start, i_end, j_start, j_end
         ! projection
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
       integer :: sr_x = 0, sr_y = 0
@@ -873,16 +871,6 @@
       return_value%jte = return_value%jde
 
       call return_value%Print_domain()
-
-      return_value%num_tiles = 1
-      allocate (return_value%i_start(return_value%num_tiles))
-      return_value%i_start = return_value%ids
-      allocate (return_value%i_end(return_value%num_tiles))
-      return_value%i_end = return_value%ide
-      allocate (return_value%j_start(return_value%num_tiles))
-      return_value%j_start = return_value%jds
-      allocate (return_value%j_end(return_value%num_tiles))
-      return_value%j_end = return_value%jde
 
        ! Atmosphere vars
       allocate (return_value%tracer(return_value%ims:return_value%ime, &
