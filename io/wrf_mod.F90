@@ -1,6 +1,6 @@
   module wrf_mod
 
-    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
     use datetime_mod, only : datetime_t
     use proj_lc_mod, only : proj_lc_t
     use namelist_mod, only : namelist_t
@@ -50,7 +50,7 @@
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
       integer :: sr_x = 0, sr_y = 0
     contains
-      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
+!      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
@@ -68,7 +68,7 @@
       procedure, public :: Destroy_v3d => Destroy_meridional_wind
       procedure, public :: Destroy_z0 => Destroy_z0
       procedure, public :: Destroy_z_at_w => Destroy_height_agl_at_walls
-      procedure, public :: Fire_tendency => Fire_tendency
+!      procedure, public :: Fire_tendency => Fire_tendency
       procedure, public :: Get_datetime_index => Get_datetime_index
       procedure, public :: Get_dz8w => Get_distance_between_vertical_layers
       procedure, public :: Get_latlons => Get_latlons
@@ -103,59 +103,59 @@
 
   contains
 
-    subroutine Add_fire_tracer_emissions(    &
-           this,                             &
-           ifms,ifme,jfms,jfme,              &
-           ifts,ifte,jtfs,jfte,              &
-           ids,ide,kds,kde,jds,jde,          &
-           ims,ime,kms,kme,jms,jme,          &
-           its,ite,kts,kte,jts,jte,          &
-           rho,dz8w,                         &
-           tracer,emis)
-
-      implicit none
-
-      class (wrf_t), intent(in out) :: this
-      integer, intent(in) :: ifms,ifme,jfms,jfme,  &
-                          ifts,ifte,jtfs,jfte,     &
-                          ids,ide,kds,kde,jds,jde, &
-                          ims,ime,kms,kme,jms,jme, &
-                          its,ite,kts,kte,jts,jte
-      real, intent(in) :: rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
-      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: emis
-      real, intent(inout) :: tracer(ims:ime,kms:kme,jms:jme)
-
-      integer :: isz1,jsz1,isz2,jsz2,ir,jr
-      integer :: i,j,ibase,jbase,i_f,ioff,j_f,joff
-      real :: avgw
-
-
-      isz1 = ite-its+1
-      jsz1 = jte-jts+1
-      isz2 = ifte-ifts+1
-      jsz2 = jfte-jtfs+1
-      ir=isz2/isz1
-      jr=jsz2/jsz1
-      avgw = 1.0/(ir*jr)
-
-      do j=max(jds+1,jts),min(jte,jde-2)
-        jbase=jtfs+jr*(j-jts)
-        do i=max(ids+1,its),min(ite,ide-2)
-          ibase=ifts+ir*(i-its)
-          do joff=0,jr-1
-            j_f=joff+jbase
-            do ioff=0,ir-1
-              i_f=ioff+ibase
-              if (num_tracer >0) then
-                tracer(i,kts,j)=tracer(i,kts,j) &
-                  + (avgw*emis(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j))) ! g_smoke/kg_air
-              endif
-            enddo
-          enddo
-        enddo
-      enddo
-
-    end subroutine Add_fire_tracer_emissions
+!    subroutine Add_fire_tracer_emissions(    &
+!           this,                             &
+!           ifms,ifme,jfms,jfme,              &
+!           ifts,ifte,jtfs,jfte,              &
+!           ids,ide,kds,kde,jds,jde,          &
+!           ims,ime,kms,kme,jms,jme,          &
+!           its,ite,kts,kte,jts,jte,          &
+!           rho,dz8w,                         &
+!           tracer,emis)
+!
+!      implicit none
+!
+!      class (wrf_t), intent(in out) :: this
+!      integer, intent(in) :: ifms,ifme,jfms,jfme,  &
+!                          ifts,ifte,jtfs,jfte,     &
+!                          ids,ide,kds,kde,jds,jde, &
+!                          ims,ime,kms,kme,jms,jme, &
+!                          its,ite,kts,kte,jts,jte
+!      real, intent(in) :: rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
+!      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: emis
+!      real, intent(inout) :: tracer(ims:ime,kms:kme,jms:jme)
+!
+!      integer :: isz1,jsz1,isz2,jsz2,ir,jr
+!      integer :: i,j,ibase,jbase,i_f,ioff,j_f,joff
+!      real :: avgw
+!
+!
+!      isz1 = ite-its+1
+!      jsz1 = jte-jts+1
+!      isz2 = ifte-ifts+1
+!      jsz2 = jfte-jtfs+1
+!      ir=isz2/isz1
+!      jr=jsz2/jsz1
+!      avgw = 1.0/(ir*jr)
+!
+!      do j=max(jds+1,jts),min(jte,jde-2)
+!        jbase=jtfs+jr*(j-jts)
+!        do i=max(ids+1,its),min(ite,ide-2)
+!          ibase=ifts+ir*(i-its)
+!          do joff=0,jr-1
+!            j_f=joff+jbase
+!            do ioff=0,ir-1
+!              i_f=ioff+ibase
+!              if (num_tracer >0) then
+!                tracer(i,kts,j)=tracer(i,kts,j) &
+!                  + (avgw*emis(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j))) ! g_smoke/kg_air
+!              endif
+!            enddo
+!          enddo
+!        enddo
+!      enddo
+!
+!    end subroutine Add_fire_tracer_emissions
 
     subroutine Destroy_distance_between_vertical_layers (this)
 
@@ -327,149 +327,149 @@
 
     end subroutine Destroy_height_agl_at_walls
 
-    subroutine Fire_tendency(this,   &
-        ids,ide, kds,kde, jds,jde,   & ! dimensions
-        ims,ime, kms,kme, jms,jme,   &
-        its,ite, kts,kte, jts,jte,   &
-        grnhfx,grnqfx,canhfx,canqfx, & ! heat fluxes summed up to  atm grid
-        alfg,alfc,z1can,             & ! coeffients, properties, geometry
-        z_at_w,dz8w,mu,c1h,c2h,rho,  &
-        rthfrten,rqvfrten)             ! theta and Qv tendencies
-
-    ! This routine is atmospheric physics
-    ! it does NOT go into module_fr_fire_phys because it is not related to fire physical processes
-
-    ! --- this routine takes fire generated heat and moisture fluxes and
-    !     calculates their influence on the theta and water vapor
-    ! --- note that these tendencies are valid at the Arakawa-A location
-
-      implicit none
-
-    ! --- incoming variables
-
-      class (wrf_t), intent(in out) :: this
-      integer, intent(in) :: ids,ide, kds,kde, jds,jde, &
-                               ims,ime, kms,kme, jms,jme, &
-                               its,ite, kts,kte, jts,jte
-
-      real, intent(in), dimension( ims:ime,jms:jme ) :: grnhfx,grnqfx  ! w/m^2
-      real, intent(in), dimension( ims:ime,jms:jme ) :: canhfx,canqfx  ! w/m^2
-      real, intent(in), dimension( ims:ime,jms:jme ) :: mu  ! dry air mass (pa)
-      real, intent(in), dimension( kms:kme         ) :: c1h, c2h ! hybrid coordinate weights
-
-      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: z_at_w ! m abv sealvl
-      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: dz8w   ! dz across w-lvl
-      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: rho    ! density
-
-      real, intent(in) :: alfg ! extinction depth surface fire heat (m)
-      real, intent(in) :: alfc ! extinction depth crown  fire heat (m)
-      real, intent(in) :: z1can    ! height of crown fire heat release (m)
-
-    ! --- outgoing variables
-
-      real, intent(out), dimension( ims:ime,kms:kme,jms:jme ) ::   &
-           rthfrten, & ! theta tendency from fire (in mass units)
-           rqvfrten    ! Qv tendency from fire (in mass units)
-    ! --- local variables
-
-      integer :: i,j,k
-      integer :: i_st,i_en, j_st,j_en, k_st,k_en
-
-      real :: cp_i
-      real :: rho_i
-      real :: xlv_i
-      real :: z_w
-      real :: fact_g, fact_c
-      real :: alfg_i, alfc_i
-
-      real, dimension( its:ite,kts:kte,jts:jte ) :: hfx,qfx
-
-
-      do j=jts,jte
-        do k=kts,min(kte+1,kde)
-          do i=its,ite
-            rthfrten(i,k,j)=0.
-            rqvfrten(i,k,j)=0.
-          enddo
-        enddo
-      enddo
-
-    ! --- set some local constants
-
-      cp_i = 1./cp     ! inverse of specific heat
-      xlv_i = 1./xlv   ! inverse of latent heat
-      alfg_i = 1./alfg
-      alfc_i = 1./alfc
-
-    ! --- set loop indicies : note that
-
-      i_st = MAX(its,ids+1)
-      i_en = MIN(ite,ide-1)
-      k_st = kts
-      k_en = MIN(kte,kde-1)
-      j_st = MAX(jts,jds+1)
-      j_en = MIN(jte,jde-1)
-
-    ! --- distribute fluxes
-
-      do j = j_st,j_en
-        do k = k_st,k_en
-          do i = i_st,i_en
-
-            ! --- set z (in meters above ground)
-            z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
-
-            ! --- the fire tendencies are too small in uppder levels
-            if (z_w > 2500.) then
-              cycle
-            end if
-
-            ! --- heat flux
-            fact_g = cp_i * EXP( - alfg_i * z_w )
-            if ( z_w < z1can ) then
-                   fact_c = cp_i
-            else
-                   fact_c = cp_i * EXP( - alfc_i * (z_w - z1can) )
-            end if
-            hfx(i,k,j) = fact_g * grnhfx(i,j) + fact_c * canhfx(i,j)
-
-            ! --- vapor flux
-            fact_g = xlv_i * EXP( - alfg_i * z_w )
-
-            if (z_w < z1can) then
-                   fact_c = xlv_i
-            else
-                   fact_c = xlv_i * EXP( - alfc_i * (z_w - z1can) )
-            end if
-
-            qfx(i,k,j) = fact_g * grnqfx(i,j) + fact_c * canqfx(i,j)
-
-
-          end do
-        end do
-      end do
-
-    ! --- add flux divergence to tendencies
-    !
-    !   multiply by dry air mass (mu) to eliminate the need to
-    !   call sr. calculate_phy_tend (in dyn_em/module_em.F)
-
-      do j = j_st,j_en
-        do k = k_st,k_en-1
-          do i = i_st,i_en
-
-            rho_i = 1./rho(i,k,j)
-
-            rthfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (hfx(i,k+1,j)-hfx(i,k,j)) / dz8w(i,k,j)
-            rqvfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (qfx(i,k+1,j)-qfx(i,k,j)) / dz8w(i,k,j)
-
-          end do
-        end do
-      end do
-
-      return
-
-    end subroutine Fire_tendency
+!    subroutine Fire_tendency(this,   &
+!        ids,ide, kds,kde, jds,jde,   & ! dimensions
+!        ims,ime, kms,kme, jms,jme,   &
+!        its,ite, kts,kte, jts,jte,   &
+!        grnhfx,grnqfx,canhfx,canqfx, & ! heat fluxes summed up to  atm grid
+!        alfg,alfc,z1can,             & ! coeffients, properties, geometry
+!        z_at_w,dz8w,mu,c1h,c2h,rho,  &
+!        rthfrten,rqvfrten)             ! theta and Qv tendencies
+!
+!    ! This routine is atmospheric physics
+!    ! it does NOT go into module_fr_fire_phys because it is not related to fire physical processes
+!
+!    ! --- this routine takes fire generated heat and moisture fluxes and
+!    !     calculates their influence on the theta and water vapor
+!    ! --- note that these tendencies are valid at the Arakawa-A location
+!
+!      implicit none
+!
+!    ! --- incoming variables
+!
+!      class (wrf_t), intent(in out) :: this
+!      integer, intent(in) :: ids,ide, kds,kde, jds,jde, &
+!                               ims,ime, kms,kme, jms,jme, &
+!                               its,ite, kts,kte, jts,jte
+!
+!      real, intent(in), dimension( ims:ime,jms:jme ) :: grnhfx,grnqfx  ! w/m^2
+!      real, intent(in), dimension( ims:ime,jms:jme ) :: canhfx,canqfx  ! w/m^2
+!      real, intent(in), dimension( ims:ime,jms:jme ) :: mu  ! dry air mass (pa)
+!      real, intent(in), dimension( kms:kme         ) :: c1h, c2h ! hybrid coordinate weights
+!
+!      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: z_at_w ! m abv sealvl
+!      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: dz8w   ! dz across w-lvl
+!      real, intent(in), dimension( ims:ime,kms:kme,jms:jme ) :: rho    ! density
+!
+!      real, intent(in) :: alfg ! extinction depth surface fire heat (m)
+!      real, intent(in) :: alfc ! extinction depth crown  fire heat (m)
+!      real, intent(in) :: z1can    ! height of crown fire heat release (m)
+!
+!    ! --- outgoing variables
+!
+!      real, intent(out), dimension( ims:ime,kms:kme,jms:jme ) ::   &
+!           rthfrten, & ! theta tendency from fire (in mass units)
+!           rqvfrten    ! Qv tendency from fire (in mass units)
+!    ! --- local variables
+!
+!      integer :: i,j,k
+!      integer :: i_st,i_en, j_st,j_en, k_st,k_en
+!
+!      real :: cp_i
+!      real :: rho_i
+!      real :: xlv_i
+!      real :: z_w
+!      real :: fact_g, fact_c
+!      real :: alfg_i, alfc_i
+!
+!      real, dimension( its:ite,kts:kte,jts:jte ) :: hfx,qfx
+!
+!
+!      do j=jts,jte
+!        do k=kts,min(kte+1,kde)
+!          do i=its,ite
+!            rthfrten(i,k,j)=0.
+!            rqvfrten(i,k,j)=0.
+!          enddo
+!        enddo
+!      enddo
+!
+!    ! --- set some local constants
+!
+!      cp_i = 1./cp     ! inverse of specific heat
+!      xlv_i = 1./xlv   ! inverse of latent heat
+!      alfg_i = 1./alfg
+!      alfc_i = 1./alfc
+!
+!    ! --- set loop indicies : note that
+!
+!      i_st = MAX(its,ids+1)
+!      i_en = MIN(ite,ide-1)
+!      k_st = kts
+!      k_en = MIN(kte,kde-1)
+!      j_st = MAX(jts,jds+1)
+!      j_en = MIN(jte,jde-1)
+!
+!    ! --- distribute fluxes
+!
+!      do j = j_st,j_en
+!        do k = k_st,k_en
+!          do i = i_st,i_en
+!
+!            ! --- set z (in meters above ground)
+!            z_w = z_at_w(i,k,j) - z_at_w(i, 1, j)
+!
+!            ! --- the fire tendencies are too small in uppder levels
+!            if (z_w > 2500.) then
+!              cycle
+!            end if
+!
+!            ! --- heat flux
+!            fact_g = cp_i * EXP( - alfg_i * z_w )
+!            if ( z_w < z1can ) then
+!                   fact_c = cp_i
+!            else
+!                   fact_c = cp_i * EXP( - alfc_i * (z_w - z1can) )
+!            end if
+!            hfx(i,k,j) = fact_g * grnhfx(i,j) + fact_c * canhfx(i,j)
+!
+!            ! --- vapor flux
+!            fact_g = xlv_i * EXP( - alfg_i * z_w )
+!
+!            if (z_w < z1can) then
+!                   fact_c = xlv_i
+!            else
+!                   fact_c = xlv_i * EXP( - alfc_i * (z_w - z1can) )
+!            end if
+!
+!            qfx(i,k,j) = fact_g * grnqfx(i,j) + fact_c * canqfx(i,j)
+!
+!
+!          end do
+!        end do
+!      end do
+!
+!    ! --- add flux divergence to tendencies
+!    !
+!    !   multiply by dry air mass (mu) to eliminate the need to
+!    !   call sr. calculate_phy_tend (in dyn_em/module_em.F)
+!
+!      do j = j_st,j_en
+!        do k = k_st,k_en-1
+!          do i = i_st,i_en
+!
+!            rho_i = 1./rho(i,k,j)
+!
+!            rthfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (hfx(i,k+1,j)-hfx(i,k,j)) / dz8w(i,k,j)
+!            rqvfrten(i,k,j) = - (c1h(k)*mu(i,j)+c2h(k)) * rho_i * (qfx(i,k+1,j)-qfx(i,k,j)) / dz8w(i,k,j)
+!
+!          end do
+!        end do
+!      end do
+!
+!      return
+!
+!    end subroutine Fire_tendency
 
     function Get_datetime_index (this, datetime) result (return_value)
 
@@ -914,7 +914,7 @@
 
     function Wrf_t_const (file_name, config_flags, geogrid) result (return_value)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, REAL32
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT, REAL32, INT32
 
       implicit none
 
@@ -923,16 +923,19 @@
       type (geogrid_t), intent (in) :: geogrid
       type (wrf_t) :: return_value
 
+      logical, parameter :: DEBUG_LOCAL = .true.
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
           DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
 
-      integer, parameter :: N_POINTS_IN_HALO = 5
+      integer, parameter :: N_POINTS_IN_HALO = 0
       real (kind = REAL32) :: att_real32
+      integer (kind = INT32) :: att_int32
 
 
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Entering wrf_t constructor'
       return_value%file_name = trim (file_name)
 
         ! Init projection
@@ -963,37 +966,36 @@
         ! latlon at corners
       call return_value%Get_latcloncs ()
 
-      return_value%ids = geogrid%ids
-      return_value%ide = geogrid%ide
-      return_value%jds = geogrid%jds
-      return_value%jde = geogrid%jde
-
-      return_value%sr_x = geogrid%sr_x
-      return_value%sr_y = geogrid%sr_y
+      return_value%ids = 1
+      return_value%jds = 1
+      call Get_netcdf_dim (trim (file_name), 'west_east_stag', att_int32)
+      return_value%ide = att_int32
+      call Get_netcdf_dim (trim (file_name), 'south_north_stag', att_int32)
+      return_value%jde = att_int32
 
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
-      return_value%ims = geogrid%ids - N_POINTS_IN_HALO
-      return_value%ime = geogrid%ide + N_POINTS_IN_HALO
-      return_value%kms = config_flags%kds
-      return_value%kme = config_flags%kde
-      return_value%jms = geogrid%jds - N_POINTS_IN_HALO
-      return_value%jme = geogrid%jde + N_POINTS_IN_HALO
+      return_value%ims = return_value%ids - N_POINTS_IN_HALO
+      return_value%ime = return_value%ide + N_POINTS_IN_HALO
+      return_value%kms = return_value%kds
+      return_value%kme = return_value%kde
+      return_value%jms = return_value%jds - N_POINTS_IN_HALO
+      return_value%jme = return_value%jde + N_POINTS_IN_HALO
 
-      return_value%ips = geogrid%ids
-      return_value%ipe = geogrid%ide
-      return_value%kps = config_flags%kds
-      return_value%kpe = config_flags%kde
-      return_value%jps = geogrid%jds
-      return_value%jpe = geogrid%jde
+      return_value%ips = return_value%ids
+      return_value%ipe = return_value%ide
+      return_value%kps = return_value%kds
+      return_value%kpe = return_value%kde
+      return_value%jps = return_value%jds
+      return_value%jpe = return_value%jde
 
-      return_value%its = geogrid%ids
-      return_value%ite = geogrid%ide
-      return_value%kts = config_flags%kds
-      return_value%kte = config_flags%kde
-      return_value%jts = geogrid%jds
-      return_value%jte = geogrid%jde
+      return_value%its = return_value%ids
+      return_value%ite = return_value%ide
+      return_value%kts = return_value%kds
+      return_value%kte = return_value%kde
+      return_value%jts = return_value%jds
+      return_value%jte = return_value%jde
 
       call return_value%Print_domain()
 
@@ -1080,6 +1082,8 @@
         return_value%xlat(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlat
         return_value%xlong = 0.0
         return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
+
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Leaving wrf_t constructor'
 
     end function Wrf_t_const
 
