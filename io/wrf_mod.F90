@@ -28,8 +28,7 @@
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, psfc_stag, rainc_stag, rainnc_stag
 
-      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
-                 its, ite, jts, jte, kts, kte
+      integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
         ! projection
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
@@ -821,13 +820,6 @@
       return_value%jms = return_value%jds - N_POINTS_IN_HALO
       return_value%jme = return_value%jde + N_POINTS_IN_HALO
 
-      return_value%ips = return_value%ids
-      return_value%ipe = return_value%ide
-      return_value%kps = return_value%kds
-      return_value%kpe = return_value%kde
-      return_value%jps = return_value%jds
-      return_value%jpe = return_value%jde
-
       return_value%its = return_value%ids
       return_value%ite = return_value%ide
       return_value%kts = return_value%kds
@@ -1025,10 +1017,6 @@
       write (OUTPUT_UNIT, *) 'ims = ', this%ims, 'ime = ', this%ime
       write (OUTPUT_UNIT, *) 'jms = ', this%jms, 'jme = ', this%jme
       write (OUTPUT_UNIT, *) 'kms = ', this%kms, 'kme = ', this%kme
-
-      write (OUTPUT_UNIT, *) 'ips = ', this%ips, 'ipe = ', this%ipe
-      write (OUTPUT_UNIT, *) 'jps = ', this%jps, 'jpe = ', this%jpe
-      write (OUTPUT_UNIT, *) 'kps = ', this%kps, 'kpe = ', this%kpe
 
       write (OUTPUT_UNIT, *) 'its = ', this%its, 'ite = ', this%ite
       write (OUTPUT_UNIT, *) 'jts = ', this%jts, 'jte = ', this%jte
