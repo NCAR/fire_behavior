@@ -27,14 +27,6 @@
         ! 2D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
-        ! feedback to atm
-      real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
-      real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canhfx ! "heat flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: canqfx ! "moisture flux from crown fire" "W/m^2"
-      real, dimension(:, :), allocatable :: grnhfx_fu ! "heat flux from ground fire (feedback unsensitive)" "W/m^2"
-      real, dimension(:, :), allocatable :: grnqfx_fu ! "moisture flux from ground fire (feedback unsensitive)" "W/m^2"
 
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
@@ -928,14 +920,6 @@
       return_value%ua = 0.0
       allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%va = 0.0
-
-      allocate (return_value%avg_fuel_frac(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%grnhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%grnqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%canhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%canqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%grnhfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%grnqfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Leaving wrf_t constructor'
 
