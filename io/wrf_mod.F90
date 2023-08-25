@@ -25,8 +25,8 @@
       real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag
         ! 2D
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
-      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, rainc, rainnc, ua, va
+      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, psfc_stag, rainc_stag, rainnc_stag
 
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, ips, ipe, jps, jpe, kps, kpe, &
                  its, ite, jts, jte, kts, kte
@@ -34,7 +34,6 @@
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
 !      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
-      procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
       procedure, public :: Destroy_pres => Destroy_pressure_levels
       procedure, public :: Destroy_ph => Destroy_geopotential
@@ -52,7 +51,6 @@
       procedure, public :: Get_datetime_index => Get_datetime_index
       procedure, public :: Get_latlons => Get_latlons
       procedure, public :: Get_latcloncs => Get_latcloncs
-      procedure, public :: Get_mut => Get_mut
       procedure, public :: Get_phl => Get_geopotential_levels
       procedure, public :: Get_pres => Get_pressure_levels
       procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
@@ -183,16 +181,6 @@
       if (allocated(this%v3d)) deallocate (this%v3d)
 
     end subroutine Destroy_meridional_wind
-
-    subroutine Destroy_mut (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%mut)) deallocate (this%mut)
-
-    end subroutine Destroy_mut
 
     subroutine Destroy_rain_convective (this)
 
@@ -578,25 +566,6 @@
 
     end subroutine Get_meridional_wind_stag_3d
 
-    subroutine Get_mut (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :), allocatable :: mu, mub
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'MU', mu)
-      call Get_netcdf_var (trim (this%file_name), 'MUB', mub)
-      this%mut = mub(:, :, nt) + mu(:, :, nt)
-      deallocate (mu, mub)
-
-    end subroutine Get_mut
-
     function Get_projection (this, stagger) result (return_value)
 
       use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
@@ -796,11 +765,8 @@
       type (wrf_t) :: return_value
 
       logical, parameter :: DEBUG_LOCAL = .true.
-      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
-          DEFAULT_DZDYF = 0.0
-        ! Atm vars needed by the fuel moisture model
-      real, parameter :: DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
-          DEFAULT_RAINNC = 0.0
+      real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0, &
+          DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, DEFAULT_RAINNC = 0.0
 
       integer, parameter :: N_POINTS_IN_HALO = 0
       real (kind = REAL32) :: att_real32
@@ -891,8 +857,6 @@
 
       allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%z0_stag = DEFAULT_Z0
-      allocate (return_value%mut_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      return_value%mut_stag = DEFAULT_MUT
       allocate (return_value%rainc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%rainc_stag = DEFAULT_RAINC
       allocate (return_value%rainnc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
@@ -1114,11 +1078,6 @@
         call this%Get_z0 (datetime_now)
         this%z0_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%z0(:, :)
         call this%Destroy_z0 ()
-
-          ! Update MUT
-        call this%Get_mut (datetime_now)
-        this%mut_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%mut(:, :)
-        call this%Destroy_mut ()
 
           ! Update U3D
         call this%Get_u3d_stag (datetime_now)
