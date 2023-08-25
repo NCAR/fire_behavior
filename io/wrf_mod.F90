@@ -22,8 +22,8 @@
         ! 4D
       real, dimension(:, :, :, :), allocatable :: tracer
         ! 3D
-      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, dz8w, z_at_w, rho
-      real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
+      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres
+      real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag
         ! 2D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
@@ -49,14 +49,12 @@
       integer :: sr_x = 0, sr_y = 0
     contains
 !      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
-      procedure, public :: Destroy_dz8w => Destroy_distance_between_vertical_layers
       procedure, public :: Destroy_mut => Destroy_mut
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
       procedure, public :: Destroy_pres => Destroy_pressure_levels
       procedure, public :: Destroy_ph => Destroy_geopotential
       procedure, public :: Destroy_phb => Destroy_geopotential_base
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
-      procedure, public :: Destroy_rho => Destroy_rho
       procedure, public :: Destroy_rainc => Destroy_rain_convective
       procedure, public :: Destroy_rainnc => Destroy_rain_non_convective
       procedure, public :: Destroy_rain => Destroy_rain
@@ -65,10 +63,8 @@
       procedure, public :: Destroy_u3d => Destroy_zonal_wind
       procedure, public :: Destroy_v3d => Destroy_meridional_wind
       procedure, public :: Destroy_z0 => Destroy_z0
-      procedure, public :: Destroy_z_at_w => Destroy_height_agl_at_walls
 !      procedure, public :: Fire_tendency => Fire_tendency
       procedure, public :: Get_datetime_index => Get_datetime_index
-      procedure, public :: Get_dz8w => Get_distance_between_vertical_layers
       procedure, public :: Get_latlons => Get_latlons
       procedure, public :: Get_latcloncs => Get_latcloncs
       procedure, public :: Get_mut => Get_mut
@@ -80,7 +76,6 @@
       procedure, public :: Get_rainc => Get_rain_convective
       procedure, public :: Get_rainnc => Get_rain_non_convective
       procedure, public :: Get_rain => Get_rain
-      procedure, public :: Get_rho => Get_rho
       procedure, public :: Get_psfc => Get_surface_pressure
       procedure, public :: Get_q2 => Get_specific_humidity_2m
       procedure, public :: Get_t2 => Get_temperature_2m
@@ -89,7 +84,6 @@
       procedure, public :: Get_v3d => Get_meridional_wind_3d
       procedure, public :: Get_v3d_stag => Get_meridional_wind_stag_3d
       procedure, public :: Get_z0 => Get_z0
-      procedure, public :: Get_z_at_w => Get_height_agl_at_walls
       procedure, public :: Interp_var2grid_nearest => Interp_var2grid_nearest
       procedure, public :: Print_domain => Print_domain
       procedure, public :: Update_atm_state => Update_atm_state
@@ -154,16 +148,6 @@
 !      enddo
 !
 !    end subroutine Add_fire_tracer_emissions
-
-    subroutine Destroy_distance_between_vertical_layers (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%dz8w)) deallocate (this%dz8w)
-
-    end subroutine Destroy_distance_between_vertical_layers
 
     subroutine Destroy_geopotential_levels (this)
 
@@ -255,16 +239,6 @@
 
     end subroutine Destroy_rain
 
-    subroutine Destroy_rho (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%rho)) deallocate (this%rho)
-
-    end subroutine Destroy_rho
-
     subroutine Destroy_surface_pressure (this)
 
       implicit none
@@ -314,16 +288,6 @@
       if (allocated(this%u3d)) deallocate (this%u3d)
 
     end subroutine Destroy_zonal_wind
-
-    subroutine Destroy_height_agl_at_walls (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%z_at_w)) deallocate (this%z_at_w)
-
-    end subroutine Destroy_height_agl_at_walls
 
 !    subroutine Fire_tendency(this,   &
 !        ids,ide, kds,kde, jds,jde,   & ! dimensions
@@ -517,30 +481,6 @@
 
     end subroutine Get_latlons
 
-    subroutine Get_distance_between_vertical_layers (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :, :), allocatable :: var4d, var4d2
-      real, dimension(:, :, :), allocatable :: z
-      integer :: nt, nlevels
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'PH', var4d)
-      call Get_netcdf_var (trim (this%file_name), 'PHB', var4d2)
-      z = (var4d(:, :, :, nt) + var4d2(:, :, :, nt)) / G
-      deallocate (var4d, var4d2)
-
-      nlevels = size (z, dim = 3)
-      this%dz8w = z(:, :, 2:nlevels) - z(:, :, 1:nlevels - 1)
-      deallocate (z)
-
-    end subroutine Get_distance_between_vertical_layers
-
     subroutine Get_geopotential_levels (this, datetime)
 
       implicit none
@@ -615,36 +555,6 @@
       deallocate (var4d)
 
     end subroutine Get_geopotential_base_stag_3d
-
-    subroutine Get_height_agl_at_walls (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :, :), allocatable :: var4d, var4d2
-      real, dimension(:, :, :), allocatable :: z
-      integer :: nt, nx, ny, nz, i, j
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'PH', var4d)
-      call Get_netcdf_var (trim (this%file_name), 'PHB', var4d2)
-      z = (var4d(:, :, :, nt) + var4d2(:, :, :, nt)) / G
-      deallocate (var4d, var4d2)
-
-      nx = size (z, dim = 1)
-      ny = size (z, dim = 2)
-      nz = size (z, dim = 3)
-      allocate (this%z_at_w(nx, ny, nz))
-      do j = 1, ny
-        do i = 1, nx
-          this%z_at_w(i, j, :) = z(i, j, :) - z(i, j, 1)
-        end do
-      end do
-
-    end subroutine Get_height_agl_at_walls
 
     subroutine Get_meridional_wind_3d (this, datetime)
 
@@ -801,26 +711,6 @@
       this%rain = var3d(:, :, nt) + var3d2(:, :, nt)
 
     end subroutine Get_rain
-
-    subroutine Get_rho (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :, :), allocatable :: alt, qvapor
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'ALT', alt)
-      call Get_netcdf_var (trim (this%file_name), 'QVAPOR', qvapor)
-
-      this%rho = 1.0 / alt(:, :, :, nt) *  (1.0 + qvapor(:, :, :, nt))
-      deallocate (alt, qvapor)
-
-    end subroutine Get_rho
 
     subroutine Get_surface_pressure (this, datetime)
 
@@ -1023,15 +913,6 @@
       allocate (return_value%v3d_stag(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%v3d_stag = 0.0
-      allocate (return_value%rho_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      return_value%rho_stag = 0.0
-      allocate (return_value%z_at_w_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      return_value%z_at_w_stag = 0.0
-      allocate (return_value%dz8w_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      return_value%dz8w_stag = 0.0
 
       allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%z0_stag = DEFAULT_Z0
@@ -1325,39 +1206,6 @@
           end do
         end do
         call this%Destroy_ph ()
-
-          ! DZ8W
-!        call this%Get_dz8w (datetime_now)
-!        do k = this%kds, this%kde - 1
-!          do j = this%jds, this%jde - 1
-!            do i = this%ids, this%ide - 1
-!              this%dz8w_stag(i, k, j) = this%dz8w(i, j, k)
-!            end do
-!          end do
-!        end do
-!        call this%Destroy_dz8w ()
-
-          ! Z_AT_W
-!        call this%Get_z_at_w (datetime_now)
-!        do k = this%kds, this%kde
-!          do j = this%jds, this%jde - 1
-!            do i = this%ids, this%ide - 1
-!              this%z_at_w_stag(i, k, j) = this%z_at_w(i, j, k)
-!            end do
-!          end do
-!        end do
-!        call this%Destroy_z_at_w ()
-
-          ! RHO
-!        call this%Get_rho (datetime_now)
-!        do k = this%kds, this%kde - 1
-!          do j = this%jds, this%jde - 1
-!            do i = this%ids, this%ide - 1
-!              this%rho_stag(i, k, j) = this%rho(i, j, k)
-!            end do
-!          end do
-!        end do
-!        call this%Destroy_rho ()
 
     end subroutine Update_atm_state
 
