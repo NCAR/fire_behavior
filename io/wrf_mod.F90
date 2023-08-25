@@ -32,7 +32,6 @@
                  its, ite, jts, jte, kts, kte
         ! projection
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
-      integer :: sr_x = 0, sr_y = 0
     contains
 !      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_mut => Destroy_mut
