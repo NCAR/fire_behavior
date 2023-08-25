@@ -27,7 +27,6 @@
       real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag, dz8w_stag, z_at_w_stag, rho_stag
         ! 2D
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
-      real, dimension(:, :), allocatable :: xlat, xlong
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
         ! feedback to atm
       real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
@@ -1065,9 +1064,6 @@
       allocate (return_value%rqvfrten(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme))
 
-      allocate (return_value%xlat(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      allocate (return_value%xlong(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-
       allocate (return_value%avg_fuel_frac(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
@@ -1075,13 +1071,6 @@
       allocate (return_value%canqfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnhfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnqfx_fu(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-
-
-        ! Grid dimensions
-        return_value%xlat = 0.0
-        return_value%xlat(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlat
-        return_value%xlong = 0.0
-        return_value%xlong(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1) = geogrid%xlong
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Leaving wrf_t constructor'
 
@@ -1154,7 +1143,6 @@
       character (len = *), intent (in) :: var_name
       real, dimension(:, :), allocatable, intent(out) :: vals_out
 
-      logical, parameter :: OUTPUT_LATLON_CHECK = .true.
       real, parameter :: DEFAULT_INIT = 0.0
       real, dimension(:, :), allocatable :: ds, var_wrf
       real :: d, i_real, j_real
@@ -1178,12 +1166,6 @@
       proj = this%Get_projection ()
 
       select case (var_name)
-        case ('xlat')
-          var_wrf = this%xlat
-
-        case ('xlong')
-          var_wrf = this%xlong
-
         case ('t2')
           var_wrf = this%t2_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
 
@@ -1210,50 +1192,19 @@
           stop
       end select
 
-      if (OUTPUT_LATLON_CHECK) call Write_latlon_check ()
-
         ! Algorithm
       do j = 1, ny
         do i = 1, nx
           call proj%Calc_ij (lats_in(i, j), lons_in(i, j), i_real, j_real)
           i_wrf = min (max (1, nint (i_real)), nx_wrf)
           j_wrf = min (max (1, nint (j_real)), ny_wrf)
-          d = (this%xlat(i_wrf, j_wrf) - lats_in(i, j)) ** 2 + (this%xlong(i_wrf, j_wrf) - lons_in(i, j)) ** 2
+          d = (this%lats(i_wrf, j_wrf) - lats_in(i, j)) ** 2 + (this%lons(i_wrf, j_wrf) - lons_in(i, j)) ** 2
           if (d < ds(i, j)) then
             vals_out(i, j) = var_wrf(i_wrf, j_wrf)
             ds(i, j) = d
           end if
         end do
       end do
-
-    contains
-
-      subroutine Write_latlon_check ()
-
-        implicit none
-
-        real :: lat_test, lon_test
-        integer :: i, j, unit1, unit2
-
-
-        open (newunit = unit1, file = 'latlons_wrf_and_wrfbis.dat')
-        do j = this%jds, this%jde - 1
-          do i = this%ids, this%ide - 1
-            call proj%Calc_latlon (real(i), real(j), lat_test, lon_test)
-            write (unit1, *) i, j, this%xlat(i, j), this%xlong(i, j), lat_test, lon_test
-          end do
-        end do
-        close (unit1)
-
-        open (newunit = unit2, file = 'latlons_fire.dat')
-        do j = 1, ny
-          do i = 1, nx
-            write (unit2, *) i, j, lats_in(i, j), lons_in(i, j)
-          end do
-        end do
-        close (unit2)
-
-      end subroutine Write_latlon_check
 
     end subroutine Interp_var2grid_nearest
 

@@ -87,7 +87,7 @@
           open (newunit = unit_out, file = 'wrf_latlons_atm.dat')
           do j = 1, wrf%jde - 1
             do i = 1, wrf%ide - 1
-              write (unit_out, *) wrf%xlong(i, j), wrf%xlat(i, j)
+              write (unit_out, *) wrf%lons(i, j), wrf%lats(i, j)
             end do
           end do
           close (unit_out)
