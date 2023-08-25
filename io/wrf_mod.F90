@@ -1324,39 +1324,40 @@
             end do
           end do
         end do
+        call this%Destroy_ph ()
 
           ! DZ8W
-        call this%Get_dz8w (datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%dz8w_stag(i, k, j) = this%dz8w(i, j, k)
-            end do
-          end do
-        end do
-        call this%Destroy_dz8w ()
+!        call this%Get_dz8w (datetime_now)
+!        do k = this%kds, this%kde - 1
+!          do j = this%jds, this%jde - 1
+!            do i = this%ids, this%ide - 1
+!              this%dz8w_stag(i, k, j) = this%dz8w(i, j, k)
+!            end do
+!          end do
+!        end do
+!        call this%Destroy_dz8w ()
 
           ! Z_AT_W
-        call this%Get_z_at_w (datetime_now)
-        do k = this%kds, this%kde
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%z_at_w_stag(i, k, j) = this%z_at_w(i, j, k)
-            end do
-          end do
-        end do
-        call this%Destroy_z_at_w ()
+!        call this%Get_z_at_w (datetime_now)
+!        do k = this%kds, this%kde
+!          do j = this%jds, this%jde - 1
+!            do i = this%ids, this%ide - 1
+!              this%z_at_w_stag(i, k, j) = this%z_at_w(i, j, k)
+!            end do
+!          end do
+!        end do
+!        call this%Destroy_z_at_w ()
 
           ! RHO
-        call this%Get_rho (datetime_now)
-        do k = this%kds, this%kde - 1
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%rho_stag(i, k, j) = this%rho(i, j, k)
-            end do
-          end do
-        end do
-        call this%Destroy_rho ()
+!        call this%Get_rho (datetime_now)
+!        do k = this%kds, this%kde - 1
+!          do j = this%jds, this%jde - 1
+!            do i = this%ids, this%ide - 1
+!              this%rho_stag(i, k, j) = this%rho(i, j, k)
+!            end do
+!          end do
+!        end do
+!        call this%Destroy_rho ()
 
     end subroutine Update_atm_state
 
