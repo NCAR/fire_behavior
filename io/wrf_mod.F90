@@ -28,8 +28,6 @@
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, mut, psfc, rain, rainc, rainnc, ua, va
       real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, mut_stag, psfc_stag, rainc_stag, rainnc_stag
         ! feedback to atm
-      real, dimension(:), allocatable :: c1h ! "half levels, c1h = d bf / d eta, using znw"        "Dimensionless"
-      real, dimension(:), allocatable :: c2h ! "half levels, c2h = (1-c1h)*(p0-pt)"                "Pa"
       real, dimension(:, :), allocatable :: avg_fuel_frac ! "fuel remaining averaged to atmospheric grid" "1"
       real, dimension(:, :), allocatable :: grnhfx ! "heat flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: grnqfx ! "moisture flux from ground fire" "W/m^2"
@@ -810,7 +808,7 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_MUT = 0.0, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, &
-          DEFAULT_DZDYF = 0.0, DEFAULT_C1H = 1.0, DEFAULT_C2H = 0.0
+          DEFAULT_DZDYF = 0.0
         ! Atm vars needed by the fuel moisture model
       real, parameter :: DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, &
           DEFAULT_RAINNC = 0.0
@@ -930,11 +928,6 @@
       return_value%ua = 0.0
       allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%va = 0.0
-
-      allocate (return_value%c1h(return_value%kms:return_value%kme))
-      return_value%c1h = DEFAULT_C1H
-      allocate (return_value%c2h(return_value%kms:return_value%kme))
-      return_value%c2h = DEFAULT_C2H
 
       allocate (return_value%avg_fuel_frac(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       allocate (return_value%grnhfx(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
