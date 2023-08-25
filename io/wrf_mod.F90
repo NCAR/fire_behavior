@@ -18,18 +18,11 @@
 
     type :: wrf_t
       character (len = 300) :: file_name
-        ! Atmosphere
-        ! 4D
       real, dimension(:, :, :, :), allocatable :: tracer
-        ! 3D
-      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres
-      real, dimension(:, :, :), allocatable :: u3d_stag, v3d_stag, phb_stag, ph_stag
-        ! 2D
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, rainc, rainnc, ua, va
-      real, dimension(:, :), allocatable :: t2_stag, q2_stag, z0_stag, psfc_stag, rainc_stag, rainnc_stag
-
+      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, u3d_stag, v3d_stag, phb_stag, ph_stag
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, rainc, rainnc, ua, va, &
+          t2_stag, q2_stag, z0_stag, psfc_stag, rainc_stag, rainnc_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
-        ! projection
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
 !      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
@@ -767,7 +760,6 @@
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0, &
           DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, DEFAULT_RAINNC = 0.0
 
-      integer, parameter :: N_POINTS_IN_HALO = 0
       real (kind = REAL32) :: att_real32
       integer (kind = INT32) :: att_int32
 
@@ -813,12 +805,12 @@
       return_value%kds = config_flags%kds
       return_value%kde = config_flags%kde
 
-      return_value%ims = return_value%ids - N_POINTS_IN_HALO
-      return_value%ime = return_value%ide + N_POINTS_IN_HALO
+      return_value%ims = return_value%ids
+      return_value%ime = return_value%ide
       return_value%kms = return_value%kds
       return_value%kme = return_value%kde
-      return_value%jms = return_value%jds - N_POINTS_IN_HALO
-      return_value%jme = return_value%jde + N_POINTS_IN_HALO
+      return_value%jms = return_value%jds
+      return_value%jme = return_value%jde
 
       return_value%its = return_value%ids
       return_value%ite = return_value%ide
@@ -829,38 +821,48 @@
 
       call return_value%Print_domain()
 
-       ! Atmosphere vars
       allocate (return_value%tracer(return_value%ims:return_value%ime, &
                 return_value%kms:return_value%kme, return_value%jms:return_value%jme, &
                 NUM_TRACER))
       return_value%tracer = 0.0
+
       allocate (return_value%ph_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+          return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%ph_stag = 0.0
+
       allocate (return_value%phb_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+          return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%phb_stag = 0.0
+
       allocate (return_value%u3d_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+          return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%u3d_stag = 0.0
+
       allocate (return_value%v3d_stag(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme))
+          return_value%kms:return_value%kme, return_value%jms:return_value%jme))
       return_value%v3d_stag = 0.0
 
       allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%z0_stag = DEFAULT_Z0
+
       allocate (return_value%rainc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%rainc_stag = DEFAULT_RAINC
+
       allocate (return_value%rainnc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%rainnc_stag = DEFAULT_RAINNC
+
       allocate (return_value%t2_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%t2_stag = DEFAULT_T2
+
       allocate (return_value%q2_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%q2_stag = DEFAULT_Q2
+
       allocate (return_value%psfc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%psfc_stag = DEFAULT_PSFC
+
       allocate (return_value%ua(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%ua = 0.0
+
       allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%va = 0.0
 
