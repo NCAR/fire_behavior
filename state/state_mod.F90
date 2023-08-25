@@ -577,6 +577,7 @@
 
       integer :: ij,its,ite,jts,jte,kts,kte            ! atm tile
 
+
       call this%sum_2d_fire_vars (wrf, config_flags)
 
         ! --- add heat and moisture fluxes to tendency variables by postulated decay
@@ -721,21 +722,6 @@
       enddo
 
       return
-
-!      9 continue
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-!      write(msg,91)its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
-!      call message(msg)
-!      write(msg,91)its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
-!      call message(msg)
-!      write(msg,92)'input  mesh size:',isz2,jsz2
-!      call message(msg)
-!      91 format('dimensions: ',8i8)
-!      write(msg,92)'output mesh size:',isz1,jsz1
-!      call message(msg)
-!      92 format(a,2i8)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-!      call crash('module_fr_spread_util:sum_mesh_cells: bad mesh sizes')
 
     end subroutine sum_2d_cells
 
