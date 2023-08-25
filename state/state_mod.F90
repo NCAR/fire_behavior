@@ -108,7 +108,7 @@
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure, public :: Save_state => Save_state
-      procedure :: Sum_2d_fire_vars => Sum_2d_fire_vars
+!      procedure :: Sum_2d_fire_vars => Sum_2d_fire_vars
     end type state_fire_t
 
   contains
@@ -575,43 +575,43 @@
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
 
-      integer :: ij,its,ite,jts,jte,kts,kte            ! atm tile
-
-
-      call this%sum_2d_fire_vars (wrf, config_flags)
-
-        ! --- add heat and moisture fluxes to tendency variables by postulated decay
-      do ij=1,wrf%num_tiles
-        ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly
-        its = wrf%i_start(ij)             ! start atmospheric tile in i
-        ite = min(wrf%i_end(ij),wrf%ide-1)    ! end atmospheric tile in i
-        jts = wrf%j_start(ij)             ! start atmospheric tile in j
-        jte = min(wrf%j_end(ij),wrf%jde-1)    ! end atmospheric tile in j
-        kts = wrf%kds
-        kte = wrf%kde
-
-        call wrf%fire_tendency(                 &
-             wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1, & ! domain dimensions
-             wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,     &
-             wrf%its,wrf%ite, wrf%kts,wrf%kte, wrf%jts,wrf%jte,     & !
-             wrf%grnhfx,wrf%grnqfx,wrf%canhfx,wrf%canqfx,           & ! fluxes on atm wrf
-             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
-             wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,wrf%c1h,wrf%c2h,wrf%rho_stag,  &
-             wrf%rthfrten,wrf%rqvfrten)                ! out
-      enddo
+!      integer :: ij,its,ite,jts,jte,kts,kte            ! atm tile
+!
+!
+!      call this%Sum_2d_fire_vars (wrf, config_flags)
+!
+!        ! --- add heat and moisture fluxes to tendency variables by postulated decay
+!      do ij=1,wrf%num_tiles
+!        ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly
+!        its = wrf%i_start(ij)             ! start atmospheric tile in i
+!        ite = min(wrf%i_end(ij),wrf%ide-1)    ! end atmospheric tile in i
+!        jts = wrf%j_start(ij)             ! start atmospheric tile in j
+!        jte = min(wrf%j_end(ij),wrf%jde-1)    ! end atmospheric tile in j
+!        kts = wrf%kds
+!        kte = wrf%kde
+!
+!        call wrf%fire_tendency(                 &
+!             wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1, & ! domain dimensions
+!             wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,     &
+!             wrf%its,wrf%ite, wrf%kts,wrf%kte, wrf%jts,wrf%jte,     & !
+!             wrf%grnhfx,wrf%grnqfx,wrf%canhfx,wrf%canqfx,           & ! fluxes on atm wrf
+!             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
+!             wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,wrf%c1h,wrf%c2h,wrf%rho_stag,  &
+!             wrf%rthfrten,wrf%rqvfrten)                ! out
+!      enddo
 
       if (config_flags%tracer_opt.eq.3) then
         call calc_smoke_emissions(this,config_flags, &
                this%ifts,this%ifte,this%jfts,this%jfte)
-
-        call wrf%add_fire_tracer_emissions(                        &
-                  this%ifms,this%ifme,this%jfms,this%jfme,         &
-                  this%ifts,this%ifte,this%jfts,this%jfte,         &
-                  wrf%ids,wrf%ide,wrf%kds,wrf%kde,wrf%jds,wrf%jde, &
-                  wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
-                  wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
-                  wrf%rho_stag,wrf%dz8w_stag,                      &
-                  wrf%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
+!
+!        call wrf%add_fire_tracer_emissions(                        &
+!                  this%ifms,this%ifme,this%jfms,this%jfme,         &
+!                  this%ifts,this%ifte,this%jfts,this%jfte,         &
+!                  wrf%ids,wrf%ide,wrf%kds,wrf%kde,wrf%jds,wrf%jde, &
+!                  wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
+!                  wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
+!                  wrf%rho_stag,wrf%dz8w_stag,                      &
+!                  wrf%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
       end if
 
     end subroutine Provide_atm_feedback
@@ -652,137 +652,137 @@
 
     end subroutine Save_state
 
-    subroutine sum_2d_cells(       &
-           ims2,ime2,jms2,jme2,    &
-           its2,ite2,jts2,jte2,    &
-           v2,                     &  ! input
-           ims1,ime1,jms1,jme1,    &
-           its1,ite1,jts1,jte1,    &
-           fire_print_msg,         &
-           v1)                        ! output
+!    subroutine sum_2d_cells(       &
+!           ims2,ime2,jms2,jme2,    &
+!           its2,ite2,jts2,jte2,    &
+!           v2,                     &  ! input
+!           ims1,ime1,jms1,jme1,    &
+!           its1,ite1,jts1,jte1,    &
+!           fire_print_msg,         &
+!           v1)                        ! output
+!
+!      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
+!
+!      implicit none
+!
+!      !*** purpose
+!      ! sum cell values in mesh2 to cell values of coarser mesh1
+!
+!      !*** arguments
+!      ! the dimensions are in cells, not nodes!
+!
+!      integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
+!      integer, intent(in)::fire_print_msg
+!      real, intent(out)::v1(ims1:ime1,jms1:jme1)
+!      integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
+!      real, intent(in)::v2(ims2:ime2,jms2:jme2)
+!
+!      integer:: i1,i2,j1,j2,ir,jr,isz1,isz2,jsz1,jsz2,ioff,joff,ibase,jbase
+!      real t
+!
+!
+!      !check mesh dimensions and domain dimensions
+!!      call check_mesh_2dim(its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1)
+!!      call check_mesh_2dim(its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2)
+!
+!      ! compute mesh sizes
+!      isz1 = ite1-its1+1
+!      jsz1 = jte1-jts1+1
+!      isz2 = ite2-its2+1
+!      jsz2 = jte2-jts2+1
+!
+!      ! check mesh sizes
+!      if (isz1.le.0.or.jsz1.le.0.or.isz2.le.0.or.jsz2.le.0) then
+!        write (ERROR_UNIT, *) 'all mesh sizes must be positive'
+!      endif
+!
+!      ! compute mesh ratios
+!      ir=isz2/isz1
+!      jr=jsz2/jsz1
+!
+!      if(isz2.ne.isz1*ir .or. jsz2.ne.jsz1*jr)then
+!        write (ERROR_UNIT, *) 'input mesh size must be multiple of output mesh size'
+!      endif
+!
+!      ! v1 = sum(v2)
+!      do j1=jts1,jte1
+!          jbase=jts2+jr*(j1-jts1)
+!          do i1=its1,ite1
+!             ibase=its2+ir*(i1-its1)
+!             t=0.
+!             do joff=0,jr-1
+!                 j2=joff+jbase
+!                 do ioff=0,ir-1
+!                     i2=ioff+ibase
+!                     t=t+v2(i2,j2)
+!                 enddo
+!             enddo
+!             v1(i1,j1)=t
+!          enddo
+!      enddo
+!
+!      return
+!
+!    end subroutine sum_2d_cells
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
-
-      implicit none
-
-      !*** purpose
-      ! sum cell values in mesh2 to cell values of coarser mesh1
-
-      !*** arguments
-      ! the dimensions are in cells, not nodes!
-
-      integer, intent(in)::its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1
-      integer, intent(in)::fire_print_msg
-      real, intent(out)::v1(ims1:ime1,jms1:jme1)
-      integer, intent(in)::its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2
-      real, intent(in)::v2(ims2:ime2,jms2:jme2)
-
-      integer:: i1,i2,j1,j2,ir,jr,isz1,isz2,jsz1,jsz2,ioff,joff,ibase,jbase
-      real t
-
-
-      !check mesh dimensions and domain dimensions
-!      call check_mesh_2dim(its1,ite1,jts1,jte1,ims1,ime1,jms1,jme1)
-!      call check_mesh_2dim(its2,ite2,jts2,jte2,ims2,ime2,jms2,jme2)
-
-      ! compute mesh sizes
-      isz1 = ite1-its1+1
-      jsz1 = jte1-jts1+1
-      isz2 = ite2-its2+1
-      jsz2 = jte2-jts2+1
-
-      ! check mesh sizes
-      if (isz1.le.0.or.jsz1.le.0.or.isz2.le.0.or.jsz2.le.0) then
-        write (ERROR_UNIT, *) 'all mesh sizes must be positive'
-      endif
-
-      ! compute mesh ratios
-      ir=isz2/isz1
-      jr=jsz2/jsz1
-
-      if(isz2.ne.isz1*ir .or. jsz2.ne.jsz1*jr)then
-        write (ERROR_UNIT, *) 'input mesh size must be multiple of output mesh size'
-      endif
-
-      ! v1 = sum(v2)
-      do j1=jts1,jte1
-          jbase=jts2+jr*(j1-jts1)
-          do i1=its1,ite1
-             ibase=its2+ir*(i1-its1)
-             t=0.
-             do joff=0,jr-1
-                 j2=joff+jbase
-                 do ioff=0,ir-1
-                     i2=ioff+ibase
-                     t=t+v2(i2,j2)
-                 enddo
-             enddo
-             v1(i1,j1)=t
-          enddo
-      enddo
-
-      return
-
-    end subroutine sum_2d_cells
-
-    subroutine sum_2d_fire_vars (this, atm, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      class (state_fire_t), intent(in out) :: this        ! fire state
-      type (wrf_t), intent(in out) :: atm                 ! atm state
-      type (namelist_t), intent(in) :: config_flags   ! namelist
-
-      real :: s
-      integer :: i, j
-
-      ! sum the fluxes over atm cells
-      call sum_2d_cells(                              &
-            this%ifms,this%ifme, this%jfms,this%jfme, &
-            this%ifts,this%ifte, this%jfts,this%jfte, &
-            this%fuel_frac,                           &
-            atm%ims,atm%ime, atm%jms,atm%jme,         &
-            atm%its,atm%ite, atm%jts,atm%jte,         &
-            config_flags%fire_print_msg,              &
-            atm%avg_fuel_frac)
-      call sum_2d_cells(                              &
-            this%ifms,this%ifme, this%jfms,this%jfme, &
-            this%ifts,this%ifte, this%jfts,this%jfte, &
-            this%fgrnhfx,                             &
-            atm%ims,atm%ime, atm%jms,atm%jme,         &
-            atm%its,atm%ite, atm%jts,atm%jte,         &
-            config_flags%fire_print_msg,              &
-            atm%grnhfx)
-      call sum_2d_cells(                              &
-            this%ifms,this%ifme, this%jfms,this%jfme, &
-            this%ifts,this%ifte, this%jfts,this%jfte, &
-            this%fgrnqfx,                             &
-            atm%ims,atm%ime, atm%jms,atm%jme,         &
-            atm%its,atm%ite, atm%jts,atm%jte,         &
-            config_flags%fire_print_msg,              &
-            atm%grnqfx)
-
-      write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback
-
-      s = 1./(atm%sr_x*atm%sr_y)
-      do j=atm%jts,atm%jte
-        do i=atm%its,atm%ite
-          ! DME heat fluxes contribution for the case wiythout feedback
-          atm%grnhfx_fu(i,j)=atm%grnhfx(i,j)*s
-          atm%grnqfx_fu(i,j)=atm%grnqfx(i,j)*s
-          ! scale surface fluxes to get the averages
-          atm%avg_fuel_frac(i,j)=atm%avg_fuel_frac(i,j)*s
-          atm%grnhfx(i,j)=config_flags%fire_atm_feedback*atm%grnhfx(i,j)*s
-          atm%grnqfx(i,j)=config_flags%fire_atm_feedback*atm%grnqfx(i,j)*s
-          ! we do not have canopy fluxes yet...
-          atm%canhfx(i,j)=0
-          atm%canqfx(i,j)=0
-        enddo
-      enddo
-
-    end subroutine sum_2d_fire_vars
+!    subroutine sum_2d_fire_vars (this, atm, config_flags)
+!
+!      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+!
+!      implicit none
+!
+!      class (state_fire_t), intent(in out) :: this        ! fire state
+!      type (wrf_t), intent(in out) :: atm                 ! atm state
+!      type (namelist_t), intent(in) :: config_flags   ! namelist
+!
+!      real :: s
+!      integer :: i, j
+!
+!      ! sum the fluxes over atm cells
+!      call sum_2d_cells(                              &
+!            this%ifms,this%ifme, this%jfms,this%jfme, &
+!            this%ifts,this%ifte, this%jfts,this%jfte, &
+!            this%fuel_frac,                           &
+!            atm%ims,atm%ime, atm%jms,atm%jme,         &
+!            atm%its,atm%ite, atm%jts,atm%jte,         &
+!            config_flags%fire_print_msg,              &
+!            atm%avg_fuel_frac)
+!      call sum_2d_cells(                              &
+!            this%ifms,this%ifme, this%jfms,this%jfme, &
+!            this%ifts,this%ifte, this%jfts,this%jfte, &
+!            this%fgrnhfx,                             &
+!            atm%ims,atm%ime, atm%jms,atm%jme,         &
+!            atm%its,atm%ite, atm%jts,atm%jte,         &
+!            config_flags%fire_print_msg,              &
+!            atm%grnhfx)
+!      call sum_2d_cells(                              &
+!            this%ifms,this%ifme, this%jfms,this%jfme, &
+!            this%ifts,this%ifte, this%jfts,this%jfte, &
+!            this%fgrnqfx,                             &
+!            atm%ims,atm%ime, atm%jms,atm%jme,         &
+!            atm%its,atm%ite, atm%jts,atm%jte,         &
+!            config_flags%fire_print_msg,              &
+!            atm%grnqfx)
+!
+!      write (OUTPUT_UNIT, '(a,f6.3)') 'fire-atmosphere feedback scaling ', config_flags%fire_atm_feedback
+!
+!      s = 1./(atm%sr_x*atm%sr_y)
+!      do j=atm%jts,atm%jte
+!        do i=atm%its,atm%ite
+!          ! DME heat fluxes contribution for the case wiythout feedback
+!          atm%grnhfx_fu(i,j)=atm%grnhfx(i,j)*s
+!          atm%grnqfx_fu(i,j)=atm%grnqfx(i,j)*s
+!          ! scale surface fluxes to get the averages
+!          atm%avg_fuel_frac(i,j)=atm%avg_fuel_frac(i,j)*s
+!          atm%grnhfx(i,j)=config_flags%fire_atm_feedback*atm%grnhfx(i,j)*s
+!          atm%grnqfx(i,j)=config_flags%fire_atm_feedback*atm%grnqfx(i,j)*s
+!          ! we do not have canopy fluxes yet...
+!          atm%canhfx(i,j)=0
+!          atm%canqfx(i,j)=0
+!        enddo
+!      enddo
+!
+!    end subroutine sum_2d_fire_vars
 
   end module state_mod
 
