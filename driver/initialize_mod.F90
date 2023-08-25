@@ -22,14 +22,12 @@
       type (wrf_t), intent (in out) :: atm_state
       type (namelist_t), intent (in) :: config_flags
 
-      type (geogrid_t) :: geogrid
       logical, parameter :: DEBUG_LOCAL = .true.
 
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Init_atm_state'
 
-      geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
-      atm_state = wrf_t ('wrf.nc', config_flags, geogrid)
+      atm_state = wrf_t ('wrf.nc', config_flags)
 
       if (DEBUG_LOCAL)  write (OUTPUT_UNIT, *) '  Leaving subroutine Init_atm_state'
 
