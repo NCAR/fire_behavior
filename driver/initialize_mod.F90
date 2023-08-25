@@ -15,7 +15,7 @@
 
     subroutine Init_atm_state (atm_state, config_flags)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 
@@ -23,10 +23,15 @@
       type (namelist_t), intent (in) :: config_flags
 
       type (geogrid_t) :: geogrid
+      logical, parameter :: DEBUG_LOCAL = .true.
 
+
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Init_atm_state'
 
       geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
       atm_state = wrf_t ('wrf.nc', config_flags, geogrid)
+
+      if (DEBUG_LOCAL)  write (OUTPUT_UNIT, *) '  Leaving subroutine Init_atm_state'
 
     end subroutine Init_atm_state
 
@@ -45,17 +50,18 @@
       integer :: i, j, unit_out, unit_out2
 
 
-      if (DEBUG_LOCAL) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
-      end if
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Init_state'
 
         ! Fire state initialization
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Reading geogrid file'
       geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Initializing state'
       call grid%Initialization (config_flags, geogrid)
 
         ! Atmosphere to Fire
       if (present (wrf)) then
+        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Initializing atmospheric state'
         call grid%Handle_wrfdata_update (wrf, config_flags)
       end if
 
@@ -88,10 +94,7 @@
         end if
       end if
 
-      if (DEBUG_LOCAL) then
-        write (OUTPUT_UNIT, *) ''
-        write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
-      end if
+      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Init_state'
 
     end subroutine Init_fire_state
 
