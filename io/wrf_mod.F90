@@ -963,13 +963,6 @@
         ! latlon at corners
       call return_value%Get_latcloncs ()
 
-      if (.not. allocated (return_value%lons) .and. .not. allocated (return_value%lats)) then
-        return_value%lats = geogrid%xlat
-        return_value%lons = geogrid%xlong
-        return_value%lats_c = geogrid%xlat_c
-        return_value%lons_c = geogrid%xlong_c
-      end if
-
       return_value%ids = geogrid%ids
       return_value%ide = geogrid%ide
       return_value%jds = geogrid%jds
@@ -1092,12 +1085,11 @@
 
     subroutine Get_latcloncs (this)
 
-      use, intrinsic :: iso_fortran_env, only : REAL32
       implicit none
 
       class (wrf_t), intent (in out) :: this
-      type (proj_lc_t) :: proj
 
+      type (proj_lc_t) :: proj
       logical, parameter :: OUTPUT_LATLON_CHECK = .false.
       integer :: nx, ny, i, j
 
