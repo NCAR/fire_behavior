@@ -11,7 +11,7 @@ add_library(fire_behavior_nuopc fire_behavior_nuopc.F90)
 add_dependencies(fire_behavior_nuopc firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC firelib)
 target_link_libraries(fire_behavior_nuopc PUBLIC ESMF)
-target_include_directories(fire_behavior_nuopc INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/mod>
+target_include_directories(fire_behavior_nuopc INTERFACE $<BUILD_INTERFACE:${CMAKE_Fortran_MODULE_DIRECTORY}>
                                                          $<INSTALL_INTERFACE:mod>)
 # configure wrfdata nuopc cap library
 add_library(fire_behavior_wrfnuopc wrf_nuopc.F90)
