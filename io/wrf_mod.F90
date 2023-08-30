@@ -19,20 +19,16 @@
     type :: wrf_t
       character (len = 300) :: file_name
       real, dimension(:, :, :, :), allocatable :: tracer
-      real, dimension(:, :, :), allocatable :: u3d, v3d, phb, ph, phl, pres, u3d_stag, v3d_stag, phb_stag, ph_stag
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, rainc, rainnc, ua, va, &
-          t2_stag, q2_stag, z0_stag, psfc_stag, rainc_stag, rainnc_stag
+      real, dimension(:, :, :), allocatable :: u3d, v3d, phl, pres, u3d_stag, v3d_stag, phl_stag
+      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, &
+          t2_stag, q2_stag, z0_stag, psfc_stag, rain_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
 !      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
       procedure, public :: Destroy_pres => Destroy_pressure_levels
-      procedure, public :: Destroy_ph => Destroy_geopotential
-      procedure, public :: Destroy_phb => Destroy_geopotential_base
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
-      procedure, public :: Destroy_rainc => Destroy_rain_convective
-      procedure, public :: Destroy_rainnc => Destroy_rain_non_convective
       procedure, public :: Destroy_rain => Destroy_rain
       procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
       procedure, public :: Destroy_t2 => Destroy_temperature_2m
@@ -45,11 +41,7 @@
       procedure, public :: Get_latcloncs => Get_latcloncs
       procedure, public :: Get_phl => Get_geopotential_levels
       procedure, public :: Get_pres => Get_pressure_levels
-      procedure, public :: Get_ph_stag => Get_geopotential_stag_3d
-      procedure, public :: Get_phb_stag => Get_geopotential_base_stag_3d
       procedure, public :: Get_projection => Get_projection
-      procedure, public :: Get_rainc => Get_rain_convective
-      procedure, public :: Get_rainnc => Get_rain_non_convective
       procedure, public :: Get_rain => Get_rain
       procedure, public :: Get_psfc => Get_surface_pressure
       procedure, public :: Get_q2 => Get_specific_humidity_2m
@@ -144,26 +136,6 @@
 
     end subroutine Destroy_pressure_levels
 
-    subroutine Destroy_geopotential (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%ph)) deallocate (this%ph)
-
-    end subroutine Destroy_geopotential
-
-    subroutine Destroy_geopotential_base (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%phb)) deallocate (this%phb)
-
-    end subroutine Destroy_geopotential_base
-
     subroutine Destroy_meridional_wind (this)
 
       implicit none
@@ -173,26 +145,6 @@
       if (allocated(this%v3d)) deallocate (this%v3d)
 
     end subroutine Destroy_meridional_wind
-
-    subroutine Destroy_rain_convective (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%rainc)) deallocate (this%rainc)
-
-    end subroutine Destroy_rain_convective
-
-    subroutine Destroy_rain_non_convective (this)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-
-      if (allocated(this%rainnc)) deallocate (this%rainnc)
-
-    end subroutine Destroy_rain_non_convective
 
     subroutine Destroy_rain (this)
 
@@ -460,6 +412,7 @@
       nt = this%Get_datetime_index (datetime)
       call Get_netcdf_var (trim (this%file_name), 'PH', var4d)
       call Get_netcdf_var (trim (this%file_name), 'PHB', var4d2)
+
       this%phl = var4d(:, :, :, nt) + var4d2(:, :, :, nt)
       deallocate (var4d, var4d2)
 
@@ -484,42 +437,6 @@
       deallocate (var4d, var4d2)
 
     end subroutine Get_pressure_levels
-
-    subroutine Get_geopotential_stag_3d (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :, :), allocatable :: var4d
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'PH', var4d)
-      this%ph = var4d(:, :, :, nt)
-      deallocate (var4d)
-
-    end subroutine Get_geopotential_stag_3d
-
-    subroutine Get_geopotential_base_stag_3d (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :, :), allocatable :: var4d
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'PHB', var4d)
-      this%phb = var4d(:, :, :, nt)
-      deallocate (var4d)
-
-    end subroutine Get_geopotential_base_stag_3d
 
     subroutine Get_meridional_wind_3d (this, datetime)
 
@@ -606,40 +523,6 @@
 
     end subroutine Get_specific_humidity_2m
 
-    subroutine Get_rain_convective (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :), allocatable :: var3d
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'RAINC', var3d)
-      this%rainc = var3d(:, :, nt)
-
-    end subroutine Get_rain_convective
-
-    subroutine Get_rain_non_convective (this, datetime)
-
-      implicit none
-
-      class (wrf_t), intent (in out) :: this
-      type (datetime_t), intent (in) :: datetime
-
-      real, dimension(:, :, :), allocatable :: var3d
-      integer :: nt
-
-
-      nt = this%Get_datetime_index (datetime)
-      call Get_netcdf_var (trim (this%file_name), 'RAINNC', var3d)
-      this%rainnc = var3d(:, :, nt)
-
-    end subroutine Get_rain_non_convective
-
     subroutine Get_rain (this, datetime)
 
       implicit none
@@ -655,6 +538,7 @@
       call Get_netcdf_var (trim (this%file_name), 'RAINC', var3d)
       call Get_netcdf_var (trim (this%file_name), 'RAINNC', var3d2)
       this%rain = var3d(:, :, nt) + var3d2(:, :, nt)
+      deallocate (var3d, var3d2)
 
     end subroutine Get_rain
 
@@ -758,7 +642,7 @@
 
       logical, parameter :: DEBUG_LOCAL = .true.
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0, &
-          DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAINC = 0.0, DEFAULT_RAINNC = 0.0
+          DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAIN = 0.0
 
       real (kind = REAL32) :: att_real32
       integer (kind = INT32) :: att_int32
@@ -826,13 +710,9 @@
                 NUM_TRACER))
       return_value%tracer = 0.0
 
-      allocate (return_value%ph_stag(return_value%ims:return_value%ime, &
+      allocate (return_value%phl_stag(return_value%ims:return_value%ime, &
           return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      return_value%ph_stag = 0.0
-
-      allocate (return_value%phb_stag(return_value%ims:return_value%ime, &
-          return_value%kms:return_value%kme, return_value%jms:return_value%jme))
-      return_value%phb_stag = 0.0
+      return_value%phl_stag = 0.0
 
       allocate (return_value%u3d_stag(return_value%ims:return_value%ime, &
           return_value%kms:return_value%kme, return_value%jms:return_value%jme))
@@ -845,11 +725,8 @@
       allocate (return_value%z0_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%z0_stag = DEFAULT_Z0
 
-      allocate (return_value%rainc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      return_value%rainc_stag = DEFAULT_RAINC
-
-      allocate (return_value%rainnc_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
-      return_value%rainnc_stag = DEFAULT_RAINNC
+      allocate (return_value%rain_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
+      return_value%rain_stag = DEFAULT_RAIN
 
       allocate (return_value%t2_stag(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%t2_stag = DEFAULT_T2
@@ -970,8 +847,8 @@
           var_wrf = this%psfc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
 
         case ('rain')
-          var_wrf = this%rainnc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) &
-                   + this%rainc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+          var_wrf = this%rain_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
+
         case ('fz0')
           var_wrf = this%z0_stag(this%ids:this%ide - 1, this%jds:this%jde - 1)
 
@@ -1054,15 +931,10 @@
         this%psfc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%psfc(:, :)
         call this%Destroy_psfc ()
 
-          ! Update rainc
-        call this%Get_rainc (datetime_now)
-        this%rainc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%rainc(:, :)
-        call this%Destroy_rainc ()
-
-          ! Update rainnc
-        call this%Get_rainnc (datetime_now)
-        this%rainnc_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%rainnc(:, :)
-        call this%Destroy_rainnc ()
+          ! Update rain
+        call this%Get_rain (datetime_now)
+        this%rain_stag(this%ids:this%ide - 1, this%jds:this%jde - 1) = this%rain(:, :)
+        call this%Destroy_rain ()
 
           ! Update z0
         call this%Get_z0 (datetime_now)
@@ -1091,27 +963,16 @@
         end do
         call this%Destroy_v3d ()
 
-          ! PHB
-        call this%Get_phb_stag (datetime_now)
+          ! Update geopotential heights
+        call this%Get_phl (datetime_now)
         do k = this%kds, this%kde
           do j = this%jds, this%jde - 1
             do i = this%ids, this%ide - 1
-              this%phb_stag(i, k, j) = this%phb(i, j, k)
+              this%phl_stag(i, k, j) = this%phl(i, j, k)
             end do
           end do
         end do
-        call this%Destroy_phb ()
-
-          ! PH
-        call this%Get_ph_stag (datetime_now)
-        do k = this%kds, this%kde
-          do j = this%jds, this%jde - 1
-            do i = this%ids, this%ide - 1
-              this%ph_stag(i, k, j) = this%ph(i, j, k)
-            end do
-          end do
-        end do
-        call this%Destroy_ph ()
+        call this%Destroy_phl ()
 
     end subroutine Update_atm_state
 

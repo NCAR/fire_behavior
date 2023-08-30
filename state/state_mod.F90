@@ -416,7 +416,7 @@
                 config_flags%fire_wind_height,                 & ! interpolation height
                 this%kfds, this%kfde,                          & ! fire grid dimensions
                 wrf%u3d_stag(i,:,j),wrf%v3d_stag(i,:,j),       & ! atm grid arrays in
-                wrf%ph_stag(i,:,j)+wrf%phb_stag(i,:,j),        &
+                wrf%phl_stag(i,:,j),                           &
                 wrf%ua(i,j),wrf%va(i,j),wrf%z0_stag(i,j))
           enddo
         enddo
