@@ -196,8 +196,7 @@
           ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, &
           grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, fuel_frac_end, grid%fire_area, &
-          config_flags%fire_fuel_left_method, config_flags%fire_fuel_left_irl, &
-          config_flags%fire_fuel_left_jrl, config_flags%fire_print_msg) !fuel_frac_end is private and tile based
+          config_flags%fire_print_msg) !fuel_frac_end is private and tile based
 
       call Print_tile_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
           fuel_frac_end, 'model: fuel_frac end', config_flags%fire_print_msg)
