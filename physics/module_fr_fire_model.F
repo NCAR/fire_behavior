@@ -1,10 +1,10 @@
   module module_fr_fire_model
 
-    use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3,  Ignite_fire, Prop_ls_rk3
+    use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
     use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, Message, &
         Print_tile_stats, Crash, Check_dims
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
-    use ignition_line_mod, only: ignition_line_t
+    use ignition_line_mod, only: ignition_line_t, Ignite_fire
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
     use namelist_mod, only : namelist_t
