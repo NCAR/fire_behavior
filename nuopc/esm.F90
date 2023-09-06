@@ -184,6 +184,7 @@ module ESM
     runSeqFF = NUOPC_FreeFormatCreate(stringList=(/ &
       " @*            ",    &
       "   WRF -> FIRE ",    &
+      "   FIRE -> WRF ",    &
       "   FIRE        ",    &
       "   WRF         ",    &
       " @             " /), &

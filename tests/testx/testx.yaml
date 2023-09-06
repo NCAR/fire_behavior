@@ -18,6 +18,7 @@ ESMX:
     runSequence: |
       @1
         ATMD -> FIRE
+        FIRE -> ATMD
         FIRE
         ATMD
       @
@@ -39,10 +40,10 @@ ATMD:
     nx: 19
     ny: 19
     nz: 44
-    minx: -103.595
-    miny:   39.67
-    maxx: -103.565
-    maxy:   39.6915
+    minx: -103.591
+    miny:   39.6716
+    maxx: -103.568
+    maxy:   39.6893
   exportFields:
     inst_zonal_wind_levels:   {dim: 3, val: 1}
     inst_merid_wind_levels:   {dim: 3, val: 3}
@@ -53,3 +54,4 @@ ATMD:
     inst_spec_humid_height2m: {dim: 2, val: 0.005}
     inst_pres_height_surface: {dim: 2, val: 85000}
     inst_temp_height2m:       {dim: 2, val: 310}
+    mean_sensi_heat_flx:      {dim: 2, val: 1}

@@ -18,6 +18,7 @@ ESMX:
     runSequence: |
       @1
         WRF -> FIRE
+        FIRE -> WRF
         FIRE
         WRF
       @

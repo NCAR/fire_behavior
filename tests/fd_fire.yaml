@@ -48,3 +48,6 @@
      - standard_name: inst_temp_height2m
        canonical_units: K
        description: atmosphere export - temperature height 2m
+     #
+     - standard_name: mean_sensi_heat_flx
+       canonical_units: W m-2
