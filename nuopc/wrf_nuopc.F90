@@ -31,7 +31,7 @@ module wrf_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_phl(:,:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
+!  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer                         :: clb(2), cub(2), clb3(3), cub3(3)
   type (namelist_t) :: config_flags
 
@@ -116,7 +116,7 @@ module wrf_nuopc
     allocate (state%u3d(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
     allocate (state%v3d(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
     allocate (state%phl(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
-    allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
+!    allocate (state%pres(size(state%lats, dim=1), size(state%lats, dim=2), state%kde - 1))
 
     ! Import/ Export Variables -----------------------------------------------------
 
@@ -151,13 +151,13 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: inst_pres_levels
-    call NUOPC_Advertise(exportState, &
-      StandardName="inst_pres_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+!    ! exportable field: inst_pres_levels
+!    call NUOPC_Advertise(exportState, &
+!      StandardName="inst_pres_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
 
     ! 2D
     ! exportable field: inst_surface_roughness
@@ -355,26 +355,26 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-     ! exportable field on Grid: inst_pres_levels
-     field = ESMF_FieldCreate(name="inst_pres_levels", grid=grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/state%kde - 1/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(exportState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+!     ! exportable field on Grid: inst_pres_levels
+!     field = ESMF_FieldCreate(name="inst_pres_levels", grid=grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/state%kde - 1/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(exportState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     ! Get Field memory
+!     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
 
     ! 2D
     ! exportable field on Grid: inst_surface_roughness
@@ -626,7 +626,7 @@ module wrf_nuopc
     call state%Get_u3d(datetime)
     call state%Get_v3d(datetime)
     call state%Get_phl(datetime)
-    call state%Get_pres(datetime)
+!    call state%Get_pres(datetime)
 
     ! Set field data
 
@@ -648,8 +648,8 @@ module wrf_nuopc
       state%v3d(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
     ptr_phl(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
       state%phl(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
-    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
-      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
+!    ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))= &
+!      state%pres(1:size(state%lats, dim=1),1:size(state%lats, dim=2), 1:state%kde - 1)
    
   end subroutine
 

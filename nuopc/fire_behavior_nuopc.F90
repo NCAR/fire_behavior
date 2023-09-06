@@ -30,7 +30,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
+!  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
@@ -139,13 +139,13 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: inst_pres_levels
-    call NUOPC_Advertise(importState, &
-      StandardName="inst_pres_levels", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+!    ! importable field: inst_pres_levels
+!    call NUOPC_Advertise(importState, &
+!      StandardName="inst_pres_levels", rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
 
 !    !  2D fields
 
@@ -359,22 +359,22 @@ module fire_behavior_nuopc
      ! Get Field memory
      call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_ph, rc=rc)
 
-     ! importable field on Grid: inst_pres_levels
-     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
-       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-       ungriddedUBound=(/grid%kfde - 1/), &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
+!     ! importable field on Grid: inst_pres_levels
+!     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
+!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
+!       ungriddedUBound=(/grid%kfde - 1/), &
+!       typekind=ESMF_TYPEKIND_R8, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     call NUOPC_Realize(importState, field=field, rc=rc)
+!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!       line=__LINE__, &
+!       file=__FILE__)) &
+!       return  ! bail out
+!     ! Get Field memory
+!     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
 
      !  2D fields
 
@@ -582,7 +582,7 @@ module fire_behavior_nuopc
     integer                     :: i, j
     real                        :: wspd
     character(len=160)          :: msgString
-    real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph, atm_pres
+    real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph !, atm_pres
 
     rc = ESMF_SUCCESS
 
@@ -652,12 +652,12 @@ module fire_behavior_nuopc
     allocate (atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
-    allocate (atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
+!    allocate (atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
 
     atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1)   = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
-    atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+!    atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
     
     do j = 1, grid%jfde
@@ -679,7 +679,7 @@ module fire_behavior_nuopc
       enddo
     enddo
 
-    deallocate (atm_u3d, atm_v3d, atm_ph, atm_pres)
+    deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
