@@ -56,7 +56,7 @@
 
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
-      call fire_model (config_flags, ros_model, ignition_lines, grid)
+      call Fire_model (config_flags, ros_model, ignition_lines, grid)
 
     end subroutine Fire_driver_em
 

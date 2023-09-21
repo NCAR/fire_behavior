@@ -74,15 +74,15 @@
         !   propagate level set function in time
         !   set lfn_out tign
         !   lfn does not change, tign has no halos
-      call prop_ls_rk3 (ifds,ifde,jfds,jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
+      call prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
           config_flags%fire_grows_only, config_flags%fire_upwinding, config_flags%fire_upwind_split, config_flags%fire_viscosity, &
           config_flags%fire_lfn_ext_up, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp, &
           config_flags%fire_advection, config_flags%fire_slope_factor, config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg, &
           tbound, grid%lfn, grid%lfn_0,grid%lfn_1,grid%lfn_2, grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model) 
 
       call tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
-          time_start,grid%dt, config_flags%fire_boundary_guard, config_flags%fire_print_msg, &
-          grid%lfn,grid%lfn_out, grid%tign_g)
+          time_start, grid%dt, config_flags%fire_boundary_guard, config_flags%fire_print_msg, &
+          grid%lfn, grid%lfn_out, grid%tign_g)
 
       call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
            grid%ros, grid%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
