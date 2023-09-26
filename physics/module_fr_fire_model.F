@@ -121,7 +121,7 @@
         do ig = 1, config_flags%fire_num_ignitions
             !  for now, check for ignition every time step...
             !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 
-          call ignite_fire (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, config_flags%fire_print_msg, &
+          call ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, config_flags%fire_print_msg, &
               ignition_line(ig), time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, & 
               grid%lfn, grid%tign_g,ignited)
           ignitions_done = ignitions_done + 1

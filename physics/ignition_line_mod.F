@@ -97,8 +97,7 @@
 
     end subroutine Initialize_ignitions
 
-subroutine ignite_fire( ifds,ifde,jfds,jfde,                    & ! fire domain dims - the whole domain
-                        ifms,ifme,jfms,jfme,                      &
+subroutine ignite_fire( ifms,ifme,jfms,jfme,                      &
                         ifts,ifte,jfts,jfte,                      &
                         fire_print_msg,                           &
                         ignition_line,                            &
@@ -121,7 +120,6 @@ implicit none
 
 
 !*** arguments
-integer, intent(in):: ifds,ifde,jfds,jfde   ! fire domain bounds
 integer, intent(in):: ifts,ifte,jfts,jfte   ! fire tile bounds
 integer, intent(in):: ifms,ifme,jfms,jfme   ! array bounds
 integer, intent(in):: fire_print_msg
@@ -269,7 +267,7 @@ call message(msg,fire_print_msg)
 return
 99 continue
 
-end subroutine ignite_fire
+contains
 
 ! called from the inside of a loop, inline if possible
 !DEC$ ATTRIBUTES FORCEINLINE
@@ -351,6 +349,8 @@ SUBROUTINE nearest(d,t,ax,ay,sx,sy,st,ex,ey,et,cx2,cy2,fire_print_msg)
 !$OMP END CRITICAL(FIRE_CORE_CRIT)
         endif
 END SUBROUTINE nearest
+
+end subroutine ignite_fire
 
   end module ignition_line_mod
 
