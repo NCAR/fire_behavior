@@ -1,7 +1,7 @@
   module ignition_line_mod
 
     use namelist_mod, only: namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
-    use module_fr_fire_util, only: Crash, Message
+    use stderrout_mod, only: Crash, Message
 
     implicit none
 

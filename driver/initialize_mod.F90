@@ -5,7 +5,7 @@
     use geogrid_mod, only : geogrid_t
     use wrf_mod, only : wrf_t
     use module_fr_fire_driver, only : init_fire_driver
-    use module_fr_fire_util, only : message
+    use stderrout_mod, only: Message
 
     private
 

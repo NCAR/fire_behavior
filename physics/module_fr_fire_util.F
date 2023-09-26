@@ -2,10 +2,12 @@
 
     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
+    use stderrout_mod, only: Crash, Message
+
     private
 
     public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Message, Crash, Check_dims, Print_tile_stats, Continue_at_boundary
+        Check_dims, Print_tile_stats, Continue_at_boundary
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
@@ -252,38 +254,6 @@
       end function EX
 
     end subroutine Continue_at_boundary
-
-    subroutine Crash (msg)
-
-      implicit none
-
-      character (len = *), intent(in) :: msg
-
-      write (ERROR_UNIT, *) trim ('Crash: ' // msg)
-      stop
-
-    end subroutine Crash
-
-    subroutine Message (msg, fire_print_msg, level)
-
-      implicit none
-
-      character (len = *), intent(in) :: msg
-      integer, intent(in) :: fire_print_msg
-      integer, intent(in), optional :: level
-
-      integer :: mlevel
-
-
-      if (present (level)) then
-        mlevel = level
-      else
-        mlevel = 2
-      endif
-
-      if (fire_print_msg >= mlevel) write (OUTPUT_UNIT, *) 'FIRE:' // trim (msg)
-
-    end subroutine Message
 
     subroutine Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, a, var_name, fire_print_msg)
 

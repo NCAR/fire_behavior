@@ -53,7 +53,8 @@ list(APPEND _share_files share/proj_lc_mod.F90
 list(APPEND _io_files io/namelist_mod.F90
                       io/geogrid_mod.F90
                       io/wrf_mod.F90
-		      io/netcdf_mod.F90)
+		      io/netcdf_mod.F90
+                      io/stderrout_mod.F90)
 
 
 # WRF Physics

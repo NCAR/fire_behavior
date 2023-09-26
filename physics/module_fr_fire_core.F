@@ -2,7 +2,8 @@
 module module_fr_fire_core
 
 use ros_wrffire_mod, only: ros_wrffire_t
-use module_fr_fire_util, only: Message, Crash, Print_tile_stats, Continue_at_boundary
+use module_fr_fire_util, only: Print_tile_stats, Continue_at_boundary
+use stderrout_mod, only: Crash, Message
 
 use state_mod, only: state_fire_t
 use ignition_line_mod, only : ignition_line_t

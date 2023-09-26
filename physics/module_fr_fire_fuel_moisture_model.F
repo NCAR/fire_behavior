@@ -28,7 +28,8 @@
     ! 30%  Completely cured, treat as dead fuel
 
     use constants_mod, only : XLV
-    use module_fr_fire_util, only: Crash, Check_dims, Print_tile_stats, Message
+    use module_fr_fire_util, only: Check_dims, Print_tile_stats
+    use stderrout_mod, only: Crash, Message
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t

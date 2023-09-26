@@ -3,7 +3,7 @@
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use module_fr_fire_driver, only : fire_driver_em
-    use module_fr_fire_util, only : message
+    use stderrout_mod, only: Message
 
     implicit none
 

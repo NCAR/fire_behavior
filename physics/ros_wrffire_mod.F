@@ -2,7 +2,7 @@
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
-    use module_fr_fire_util, only: Crash, Message
+    use stderrout_mod, only: Crash, Message
     use state_mod, only : state_fire_t
     use namelist_mod, only: namelist_t
 
