@@ -49,5 +49,5 @@
        canonical_units: K
        description: atmosphere export - temperature height 2m
      #
-     - standard_name: mean_sensi_heat_flx
+     - standard_name: hflx_fire
        canonical_units: W m-2

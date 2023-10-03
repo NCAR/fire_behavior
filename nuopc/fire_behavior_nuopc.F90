@@ -31,8 +31,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
 !  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_fgrnhfx_out(:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_fgrnhfx_in(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_hflx_fire(:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
@@ -199,21 +198,13 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! exportable field: fire_temperature_tendency
-    call NUOPC_Advertise(importState, &
-      StandardName="mean_sensi_heat_flx", name="mean_sensi_heat_flx", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
 #endif
 
 !#define WITHEXPORTFIELDS_disable
 !#ifdef WITHEXPORTFIELDS
-    ! exportable field: fire_temperature_tendency
+    ! exportable field: hflx_fire
     call NUOPC_Advertise(exportState, &
-      StandardName="mean_sensi_heat_flx", name="mean_sensi_heat_flx", rc=rc)
+      StandardName="hflx_fire", name="hflx_fire", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -516,30 +507,11 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
-     ! exportable field on Grid: fire_temperature_tendency
-     field = ESMF_FieldCreate(name="mean_sensi_heat_flx", grid=fire_grid, &
-       typekind=ESMF_TYPEKIND_R8, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     call NUOPC_Realize(importState, field=field, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-     ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_fgrnhfx_in, rc=rc)
-     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       return  ! bail out
-
 #endif
 
 ! #ifdef WITHEXPORTFIELDS
-     ! exportable field on Grid: fire_temperature_tendency
-     field = ESMF_FieldCreate(name="mean_sensi_heat_flx", grid=fire_grid, &
+     ! exportable field on Grid: hflx_fire
+     field = ESMF_FieldCreate(name="hflx_fire", grid=fire_grid, &
        typekind=ESMF_TYPEKIND_R8, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
@@ -551,7 +523,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_fgrnhfx_out, rc=rc)
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_hflx_fire, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -655,8 +627,6 @@ module fire_behavior_nuopc
     !   file=__FILE__)) &
     !   return  ! bail out
 
-    ptr_fgrnhfx_out(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx, 1:grid%ny) + ptr_fgrnhfx_in(clb(1):cub(1),clb(2):cub(2))
-
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
     ! convert cm to m
@@ -721,6 +691,8 @@ module fire_behavior_nuopc
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
     call Advance_state (grid, config_flags)
+
+    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx, 1:grid%ny)
 
     call grid%Handle_output (config_flags)
 

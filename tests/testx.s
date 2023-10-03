@@ -19,6 +19,8 @@ testxp5=1 # Check Max latent heat flux
 #
 #################################################
 #
+rm -f ATMD_final_export.nc
+rm -f ATMD_final_import.nc
 
 file_baseline=./testx/test_solution.txt
 file_exe=../install/bin/esmx_fire
@@ -183,22 +185,8 @@ else
   pass=false
 fi
 
-  # plots
-if [ $plot -eq 1 ]
-then
-  if [ -f ./latlons.dat -a -f ./latlons_c.dat -a -f ./wrf_latlons_atm.dat ]
-  then
-    ./test4/gn_latlons.s latlons.dat latlons_c.dat wrf_latlons_atm.dat
-  fi
-
-  if [ -f ./wrf_latlons_fire.dat -a -f ./latlons.dat -a -f ./wrf_latlons_atm.dat ]
-  then
-    ./test4/gn_latlons2.s wrf_latlons_fire.dat latlons.dat wrf_latlons_atm.dat
-  fi
-fi
-
 rm -f ./latlons.dat ./latlons_c.dat ./wrf_latlons_atm.dat ./wrf_latlons_fire.dat
-rm -f PET0.ESMF_LogFile ATMD_final_export.nc
+rm -f PET0.ESMF_LogFile ATMD_final_export.nc ATMD_final_import.nc
 
 if [ $pass = true ]
 then

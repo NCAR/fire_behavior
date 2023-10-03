@@ -32,8 +32,7 @@ module wrf_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_phl(:,:,:)
 !  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_fgrnhfx_in(:,:)
-  real(ESMF_KIND_R8), pointer     :: ptr_fgrnhfx_out(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_hflx_fire(:,:)
   integer                         :: clb(2), cub(2), clb3(3), cub3(3)
   type (namelist_t) :: config_flags
 
@@ -203,15 +202,8 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    call NUOPC_Advertise(exportState, &
-      StandardName="mean_sensi_heat_flx", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
     call NUOPC_Advertise(importState, &
-      StandardName="mean_sensi_heat_flx", rc=rc)
+      StandardName="hflx_fire", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -306,8 +298,8 @@ module wrf_nuopc
       enddo
     enddo
 
-    ! exportable field on Grid: inst_temp_height2m
-    field = ESMF_FieldCreate(name="mean_sensi_heat_flx", grid=grid, &
+    ! importable field on Grid: hflx_fire
+    field = ESMF_FieldCreate(name="hflx_fire", grid=grid, &
       typekind=ESMF_TYPEKIND_R8, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -319,31 +311,13 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
     ! Get Field memory
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_fgrnhfx_in, rc=rc)
+    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_hflx_fire, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
 
 #ifdef WITHEXPORTFIELDS
-    ! exportable field on Grid: inst_temp_height2m
-    field = ESMF_FieldCreate(name="mean_sensi_heat_flx", grid=grid, &
-      typekind=ESMF_TYPEKIND_R8, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call NUOPC_Realize(exportState, field=field, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    ! Get Field memory
-    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_fgrnhfx_out, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
 
      ! exportable field on Grid: inst_zonal_wind_levels
      field = ESMF_FieldCreate(name="inst_zonal_wind_levels", grid=grid, &
