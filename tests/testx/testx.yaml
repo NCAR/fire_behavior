@@ -56,3 +56,6 @@ ATMD:
     inst_spec_humid_height2m: {dim: 2, val: 0.005}
     inst_pres_height_surface: {dim: 2, val: 85000}
     inst_temp_height2m:       {dim: 2, val: 310}
+    inst_pres_height_lowest_from_phys:        {dim: 2, val: 85000}
+    inst_spec_humid_height_lowest_from_phys:  {dim: 2, val: 0.005}
+    inst_temp_height_lowest_from_phys:        {dim: 2, val: 310}

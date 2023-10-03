@@ -27,6 +27,9 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_rainrte(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_rainacc(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_q2(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_lowest_q(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_lowest_t(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_lowest_pres(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
@@ -35,6 +38,11 @@ module fire_behavior_nuopc
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
+
+  real(ESMF_KIND_R8), parameter:: con_cp     =1.0046e+3                 !< spec heat air at p (\f$J/kg/K\f$)
+  real(ESMF_KIND_R8), parameter:: con_rd     =2.8705e+2                 !< gas constant air (\f$J/kg/K\f$)
+  real(ESMF_KIND_R8), parameter:: con_rv     =4.6150e+2                 !< gas constant H2O (\f$J/kg/K\f$)
+  real(ESMF_KIND_R8), parameter:: con_fvirt  =con_rv/con_rd-1.
 
   contains
 
@@ -193,6 +201,30 @@ module fire_behavior_nuopc
     ! importable field: inst_temp_height2m
     call NUOPC_Advertise(importState, &
       StandardName="inst_temp_height2m", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_pres_height_lowest_from_phys
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_pres_height_lowest_from_phys", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_spec_humid_height_lowest_from_phys
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_spec_humid_height_lowest_from_phys", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! importable field: inst_temp_height_lowest_from_phys
+    call NUOPC_Advertise(importState, &
+      StandardName="inst_temp_height_lowest_from_phys", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -507,6 +539,63 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
+     ! importable field on Grid: inst_pres_height_lowest_from_phys
+     field = ESMF_FieldCreate(name="inst_pres_height_lowest_from_phys", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_pres, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
+     ! importable field on Grid: inst_spec_humid_height_lowest_from_phys
+     field = ESMF_FieldCreate(name="inst_spec_humid_height_lowest_from_phys", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_q, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
+     ! importable field on Grid: inst_temp_height_lowest_from_phys
+     field = ESMF_FieldCreate(name="inst_temp_height_lowest_from_phys", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(importState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_t, rc=rc) 
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+
 #endif
 
 ! #ifdef WITHEXPORTFIELDS
@@ -588,9 +677,10 @@ module fire_behavior_nuopc
     ! type(ESMF_VM)               :: vm
     ! integer                     :: currentSsiPe
     integer                     :: i, j
-    real                        :: wspd
+    real                        :: wspd, q0, rho
     character(len=160)          :: msgString
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph !, atm_pres
+    real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres !, atm_pres
 
     rc = ESMF_SUCCESS
 
@@ -664,6 +754,7 @@ module fire_behavior_nuopc
     atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1)   = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
+
 !    atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
     
@@ -688,12 +779,31 @@ module fire_behavior_nuopc
 
     deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
+    
+    allocate (atm_lowest_t(1:grid%nx,1:grid%ny))
+    allocate (atm_lowest_q(1:grid%nx,1:grid%ny))
+    allocate (atm_lowest_pres(1:grid%nx,1:grid%ny))
+
+    atm_lowest_t(1:grid%nx,1:grid%ny)    = ptr_lowest_t(clb(1):cub(1),clb(2):cub(2))
+    atm_lowest_q(1:grid%nx,1:grid%ny)    = ptr_lowest_q(clb(1):cub(1),clb(2):cub(2))
+    atm_lowest_pres(1:grid%nx,1:grid%ny) = ptr_lowest_pres(clb(1):cub(1),clb(2):cub(2))
+
+    do j = 1, grid%jfde
+      do i = 1, grid%ifde
+        q0   = max(atm_lowest_q(i,j)/(1.-atm_lowest_q(i,j)), 1.e-8)
+        rho = atm_lowest_pres(i,j) / (con_rd * atm_lowest_t(i,j) * &
+            (1.0 + con_fvirt * q0))
+        grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (con_cp * rho) 
+      enddo
+    enddo
+
+
+
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
     call Advance_state (grid, config_flags)
 
-    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx, 1:grid%ny)
-
+    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny)
     call grid%Handle_output (config_flags)
 
     call ESMF_ClockPrint(clock, options="currTime", &

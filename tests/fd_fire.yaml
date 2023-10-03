@@ -51,3 +51,18 @@
      #
      - standard_name: hflx_fire
        canonical_units: W m-2
+     #
+     - standard_name: Sa_prsl
+       alias: inst_pres_height_lowest_from_phys
+       canonical_units: Pa
+       description: atmosphere export - pressure at lowest model layer
+     #
+     - standard_name: Sa_qa
+       alias: inst_spec_humid_height_lowest_from_phys
+       canonical_units: kg kg-1
+       description: atmosphere export - bottom layer specific humidity
+     #
+     - standard_name: Sa_ta
+       alias: inst_temp_height_lowest_from_phys
+       canonical_units: K
+       description: atmosphere export - bottom layer temperature

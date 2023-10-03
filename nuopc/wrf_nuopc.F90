@@ -202,6 +202,30 @@ module wrf_nuopc
       file=__FILE__)) &
       return  ! bail out
 
+    ! exportable field: inst_pres_height_lowest_from_phys
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_pres_height_lowest_from_phys", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: inst_spec_humid_height_lowest_from_phys
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_spec_humid_height_lowest_from_phys", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: inst_temp_height_lowest_from_phys
+    call NUOPC_Advertise(exportState, &
+      StandardName="inst_temp_height_lowest_from_phys", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
     call NUOPC_Advertise(importState, &
       StandardName="hflx_fire", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -500,6 +524,46 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! exportable field on Grid: inst_pres_height_lowest_from_phys
+    field = ESMF_FieldCreate(name="inst_pres_height_lowest_from_phys", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field on Grid: inst_spec_humid_height_lowest_from_phys
+    field = ESMF_FieldCreate(name="inst_spec_humid_height_lowest_from_phys", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field on Grid: inst_temp_height_lowest_from_phys
+    field = ESMF_FieldCreate(name="inst_temp_height_lowest_from_phys", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(exportState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
 
     datetime_now = datetime_t (config_flags%start_year, config_flags%start_month, &
       config_flags%start_day, config_flags%start_hour, config_flags%start_minute, &
