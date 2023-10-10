@@ -46,6 +46,7 @@ ATMD:
     maxy:   41.619
   importFields:
     hflx_fire:                {dim: 2, min: -999999, max: 99999999999}
+    evap_fire:                {dim: 2, min: -999999, max: 99999999999}
   exportFields:
     inst_zonal_wind_levels:   {dim: 3, val: 1}
     inst_merid_wind_levels:   {dim: 3, val: 3}

@@ -232,6 +232,13 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    call NUOPC_Advertise(importState, &
+      StandardName="evap_fire", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 #endif
 
   end subroutine
@@ -340,6 +347,25 @@ module wrf_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+
+    ! importable field on Grid: evap_fire
+    field = ESMF_FieldCreate(name="evap_fire", grid=grid, &
+      typekind=ESMF_TYPEKIND_R8, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    call NUOPC_Realize(importState, field=field, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+    ! Get Field memory
+!    call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_evap_fire, rc=rc)
+!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+!      line=__LINE__, &
+!      file=__FILE__)) &
+!      return  ! bail out
 
 #ifdef WITHEXPORTFIELDS
 

@@ -50,7 +50,10 @@
        description: atmosphere export - temperature height 2m
      #
      - standard_name: hflx_fire
-       canonical_units: W m-2
+       canonical_units: K m s-1
+     #
+     - standard_name: evap_fire
+       canonical_units: kg kg-1 m s-1
      #
      - standard_name: Sa_prsl
        alias: inst_pres_height_lowest_from_phys

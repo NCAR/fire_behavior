@@ -35,10 +35,12 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
 !  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_hflx_fire(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_evap_fire(:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
 
+  real(ESMF_KIND_R8), parameter:: con_hvap   =2.5000e+6                 !< lat heat H2O cond (\f$J/kg\f$)
   real(ESMF_KIND_R8), parameter:: con_cp     =1.0046e+3                 !< spec heat air at p (\f$J/kg/K\f$)
   real(ESMF_KIND_R8), parameter:: con_rd     =2.8705e+2                 !< gas constant air (\f$J/kg/K\f$)
   real(ESMF_KIND_R8), parameter:: con_rv     =4.6150e+2                 !< gas constant H2O (\f$J/kg/K\f$)
@@ -237,6 +239,14 @@ module fire_behavior_nuopc
     ! exportable field: hflx_fire
     call NUOPC_Advertise(exportState, &
       StandardName="hflx_fire", name="hflx_fire", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: evap_fire
+    call NUOPC_Advertise(exportState, &
+      StandardName="evap_fire", name="evap_fire", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -617,6 +627,25 @@ module fire_behavior_nuopc
        line=__LINE__, &
        file=__FILE__)) &
        return  ! bail out
+
+     ! exportable field on Grid: evap_fire
+     field = ESMF_FieldCreate(name="evap_fire", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(exportState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_evap_fire, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
 ! #endif
 
   end subroutine
@@ -793,7 +822,8 @@ module fire_behavior_nuopc
         q0   = max(atm_lowest_q(i,j)/(1.-atm_lowest_q(i,j)), 1.e-8)
         rho = atm_lowest_pres(i,j) / (con_rd * atm_lowest_t(i,j) * &
             (1.0 + con_fvirt * q0))
-        grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (con_cp * rho) 
+        grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (con_cp * rho)
+        grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (con_hvap * rho)
       enddo
     enddo
 
@@ -804,6 +834,8 @@ module fire_behavior_nuopc
     call Advance_state (grid, config_flags)
 
     ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny)
+    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnqfx(1:grid%nx,1:grid%ny)
+
     call grid%Handle_output (config_flags)
 
     call ESMF_ClockPrint(clock, options="currTime", &
