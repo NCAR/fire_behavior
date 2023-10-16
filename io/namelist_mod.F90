@@ -13,6 +13,7 @@
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1, &
           interval_atm = -1
+      integer :: num_tiles = 1, num_tiles_x = 1, num_tiles_y = 1
       real :: dt = 2.0
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
@@ -361,13 +362,15 @@
       character (len = *), intent (in) :: file_name
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output
+          end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output, &
+          num_tiles, num_tiles_x, num_tiles_y
       real :: dt
 
       integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
-          end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output
+          end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
+          num_tiles, num_tiles_x, num_tiles_y
 
 
       start_year = 0
@@ -384,6 +387,9 @@
       end_second = 0
       dt = 2.0
       interval_output = 0
+      num_tiles = 1
+      num_tiles_x = 1
+      num_tiles_y = 1
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -412,6 +418,10 @@
       this%end_second = end_second
       this%dt = dt
       this%interval_output = interval_output
+
+      this%num_tiles = num_tiles
+      this%num_tiles_x = num_tiles_x
+      this%num_tiles_y = num_tiles_y
 
     end subroutine Init_time_block
 
