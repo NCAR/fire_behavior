@@ -55,6 +55,9 @@
      - standard_name: evap_fire
        canonical_units: kg kg-1 m s-1
      #
+     - standard_name: smoke_fire
+       canonical_units: kg m-2
+     #
      - standard_name: Sa_prsl
        alias: inst_pres_height_lowest_from_phys
        canonical_units: Pa

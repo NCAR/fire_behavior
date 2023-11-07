@@ -36,6 +36,7 @@ module fire_behavior_nuopc
 !  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_hflx_fire(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_evap_fire(:,:)
+  real(ESMF_KIND_R8), pointer     :: ptr_smoke_fire(:,:)
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
@@ -247,6 +248,14 @@ module fire_behavior_nuopc
     ! exportable field: evap_fire
     call NUOPC_Advertise(exportState, &
       StandardName="evap_fire", name="evap_fire", rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! exportable field: smoke_fire
+    call NUOPC_Advertise(exportState, &
+      StandardName="smoke_fire", name="smoke_fire", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -646,6 +655,25 @@ module fire_behavior_nuopc
        line=__LINE__, &
        file=__FILE__)) &
        return  ! bail out
+
+     ! exportable field on Grid: smoke_fire
+     field = ESMF_FieldCreate(name="smoke_fire", grid=fire_grid, &
+       typekind=ESMF_TYPEKIND_R8, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     call NUOPC_Realize(exportState, field=field, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
+     ! Get Field memory
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_smoke_fire, rc=rc)
+     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+       line=__LINE__, &
+       file=__FILE__)) &
+       return  ! bail out
 ! #endif
 
   end subroutine
@@ -835,6 +863,7 @@ module fire_behavior_nuopc
 
     ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny)
     ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnqfx(1:grid%nx,1:grid%ny)
+    ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = grid%emis_smoke(1:grid%nx,1:grid%ny)
 
     call grid%Handle_output (config_flags)
 
