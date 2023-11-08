@@ -25,7 +25,7 @@ file_exe=../install/bin/esmx_fire
 file_output=test8_output.txt
 
 cp ./test8/wrf.nc .
-cp ./test8/namelist.input .
+cp ./test8/namelist.fire .
 cp ./test8/geo_em.d01.nc .
 
 rm -f  ./$file_output
@@ -172,7 +172,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.fire
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

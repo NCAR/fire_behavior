@@ -104,8 +104,8 @@ module wrf_nuopc
     ! export fields in this phase.  For now, however, call
     ! your model's initialization routine(s).
 
-    call config_flags%Init_time_block ('namelist.input')
-    call config_flags%Init_atm_block ('namelist.input')
+    call config_flags%Init_time_block ('namelist.fire')
+    call config_flags%Init_atm_block ('namelist.fire')
 
     call Init_atm_state(state, config_flags)
 

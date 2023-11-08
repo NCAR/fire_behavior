@@ -113,7 +113,7 @@ module fire_behavior_nuopc
     ! your model's initialization routine(s).
 
       ! Read namelist
-    call config_flags%Initialization (file_name = 'namelist.input')
+    call config_flags%Initialization (file_name = 'namelist.fire')
 
     call Init_fire_state (grid, config_flags)
 

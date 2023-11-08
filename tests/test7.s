@@ -25,7 +25,7 @@ file_exe=../install/bin/fire_behavior.exe
 file_output=test7_output.txt
 
 cp ./test7/wrf.nc .
-cp ./test7/namelist.input .
+cp ./test7/namelist.fire .
 cp ./test7/geo_em.d01.nc .
 
 rm -f  ./$file_output
@@ -169,7 +169,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.input
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./wrf_input.dat ./geo_em.d01.nc ./namelist.fire
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

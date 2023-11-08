@@ -14,7 +14,7 @@
 
 
       ! Read namelist
-    call config_flags%Initialization (file_name = 'namelist.input')
+    call config_flags%Initialization (file_name = 'namelist.fire')
 
     call Init_atm_state (atm_state, config_flags)
     call Init_fire_state (grid, config_flags, atm_state)

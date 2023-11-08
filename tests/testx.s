@@ -26,7 +26,7 @@ file_baseline=./testx/test_solution.txt
 file_exe=../install/bin/esmx_fire
 file_output=testx_output.txt
 
-cp ./testx/namelist.input .
+cp ./testx/namelist.fire .
 cp ./testx/geo_em.d01.nc .
 cp ./testx/testx.yaml .
 
@@ -166,7 +166,7 @@ fi
 #
 
   # Purge
-rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./geo_em.d01.nc ./namelist.input testx.yaml
+rm -f ./namelist.fire.output ./file1.dat ./file2.dat ./geo_em.d01.nc ./namelist.fire testx.yaml
 if [ $purge_output -eq 1 ]
 then
   rm -rf ./$file_output

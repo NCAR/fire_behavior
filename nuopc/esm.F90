@@ -126,8 +126,8 @@ module ESM
       return  ! bail out
 
       ! set the driver clock
-    call fire_nml%Init_time_block ('namelist.input')
-    call fire_nml%Init_atm_block ('namelist.input')
+    call fire_nml%Init_time_block ('namelist.fire')
+    call fire_nml%Init_atm_block ('namelist.fire')
 
     if (fire_nml%dt > real (fire_nml%interval_atm)) then
       write (ERROR_UNIT, *) 'ERROR: The model time step (dt) must be smaller than the atm time step (interval_atm)'
