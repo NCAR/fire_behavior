@@ -61,7 +61,7 @@
                                                       2.50,  0.15,  5.01,  5.51, 16.53, 28.05,   0.0 ]
       real, dimension(N_FUEL_CAT + 1) :: fgi_1000h = 0.0
       real, dimension(N_FUEL_CAT + 1) :: fgi_live = [ 0.00,   0.50,  0.000, 5.01,  2.00,  0.00,  0.37, &
-                                                      0.00,  0.00,  2.00,  0.00,  2.3,   0.00,   0.0 ]
+                                                      0.00,  0.00,  2.00,  0.00,  0.0,   0.00,   0.0 ]
 
         ! fueldens: ovendry particle density [lb/ft3]
       real, dimension(N_FUEL_CAT + 1) :: fueldens = 32.0
