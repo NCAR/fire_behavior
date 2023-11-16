@@ -278,8 +278,9 @@
       allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
 
         ! Init tign_g a bit into the future
+        ! Inits the halo because it is used by fuel_left subroutine
       allocate (this%tign_g(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%tign_g(this%ifds:this%ifde, this%jfds:this%jfde) = epsilon (this%tign_g)
+      this%tign_g(this%ifms:this%ifme, this%jfms:this%jfme) = epsilon (this%tign_g)
 
       allocate (this%fuel_frac(this%ifms:this%ifme, this%jfms:this%jfme))
       this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
