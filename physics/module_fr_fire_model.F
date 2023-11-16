@@ -12,11 +12,11 @@
 
     private
 
-    public :: Fire_model
+    public :: Fire_model, Print_summary
 
   contains
 
-    subroutine fire_model (config_flags, ros_model, ignition_line, grid)
+    subroutine fire_model (config_flags, ros_model, ignition_line, grid, i_start, i_end, j_start, j_end)
 
     ! This subroutine implements the fire spread model.
     ! Wind and height must be given on 1 more node beyond the domain bounds. 
@@ -28,8 +28,9 @@
       type (ros_wrffire_t), intent (in) :: ros_model
       type(ignition_line_t), dimension (:), intent(in):: ignition_line
       type (state_fire_t), intent (in out) :: grid
+      integer, intent (in) :: i_start, i_end, j_start, j_end
 
-      real, dimension(grid%ifts:grid%ifte, grid%jfts:grid%jfte) :: fuel_frac_burnt, fuel_frac_end
+      real, dimension(i_start:i_end, j_start:j_end) :: fuel_frac_burnt, fuel_frac_end
 
       integer :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       integer :: ignited, ig, i, j
@@ -48,10 +49,10 @@
       jfds = grid%jfds
       jfde = grid%jfde
 
-      ifts = grid%ifts
-      ifte = grid%ifte
-      jfts = grid%jfts
-      jfte = grid%jfte
+      ifts = i_start
+      ifte = i_end
+      jfts = j_start
+      jfte = j_end
 
       ifms = grid%ifms
       ifme = grid%ifme
@@ -156,55 +157,80 @@
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
 
-      If_print_summary: if (config_flags%fire_print_msg >= stat_lev) then
-        aw = Calc_domain_stats (RNRM_SUM, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%uf,grid%vf) / &
-            ((ifde - ifds + 1) * (jfde - jfds + 1))
-        mw = Calc_domain_stats (RNRM_MAX, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%uf, grid%vf)
-
-        tfa = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%fire_area, &
-           grid%fire_area) * grid%dx * grid%dy
-
-        thf = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%fgrnhfx, &
-            grid%fgrnhfx) * grid%dx * grid%dy
-
-        mhf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%fgrnhfx, &
-            grid%fgrnhfx) 
-
-        tqf = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%fgrnqfx, &
-            grid%fgrnqfx) * grid%dx * grid%dy
-
-        mqf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, grid%fgrnqfx, &
-            grid%fgrnqfx) 
-
-        !$OMP MASTER 
-        write (msg, 91) time_start, 'Average wind        ', aw, 'm/s'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start, 'Maximum wind        ', mw, 'm/s'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start, 'Fire area           ', tfa, 'm^2'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start, 'Heat output         ', thf, 'W'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start,'Max heat flux       ', mhf, 'W/m^2'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start,'Latent heat output  ', tqf, 'W'
-        call Message(msg, config_flags%fire_print_msg, stat_lev)
-
-        write (msg, 91) time_start,'Max latent heat flux',mqf,'W/m^2'
-        call Message (msg, config_flags%fire_print_msg, stat_lev)
-        !$OMP END MASTER
-
- 91     format('Time ',f11.3,' s ',a,e12.3,1x,a)
-      end if If_print_summary
-
       call Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           grid%fgrnhfx, 'model: heat flux(J/m^2/s)', config_flags%fire_print_msg)
 
     end subroutine fire_model
+
+    subroutine print_summary (config_flags, grid)
+
+      implicit none
+
+      type (namelist_t), intent (in) :: config_flags
+      type (state_fire_t), intent (in) :: grid
+
+      real :: tfa, thf, mhf, tqf, mqf, aw, mw
+      real :: time_start
+      integer :: stat_lev = 1
+      integer :: ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme
+      character (len = 128) :: msg
+
+      ifds = grid%ifds
+      ifde = grid%ifde
+      jfds = grid%jfds
+      jfde = grid%jfde
+
+      ifms = grid%ifms
+      ifme = grid%ifme
+      jfms = grid%jfms
+      jfme = grid%jfme
+
+      time_start = grid%itimestep * grid%dt
+
+      aw = Calc_domain_stats (RNRM_SUM, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%uf,grid%vf) / &
+          ((ifde - ifds + 1) * (jfde - jfds + 1))
+      mw = Calc_domain_stats (RNRM_MAX, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%uf, grid%vf)
+
+      tfa = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fire_area, &
+         grid%fire_area) * grid%dx * grid%dy
+
+      thf = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnhfx, &
+          grid%fgrnhfx) * grid%dx * grid%dy
+
+      mhf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnhfx, &
+          grid%fgrnhfx)
+
+      tqf = Calc_domain_stats (REAL_SUM, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnqfx, &
+          grid%fgrnqfx) * grid%dx * grid%dy
+
+      mqf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnqfx, &
+          grid%fgrnqfx)
+
+      !$OMP MASTER
+      write (msg, 91) time_start, 'Average wind        ', aw, 'm/s'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start, 'Maximum wind        ', mw, 'm/s'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start, 'Fire area           ', tfa, 'm^2'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start, 'Heat output         ', thf, 'W'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start,'Max heat flux       ', mhf, 'W/m^2'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start,'Latent heat output  ', tqf, 'W'
+      call Message(msg, config_flags%fire_print_msg, stat_lev)
+
+      write (msg, 91) time_start,'Max latent heat flux',mqf,'W/m^2'
+      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      !$OMP END MASTER
+
+ 91   format('Time ',f11.3,' s ',a,e12.3,1x,a)
+
+    end subroutine print_summary
 
   end module module_fr_fire_model

@@ -159,6 +159,7 @@ type (fuel_anderson_t), intent (in) :: fuel_model
 type (ros_wrffire_t), intent (in) :: ros_model
 
 character(len=128)msg
+integer :: ij
 real:: time_start
 real:: moisture_time
 
@@ -201,24 +202,30 @@ real:: moisture_time
 
       if (grid%run_advance_moisture) then
         call Message ('advance_moisture start', config_flags%fire_print_msg)
-        call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
-            config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
-            grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
-            grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
-            grid%fmc_lag, config_flags%fuelmc_g)
+        do ij=1,grid%num_tiles
+          call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
+              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+              config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
+              grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
+              grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
+              grid%fmc_lag, config_flags%fuelmc_g)
+        enddo
         call Message ('advance_moisture end',config_flags%fire_print_msg)
 
         call Message ('fuel_moisture start',config_flags%fire_print_msg)
-        call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts,grid%ifte,grid%jfts,grid%jfte,    &
-            config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
+        do ij=1,grid%num_tiles
+          call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij),    &
+              config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
+        enddo
         call Message ('fuel_moisture end',config_flags%fire_print_msg)
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
-        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
-            grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
+        do ij=1,grid%num_tiles
+          call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+              grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
+        enddo
       end if
 
     end subroutine Fuel_moisture_model

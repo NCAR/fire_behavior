@@ -20,11 +20,12 @@
 
     type :: state_fire_t
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
-                 ifts, ifte, jfts, jfte, kfts, kfte
+                 ifts, ifte, jfts, jfte, kfts, kfte, ifps, ifpe, jfps, jfpe, kfps, kfpe
 !      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
+      integer :: num_tiles = 1
       type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output, datetime_next_atm_update
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
@@ -206,20 +207,22 @@
       this%ifde = ide0
       this%ifms = ids0 - N_POINTS_IN_HALO * geogrid%sr_x
       this%ifme = ide0 + N_POINTS_IN_HALO * geogrid%sr_x
-      this%ifts = ids0
-      this%ifte = ide0
+      this%ifps = ids0
+      this%ifpe = ide0
 
       this%jfds = jds0
       this%jfde = jde0
       this%jfms = jds0 - N_POINTS_IN_HALO * geogrid%sr_y
       this%jfme = jde0 + N_POINTS_IN_HALO * geogrid%sr_y
-      this%jfts = jds0
-      this%jfte = jde0
+      this%jfps = jds0
+      this%jfpe = jde0
 
       this%kfds = config_flags%kds
       this%kfde = config_flags%kde
       this%kfms = config_flags%kds
       this%kfme = config_flags%kde
+      this%kfps = config_flags%kds
+      this%kfpe = config_flags%kde
       this%kfts = config_flags%kds
       this%kfte = config_flags%kde
 
@@ -400,12 +403,9 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-! CPP macro for error checking
-#define ERROR_TEST(A,O,B) IF( A O B )THEN;WRITE(mess,'(3A4)')'A','O','B';WRITE(*,*) 'FATAL ERROR: BE SURE TILES ARE WITHIN MEMORY BOUNDS!';ENDIF
-
     subroutine Init_tiles (grid, config_flags)
 
-     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
      implicit none
 
@@ -420,25 +420,35 @@
      INTEGER                                :: ntiles
      INTEGER                                :: nt
      CHARACTER*255                          :: mess
+     logical, parameter                     :: DEBUG_LOCAL = .true.
 
      ! We are using DATA_ORDER_XZY
-     spx = grid%ifts ; epx = grid%ifte ; spy = grid%jfts ; epy = grid%jfte
+     spx = grid%ifps ; epx = grid%ifpe ; spy = grid%jfps ; epy = grid%jfpe
      smx = grid%ifms ; emx = grid%ifme ; smy = grid%jfms ; emy = grid%jfme
 
-     ERROR_TEST(grid%ifts,<,smx)
-     ERROR_TEST(grid%ifte,>,emx)
-     ERROR_TEST(grid%jfts,<,smy)
-     ERROR_TEST(grid%jfte,>,emy)
+     ! Check to make sure patches are within memory bounds
+     call error_test_lt(grid%ifps,smx)
+     call error_test_gt(grid%ifpe,emx)
+     call error_test_lt(grid%jfps,smy)
+     call error_test_gt(grid%jfpe,emy)
 
      num_tiles   = config_flags%num_tiles
-     num_tiles_x = config_flags%num_tiles_x
-     num_tiles_y = config_flags%num_tiles_y
+     num_tiles_x = 0
+     num_tiles_y = 0
 
      ALLOCATE(grid%i_start(num_tiles))
      ALLOCATE(grid%i_end(num_tiles))
      ALLOCATE(grid%j_start(num_tiles))
      ALLOCATE(grid%j_end(num_tiles))
 
+     ! Compute number of tiles in x and y based on user-specified total number of tiles
+     call least_aspect( num_tiles, 1, 1, num_tiles_y, num_tiles_x )
+
+     ! Make sure number of tiles in x and y are at least 1
+     num_tiles_x=max( num_tiles_x , 1)
+     num_tiles_y=max( num_tiles_y , 1)
+
+     ! Compute start and end tile indices
      nt = 1
      DO t = 0, num_tiles-1
 
@@ -473,18 +483,79 @@
 !!!
             grid%i_start(nt) = max ( ts , grid%ifds )
             grid%i_end(nt)   = min ( te , grid%ifde )
-            WRITE(mess,'("WRF-FIRE TILE ",I3," IS ",I6," IE ",I6," JS ",I6," JE ",I6)') &
-                      nt,grid%i_start(nt),grid%i_end(nt),grid%j_start(nt),grid%j_end(nt)
-            CALL Message ( mess, config_flags%fire_print_msg )
+            if (DEBUG_LOCAL) then
+              WRITE(OUTPUT_UNIT,'("WRF-FIRE TILE ",I3," IS ",I6," IE ",I6," JS ",I6," JE ",I6)') &
+                        nt,grid%i_start(nt),grid%i_end(nt),grid%j_start(nt),grid%j_end(nt)
+            endif
             nt = nt + 1
           ENDIF
         ENDIF
      END DO
      num_tiles = nt-1
-     WRITE(mess,'("WRF-FIRE NUMBER OF TILES = ",I3)')num_tiles
-     CALL Message ( mess, config_flags%fire_print_msg )
+
+     if (DEBUG_LOCAL) then
+       WRITE(OUTPUT_UNIT,'("WRF-FIRE NUMBER OF TILES = ",I3," TOTAL, ",I3," IN X, ",I3," IN Y")')num_tiles,num_tiles_x,num_tiles_y
+     endif
+
+     grid%num_tiles = num_tiles
+
+     contains
+
+    subroutine error_test_lt (A,B)
+
+      implicit none
+
+      integer, intent (in) :: A, B
+
+      if (A .lt. B) then
+        write (ERROR_UNIT, *)
+        write (ERROR_UNIT, *) 'FATAL ERROR: PATCH IS OUT OF MEMORY BOUNDS!'
+        stop
+      endif
+     
+    end subroutine error_test_lt
+
+    subroutine error_test_gt (A,B)
+
+      implicit none
+
+      integer, intent (in) :: A, B
+
+      if (A .gt. B) then
+        write (ERROR_UNIT, *)
+        write (ERROR_UNIT, *) 'FATAL ERROR: PATCH IS OUT OF MEMORY BOUNDS!'
+        stop
+      endif
+
+    end subroutine error_test_gt
 
     end subroutine Init_tiles
+
+    SUBROUTINE least_aspect( nparts, minparts_y, minparts_x, nparts_y, nparts_x )
+    IMPLICIT NONE
+    !  Input data.
+    INTEGER, INTENT(IN)           :: nparts,                &
+                                     minparts_y, minparts_x
+    ! Output data.
+    INTEGER, INTENT(OUT)          :: nparts_y, nparts_x
+    ! Local data.
+    INTEGER                       :: x, y, mini
+    mini = 2*nparts
+    nparts_y = 1
+    nparts_x = nparts
+    DO y = 1, nparts
+       IF ( mod( nparts, y ) .eq. 0 ) THEN
+          x = nparts / y
+          IF (       abs( y-x ) .LT. mini       &
+               .AND. y .GE. minparts_y                &
+               .AND. x .GE. minparts_x    ) THEN
+             mini = abs( y-x )
+             nparts_y = y
+             nparts_x = x
+          END IF
+       END IF
+    END DO
+    END SUBROUTINE least_aspect
 
     SUBROUTINE region_bounds( region_start, region_end, &
                              num_p, p,                 &

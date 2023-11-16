@@ -1,7 +1,7 @@
 
   module module_fr_fire_driver
 
-    use module_fr_fire_model, only: Fire_model
+    use module_fr_fire_model, only: Fire_model, Print_summary
     use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
     use module_fr_fire_util, only: Check_dims
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
@@ -29,10 +29,13 @@
       type (state_fire_t), target :: grid
       type (namelist_t), intent(in) :: config_flags
 
+      integer :: ij
 
         ! check if tile fits in memory
-      call Check_dims (grid%ifts - 2, grid%ifte + 2, grid%jfts - 2, grid%jfte + 2, grid%ifms, &
-          grid%ifme, grid%jfms, grid%jfme, config_flags%fire_print_msg)
+      do ij=1,grid%num_tiles
+        call Check_dims (grid%i_start(ij) - 2, grid%i_end(ij) + 2, grid%j_start(ij) - 2, grid%j_end(ij) + 2, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, config_flags%fire_print_msg)
+      enddo
 
       call Initialize_ignitions (config_flags, ignition_lines)
 
@@ -40,9 +43,12 @@
 
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
-      call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-          grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifts, grid%ifte, grid%jfts, grid%jfte, &
-          grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, grid, fuel_model,config_flags)
+      do ij=1,grid%num_tiles
+        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
+            grid%j_start(ij), grid%j_end(ij), grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, &
+            grid, fuel_model,config_flags)
+      enddo
 
     end subroutine Init_fire_driver
 
@@ -53,10 +59,19 @@
       type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in) :: config_flags
 
+      integer :: stat_lev = 1
+      integer :: ij
 
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
-      call Fire_model (config_flags, ros_model, ignition_lines, grid)
+      do ij=1,grid%num_tiles
+        call Fire_model (config_flags, ros_model, ignition_lines, grid, &
+            grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
+      enddo
+
+      if (config_flags%fire_print_msg >= stat_lev) then
+        call Print_summary (config_flags, grid)
+      endif
 
     end subroutine Fire_driver_em
 
