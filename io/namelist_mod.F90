@@ -21,7 +21,6 @@
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order,
                                               ! 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
-      real :: fire_lfn_ext_up = 1.0           ! "0.=extend level set function at boundary by reflection, 1.=always up" "1"
       integer :: fire_advection = 1           ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
@@ -163,7 +162,6 @@
       integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
-      real :: fire_lfn_ext_up = 1.0           ! "0.=extend level set function at boundary by reflection, 1.=always up" "1"
       integer :: fire_advection = 1           ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
@@ -220,7 +218,7 @@
           fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, fire_ignition_radius5 = 0.0
 
       namelist /fire/  fire_print_msg, fire_atm_feedback, fire_boundary_guard, &
-          fire_upwinding, fire_viscosity, fire_lfn_ext_up, fire_advection, fire_lsm_reinit, &
+          fire_upwinding, fire_viscosity, fire_advection, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
           fmoist_freq, fmoist_dt, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
@@ -266,7 +264,6 @@
       this%fire_boundary_guard = fire_boundary_guard
       this%fire_upwinding = fire_upwinding
       this%fire_viscosity = fire_viscosity
-      this%fire_lfn_ext_up = fire_lfn_ext_up
       this%fire_advection = fire_advection
       this%fire_lsm_reinit = fire_lsm_reinit
       this%fire_lsm_reinit_iter = fire_lsm_reinit_iter

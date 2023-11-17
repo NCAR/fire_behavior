@@ -35,7 +35,6 @@
  fire_atm_feedback = 1.0,          ! real, multiplier for heat fluxes, 1.=normal, 0.=turn off two-way coupling 
  fire_viscosity = 0.4,             ! artificial viscosity in level set method (max 1, needed with fire_upwinding=0)
  fire_upwinding = 9,               ! 0=none, 1=standard, 2=godunov, 3=eno, 4=sethian
- fire_lfn_ext_up = 1.0,            ! 0.=extend level set function at boundary by reflection, 1.=always up
  fmoist_run = .true.,   ! Run fuel moisture model
  fmoist_freq = 1,       ! Fuel moisture model updated every time step
  fire_fmc_read = 0,     ! "fuel categories are set by: if 0, uniform; if 1, user-presc; if 2, read from file"   ""
