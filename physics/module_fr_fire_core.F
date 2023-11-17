@@ -391,7 +391,7 @@ subroutine prop_ls_rk3(               &
                 ifms,ifme,jfms,jfme,     &                    
                 ifts,ifte,jfts,jfte,     &                    
                 ts,dt,dx,dy,             &
-                fire_upwinding, fire_upwind_split, &
+                fire_upwinding, &
                 fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
                 fire_viscosity_band, fire_viscosity_ngp, &
                 fire_advection, fire_slope_factor,       &
@@ -464,7 +464,7 @@ implicit none
 !
 
 integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
-integer,intent(in):: fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+integer,intent(in):: fire_upwinding,fire_viscosity_ngp, &
                     fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,intent(in)::fire_lfn_ext_up
@@ -521,7 +521,7 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                       ! tile dims
     ifms,ifme,jfms,jfme, &                       ! memory dims
     ts,dt,dx,dy,         &                       ! scalars in
-    fire_upwinding, fire_upwind_split, &
+    fire_upwinding, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
@@ -552,7 +552,7 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &               
     ts+dt,dt,dx,dy,      &
-    fire_upwinding, fire_upwind_split, &
+    fire_upwinding, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
@@ -583,7 +583,7 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &                 
     ts+dt,dt,dx,dy,      &
-    fire_upwinding, fire_upwind_split, &
+    fire_upwinding, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
@@ -961,7 +961,7 @@ subroutine tend_ls( &
     its,ite,jts,jte,    &              ! region - nodes where tend computed
     ims,ime,jms,jme,    &              ! memory dims for ros 
     t,dt,dx,dy,         &              ! scalars in
-    fire_upwinding, fire_upwind_split, &
+    fire_upwinding, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
     fire_advection, fire_slope_factor,       &
@@ -980,7 +980,7 @@ implicit none
 !*** arguments
 integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
 integer, intent(in)::ids,ide,jds,jde
-integer, intent(in):: fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+integer, intent(in):: fire_upwinding,fire_viscosity_ngp, &
                      fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,intent(in)::fire_lfn_ext_up
@@ -1133,50 +1133,7 @@ threshold_AV=fire_viscosity_ngp*dx
             ! set ros for output
             if(i.ge.its.and.i.le.ite.and.j.ge.jts.and.j.le.jte)ros(i,j)=rr
 
-            if(fire_upwind_split.eq.0)then
-
-                ! get rate of spread
-                te = -rr*grad   ! normal term 
-
-            else
-
-                ! normal direction backing rate only
-                te = - ros_base*grad
-
-		! advection in wind direction 
-                if (abs(speed)> eps) then
-                    advx=grid%uf(i,j)*ros_wind/speed
-                    advy=grid%vf(i,j)*ros_wind/speed
-                else 
-                    advx=0
-                    advy=0
-                endif
-
-                tanphi =  grid%dzdxf(i,j)*nvx + grid%dzdyf(i,j)*nvy
-		! advection from slope direction 
-                if(abs(tanphi)>eps) then
-                    advx=advx+grid%dzdxf(i,j)*ros_slope/tanphi
-                    advy=advy+grid%dzdyf(i,j)*ros_slope/tanphi
-                endif
-
-                if(fire_upwind_split.eq.1)then   
-
-                    ! one-sided upwinding
-                    te = te - max(advx,0.)*diffLx - min(advx,0.)*diffRy &
-                            - max(advy,0.)*diffLy - min(advy,0.)*diffRy
-
-
-                elseif(fire_upwind_split.eq.2)then   
- 
-                    ! Lax-Friedrichs
-                    call crash('prop_ls: bad fire_upwind_split, Lax-Friedrichs not done yet')
-
-                else
-
-                    call crash('prop_ls: bad fire_upwind_split')
-
-                endif
-            endif
+            te = -rr*grad   ! normal term 
 
             ! cfl condition
             if (grad > 0.) then
