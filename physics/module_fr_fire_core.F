@@ -2,7 +2,7 @@
 module module_fr_fire_core
 
 use ros_wrffire_mod, only: ros_wrffire_t
-use module_fr_fire_util, only: Print_tile_stats, Continue_at_boundary
+use module_fr_fire_util, only: Continue_at_boundary
 use stderrout_mod, only: Crash, Message
 
 use state_mod, only: state_fire_t
@@ -951,9 +951,6 @@ do i=ifts,ifte
   endif
 enddo
     
-call Print_tile_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme, &
-               lfn_out,'prop_ls: lfn out',fire_print_msg)
-
 end subroutine tign_update
 
 subroutine tend_ls( &
@@ -1154,9 +1151,6 @@ threshold_AV=fire_viscosity_ngp*dx
             tend(i,j)=te
         enddo
     enddo        
-
-    call Print_tile_stats(its,ite,jts,jte,ims,ime,jms,jme, & 
-                   tend,'tend_ls: tend out',fire_print_msg)
 
     ! the final CFL bound
     tbound = 1/(tbound+tol)

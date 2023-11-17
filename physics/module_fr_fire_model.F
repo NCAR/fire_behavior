@@ -2,7 +2,7 @@
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
     use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Print_tile_stats, Check_dims
+        Check_dims
     use stderrout_mod, only: Crash, Message
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -62,9 +62,6 @@
       time_start = grid%itimestep * grid%dt
 
       call Check_dims (ifts - 1, ifte + 1, jfts - 1, jfte + 1, ifms, ifme, jfms, jfme, config_flags%fire_print_msg)
-
-      call Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-          grid%fuel_frac, 'model: fuel_frac start', config_flags%fire_print_msg)
 
         ! advance the model from time_start to time_start+dt
         ! return the fuel fraction burnt this call in each fire cell
@@ -131,18 +128,12 @@
         end do
       end if
            
-      call Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-          grid%lfn, 'fire_model: lfn out', config_flags%fire_print_msg)
-    
         ! compute the heat fluxes from the fuel burned
         ! needs lfn and tign from neighbors so halo must be updated before
       call fuel_left (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
           grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, fuel_frac_end, grid%fire_area, &
           config_flags%fire_print_msg)
 
-      call Print_tile_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
-          fuel_frac_end, 'model: fuel_frac end', config_flags%fire_print_msg)
-    
       do j = jfts, jfte
         do i = ifts, ifte
           fuel_frac_burnt(i, j) = grid%fuel_frac(i, j) - fuel_frac_end(i, j) ! fuel lost this timestep
@@ -151,14 +142,8 @@
         end do
       end do
 
-      call Print_tile_stats (ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
-          fuel_frac_burnt,'model: fuel_frac burned',config_flags%fire_print_msg)
-        
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
-
-      call Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-          grid%fgrnhfx, 'model: heat flux(J/m^2/s)', config_flags%fire_print_msg)
 
     end subroutine fire_model
 

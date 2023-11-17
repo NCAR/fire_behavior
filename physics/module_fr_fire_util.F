@@ -7,7 +7,7 @@
     private
 
     public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Check_dims, Print_tile_stats, Continue_at_boundary
+        Check_dims, Continue_at_boundary
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
@@ -254,84 +254,5 @@
       end function EX
 
     end subroutine Continue_at_boundary
-
-    subroutine Print_tile_stats (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, a, var_name, fire_print_msg)
-
-      implicit none
-
-      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
-      integer, intent (in) :: fire_print_msg
-      real, intent (in) :: a(ifms:ifme, jfms:jfme)
-      character (len = *), intent (in) :: var_name
-
-      integer :: i, j
-      real :: avg_a, max_a, min_a, t, aa, bb
-      character (len = 128) :: msg
-
-
-      if (fire_print_msg == 0) return
-
-        ! Calc min, max, and mean
-      avg_a = 0
-      max_a = - huge (max_a)
-      min_a = huge (min_a)
-      t = huge (t)
-      do j = jfts, jfte
-        do i = ifts, ifte
-          aa = a(i, j)
-          if (aa .ne. aa .or. .not. aa .le. t .or. .not. aa .ge. -t) call Handle_exception (var_name, i, j, aa)
-          max_a = max (max_a, aa)
-          min_a = min (min_a, aa)
-          avg_a = avg_a + aa
-        end do
-      end do
-
-      avg_a = avg_a / real ((ifte - ifts + 1) * (jfte - jfts + 1))
-
-      call Print_stats (var_name, ifts, ifte, jfts, jfte, min_a, max_a, avg_a, fire_print_msg)
-
-    contains
-
-      subroutine Handle_exception (var_name, i, j, aa)
-
-        implicit none
-
-        character (len = *), intent(in) :: var_name
-        integer, intent (in) :: i, j
-        real, intent (in) :: aa
-
-
-        !$OMP CRITICAL
-        write (msg, 1) var_name, i, j, aa
-        call Message (msg, fire_print_msg)
- 1      format (a30, '(', i6, ',', i6, ') = ', g13.5)
-        !$OMP END CRITICAL
-
-        call Crash ('Invalid floating point number detected in ' // var_name)
-        if (aa .ne. aa) call Crash ('NaN detected in ' // var_name)
-
-      end subroutine Handle_exception
-
-      subroutine Print_stats (var_name, ifts, ifte, jfts, jfte, min_a, max_a, avg_a, fire_print_msg)
-
-        implicit none
-
-        integer, intent (in) :: ifts, ifte, jfts, jfte, fire_print_msg
-        character (len = *), intent(in) :: var_name
-        real, intent(in) :: min_a, max_a, avg_a
-
-        character (len = 128) :: msg
-        character (len = 24) :: id
-
-
-        id = trim (var_name)
-        !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write (msg,'(a, 4i4, 3g11.3)') id, ifts, ifte, jfts, jfte, min_a, max_a, avg_a
-        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-        call Message (msg, fire_print_msg)
-
-      end subroutine Print_stats
-
-    end subroutine Print_tile_stats
 
   end module module_fr_fire_util

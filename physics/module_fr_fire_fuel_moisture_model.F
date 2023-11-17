@@ -28,7 +28,7 @@
     ! 30%  Completely cured, treat as dead fuel
 
     use constants_mod, only : XLV
-    use module_fr_fire_util, only: Check_dims, Print_tile_stats
+    use module_fr_fire_util, only: Check_dims
     use stderrout_mod, only: Crash, Message
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -279,8 +279,6 @@ do k=1,MOISTURE_CLASSES
             endif
         enddo
     enddo
-
-    call Print_tile_stats(ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fmc_g,'fuel_moisture: fmc_g',fire_print_msg)
 
 enddo
 
