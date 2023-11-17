@@ -846,15 +846,7 @@
       if (config_flags%tracer_opt.eq.3) then
         call calc_smoke_emissions(this,config_flags, &
                this%ifts,this%ifte,this%jfts,this%jfte)
-!
-!        call wrf%add_fire_tracer_emissions(                        &
-!                  this%ifms,this%ifme,this%jfms,this%jfme,         &
-!                  this%ifts,this%ifte,this%jfts,this%jfte,         &
-!                  wrf%ids,wrf%ide,wrf%kds,wrf%kde,wrf%jds,wrf%jde, &
-!                  wrf%ims,wrf%ime,wrf%kms,wrf%kme,wrf%jms,wrf%jme, &
-!                  wrf%ips,wrf%ipe,wrf%kps,wrf%kpe,wrf%jps,wrf%jpe, &
-!                  wrf%rho_stag,wrf%dz8w_stag,                      &
-!                  wrf%tracer(:,:,:,p_fire_smoke),this%emis_smoke)
+
       end if
 
     end subroutine Provide_atm_feedback
