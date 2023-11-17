@@ -1130,8 +1130,7 @@ threshold_AV=fire_viscosity_ngp*dx
             rr=ros_base + ros_wind + fire_slope_factor*ros_slope
 
             if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
-            ! set ros for output
-            if(i.ge.its.and.i.le.ite.and.j.ge.jts.and.j.le.jte)ros(i,j)=rr
+            ros(i, j) = rr
 
             te = -rr*grad   ! normal term 
 
