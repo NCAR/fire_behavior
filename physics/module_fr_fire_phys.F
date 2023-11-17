@@ -79,16 +79,16 @@
 
       type (state_fire_t), intent(in out) :: grid   ! data
       type (namelist_t), intent(in) :: config_flags
-      integer, intent(in) :: ifts,ifte,jfts,jfte
+      integer, intent(in) :: ifts, ifte, jfts, jfte
 
-      integer::i_f,j_f
+      integer :: i, j
 
 
-      do j_f=jfts,jfte
-        do i_f=ifts,ifte
-          grid%emis_smoke(i_f,j_f)=config_flags%fire_tracer_smoke*grid%burnt_area_dt(i_f,j_f)*grid%fgip(i_f,j_f)  ! kg/m^2
-        enddo
-      enddo
+      do j = jfts, jfte
+        do i = ifts, ifte
+          grid%emis_smoke(i, j) = config_flags%frac_fburnt_to_smoke * grid%burnt_area_dt(i, j) * grid%fgip(i, j)  ! kg/m^2
+        end do
+      end do
 
     end subroutine Calc_smoke_emissions
 
