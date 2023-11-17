@@ -17,14 +17,13 @@
 
     type :: wrf_t
       character (len = 300) :: file_name
-      real, dimension(:, :, :), allocatable :: u3d, v3d, phl, u3d_stag, v3d_stag, phl_stag !, pres
+      real, dimension(:, :, :), allocatable :: u3d, v3d, phl, u3d_stag, v3d_stag, phl_stag
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, &
           t2_stag, q2_stag, z0_stag, psfc_stag, rain_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
-!      procedure, public :: Destroy_pres => Destroy_pressure_levels
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
       procedure, public :: Destroy_rain => Destroy_rain
       procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
@@ -36,7 +35,6 @@
       procedure, public :: Get_latlons => Get_latlons
       procedure, public :: Get_latcloncs => Get_latcloncs
       procedure, public :: Get_phl => Get_geopotential_levels
-!      procedure, public :: Get_pres => Get_pressure_levels
       procedure, public :: Get_projection => Get_projection
       procedure, public :: Get_rain => Get_rain
       procedure, public :: Get_psfc => Get_surface_pressure
@@ -67,16 +65,6 @@
       if (allocated(this%phl)) deallocate (this%phl)
 
     end subroutine Destroy_geopotential_levels
-
-!    subroutine Destroy_pressure_levels (this)
-!
-!      implicit none
-!
-!      class (wrf_t), intent (in out) :: this
-!
-!      if (allocated(this%pres)) deallocate (this%pres)
-!
-!    end subroutine Destroy_pressure_levels
 
     subroutine Destroy_meridional_wind (this)
 
@@ -215,26 +203,6 @@
       deallocate (var4d, var4d2)
 
     end subroutine Get_geopotential_levels
-
-!    subroutine Get_pressure_levels (this, datetime)
-!
-!      implicit none
-!
-!      class (wrf_t), intent (in out) :: this
-!      type (datetime_t), intent (in) :: datetime
-!
-!      real, dimension(:, :, :, :), allocatable :: var4d, var4d2
-!      integer :: nt
-!
-!
-!      nt = this%Get_datetime_index (datetime)
-!      call Get_netcdf_var (trim (this%file_name), 'P', var4d)
-!      call Get_netcdf_var (trim (this%file_name), 'PB', var4d2)
-!
-!      this%pres = var4d(:, :, :, nt) + var4d2(:, :, :, nt)
-!      deallocate (var4d, var4d2)
-!
-!    end subroutine Get_pressure_levels
 
     subroutine Get_meridional_wind_3d (this, datetime)
 
