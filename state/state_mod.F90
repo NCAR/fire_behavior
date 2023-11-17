@@ -13,9 +13,9 @@
 
     private
 
-    public :: state_fire_t, P_FIRE_SMOKE, NUM_TRACER
+    public :: state_fire_t
 
-    integer, parameter :: NUM_TRACER = 1, NUM_FMEP = 2, P_FIRE_SMOKE = 1
+    integer, parameter :: NUM_FMEP = 2
     integer, parameter :: N_POINTS_IN_HALO = 5
 
     type :: state_fire_t

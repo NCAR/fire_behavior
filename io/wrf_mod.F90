@@ -12,20 +12,17 @@
 
     public :: wrf_t, G, RERADIUS
 
-    integer, parameter :: NUM_TRACER = 1
     real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
     real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
 
     type :: wrf_t
       character (len = 300) :: file_name
-      real, dimension(:, :, :, :), allocatable :: tracer
       real, dimension(:, :, :), allocatable :: u3d, v3d, phl, u3d_stag, v3d_stag, phl_stag !, pres
       real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, &
           t2_stag, q2_stag, z0_stag, psfc_stag, rain_stag
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
-!      procedure, public :: Add_fire_tracer_emissions => Add_fire_tracer_emissions
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
 !      procedure, public :: Destroy_pres => Destroy_pressure_levels
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
@@ -61,60 +58,6 @@
     end interface wrf_t
 
   contains
-
-!    subroutine Add_fire_tracer_emissions(    &
-!           this,                             &
-!           ifms,ifme,jfms,jfme,              &
-!           ifts,ifte,jtfs,jfte,              &
-!           ids,ide,kds,kde,jds,jde,          &
-!           ims,ime,kms,kme,jms,jme,          &
-!           its,ite,kts,kte,jts,jte,          &
-!           rho,dz8w,                         &
-!           tracer,emis)
-!
-!      implicit none
-!
-!      class (wrf_t), intent(in out) :: this
-!      integer, intent(in) :: ifms,ifme,jfms,jfme,  &
-!                          ifts,ifte,jtfs,jfte,     &
-!                          ids,ide,kds,kde,jds,jde, &
-!                          ims,ime,kms,kme,jms,jme, &
-!                          its,ite,kts,kte,jts,jte
-!      real, intent(in) :: rho(ims:ime,kms:kme,jms:jme),dz8w(ims:ime,kms:kme,jms:jme)
-!      real, intent(in), dimension(ifms:ifme,jfms:jfme) :: emis
-!      real, intent(inout) :: tracer(ims:ime,kms:kme,jms:jme)
-!
-!      integer :: isz1,jsz1,isz2,jsz2,ir,jr
-!      integer :: i,j,ibase,jbase,i_f,ioff,j_f,joff
-!      real :: avgw
-!
-!
-!      isz1 = ite-its+1
-!      jsz1 = jte-jts+1
-!      isz2 = ifte-ifts+1
-!      jsz2 = jfte-jtfs+1
-!      ir=isz2/isz1
-!      jr=jsz2/jsz1
-!      avgw = 1.0/(ir*jr)
-!
-!      do j=max(jds+1,jts),min(jte,jde-2)
-!        jbase=jtfs+jr*(j-jts)
-!        do i=max(ids+1,its),min(ite,ide-2)
-!          ibase=ifts+ir*(i-its)
-!          do joff=0,jr-1
-!            j_f=joff+jbase
-!            do ioff=0,ir-1
-!              i_f=ioff+ibase
-!              if (num_tracer >0) then
-!                tracer(i,kts,j)=tracer(i,kts,j) &
-!                  + (avgw*emis(i_f,j_f)*1000/(rho(i,kts,j)*dz8w(i,kts,j))) ! g_smoke/kg_air
-!              endif
-!            enddo
-!          enddo
-!        enddo
-!      enddo
-!
-!    end subroutine Add_fire_tracer_emissions
 
     subroutine Destroy_geopotential_levels (this)
 
@@ -704,11 +647,6 @@
       return_value%jte = return_value%jde
 
       call return_value%Print_domain()
-
-      allocate (return_value%tracer(return_value%ims:return_value%ime, &
-                return_value%kms:return_value%kme, return_value%jms:return_value%jme, &
-                NUM_TRACER))
-      return_value%tracer = 0.0
 
       allocate (return_value%phl_stag(return_value%ims:return_value%ime, &
           return_value%kms:return_value%kme, return_value%jms:return_value%jme))
