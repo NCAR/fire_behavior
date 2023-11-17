@@ -130,29 +130,6 @@
 
     end subroutine Check_dims
 
-    subroutine Check_for_nan (is, ie, js, je, ims, ime, jms, jme, var2d)
-
-      implicit none
-
-      integer, intent (in) :: is, ie, js, je, ims, ime, jms, jme
-      real, intent (in) :: var2d(ims:ime, jms:jme)
-
-      integer :: i, j
-      real :: sum_var2d
-      character (len = 128) :: msg
-
-
-      sum_var2d = 0.0
-      do j = js, je
-        do i = is, ie
-           sum_var2d = sum_var2d + var2d(i, j)
-        end do
-      end do
-
-      if (sum_var2d /= sum_var2d) call Crash ('NaN detected')
-
-    end subroutine Check_for_nan
-
     subroutine Continue_at_boundary(ix,iy,bias, & ! do x direction or y direction
           ims,ime,jms,jme, &                ! memory dims
           ids,ide,jds,jde, &                ! domain dims
