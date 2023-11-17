@@ -65,8 +65,7 @@ list(APPEND _wrffire_physics physics/module_fr_fire_core.F
 			     physics/module_fr_fire_fuel_moisture_model.F
 			     physics/ignition_line_mod.F
 			     physics/ros_wrffire_mod.F
-			     physics/module_fr_fire_fuel_anderson_mod.F
-			     physics/module_fr_fire_util.F)
+			     physics/module_fr_fire_fuel_anderson_mod.F)
 
 # Driver
 list(APPEND _driver_files driver/advance_mod.F90
