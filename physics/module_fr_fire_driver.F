@@ -3,7 +3,6 @@
 
     use module_fr_fire_model, only: Fire_model, Print_summary
     use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
-    use module_fr_fire_util, only: Check_dims
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -31,11 +30,6 @@
 
       integer :: ij
 
-        ! check if tile fits in memory
-      do ij=1,grid%num_tiles
-        call Check_dims (grid%i_start(ij) - 2, grid%i_end(ij) + 2, grid%j_start(ij) - 2, grid%j_end(ij) + 2, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, config_flags%fire_print_msg)
-      enddo
 
       call Initialize_ignitions (config_flags, ignition_lines)
 

@@ -28,7 +28,6 @@
     ! 30%  Completely cured, treat as dead fuel
 
     use constants_mod, only : XLV
-    use module_fr_fire_util, only: Check_dims
     use stderrout_mod, only: Crash, Message
     use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -258,9 +257,6 @@ real,intent(out),dimension(ifms:ifme,jfms:jfme):: fmc_g ! fuel data
 !**** local
 integer::i,j,k,n
 character(len=128)::msg
-
-call check_dims (ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde,fire_print_msg) ! check if fire tile fits into domain
-call check_dims (ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,fire_print_msg) ! check if fire tile fits into memory
 
 do j=jfts,jfte
     do i=ifts,ifte

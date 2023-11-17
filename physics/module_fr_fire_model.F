@@ -1,8 +1,7 @@
   module module_fr_fire_model
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
-    use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Check_dims
+    use module_fr_fire_util, only: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats
     use stderrout_mod, only: Crash, Message
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -60,8 +59,6 @@
       jfme = grid%jfme
 
       time_start = grid%itimestep * grid%dt
-
-      call Check_dims (ifts - 1, ifte + 1, jfts - 1, jfte + 1, ifms, ifme, jfms, jfme, config_flags%fire_print_msg)
 
         ! advance the model from time_start to time_start+dt
         ! return the fuel fraction burnt this call in each fire cell

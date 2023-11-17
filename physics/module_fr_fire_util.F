@@ -6,8 +6,7 @@
 
     private
 
-    public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats, &
-        Check_dims
+    public :: REAL_MAX, REAL_SUM, RNRM_MAX, RNRM_SUM, Calc_domain_stats
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
@@ -107,27 +106,5 @@
       return_value = gsum
 
     end function Calc_domain_stats
-
-    subroutine Check_dims (ifs, ife, jfs, jfe, ifms, ifme, jfms, jfme, fire_print_msg)
-
-      implicit none
-
-      integer, intent(in) :: ifs, ife, jfs, jfe, ifms, ifme, jfms, jfme, fire_print_msg
-
-      character (len = 128) msg
-
-
-      if (ifs < ifms .or. ife > ifme .or. jfs < jfms .or. jfe > jfme) then
-        !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write (msg, *) 'mesh dimensions:  ', ifs, ife, jfs, jfe
-        call Message (msg, fire_print_msg)
-        write (msg, *) 'memory dimensions:', ifms, ifme, jfms, jfme
-        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-        call Message (msg, fire_print_msg)
-
-        call Crash ('Check_dims: memory dimensions too small')
-      end if
-
-    end subroutine Check_dims
 
   end module module_fr_fire_util
