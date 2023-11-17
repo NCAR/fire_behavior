@@ -205,15 +205,15 @@
 
       this%ifds = ids0
       this%ifde = ide0
-      this%ifms = ids0 - N_POINTS_IN_HALO * geogrid%sr_x
-      this%ifme = ide0 + N_POINTS_IN_HALO * geogrid%sr_x
+      this%ifms = ids0 - N_POINTS_IN_HALO
+      this%ifme = ide0 + N_POINTS_IN_HALO
       this%ifps = ids0
       this%ifpe = ide0
 
       this%jfds = jds0
       this%jfde = jde0
-      this%jfms = jds0 - N_POINTS_IN_HALO * geogrid%sr_y
-      this%jfme = jde0 + N_POINTS_IN_HALO * geogrid%sr_y
+      this%jfms = jds0 - N_POINTS_IN_HALO
+      this%jfme = jde0 + N_POINTS_IN_HALO
       this%jfps = jds0
       this%jfpe = jde0
 
