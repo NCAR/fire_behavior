@@ -821,27 +821,6 @@
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
 
-!      integer :: ij,its,ite,jts,jte,kts,kte            ! atm tile
-!
-!        ! --- add heat and moisture fluxes to tendency variables by postulated decay
-!      do ij=1,wrf%num_tiles
-!        ! FIRE works on domain by 1 smaller, in last row&col winds are not set properly
-!        its = wrf%i_start(ij)             ! start atmospheric tile in i
-!        ite = min(wrf%i_end(ij),wrf%ide-1)    ! end atmospheric tile in i
-!        jts = wrf%j_start(ij)             ! start atmospheric tile in j
-!        jte = min(wrf%j_end(ij),wrf%jde-1)    ! end atmospheric tile in j
-!        kts = wrf%kds
-!        kte = wrf%kde
-!
-!        call wrf%fire_tendency(                 &
-!             wrf%ids,wrf%ide-1, wrf%kds,wrf%kde, wrf%jds,wrf%jde-1, & ! domain dimensions
-!             wrf%ims,wrf%ime, wrf%kms,wrf%kme, wrf%jms,wrf%jme,     &
-!             wrf%its,wrf%ite, wrf%kts,wrf%kte, wrf%jts,wrf%jte,     & !
-!             wrf%grnhfx,wrf%grnqfx,wrf%canhfx,wrf%canqfx,           & ! fluxes on atm wrf
-!             config_flags%fire_ext_grnd,config_flags%fire_ext_crwn,config_flags%fire_crwn_hgt, &
-!             wrf%z_at_w_stag,wrf%dz8w_stag,wrf%mut_stag,wrf%c1h,wrf%c2h,wrf%rho_stag,  &
-!             wrf%rthfrten,wrf%rqvfrten)                ! out
-!      enddo
 
       if (config_flags%tracer_opt.eq.3) then
         call calc_smoke_emissions(this,config_flags, &
