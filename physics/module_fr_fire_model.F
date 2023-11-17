@@ -77,7 +77,7 @@
         !   set lfn_out tign
         !   lfn does not change, tign has no halos
       call prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
-          config_flags%fire_grows_only, config_flags%fire_upwinding, config_flags%fire_upwind_split, config_flags%fire_viscosity, &
+          config_flags%fire_upwinding, config_flags%fire_upwind_split, config_flags%fire_viscosity, &
           config_flags%fire_lfn_ext_up, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp, &
           config_flags%fire_advection, config_flags%fire_slope_factor, config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg, &
           tbound, grid%lfn, grid%lfn_0,grid%lfn_1,grid%lfn_2, grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model) 

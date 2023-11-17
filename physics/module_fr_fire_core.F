@@ -19,6 +19,7 @@ private
 
 public ::  &
           Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
+  logical, parameter :: FIRE_GROWS_ONLY = .true.
 
 contains
 
@@ -390,7 +391,6 @@ subroutine prop_ls_rk3(               &
                 ifms,ifme,jfms,jfme,     &                    
                 ifts,ifte,jfts,jfte,     &                    
                 ts,dt,dx,dy,             &
-                fire_grows_only,         &
                 fire_upwinding, fire_upwind_split, &
                 fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
                 fire_viscosity_band, fire_viscosity_ngp, &
@@ -464,7 +464,7 @@ implicit none
 !
 
 integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
-integer,intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+integer,intent(in):: fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
                     fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,intent(in)::fire_lfn_ext_up
@@ -521,7 +521,6 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                       ! tile dims
     ifms,ifme,jfms,jfme, &                       ! memory dims
     ts,dt,dx,dy,         &                       ! scalars in
-    fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
@@ -553,7 +552,6 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &               
     ts+dt,dt,dx,dy,      &
-    fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
@@ -585,7 +583,6 @@ call message(msg,fire_print_msg)
     ifts,ifte,jfts,jfte, &                    
     ifms,ifme,jfms,jfme, &                 
     ts+dt,dt,dx,dy,      &
-    fire_grows_only,     &
     fire_upwinding, fire_upwind_split, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
@@ -964,7 +961,6 @@ subroutine tend_ls( &
     its,ite,jts,jte,    &              ! region - nodes where tend computed
     ims,ime,jms,jme,    &              ! memory dims for ros 
     t,dt,dx,dy,         &              ! scalars in
-    fire_grows_only,    &
     fire_upwinding, fire_upwind_split, &
     fire_viscosity, fire_lfn_ext_up, fire_viscosity_bg, &
     fire_viscosity_band, fire_viscosity_ngp, &
@@ -984,7 +980,7 @@ implicit none
 !*** arguments
 integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
 integer, intent(in)::ids,ide,jds,jde
-integer, intent(in)::fire_grows_only,fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
+integer, intent(in):: fire_upwinding,fire_upwind_split,fire_viscosity_ngp, &
                      fire_advection,fire_lsm_band_ngp,fire_print_msg
 real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
 real,intent(in)::fire_lfn_ext_up
@@ -1133,7 +1129,7 @@ threshold_AV=fire_viscosity_ngp*dx
             nvx, nvy, i, j, grid, fire_advection)
             rr=ros_base + ros_wind + fire_slope_factor*ros_slope
 
-            if(fire_grows_only.gt.0)rr=max(rr,0.)
+            if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
             ! set ros for output
             if(i.ge.its.and.i.le.ite.and.j.ge.jts.and.j.le.jte)ros(i,j)=rr
 
