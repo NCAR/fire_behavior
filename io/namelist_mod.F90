@@ -45,8 +45,7 @@
       logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
-      integer :: tracer_opt = 0               ! 3) Activates smoke tracer
-      real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
+      real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
@@ -187,8 +186,7 @@
       logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
-      integer :: tracer_opt = 0               ! 3) Activates smoke tracer
-      real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke (tracer_opt=3)" "g_smoke/kg_air"
+      real :: fire_tracer_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke " "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
@@ -226,7 +224,7 @@
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
           fmoist_freq, fmoist_dt, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
-          fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, tracer_opt, fire_tracer_smoke, fuelmc_g, &
+          fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, fire_tracer_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
             ! Ignitions
           fire_num_ignitions, &
@@ -291,7 +289,6 @@
       this%fire_is_real_perim = fire_is_real_perim
       this%nfmc = nfmc
       this%fmep_decay_tlag = fmep_decay_tlag
-      this%tracer_opt = tracer_opt
       this%fire_tracer_smoke = fire_tracer_smoke
       this%fuelmc_g = fuelmc_g
       this%fuelmc_g_live = fuelmc_g_live

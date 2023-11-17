@@ -110,32 +110,10 @@
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Interpolate_profile => Interpolate_profile
       procedure, public :: Print => Print_domain ! private
-      procedure, public :: Provide_atm_feedback => Provide_atm_feedback
       procedure, public :: Save_state => Save_state
     end type state_fire_t
 
   contains
-
-    subroutine calc_smoke_emissions(         &
-           grid,config_flags,                &
-           ifts,ifte,jfts,jfte)
-
-      implicit none
-
-      type (state_fire_t), intent(in out) :: grid   ! data
-      type (namelist_t), intent(in) :: config_flags
-      integer, intent(in) :: ifts,ifte,jfts,jfte
-
-      integer::i_f,j_f
-
-
-      do j_f=jfts,jfte
-        do i_f=ifts,ifte
-          grid%emis_smoke(i_f,j_f)=config_flags%fire_tracer_smoke*grid%burnt_area_dt(i_f,j_f)*grid%fgip(i_f,j_f)  ! kg/m^2
-        enddo
-      enddo
-
-    end subroutine calc_smoke_emissions
 
     subroutine Handle_output (this, config_flags)
 
@@ -810,25 +788,6 @@
       write (OUTPUT_UNIT, *) ''
 
     end subroutine Print_domain
-
-    subroutine Provide_atm_feedback (this, wrf, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
-      implicit none
-
-      class (state_fire_t), intent(in out) :: this
-      type (namelist_t), intent (in) :: config_flags
-      type (wrf_t), intent (in out) :: wrf
-
-
-      if (config_flags%tracer_opt.eq.3) then
-        call calc_smoke_emissions(this,config_flags, &
-               this%ifts,this%ifte,this%jfts,this%jfte)
-
-      end if
-
-    end subroutine Provide_atm_feedback
 
     subroutine Save_state (this)
 

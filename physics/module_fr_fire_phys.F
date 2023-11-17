@@ -7,7 +7,7 @@
 
     private
 
-    public :: Calc_fire_fluxes, Calc_flame_length
+    public :: Calc_fire_fluxes, Calc_flame_length, Calc_smoke_emissions
 
       ! hfgl: surface fire heat flux threshold to ignite canopy [W/m2]
 !    real, parameter :: HFGL = 17.0e4
@@ -72,6 +72,25 @@
       end do
 
     end subroutine Calc_flame_length
+
+    subroutine Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
+
+      implicit none
+
+      type (state_fire_t), intent(in out) :: grid   ! data
+      type (namelist_t), intent(in) :: config_flags
+      integer, intent(in) :: ifts,ifte,jfts,jfte
+
+      integer::i_f,j_f
+
+
+      do j_f=jfts,jfte
+        do i_f=ifts,ifte
+          grid%emis_smoke(i_f,j_f)=config_flags%fire_tracer_smoke*grid%burnt_area_dt(i_f,j_f)*grid%fgip(i_f,j_f)  ! kg/m^2
+        enddo
+      enddo
+
+    end subroutine Calc_smoke_emissions
 
   end module module_fr_fire_phys
 

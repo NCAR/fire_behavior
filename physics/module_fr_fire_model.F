@@ -2,7 +2,7 @@
 
     use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
     use stderrout_mod, only: Crash, Message
-    use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes
+    use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
@@ -140,6 +140,8 @@
 
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
+
+      call Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
 
     end subroutine fire_model
 

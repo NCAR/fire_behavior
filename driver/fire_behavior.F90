@@ -23,7 +23,6 @@
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
       call grid%Handle_output (config_flags)
-      call grid%Provide_atm_feedback (atm_state, config_flags)
       call grid%Handle_wrfdata_update (atm_state, config_flags)
     end do
 
