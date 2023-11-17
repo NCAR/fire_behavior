@@ -66,7 +66,6 @@
       real, dimension(:, :), allocatable :: lons   ! "longitude of midpoints of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
-      real, dimension(:, :), allocatable :: test
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
@@ -286,9 +285,6 @@
       allocate (this%fire_rain_old(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_t2_old(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_q2_old(this%ifms:this%ifme, this%jfms:this%jfme))
-
-      allocate (this%test(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%test = 0.0
 
       allocate (this%fmc_gc(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
       allocate (this%fmc_equi(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
@@ -804,8 +800,6 @@
 
       call Add_netcdf_dim (file_output, 'nx', this%nx)
       call Add_netcdf_dim (file_output, 'ny', this%ny)
-
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'test', this%test(1:this%nx, 1:this%ny))
 
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lats', this%lats(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lons', this%lons(1:this%nx, 1:this%ny))
