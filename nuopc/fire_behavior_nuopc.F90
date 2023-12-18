@@ -12,6 +12,7 @@ module fire_behavior_nuopc
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
+  use constants_mod, only : con_g, con_hvap, con_cp, con_fvirt, con_rd
 
   implicit none
 
@@ -40,13 +41,6 @@ module fire_behavior_nuopc
   integer :: clb(2), cub(2), clb3(3), cub3(3)
   logical :: imp_rainrte = .FALSE.
   logical :: imp_rainacc = .FALSE.
-
-  real(ESMF_KIND_R8), parameter:: con_hvap   =2.5000e+6                 !< lat heat H2O cond (\f$J/kg\f$)
-  real(ESMF_KIND_R8), parameter:: con_cp     =1.0046e+3                 !< spec heat air at p (\f$J/kg/K\f$)
-  real(ESMF_KIND_R8), parameter:: con_rd     =2.8705e+2                 !< gas constant air (\f$J/kg/K\f$)
-  real(ESMF_KIND_R8), parameter:: con_rv     =4.6150e+2                 !< gas constant H2O (\f$J/kg/K\f$)
-  real(ESMF_KIND_R8), parameter:: con_g      =9.8067e+0                 !< gravity (\f$m/s^{2}\f$)
-  real(ESMF_KIND_R8), parameter:: con_fvirt  =con_rv/con_rd-1.
 
   contains
 
