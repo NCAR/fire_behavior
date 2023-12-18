@@ -45,6 +45,7 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), parameter:: con_cp     =1.0046e+3                 !< spec heat air at p (\f$J/kg/K\f$)
   real(ESMF_KIND_R8), parameter:: con_rd     =2.8705e+2                 !< gas constant air (\f$J/kg/K\f$)
   real(ESMF_KIND_R8), parameter:: con_rv     =4.6150e+2                 !< gas constant H2O (\f$J/kg/K\f$)
+  real(ESMF_KIND_R8), parameter:: con_g      =9.8067e+0                 !< gravity (\f$m/s^{2}\f$)
   real(ESMF_KIND_R8), parameter:: con_fvirt  =con_rv/con_rd-1.
 
   contains
@@ -834,7 +835,6 @@ module fire_behavior_nuopc
       enddo
     enddo
 
-    deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
     
     allocate (atm_lowest_t(1:grid%nx,1:grid%ny))
@@ -850,12 +850,15 @@ module fire_behavior_nuopc
         q0   = max(atm_lowest_q(i,j)/(1.-atm_lowest_q(i,j)), 1.e-8)
         rho = atm_lowest_pres(i,j) / (con_rd * atm_lowest_t(i,j) * &
             (1.0 + con_fvirt * q0))
-        grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (con_cp * rho)
-        grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (con_hvap * rho)
+        if (rho > 0.) then ! avoid unpredictable behavior on the edges
+          grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (con_cp * rho)
+          grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (con_hvap * rho)
+          grid%emis_smoke(i,j) = grid%emis_smoke(i,j) / ((atm_ph(i,j,2) - atm_ph(i,j,1)) / con_g * rho)
+        end if
       enddo
     enddo
 
-
+    deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
