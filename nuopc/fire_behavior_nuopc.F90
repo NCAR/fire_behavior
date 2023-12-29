@@ -858,8 +858,8 @@ module fire_behavior_nuopc
 
     call Advance_state (grid, config_flags)
 
-    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny)
-    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnqfx(1:grid%nx,1:grid%ny)
+    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
+    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnqfx(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
     ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = grid%emis_smoke(1:grid%nx,1:grid%ny)
 
     call grid%Handle_output (config_flags)
