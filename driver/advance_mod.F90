@@ -22,7 +22,7 @@
       type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in out) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) then

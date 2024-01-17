@@ -22,7 +22,7 @@
       type (wrf_t), intent (in out) :: atm_state
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Init_atm_state'
@@ -44,7 +44,7 @@
       type (wrf_t), intent (in out), optional :: wrf
 
       type (geogrid_t) :: geogrid
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
       integer :: i, j, unit_out, unit_out2
 
 

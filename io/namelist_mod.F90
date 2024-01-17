@@ -422,7 +422,7 @@
       class (namelist_t), intent (out) :: this
       character (len = *), intent (in) :: file_name
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'

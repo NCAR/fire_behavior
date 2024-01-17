@@ -123,7 +123,7 @@
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (this%datetime_now == this%datetime_next_output) then
@@ -170,6 +170,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in) :: geogrid
 
+      logical, parameter :: DEBUG_LOCAL = .false.
       integer :: ids0, ide0, jds0, jde0
 
 
@@ -220,7 +221,7 @@
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
 
-      call this%Print()
+      if (DEBUG_LOCAL) call this%Print()
 
       this%nx = this%ifde
       this%ny = this%jfde
@@ -393,7 +394,7 @@
      INTEGER                                :: ntiles
      INTEGER                                :: nt
      CHARACTER*255                          :: mess
-     logical, parameter                     :: DEBUG_LOCAL = .true.
+     logical, parameter                     :: DEBUG_LOCAL = .false.
 
      ! We are using DATA_ORDER_XZY
      spx = grid%ifps ; epx = grid%ifpe ; spy = grid%jfps ; epy = grid%jfpe

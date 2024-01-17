@@ -406,7 +406,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t) :: return_value
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical, parameter :: DEBUG_LOCAL = .false.
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0, &
           DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAIN = 0.0
 
@@ -469,7 +469,7 @@
       return_value%jts = return_value%jds
       return_value%jte = return_value%jde
 
-      call return_value%Print_domain()
+      if (DEBUG_LOCAL) call return_value%Print_domain()
 
       allocate (return_value%phl_stag(return_value%ims:return_value%ime, &
           return_value%kms:return_value%kme, return_value%jms:return_value%jme))
@@ -673,7 +673,6 @@
       class (wrf_t), intent(in out) :: this
       type (datetime_t), intent (in) :: datetime_now
 
-      logical, parameter :: DEBUG_LOCAL = .true.
       integer :: i, j, k
 
 
