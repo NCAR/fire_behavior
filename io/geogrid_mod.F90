@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
-    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
     use proj_lc_mod, only : proj_lc_t
 
     implicit none
@@ -40,6 +40,8 @@
       real (kind = REAL32) :: att_real32
       integer (kind = INT32) :: att_int32
 
+
+      call Is_netcdf_file_present (file_name = trim (file_name))
 
       call Get_netcdf_var (trim (file_name), 'ZSF', var_real32)
       return_value%elevations = var_real32(:, :, 1)
