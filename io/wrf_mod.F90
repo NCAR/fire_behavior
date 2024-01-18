@@ -1,6 +1,6 @@
   module wrf_mod
 
-    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
     use datetime_mod, only : datetime_t
     use proj_lc_mod, only : proj_lc_t
     use namelist_mod, only : namelist_t
@@ -416,6 +416,7 @@
 
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Entering wrf_t constructor'
       return_value%file_name = trim (file_name)
+      call Is_netcdf_file_present (trim (file_name))
 
         ! Init projection
       call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LAT', att_real32)

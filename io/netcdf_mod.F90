@@ -1,10 +1,13 @@
   module netcdf_mod
 
+    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+
     implicit none
 
     private
 
-    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
+    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, &
+       Is_netcdf_file_present
 
     interface Add_netcdf_var
       module procedure Add_netcdf_var_real32_2d
@@ -151,7 +154,7 @@
 
 
       if (status /= NF90_NOERR) then
-        print *, trim (nf90_strerror (status))
+        write (ERROR_UNIT, *) trim (nf90_strerror (status))
         stop
       end if
 
@@ -516,6 +519,28 @@
       call Check_status (status)
 
     end subroutine Get_netcdf_var_real32_4d
+
+    subroutine Is_netcdf_file_present (file_name)
+
+      use netcdf
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name
+
+      integer :: ncidout, status
+
+      status = nf90_open (trim(file_name), NF90_WRITE, ncidout)
+      if (status /= NF90_NOERR) then
+        write (ERROR_UNIT, *) 'Problems opening file ', trim (file_name)
+        write (ERROR_UNIT, *) trim (nf90_strerror (status))
+        stop
+      end if
+
+      status = nf90_close (ncidout)
+      call Check_status (status)
+
+    end subroutine Is_netcdf_file_present
 
   end module netcdf_mod
 
