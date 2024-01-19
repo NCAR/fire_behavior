@@ -1,5 +1,7 @@
   module state_mod
 
+    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
+
     use namelist_mod, only : namelist_t, NUM_FMC
     use geogrid_mod, only : geogrid_t
     use proj_lc_mod, only : proj_lc_t
@@ -116,8 +118,6 @@
 
     subroutine Handle_output (this, config_flags)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
       implicit none
 
       class (state_fire_t), intent(in out) :: this
@@ -135,8 +135,6 @@
     end subroutine Handle_output
 
     subroutine Handle_wrfdata_update (this, wrf, config_flags)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 
@@ -163,7 +161,6 @@
 
     subroutine Init_domain (this, config_flags, geogrid)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
       implicit none
 
       class (state_fire_t), intent(in out) :: this
@@ -301,11 +298,19 @@
       allocate (this%emis_smoke(this%ifms:this%ifme, this%jfms:this%jfme))
       this%emis_smoke = 0.0
 
-
       this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
       this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
       this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
       this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
+
+      if (config_flags%fire_is_real_perim) then
+        if (allocated (geogrid%lfn_init)) then
+          this%lfn_hist(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%lfn_init
+        else
+          write (ERROR_UNIT, *) 'Attenting to initialize fire from given  perimeter but no initialization data present'
+          stop
+        end if
+      end if
 
       this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
       this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
@@ -316,8 +321,6 @@
     end subroutine Init_domain
 
     subroutine Init_latlons (this, geogrid)
-
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
       implicit none
 
@@ -378,8 +381,6 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     subroutine Init_tiles (grid, config_flags)
-
-     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
      implicit none
 
@@ -761,8 +762,6 @@
 
     subroutine Print_domain (this)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
       implicit none
 
       class (state_fire_t), intent(in out) :: this
@@ -819,6 +818,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'vf', this%vf(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'zsf', this%zsf(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lfn', this%lfn(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'nfuel_cat', this%nfuel_cat(1:this%nx, 1:this%ny))
 
     end subroutine Save_state
 

@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
-    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present, Is_netcdf_var_present
     use proj_lc_mod, only : proj_lc_t
 
     implicit none
@@ -11,8 +11,10 @@
 
     public :: geogrid_t
 
+    character (len = *), parameter :: VAR_NAME_LFNINI = 'lfn_init'
+
     type :: geogrid_t
-      real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong, xlat_c, xlong_c
+      real, dimension (:, :), allocatable :: elevations, dz_dxs, dz_dys, fuel_cats, xlat, xlong, xlat_c, xlong_c, lfn_init
       real :: dx = 0.0, dy = 0.0, cen_lat = 0.0, cen_lon = 0.0, true_lat_1 = 0.0, true_lat_2 = 0.0, stand_lon = 0.0
       integer :: ids = 1, jds = 1, ide, jde = 0, ifds = 1, jfds = 1, ifde = 0, jfde = 0, sr_x = 0, sr_y = 0, map_proj = 0
     contains
@@ -116,6 +118,9 @@
 
       call Get_netcdf_att (trim (file_name), 'global', 'sr_y', att_int32)
       return_value%sr_y = att_int32
+
+      if (Is_netcdf_var_present (trim (file_name), VAR_NAME_LFNINI)) &
+          call Get_netcdf_var (trim (file_name), VAR_NAME_LFNINI, return_value%lfn_init)
 
     end function Geogrid_t_const
 
