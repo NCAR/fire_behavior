@@ -16,8 +16,8 @@ use ros_wrffire_mod, only : ros_wrffire_t
 
 private
 
-public ::  &
-          Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
+public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
+
   logical, parameter :: FIRE_GROWS_ONLY = .true.
 
 contains
@@ -684,7 +684,7 @@ threshold_HLu=fire_lsm_band_ngp*dx
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
 
-    call continue_at_boundary(1,1, &   !extend by extrapolation but never down 
+    call Continue_at_boundary(1,1, &   !extend by extrapolation but never down
     ifms,ifme,jfms,jfme, &                             ! memory dims
     ifds,ifde,jfds,jfde, &                             ! domain
     ifts,ifte,jfts,jfte, &                             ! tile
@@ -707,7 +707,7 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S1.inc"
 #endif
 
-    call continue_at_boundary(1,1, &
+    call Continue_at_boundary(1,1, &
     ifms,ifme,jfms,jfme, &
     ifds,ifde,jfds,jfde, &
     ifts,ifte,jfts,jfte, &
@@ -728,7 +728,7 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S2.inc"
 #endif
 
-    call continue_at_boundary(1,1, &
+    call Continue_at_boundary(1,1, &
     ifms,ifme,jfms,jfme, &
     ifds,ifde,jfds,jfde, &
     ifts,ifte,jfts,jfte, &
@@ -749,7 +749,7 @@ do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each ti
 #      include "HALO_FIRE_LFN_S3.inc"
 #endif
 
-    call continue_at_boundary(1,1, &
+    call Continue_at_boundary(1,1, &
     ifms,ifme,jfms,jfme, &
     ifds,ifde,jfds,jfde, &
     ifts,ifte,jfts,jfte, &
@@ -1016,7 +1016,7 @@ threshold_HLl=-fire_lsm_band_ngp*dx
 threshold_HLu=fire_lsm_band_ngp*dx
 threshold_AV=fire_viscosity_ngp*dx
 
-    call continue_at_boundary(1,1, &   !extend by extrapolation but never down 
+    call Continue_at_boundary(1,1, &   !extend by extrapolation but never down
     ims,ime,jms,jme, &                                 ! memory dims
     ids,ide,jds,jde, &                                 ! domain
     its,ite,jts,jte, &                                 ! tile
@@ -1415,7 +1415,7 @@ end function select_weno5
             iteo=ide+1
         endif
       !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write(msg,'(8(a,i5))')'continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
+        write(msg,'(8(a,i5))')'Continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
         call message(msg, fire_print_msg)
       !$OMP END CRITICAL(FIRE_UTIL_CRIT)
       endif
@@ -1433,7 +1433,7 @@ end function select_weno5
             jteo=jde+1
         endif
       !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write(msg,'(8(a,i5))')'continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
+        write(msg,'(8(a,i5))')'Continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
       !$OMP END CRITICAL(FIRE_UTIL_CRIT)
         call message(msg, fire_print_msg)
       endif

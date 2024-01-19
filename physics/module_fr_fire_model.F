@@ -1,6 +1,6 @@
   module module_fr_fire_model
 
-    use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3
+    use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
     use stderrout_mod, only: Crash, Message
     use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -40,6 +40,7 @@
       integer :: ignitions_done
         ! number of gridpts ignited in a given ignition
       integer :: ignited_tile(config_flags%fire_num_ignitions)
+      integer :: itso, iteo, jtso, jteo
 
 
       ifds = grid%ifds
@@ -111,6 +112,14 @@
             end if
           end do
         end do
+
+        call Continue_at_boundary(1, 1, &   !extend by extrapolation but never down
+                                  ifms, ifme, jfms, jfme, &
+                                  ifds, ifde, jfds, jfde, &
+                                  ifts, ifte, jfts, jfte, &
+                                  itso, iteo, jtso, jteo, &
+                                  grid%lfn, config_flags%fire_print_msg)
+
       else if (.not. config_flags%fire_is_real_perim) then
         do ig = 1, config_flags%fire_num_ignitions
             !  for now, check for ignition every time step...
