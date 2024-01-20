@@ -1066,40 +1066,48 @@
 
     end subroutine tend_ls
 
-    real function select_upwind(diffLx,diffRx)
+    pure function Select_upwind (diff_lx, diff_rx) result (return_value)
+
+      ! upwind differences, L or R if both same sign, otherwise zero
 
       implicit none
 
-      real, intent(in):: diffLx, diffRx
-      real diff2x
+      real, intent (in) :: diff_lx, diff_rx
+      real :: return_value
 
-      ! upwind differences, L or R if bith same sign, otherwise zero    
+      real :: diff2x
 
-      diff2x=0
-      if (diffLx>0.and.diffRx>0.)diff2x=diffLx
-      if (diffLx<0.and.diffRx<0.)diff2x=diffRx
 
-      select_upwind=diff2x
-    end function select_upwind
+      diff2x = 0.0
+      if (diff_lx > 0.0 .and. diff_rx > 0.0) diff2x = diff_lx
+      if (diff_lx < 0.0 .and. diff_rx < 0.0) diff2x = diff_rx
 
-    real function select_godunov(diffLx,diffRx)
+      return_value = diff2x
 
-      implicit none
+    end function Select_upwind
 
-      real, intent(in):: diffLx, diffRx
-      real diff2x,diffCx
+    pure function Select_godunov (diff_lx, diff_rx) result (return_value)
 
       ! Godunov scheme: upwind differences, L or R or none    
       ! always test on > or < never = , much faster because of IEEE
       ! central diff >= 0 => take left diff if >0, ortherwise 0
       ! central diff <= 0 => take right diff if <0, ortherwise 0
 
-      diff2x=0
-      diffCx=diffRx+diffLx
-      if (diffLx>0.and..not.diffCx<0)diff2x=diffLx
-      if (diffRx<0.and.     diffCx<0)diff2x=diffRx
+      implicit none
 
-      select_godunov=diff2x
+      real, intent (in) :: diff_lx, diff_rx
+      real :: return_value
+
+      real :: diff2x, diff_cx
+
+
+      diff2x = 0.0
+      diff_cx = diff_rx + diff_lx
+      if (diff_lx > 0.0 .and. .not. diff_cx < 0.0) diff2x = diff_lx
+      if (diff_rx < 0.0 .and.       diff_cx < 0.0) diff2x = diff_rx
+
+      return_value = diff2x
+
     end function select_godunov
 
     real function select_eno(diffLx,diffRx)
