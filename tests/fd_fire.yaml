@@ -33,7 +33,8 @@
        canonical_units: mm
        description: atmosphere export
      #
-     - standard_name: mean_prec_rate
+     - standard_name: Faxa_rain
+       alias: inst_prec_rate
        canonical_units: kg m-2 s-1
        description: atmosphere export
      #

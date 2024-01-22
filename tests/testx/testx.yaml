@@ -53,7 +53,7 @@ ATMD:
     inst_geop_levels:         {dim: 3, val: 15046.8}
     inst_pres_levels:         {dim: 3, val: 85000}
     inst_surface_roughness:   {dim: 2, val: 0.12}
-    mean_prec_rate:           {dim: 2, val: 0}
+    inst_prec_rate:           {dim: 2, val: 0}
     inst_spec_humid_height2m: {dim: 2, val: 0.005}
     inst_pres_height_surface: {dim: 2, val: 85000}
     inst_temp_height2m:       {dim: 2, val: 310}
