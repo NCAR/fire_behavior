@@ -598,112 +598,131 @@
 
     end subroutine reinit_ls_rk3
 
-    subroutine advance_ls_reinit(ifms,ifme,jfms,jfme, &
-                          ifds,ifde,jfds,jfde,    &
-                          ifts,ifte,jfts,jfte,    &
-                          dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-                          lfn_s0,lfn_ini,lfn_curr,lfn_fin,rk_coeff, &
-                          fire_upwinding_reinit)
+    subroutine advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+        ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, lfn_s0, &
+        lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit)
 
       ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
-      ! Domingo Munoz-Esparza, NCAR/RAL
-      ! Reference: D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate   
-      ! fire-spread algorithm in the Weather Research and Forecasting model using the 
-      ! level-set method", Journal of Advances in Modeling Earth Systems, 2018      
-      ! https://doi.org/10.1002/2017MS001108
 
       implicit none
 
-      integer,intent(in)::ifms,ifme,jfms,jfme,ifts,ifte,jfts,jfte,ifds,ifde,jfds,jfde,bdy_eno1
-      integer,intent(in)::fire_upwinding_reinit
-      real,dimension(ifms:ifme,jfms:jfme),intent(in)::lfn_s0,lfn_ini,lfn_curr
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_fin
-      real,intent(in)::dx,dy,dt_s,threshold_HLu,rk_coeff
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, &
+          jfte, ifds, ifde, jfds, jfde, bdy_eno1
+      integer, intent (in) :: fire_upwinding_reinit
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_s0, lfn_ini, lfn_curr
+      real, dimension (ifms:ifme, jfms:jfme), intent (inout) :: lfn_fin
+      real, intent (in) :: dx, dy, dt_s, threshold_HLu, rk_coeff
 
-      integer::i,j
-      real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,tend_r
+      integer :: i, j
+      real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, tend_r
 
 
-      do j=jfts,jfte 
-        do i=ifts,ifte 
-          if (i.lt.ifds+bdy_eno1 .OR. i.gt.ifde-bdy_eno1 .OR. j.lt.jfds+bdy_eno1 .OR. j.gt.jfde-bdy_eno1) then ! 
-            diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
-            diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
-            diffRx=(lfn_curr(i+1,j)-lfn_curr(i,j))/dx
-            diffRy=(lfn_curr(i,j+1)-lfn_curr(i,j))/dy
-            diff2x=select_eno(diffLx,diffRx)
-            diff2y=select_eno(diffLy,diffRy)
+      do j = jfts, jfte 
+        do i = ifts, ifte 
+          if (i < ifds + bdy_eno1 .or. i > ifde - bdy_eno1 .or. &
+              j < jfds + bdy_eno1 .or. j > jfde - bdy_eno1) then
+            diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
+            diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
+            diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
+            diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
+            diff2x = select_eno (diffLx, diffRx)
+            diff2y = Select_eno (diffLy, diffRy)
           else
-            select case(fire_upwinding_reinit)
-            case(1)
-             diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
-             diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-             diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j), &
-                 lfn_s0(i,j)*diff2x)
-             diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2), &
-               lfn_s0(i,j)*diff2y)
-            case(2)
-             diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
-             diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-             diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
-                 lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-             diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
-                 lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
-            case(3)
-             if (lfn_curr(i,j).lt.threshold_HLu) then
-               diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
-               diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno3(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j), &
-                   lfn_s0(i,j)*diff2x)
-               diff2y=select_weno3(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2), &
-                   lfn_s0(i,j)*diff2y)
-             else
-               diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
-               diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
-               diffRx=(lfn_curr(i+1,j)-lfn_curr(i,j))/dx
-               diffRy=(lfn_curr(i,j+1)-lfn_curr(i,j))/dy
-               diff2x=select_eno(diffLx,diffRx)
-               diff2y=select_eno(diffLy,diffRy)
-             endif
-            case(4)
-             if (lfn_curr(i,j).lt.threshold_HLu) then
-               diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
-               diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
-                   lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
-                   lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
-             else
-               diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
-               diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
-               diffRx=(lfn_curr(i+1,j)-lfn_curr(i,j))/dx
-               diffRy=(lfn_curr(i,j+1)-lfn_curr(i,j))/dy
-               diff2x=select_eno(diffLx,diffRx)
-               diff2y=select_eno(diffLy,diffRy)
-             endif
-            case default
-             if (lfn_curr(i,j).lt.threshold_HLu) then
-               diff2x=select_4th(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i+1,j),lfn_curr(i+2,j))
-               diff2y=select_4th(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j+1),lfn_curr(i,j+2))
-               diff2x=select_weno5(dx,lfn_curr(i,j),lfn_curr(i-1,j),lfn_curr(i-2,j),lfn_curr(i-3,j),lfn_curr(i+1,j), &
-                   lfn_curr(i+2,j),lfn_curr(i+3,j),lfn_s0(i,j)*diff2x)
-               diff2y=select_weno5(dy,lfn_curr(i,j),lfn_curr(i,j-1),lfn_curr(i,j-2),lfn_curr(i,j-3),lfn_curr(i,j+1), &
-                   lfn_curr(i,j+2),lfn_curr(i,j+3),lfn_s0(i,j)*diff2y)
-             else
-               diffLx=(lfn_curr(i,j)-lfn_curr(i-1,j))/dx
-               diffLy=(lfn_curr(i,j)-lfn_curr(i,j-1))/dy
-               diffRx=(lfn_curr(i+1,j)-lfn_curr(i,j))/dx
-               diffRy=(lfn_curr(i,j+1)-lfn_curr(i,j))/dy
-               diff2x=select_eno(diffLx,diffRx)
-               diff2y=select_eno(diffLy,diffRy)
-             endif
+            select case (fire_upwinding_reinit)
+              case (1)
+                diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                    lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
+                diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                    lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2))
+                diff2x = Select_weno3 (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                    lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j), &
+                    lfn_s0(i, j) * diff2x)
+                diff2y = Select_weno3 (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                    lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2), &
+                    lfn_s0(i, j) * diff2y)
+
+              case (2)
+                diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), & 
+                    lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
+                diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                    lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2))
+                diff2x = Select_weno5 (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                    lfn_curr(i - 2, j), lfn_curr(i - 3, j), lfn_curr(i + 1, j), &
+                    lfn_curr(i + 2, j), lfn_curr(i + 3, j), lfn_s0(i, j) * diff2x)
+                diff2y = Select_weno5 (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                    lfn_curr(i, j - 2), lfn_curr(i, j - 3), lfn_curr(i, j + 1), &
+                    lfn_curr(i, j + 2), lfn_curr(i, j + 3), lfn_s0(i, j) * diff2y)
+
+              case (3)
+                if (lfn_curr(i, j) < threshold_HLu) then
+                  diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
+                  diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), & 
+                      lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2))
+                  diff2x = Select_weno3 (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j), &
+                      lfn_s0(i, j) * diff2x)
+                  diff2y = Select_weno3 (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                      lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2), &
+                      lfn_s0(i, j) * diff2y)
+                else
+                  diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
+                  diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
+                  diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
+                  diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
+                  diff2x = Select_eno (diffLx, diffRx)
+                  diff2y = Select_eno (diffLy, diffRy)
+                endif
+
+              case(4)
+                if (lfn_curr(i, j) < threshold_HLu) then
+                  diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
+                  diff2y = Select_4th (dy,lfn_curr(i, j), lfn_curr(i, j - 1), &
+                      lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2))
+                  diff2x = Select_weno5 (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i - 3, j), lfn_curr(i + 1, j), &
+                      lfn_curr(i + 2, j), lfn_curr(i + 3, j), lfn_s0(i, j) * diff2x)
+                  diff2y = Select_weno5 (dy, lfn_curr(i,j), lfn_curr(i, j - 1), &
+                      lfn_curr(i, j - 2), lfn_curr(i, j - 3), lfn_curr(i, j + 1), &
+                      lfn_curr(i, j + 2), lfn_curr(i, j + 3), lfn_s0(i, j) * diff2y)
+                else
+                  diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
+                  diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
+                  diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
+                  diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
+                  diff2x = Select_eno (diffLx, diffRx)
+                  diff2y = Select_eno (diffLy, diffRy)
+                endif
+
+              case default
+                if (lfn_curr(i,j) < threshold_HLu) then
+                  diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
+                  diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                      lfn_curr(i, j - 2), lfn_curr(i, j + 1), lfn_curr(i, j + 2))
+                  diff2x = Select_weno5 (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
+                      lfn_curr(i - 2, j), lfn_curr(i - 3, j), lfn_curr(i + 1, j), &
+                      lfn_curr(i + 2, j), lfn_curr(i + 3, j), lfn_s0(i, j) * diff2x)
+                  diff2y = Select_weno5 (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
+                      lfn_curr(i, j - 2), lfn_curr(i, j - 3), lfn_curr(i, j + 1), &
+                      lfn_curr(i, j + 2), lfn_curr(i, j + 3), lfn_s0(i, j) * diff2y)
+                else
+                  diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
+                  diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
+                  diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
+                  diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
+                  diff2x = Select_eno (diffLx, diffRx)
+                  diff2y = Select_eno (diffLy, diffRy)
+                end if
+
             end select
-          endif
-            grad=sqrt(diff2x*diff2x+diff2y*diff2y)
-            tend_r=lfn_s0(i,j)*(1.0-grad)
-            lfn_fin(i,j)=lfn_ini(i,j)+(dt_s*rk_coeff)*tend_r
-        enddo
-      enddo
+          end if
+            grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+            tend_r = lfn_s0(i, j) * (1.0 - grad)
+            lfn_fin(i, j) = lfn_ini(i, j) + (dt_s * rk_coeff) * tend_r
+        end do
+      end do
 
     end subroutine advance_ls_reinit
 
