@@ -501,130 +501,100 @@
     
     end subroutine prop_ls_rk3
 
-    subroutine reinit_ls_rk3(                       &
-                ifts,ifte,jfts,jfte,               &                     
-                ifms,ifme,jfms,jfme,               &                     
-                ifds,ifde,jfds,jfde,               &                     
-                ts,dt,dx,dy,                       &
-                fire_upwinding_reinit, fire_lsm_reinit_iter, &
-                fire_lsm_band_ngp,                 &
-                lfn_in,                            & 
-                lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3, & 
-                lfn_out,tign,                      &
-                fire_print_msg) 
+    subroutine reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+        ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
+        fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
+        lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, fire_print_msg) 
 
+      ! Level-set function reinitialization
+      ! Referencess:
+      ! Sussman, Smereka, Osher. Journal of Computational Physics 114, 146-159 (1994)
+      !
+      ! D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate
+      ! fire-spread algorithm in the Weather Research and Forecasting model using the
+      ! level-set method", Journal of Advances in Modeling Earth Systems, 2018
+      
 
       implicit none
 
-      !*************************************************************************************!
-      !*** Level-set function reinitialization following:                                ***!
-      !*** Sussman, Smereka, Osher. Journal of Computational Physics 114, 146-159 (1994) ***!
-      !*** implemented by Domingo Munoz-Esparza (NCAR/RAL, April 2016)                   ***!
-      !*** Reference: D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate    ***!
-      !*** fire-spread algorithm in the Weather Research and Forecasting model using the ***!
-      !*** level-set method", Journal of Advances in Modeling Earth Systems, 2018        ***!
-      !*** https://doi.org/10.1002/2017MS001108                                          ***!
-      !*************************************************************************************!
+      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      integer, intent (in) :: ifds, ifde, jfds, jfde
+      integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp
+      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_in, tign
+      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
+      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_out
+      real, intent (in) :: dx, dy, ts, dt
+      integer, intent(in) :: fire_print_msg
 
-      integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme
-      integer,intent(in)::ifds,ifde,jfds,jfde
-      integer,intent(in)::fire_upwinding_reinit,fire_lsm_reinit_iter,fire_lsm_band_ngp
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_2,lfn_s0,lfn_s1,lfn_s2,lfn_s3
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_out
-      real,intent(in)::dx,dy,ts,dt
-      integer,intent(in)::fire_print_msg
-
-      real::dt_s
-      real,dimension(ifts:ifte,jfts:jfte):: tend_1,tend_2,tend_3
-      real::diffLx,diffLy,diffRx,diffRy,diff2x,diff2y,grad,time_now
-      integer::nts,i,j,k,kk
+      real :: dt_s
+      real, dimension (ifts:ifte, jfts:jfte) :: tend_1, tend_2, tend_3
+      real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, time_now
+      integer :: nts, i, j, k, kk
       intrinsic epsilon
-      character(len=128)::msg
-      integer::itso,iteo,jtso,jteo
-      real::threshold_HLl,threshold_HLu
-      integer,parameter::bdy_eno1=10
+      character (len = 128) :: msg
+      integer :: itso, iteo, jtso, jteo
+      real :: threshold_HLl, threshold_HLu
+      integer, parameter :: BDY_ENO1 = 10
 
 
-      threshold_HLl=-fire_lsm_band_ngp*dx 
-      threshold_HLu=fire_lsm_band_ngp*dx
+      threshold_HLl = -fire_lsm_band_ngp * dx 
+      threshold_HLu = fire_lsm_band_ngp * dx
 
         ! Define S0 based on current lfn values
-      do j=jfts,jfte 
-        do i=ifts,ifte 
-            lfn_s0(i,j) = lfn_2(i,j)/sqrt(lfn_2(i,j)**2.0+dx**2.0) 
-            lfn_s3(i,j) = lfn_2(i,j)
-        enddo
-      enddo
+      do j = jfts, jfte 
+        do i = ifts, ifte 
+            lfn_s0(i, j) = lfn_2(i,j) / sqrt (lfn_2(i, j) ** 2.0 + dx ** 2.0) 
+            lfn_s3(i, j) = lfn_2(i,j)
+        end do
+      end do
 
-      call Continue_at_boundary(1,1, &   !extend by extrapolation but never down
-          ifms,ifme,jfms,jfme, &                             ! memory dims
-          ifds,ifde,jfds,jfde, &                             ! domain
-          ifts,ifte,jfts,jfte, &                             ! tile
-          itso,iteo,jtso,jteo, &                             ! where set now
-          lfn_s3,fire_print_msg)
+      call Continue_at_boundary(1, 1, ifms, ifme, jfms, jfme, ifds, ifde, &
+          jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
+          lfn_s3, fire_print_msg)
 
-      dt_s=0.0001*dx
-      do nts=1,fire_lsm_reinit_iter ! iterate to solve to steady state (1 iter each time step is enoguh)
-          ! Runge-Kutta step 1 !
-    
-        call advance_ls_reinit( &
-            ifms,ifme,jfms,jfme,    &           
-            ifds,ifde,jfds,jfde,    &           
-            ifts,ifte,jfts,jfte,    &               
-            dx,dy,dt_s,bdy_eno1,threshold_HLu, &               
-            lfn_s0,lfn_s3,lfn_s3,lfn_s1,1.0/3.0, &   ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
+      dt_s = 0.0001 * dx
+        ! iterate to solve to steady state reinit PDE
+        ! 1 iter each time step is enoguh
+      do nts = 1, fire_lsm_reinit_iter
+          ! Runge-Kutta step 1
+        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
+            lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
             fire_upwinding_reinit)
 
-        call Continue_at_boundary(1,1, &
-            ifms,ifme,jfms,jfme, &
-        ifds,ifde,jfds,jfde, &
-        ifts,ifte,jfts,jfte, &
-        itso,iteo,jtso,jteo, &
-        lfn_s1,fire_print_msg)
+        call Continue_at_boundary(1, 1, ifms, ifme, jfms, jfme, ifds,ifde, &
+            jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
+            lfn_s1, fire_print_msg)
 
-          ! Runge-Kutta step 2 !
-
-        call advance_ls_reinit( &
-            ifms,ifme,jfms,jfme,    &
-            ifds,ifde,jfds,jfde,    &
-            ifts,ifte,jfts,jfte,    &
-            dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-            lfn_s0,lfn_s3,lfn_s1,lfn_s2,1.0/2.0, &
+          ! Runge-Kutta step 2
+        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
+            lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
             fire_upwinding_reinit)
 
-        call Continue_at_boundary(1,1, &
-            ifms,ifme,jfms,jfme, &
-            ifds,ifde,jfds,jfde, &
-            ifts,ifte,jfts,jfte, &
-            itso,iteo,jtso,jteo, &
+        call Continue_at_boundary (1, 1, ifms, ifme, jfms, jfme,ifds,ifde, &
+            jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
             lfn_s2,fire_print_msg)
 
-          ! Runge-Kutta step 3 !
-
-        call advance_ls_reinit( &
-            ifms,ifme,jfms,jfme,    &
-            ifds,ifde,jfds,jfde,    &
-            ifts,ifte,jfts,jfte,    &
-            dx,dy,dt_s,bdy_eno1,threshold_HLu, &
-            lfn_s0,lfn_s3,lfn_s2,lfn_s3,1.0, &
+          ! Runge-Kutta step 3
+        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, &
+            lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
             fire_upwinding_reinit) 
 
-        call Continue_at_boundary(1,1, &
-            ifms,ifme,jfms,jfme, &
-            ifds,ifde,jfds,jfde, &
-            ifts,ifte,jfts,jfte, &
-            itso,iteo,jtso,jteo, &
-            lfn_s3,fire_print_msg)
+        call Continue_at_boundary (1, 1,  ifms, ifme, jfms, jfme, ifds, ifde, &
+            jfds,jfde,  ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
+            lfn_s3, fire_print_msg)
+      end do
 
-      end do ! end iterations for steady state solution of reinitialization PDE
-
-      do j=jfts,jfte 
-        do i=ifts,ifte 
-          lfn_out(i,j)=lfn_s3(i,j) ! assing to lfn_out the reinitialized level-set function
-          lfn_out(i,j)=min(lfn_out(i,j),lfn_in(i,j)) ! fire area can only increase
-        enddo
-      enddo
+      do j = jfts, jfte 
+        do i = ifts, ifte 
+            ! assing to lfn_out the reinitialized level-set function
+          lfn_out(i, j) = lfn_s3(i, j)
+            ! fire area can only increase
+          lfn_out(i, j) = min (lfn_out(i, j), lfn_in(i, j))
+        end do
+      end do
 
     end subroutine reinit_ls_rk3
 
