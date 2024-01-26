@@ -27,32 +27,31 @@
 
       integer, intent (in) :: its, ite, jts, jte, ims, ime, jms, jme, ifs, ife, jfs, jfe, &
           fire_print_msg
-      real, intent (in), dimension(ims:ime, jms:jme) :: lfn,tign, fuel_time
+      real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
       real, intent (in) :: time_now
-      real, intent (out), dimension(ifs:ife, jfs:jfe) :: fuel_frac
-      real, intent (out), dimension(ims:ime, jms:jme) :: fire_area
+      real, intent (out), dimension (ifs:ife, jfs:jfe) :: fuel_frac
+      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area
 
       integer :: i, j, ir, jr, icl, jcl, isubcl, jsubcl, i2, j2, ii, jj
       real :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, rx, ry, tignf(2,2)
          ! help variables instead of arrays fuel_left_f and fire_area_f 
-      real::lffij,lffi1j,lffij1,lffi1j1,tifij,tifi1j,tifij1,tifi1j1,tx,ty,txx,tyy
-         ! variables for calculation instead of lff(i,j) and tif(i,j)is lffij,tifij etc..#define IFCELLS (ite-its+1)*fuel_left_irl
-#define JFCELLS (jte-jts+1)*fuel_left_jrl
-      character(len=128)::msg
-      integer::m,omp_get_thread_num
+      real :: lffij, lffi1j, lffij1, lffi1j1, tifij, tifi1j, tifij1, tifi1j1, tx, ty, txx, tyy
+         ! variables for calculation instead of lff(i,j) and tif(i,j)is lffij,tifij etc..
+      character (len = 128) :: msg
+      integer :: m, omp_get_thread_num
       integer, parameter :: fuel_left_irl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
       integer, parameter :: fuel_left_jrl = 2       ! "submesh to compute fuel lwft, even, at least 2" ""
 
         ! refinement
-      ir=fuel_left_irl
-      jr=fuel_left_jrl
+      ir = fuel_left_irl
+      jr = fuel_left_jrl
 
-      if ((ir.ne.2) .or. (jr.ne.2)) then 
+      if ((ir /= 2) .or. (jr /= 2)) then 
          call Crash ('fuel_left: ir.ne.2 or jr.ne.2 ')
       end if
 
-      rx=1./ir 
-      ry=1./jr
+      rx = 1.0 / ir 
+      ry = 1.0 / jr
 
         ! example for ir=2:
         !
@@ -64,155 +63,153 @@
 
         !  Loop over cells in Tile 
         !  Changes made by Volodymyr Kondratenko 09/24/2009
-      do icl=its,ite
-        do jcl=jts,jte
-          helpsum1=0
-          helpsum2=0
+      do icl = its, ite
+        do jcl = jts, jte
+          helpsum1 = 0
+          helpsum2 = 0
             ! Loop over subcells in cell #(icl,jcl)
-          do isubcl=1,ir
-            do jsubcl=1,jr 
-              i=(icl-its)*ir+isubcl
-              j=(jcl-jts)*jr+jsubcl
-
+          do isubcl = 1, ir
+            do jsubcl = 1, jr 
+              i = (icl - its) * ir + isubcl
+              j = (jcl - jts) * jr + jsubcl
                 ! Direct calculation tif and lff, avoiding arrays, just for case ir=jr=2
-              if ((isubcl.eq.1).and.(jsubcl.eq.1)) then
-                 i2=icl-1
-                 j2=jcl-1
-                 ty=0.5
-                 tx=0.5
-                 tyy=1.0
-                 txx=1.0
-              else if ((isubcl.eq.2).and.(jsubcl.eq.1)) then
-                i2=icl
-                j2=jcl-1
-                ty=0.5
-                tx=0
-                tyy=1.0
-                txx=0.5
-              else if ((isubcl.eq.1).and.(jsubcl.eq.2)) then
-                i2=icl-1
-                j2=jcl
-                tx=0.5
-                ty=0
-                txx=1.0
-                tyy=0.5
-              else if ((isubcl.eq.2).and.(jsubcl.eq.2)) then
-                i2=icl
-                j2=jcl
-                tx=0
-                ty=0
-                txx=0.5
-                tyy=0.5
+              if ((isubcl == 1) .and. (jsubcl == 1)) then
+                 i2 = icl - 1
+                 j2 = jcl - 1
+                 ty = 0.5
+                 tx = 0.5
+                 tyy = 1.0
+                 txx = 1.0
+              else if ((isubcl == 2).and. (jsubcl == 1)) then
+                i2 = icl
+                j2 = jcl - 1
+                ty = 0.5
+                tx = 0
+                tyy = 1.0
+                txx = 0.5
+              else if ((isubcl == 1) .and. (jsubcl == 2)) then
+                i2 = icl - 1
+                j2 = jcl
+                tx = 0.5
+                ty = 0
+                txx = 1.0
+                tyy = 0.5
+              else if ((isubcl == 2) .and. (jsubcl == 2)) then
+                i2 = icl
+                j2 = jcl
+                tx = 0
+                ty = 0
+                txx = 0.5
+                tyy = 0.5
               else
                 call Crash ('fuel_left: isubcl,jsubcl should be only 1 or 2')
               endif 
 
-              ! calculation lff and tif in 4 endpoints of subcell                    
-              lffij=                             &    
-                  (1-tx)*(1-ty)*lfn(i2,j2)      &
-                  +    (1-tx)*ty  *lfn(i2,j2+1)      &
-                  +     tx*(1-ty)*lfn(i2+1,j2)       &
-                  +       tx*ty  *lfn(i2+1,j2+1)
-              lffi1j=                            &
-                  (1-txx)*(1-ty)*lfn(i2,j2)   &
-                  +      (1-txx)*ty  *lfn(i2,j2+1)   &
-                  +      (txx)*(1-ty)*lfn(i2+1,j2)   &
-                  +      (txx)*ty  *lfn(i2+1,j2+1)
+              ! calculation lff and tif in 4 endpoints of subcell
+              lffij=                                &    
+                  (1 - tx) * (1 - ty) * lfn(i2, j2) &
+                  + (1 - tx) * ty * lfn(i2, j2 + 1) &
+                  + tx * (1 - ty) * lfn(i2 + 1, j2) &
+                  + tx * ty * lfn(i2 + 1, j2 + 1)
+              lffi1j=                                &
+                  (1 - txx) * (1 - ty) * lfn(i2, j2) &
+                  + (1 - txx) * ty * lfn(i2 ,j2 + 1) &
+                  + (txx) * (1 - ty) * lfn(i2 + 1, j2) &
+                  + (txx) * ty * lfn(i2 + 1, j2 + 1)
               lffij1=                            &
-                  (1-tx)*(1-tyy)*lfn(i2,j2)   &
-                  +      (1-tx)*(tyy)  *lfn(i2,j2+1) &
-                  +      tx*(1-tyy)*lfn(i2+1,j2)     &
-                  +      tx*(tyy)  *lfn(i2+1,j2+1)
+                  (1 - tx) * (1 - tyy) * lfn(i2, j2) &
+                  + (1 - tx) * tyy * lfn(i2, j2 + 1) &
+                  + tx * (1 - tyy) * lfn(i2 + 1, j2) &
+                  + tx * tyy * lfn(i2 + 1, j2 + 1)
               lffi1j1 =                               &
-                  (1-txx)*(1-tyy)*lfn(i2,j2)     &
-                  +      (1-txx)*(tyy)  *lfn(i2,j2+1)   &        
-                  +      (txx)*(1-tyy)*lfn(i2+1,j2)     &
-                  +      (txx)*(tyy)  *lfn(i2+1,j2+1)
+                  (1 - txx) * (1 - tyy) * lfn(i2, j2) &
+                  + (1 - txx) * tyy * lfn(i2, j2 + 1) &        
+                  + txx * (1 - tyy) * lfn(i2 + 1, j2) &
+                  + txx * tyy * lfn(i2 + 1, j2 + 1)
  
                ! get ready to fix up tign values to be interpolated
-              do ii=1,2
-                do jj=1,2
-                  tignf(ii,jj)=tign(i2+ii-1,j2+jj-1)
-                enddo
-              enddo
-              tifij=                                 &
-                  (1-tx)*(1-ty)*tignf(1,1)        &
-                  +     (1-tx)*ty*tignf(1,1+1)          &
-                  +     tx*(1-ty)*tignf(1+1,1)          &
-                  +     tx*ty*tignf(1+1,1+1)
-              tifi1j=                               &
-                  (1-txx)*(1-ty)*tignf(1,1)      &
-                  +     (1-txx)*ty*tignf(1,1+1)        &
-                  +     (txx)*(1-ty)*tignf(1+1,1)      &
-                  +     (txx)*(ty)*tignf(1+1,1+1)            
-              tifij1=                               &
-                  (1-tx)*(1-tyy)*tignf(1,1)      &
-                  +     (1-tx)*(tyy)*tignf(1,1+1)      &
-                  +      tx*(1-tyy)*tignf(1+1,1)       &
-                  +      tx*(tyy)*tignf(1+1,1+1)
-             tifi1j1=                               &
-                  (1-txx)*(1-tyy)*tignf(1,1)     &
-                  +     (1-txx)*(tyy)*tignf(1,1+1)     &
-                  +     (txx)*(1-tyy)*tignf(1+1,1)     &
-                  +     (txx)*(tyy)*tignf(1+1,1+1) 
+              do ii = 1, 2
+                do jj = 1, 2
+                  tignf(ii, jj) = tign(i2 + ii - 1, j2 + jj - 1)
+                end do
+              end do
+              tifij =                                 &
+                  (1 - tx) * (1 - ty) * tignf(1, 1) &
+                  + (1 - tx) * ty * tignf(1, 1 + 1) &
+                  + tx * (1 - ty) * tignf(1 + 1, 1) &
+                  + tx * ty * tignf(1 + 1, 1 + 1)
+              tifi1j =                               &
+                  (1 - txx) * (1 - ty) * tignf(1, 1) &
+                  + (1 - txx) * ty * tignf(1, 1 + 1) &
+                  + txx * (1 - ty) * tignf(1 + 1, 1) &
+                  + txx * ty * tignf(1 + 1, 1 + 1)
+              tifij1 =                               &
+                  (1 - tx) * (1 - tyy) * tignf(1, 1) &
+                  + (1 - tx) * tyy * tignf(1, 1 + 1) &
+                  + tx * (1 - tyy) * tignf(1+1, 1) &
+                  + tx * tyy * tignf(1 + 1, 1 + 1)
+             tifi1j1 =                               &
+                  (1 - txx) * (1 - tyy) * tignf(1, 1) &
+                  + (1 - txx) * tyy * tignf(1, 1 + 1) &
+                  + txx * (1 - tyy) * tignf(1 + 1, 1) &
+                  + txx * tyy * tignf(1 + 1, 1 + 1)
  
-          
-             call fuel_left_cell_1( fuel_left_ff, fire_area_ff, &
-                 lffij,lffij1,lffi1j,lffi1j1,&
-                 tifij,tifij1,tifi1j,tifi1j1,&
+             call fuel_left_cell_1 (fuel_left_ff, fire_area_ff, &
+                 lffij, lffij1, lffi1j, lffi1j1, &
+                 tifij, tifij1, tifi1j, tifi1j1, &
                  time_now, fuel_time(icl,jcl), fire_print_msg)
 
-              ! consistency check
-              if(fire_area_ff.lt.-1e-6 .or.  &
-                (fire_area_ff.eq.0. .and. fuel_left_ff.lt.1.-1e-6))then
-                  !$OMP CRITICAL(FIRE_CORE_CRIT)
-                 write(msg,'(a,2i6,2(a,f11.8))')'fuel_left: at node',i,j, &
-                    ' of refined mesh fuel burnt',1-fuel_left_ff,' fire area',fire_area_ff
-                  !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                 call crash(msg)
+                ! consistency check
+              if (fire_area_ff < -1e-6 .or.  &
+                  (fire_area_ff == 0.0 .and. fuel_left_ff < 1.0 - 1e-6)) then
+                !$OMP CRITICAL(FIRE_CORE_CRIT)
+                write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
+                    ' of refined mesh fuel burnt', 1 - fuel_left_ff, ' fire area', fire_area_ff
+                !$OMP END CRITICAL(FIRE_CORE_CRIT)
+                call crash(msg)
               endif
 
-              helpsum1=helpsum1+fuel_left_ff
-              helpsum2=helpsum2+fire_area_ff
-            enddo
-          enddo
-          fuel_frac(icl,jcl)=helpsum1 
-          fire_area(icl,jcl)=helpsum2
-        enddo 
-      enddo
+              helpsum1 = helpsum1 + fuel_left_ff
+              helpsum2 = helpsum2 + fire_area_ff
+            end do
+          end do
+          fuel_frac(icl, jcl) = helpsum1 
+          fire_area(icl, jcl) = helpsum2
+        end do 
+      end do
 
         ! finish the averaging
-      do j=jts,jte
-          do i=its,ite        
-              fuel_frac(i,j) = fuel_frac(i,j) /(ir*jr) ! multiply by weight for averaging over coarse cell
-              fire_area(i,j) = fire_area(i,j) /(ir*jr) ! 
-          enddo
-      enddo
+      do j = jts, jte
+        do i = its, ite        
+          fuel_frac(i, j) = fuel_frac(i,j) / (ir * jr) ! multiply by weight for averaging over coarse cell
+          fire_area(i, j) = fire_area(i,j) / (ir * jr) ! 
+        end do
+      end do
 
         ! consistency check after sum
-      fmax=0
-      do j=jts,jte
-          do i=its,ite        
-             if(fire_area(i,j).eq.0.)then
-                 if(fuel_frac(i,j).lt.1.-1e-6)then
-      !$OMP CRITICAL(FIRE_CORE_CRIT)
-                     write(msg,'(a,2i6,2(a,f11.8))')'fuel_left: at node',i,j, &
-                         ' fuel burnt',1-fuel_frac(i,j),' but fire area',fire_area(i,j)
-      !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                     call crash(msg)
-                 endif
+      fmax = 0
+      do j = jts, jte
+          do i = its, ite        
+             if (fire_area(i, j) == 0.0) then
+               if (fuel_frac(i, j) < 1.-1e-6) then
+                 !$OMP CRITICAL(FIRE_CORE_CRIT)
+                 write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
+                     ' fuel burnt', 1 - fuel_frac(i, j), ' but fire area', fire_area(i, j)
+                 !$OMP END CRITICAL(FIRE_CORE_CRIT)
+                     call crash (msg)
+               end if
              else
-                 frat=(1-fuel_frac(i,j))/fire_area(i,j)
-                 fmax=max(fmax,frat)
-             endif
-          enddo
-      enddo
+               frat = (1 - fuel_frac(i, j)) / fire_area(i, j)
+               fmax = max (fmax, frat)
+             end if
+          end do
+      end do
       !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write(msg,'(a,4i6,a,f10.7)')'fuel_left: tile',its,ite,jts,jte,' max fuel burnt/area',fmax 
+      write (msg,'(a, 4i6, a, f10.7)') 'fuel_left: tile', its, ite, jts, jte, ' max fuel burnt/area', fmax 
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call message(msg,fire_print_msg)
-      return
+      call message (msg, fire_print_msg)
 
+      return
     end subroutine fuel_left
 
     subroutine fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
