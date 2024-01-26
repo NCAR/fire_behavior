@@ -355,23 +355,11 @@
 
     end subroutine fuel_left_cell_1
 
-    subroutine prop_ls_rk3(               &             
-                ifds,ifde,jfds,jfde,     &                 
-                ifms,ifme,jfms,jfme,     &                    
-                ifts,ifte,jfts,jfte,     &                    
-                ts,dt,dx,dy,             &
-                fire_upwinding, &
-                fire_viscosity, fire_viscosity_bg, &
-                fire_viscosity_band, fire_viscosity_ngp, &
-                fire_advection, fire_slope_factor,       &
-                fire_lsm_band_ngp, fire_print_msg,       &
-                tbound,                  &                  
-                lfn_in,                  &
-                lfn_0,lfn_1,lfn_2,       & 
-                lfn_out,tign,ros,        &           
-                grid,                    &
-                ros_model &
-                   )
+    subroutine prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
+        ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
+        fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, &
+        fire_advection, fire_slope_factor, fire_lsm_band_ngp, fire_print_msg, &
+        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out,tign,ros,  grid, ros_model)
 
 
       implicit none
@@ -413,146 +401,103 @@
       ! http://www.cs.ubc.ca/\~mitchell/Toolbo\LS
       ! 
   
-      integer,intent(in)::ifms,ifme,jfms,jfme,ifds,ifde,jfds,jfde,ifts,ifte,jfts,jfte
-      integer,intent(in):: fire_upwinding,fire_viscosity_ngp, &
-                    fire_advection,fire_lsm_band_ngp,fire_print_msg
-      real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_in,tign
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::lfn_1,lfn_2,lfn_0 
-      real,dimension(ifms:ifme,jfms:jfme),intent(out)::lfn_out,ros
-      real,intent(in)::dx,dy,ts,dt
-      real,intent(out)::tbound
+      integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte
+      integer, intent(in) :: fire_upwinding, fire_viscosity_ngp, &
+          fire_advection, fire_lsm_band_ngp, fire_print_msg
+      real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
+      real, dimension (ifms:ifme, jfms:jfme), intent(inout) :: lfn_in, tign
+      real, dimension (ifms:ifme, jfms:jfme), intent(inout) :: lfn_1, lfn_2, lfn_0 
+      real, dimension (ifms:ifme, jfms:jfme), intent(out) :: lfn_out,ros
+      real, intent(in) :: dx, dy, ts, dt
+      real, intent(out) :: tbound
       type (state_fire_t), target :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
-      real,dimension(ifms:ifme,jfms:jfme):: tend
-      ! scalars
-      real::grad2,rr,tbound2,tbound3
+      real,dimension (ifms:ifme, jfms:jfme):: tend
+      real :: grad2, rr, tbound2, tbound3
+      real :: gradx, grady, aspeed, err, aerr, time_now
+      integer :: i, j, its1, ite1, jts1, jte1, k, kk
+      character (len=128) :: msg
+      integer :: nfirenodes, nfireline
+      real :: sum_err, min_err, max_err, sum_aerr, min_aerr, max_aerr   
 
-      real::gradx,grady,aspeed,err,aerr,time_now
-      integer::i,j,its1,ite1,jts1,jte1,k,kk
-      character(len=128)::msg
-      integer::nfirenodes,nfireline
-      real::sum_err,min_err,max_err,sum_aerr,min_aerr,max_aerr   
+      integer, parameter :: MSTEP = 1000, PRINTL = 1
+      real, parameter :: zero=0.,one=1.,EPS = epsilon (ZERO), TOL= 100 * eps, &
+          SAFE = 2.0, rmin = SAFE * tiny (ZERO), RMAX = huge (ZERO) / SAFE
 
-      ! constants
-      integer,parameter :: mstep=1000, printl=1
-      real, parameter:: zero=0.,one=1.,eps=epsilon(zero),tol=100*eps, &
-          safe=2.,rmin=safe*tiny(zero),rmax=huge(zero)/safe
-
-        ! f90 intrinsic function
-      intrinsic max,min,sqrt,nint,epsilon,tiny,huge
+      intrinsic max, min, sqrt, nint, epsilon, tiny, huge
 
 
       !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write(msg,'(a8,i5,a6,i5,3(a1,i5))')'prop_ls: tile ',ifts,':',ifte,',',jfts,':',jfte
+      write (msg, '(a8, i5, a6, i5, 3(a1, i5))') 'prop_ls: tile ', ifts, ':', ifte, ',', jfts, ':', jfte
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call message(msg,fire_print_msg)
+      call message(msg, fire_print_msg)
 
-      !!!!!!!!!!!!!!!!!!!!!!
-      ! Runge-Kutta step 1 !
-      !!!!!!!!!!!!!!!!!!!!!!
+        ! Runge-Kutta step 1
+      do j = jfts, jfte
+        do i = ifts, ifte
+            lfn_0(i, j) = lfn_in(i, j)
+        end do
+      end do
 
-     do j=jfts,jfte
-        do i=ifts,ifte
-            lfn_0(i,j) = lfn_in(i,j)
-        enddo
-     enddo
+      call tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+          ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
+          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
+          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+          fire_lsm_band_ngp, fire_print_msg, lfn_0, tbound, tend, &
+          ros, grid, ros_model) 
 
-     call tend_ls(    &
-         ifds,ifde,jfds,jfde, &                       ! domain dims 
-        ifts,ifte,jfts,jfte, &                       ! tile dims
-        ifms,ifme,jfms,jfme, &                       ! memory dims
-        ts,dt,dx,dy,         &                       ! scalars in
-        fire_upwinding, &
-        fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_slope_factor,       &
-        fire_lsm_band_ngp, fire_print_msg,   &
-        lfn_0,               &                       ! arrays in
-        tbound,              &                       ! scalars out 
-        tend, ros,           &                       ! arrays out        
-        grid,                &                       ! params
-        ros_model &
-        )
+      do j = jfts, jfte 
+        do i = ifts, ifte 
+            lfn_1(i,j) = lfn_0(i,j) + (dt / 3.0) * tend(i,j) 
+        end do
+      end do
 
-      do j=jfts,jfte 
-        do i=ifts,ifte 
-            lfn_1(i,j) = lfn_0(i,j) + (dt/3.0)*tend(i,j) 
-        enddo
-      enddo
+        ! Runge-Kutta step 2
+     call tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+         ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
+         fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
+         fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+         fire_lsm_band_ngp, fire_print_msg, lfn_1, tbound2, tend, &
+         ros, grid, ros_model)
 
-      !!!!!!!!!!!!!!!!!!!!!!
-      ! Runge-Kutta step 2 !
-      !!!!!!!!!!!!!!!!!!!!!!
+      do j = jfts, jfte
+        do i = ifts, ifte
+            lfn_2(i, j) = lfn_0(i, j) + (dt / 2.0) * tend(i, j)
+        end do
+      end do
 
-     call tend_ls(    &
-         ifds,ifde,jfds,jfde, &                     
-         ifts,ifte,jfts,jfte, &                    
-         ifms,ifme,jfms,jfme, &               
-         ts+dt,dt,dx,dy,      &
-         fire_upwinding, &
-         fire_viscosity, fire_viscosity_bg, &
-         fire_viscosity_band, fire_viscosity_ngp, &
-         fire_advection, fire_slope_factor,       &
-         fire_lsm_band_ngp, fire_print_msg,   &
-         lfn_1,               &                             
-         tbound2,             &                              
-         tend,ros,            &                           
-         grid,                &
-         ros_model &
-         )
+        ! Runge-Kutta step 3
+     call tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
+         ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
+         fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
+         fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+         fire_lsm_band_ngp, fire_print_msg, lfn_2, tbound3, tend, &
+         ros, grid, ros_model)
 
-      do j=jfts,jfte
-        do i=ifts,ifte
-            lfn_2(i,j) = lfn_0(i,j) + (dt/2.0)*tend(i,j)
-        enddo
-      enddo     
-
-      !!!!!!!!!!!!!!!!!!!!!!
-      ! Runge-Kutta step 3 !
-      !!!!!!!!!!!!!!!!!!!!!!
-
-     call tend_ls(    &
-         ifds,ifde,jfds,jfde, &                      
-         ifts,ifte,jfts,jfte, &                    
-         ifms,ifme,jfms,jfme, &                 
-         ts+dt,dt,dx,dy,      &
-         fire_upwinding, &
-         fire_viscosity, fire_viscosity_bg, &
-         fire_viscosity_band, fire_viscosity_ngp, &
-         fire_advection, fire_slope_factor,       &
-         fire_lsm_band_ngp, fire_print_msg,   &
-         lfn_2,               &                            
-         tbound3,             &                            
-         tend,ros,            &                           
-         grid,                &
-         ros_model &
-         )
-
-      do j=jfts,jfte
-        do i=ifts,ifte
-            lfn_out(i,j) = lfn_0(i,j) + dt*tend(i,j)
-            lfn_2(i,j) = lfn_out(i,j) ! lfn_2=lfn_out (needed for reinitialization purposes)
-        enddo
-      enddo     
+      do j = jfts, jfte
+        do i = ifts, ifte
+            lfn_out(i, j) = lfn_0(i, j) + dt * tend(i, j)
+            lfn_2(i, j) = lfn_out(i, j) ! lfn_2=lfn_out (needed for reinitialization purposes)
+        end do
+      end do     
 
         ! CFL check
-      tbound=min(tbound,tbound2,tbound3)
+      tbound = min (tbound, tbound2, tbound3)
 
       !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write(msg,'(a,f10.2,4(a,f7.2))')'prop_ls: time',ts,' dt=',dt,' bound',min(tbound,999.99), &
+      write (msg,'(a, f10.2, 4(a, f7.2))') 'prop_ls: time', ts, ' dt=', dt, ' bound', min(tbound, 999.99), &
           ' dx=',dx,' dy=',dy
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
 
-      call message(msg,fire_print_msg)
-      if(dt>tbound)then
+      call message (msg,fire_print_msg)
+      if (dt > tbound)then
         !$OMP CRITICAL(FIRE_CORE_CRIT)
-        write(msg,'(2(a,f10.2))')'prop_ls: WARNING: time step ',dt, &
-        ' > bound =',tbound
+        write (msg,'(2(a, f10.2))') 'prop_ls: WARNING: time step ', dt, &
+            ' > bound =', tbound
         !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call message(msg,fire_print_msg)
-      endif
+        call message (msg, fire_print_msg)
+      end if
     
     end subroutine prop_ls_rk3
 
