@@ -213,18 +213,17 @@
     end subroutine fuel_left
 
     subroutine fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
-        lfn00,lfn01,lfn10,lfn11, &
-        tign00,tign01,tign10,tign11,&
+        lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
         time_now, fuel_time_cell, fire_print_msg)
 
       implicit none
 
-      integer, intent(in)::fire_print_msg
-      real, intent(out):: fuel_frac_left, fire_frac_area ! 
-      real, intent(in)::lfn00,lfn01,lfn10,lfn11    ! level set function at 4 corners of the cell
-      real, intent(in)::tign00,tign01,tign10,tign11! ignition time at the  4 corners of the cell
-      real, intent(in)::time_now                   ! the time now
-      real, intent(in)::fuel_time_cell            ! time to burns off to 1/e
+      integer, intent(in) :: fire_print_msg
+      real, intent(out) :: fuel_frac_left, fire_frac_area
+      real, intent(in) :: lfn00, lfn01, lfn10, lfn11     ! level set function at 4 corners of the cell
+      real, intent(in) :: tign00, tign01, tign10, tign11 ! ignition time at the  4 corners of the cell
+      real, intent(in) :: time_now                       ! the time now
+      real, intent(in) :: fuel_time_cell                 ! time to burns off to 1/e
 
       !*** Description
       ! The area burning is given by the condition L <= 0, where the function P is
@@ -302,51 +301,51 @@
       !*** calls
       intrinsic tiny
 
-      real::ps,aps,area,ta,out
-      real::t00,t01,t10,t11
-      real,parameter::safe=tiny(aps)
-      character(len=128)::msg
+      real :: ps, aps, area, ta, out
+      real :: t00, t01, t10, t11
+      real, parameter :: SAFE = tiny (aps)
+      character (len = 128) :: msg
 
         ! the following algorithm is a very crude approximation
 
         ! minus time since ignition, 0 if no ignition yet
         ! it is possible to have 0 in fire region when ignitin time falls in 
         ! inside the time step because lfn is updated at the beginning of the time step
-      t00=tign00-time_now
-      if(lfn00>0. .or. t00>0.)t00=0.
-      t01=tign01-time_now
-      if(lfn01>0. .or. t01>0.)t01=0.
-      t10=tign10-time_now
-      if(lfn10>0. .or. t10>0.)t10=0.
-      t11=tign11-time_now
-      if(lfn11>0. .or. t11>0.)t11=0.
+      t00 = tign00 - time_now
+      if (lfn00 > 0.0 .or. t00 > 0.0) t00 = 0.0
+      t01 = tign01 - time_now
+      if (lfn01 > 0.0 .or. t01 > 0.0) t01 = 0.0
+      t10 = tign10 - time_now
+      if (lfn10 > 0.0 .or. t10 > 0.0) t10 = 0.0
+      t11 = tign11 - time_now
+      if (lfn11 > 0.0 .or. t11 > 0.0) t11 = 0.0
 
         ! approximate burning area, between 0 and 1   
-      ps = lfn00+lfn01+lfn10+lfn11   
-      aps = abs(lfn00)+abs(lfn01)+abs(lfn10)+abs(lfn11)
-      aps=max(aps,safe)
-      area =(-ps/aps+1.)/2.
-      area = max(area,0.) ! make sure area is between 0 and 1
-      area = min(area,1.)
+      ps = lfn00 + lfn01 + lfn10 + lfn11
+      aps = abs (lfn00) + abs (lfn01) + abs (lfn10) + abs (lfn11)
+      aps = max (aps, SAFE)
+      area = (-ps / aps + 1.0) / 2.0
+      area = max (area, 0.0) ! make sure area is between 0 and 1
+      area = min (area, 1.0)
     
         ! average negative time since ignition
-      ta=0.25*(t00+t01+t10+t11)
+      ta = 0.25 * (t00 + t01 + t10 + t11)
 
         ! exp decay in the burning area
-      out=1.
+      out = 1.0
       !if(area>0.)out=1. - area*(1. - exp(ta/fuel_time_cell))
-      if(area>0)out=area*exp(ta/fuel_time_cell) + (1. - area)
+      if (area > 0) out = area * exp (ta / fuel_time_cell) + (1.0 - area)
 
-      if(out>1.)then
+      if(out > 1.0)then
         !$OMP CRITICAL(FIRE_CORE_CRIT)
-        write(msg,*)'out=',out,'>1 area=',area,' ta=',ta
-        call message(msg,fire_print_msg)
-        write(msg,*)'tign=',tign00,tign01,tign10,tign11,' time_now=',time_now
+        write (msg, *) 'out=', out, '>1 area=', area,' ta=', ta
+        call message (msg, fire_print_msg)
+        write(msg,*)'tign=', tign00, tign01, tign10, tign11,' time_now=', time_now
         !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call message(msg,fire_print_msg)
+        call message(msg, fire_print_msg)
         !call message('WARNING: fuel_left_cell_1: fuel fraction > 1')
-        call crash('fuel_left_cell_1: fuel fraction > 1')
-      endif
+        call crash ('fuel_left_cell_1: fuel fraction > 1')
+      end if
 
       !out = max(out,0.) ! make sure out is between 0 and 1
       !out = min(out,1.)
