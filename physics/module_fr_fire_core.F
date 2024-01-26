@@ -1110,196 +1110,208 @@
 
     end function select_godunov
 
-    real function select_eno(diffLx,diffRx)
-
-      implicit none
-
-      real, intent(in):: diffLx, diffRx
-      real diff2x
+    pure function Select_eno (diff_lx, diff_rx) result (return_value)
 
       ! 1st order ENO scheme
 
-      if    (.not.diffLx>0 .and. .not.diffRx>0)then
-          diff2x=diffRx
-      elseif(.not.diffLx<0 .and. .not.diffRx<0)then
-          diff2x=diffLx
-      elseif(.not.diffLx<0 .and. .not.diffRx>0)then
-          if(.not. abs(diffRx) < abs(diffLx))then
-              diff2x=diffRx
-          else
-              diff2x=diffLx
-          endif
+      implicit none
+
+      real, intent (in):: diff_lx, diff_rx
+      real :: return_value
+
+      real :: diff2x
+
+
+      if (.not. diff_lx > 0.0 .and. .not. diff_rx > 0.0) then
+        diff2x = diff_rx
+      else if (.not. diff_lx < 0.0 .and. .not. diff_rx < 0.0) then
+        diff2x = diff_lx
+      else if (.not. diff_lx < 0.0 .and. .not. diff_rx > 0.0) then
+        if (.not. abs (diff_rx) < abs(diff_lx)) then
+          diff2x = diff_rx
+        else
+          diff2x = diff_lx
+        end if
       else
-          diff2x=0.
-      endif
+        diff2x = 0.0
+      end if
 
-      select_eno=diff2x
+      return_value = diff2x
 
-    end function select_eno
+    end function Select_eno
       
-    real function select_2nd(ros,dx,lfn_i,lfn_im1,lfn_ip1)
+    pure function Select_2nd (ros, dx, lfn_i, lfn_im1, lfn_ip1) result (return_value)
+
+      ! 2nd-order advection scheme in the x,y-direction (DME)
 
       implicit none
 
       real, intent(in):: lfn_i, lfn_im1, lfn_ip1
       real, intent(in):: ros, dx
-      real:: diff2x_p, diff2x_m 
+      real :: return_value
 
-      ! 2nd-order advection scheme in the x,y-direction (DME)
+      real  :: diff2x_p, diff2x_m
 
-      diff2x_p=0.
-      diff2x_m=0.
-      diff2x_p=(lfn_ip1+lfn_i)/(2.*dx)
-      diff2x_m=(lfn_i+lfn_im1)/(2.*dx)
-      select_2nd=diff2x_p-diff2x_m
 
-    end function select_2nd
+      diff2x_p = 0.0
+      diff2x_m = 0.0
+      diff2x_p = (lfn_ip1 + lfn_i) / (2.0 * dx)
+      diff2x_m = (lfn_i + lfn_im1) / (2.0 * dx)
+      return_value = diff2x_p - diff2x_m
 
-    real function select_4th(dx,lfn_i,lfn_im1,lfn_im2,lfn_ip1,lfn_ip2)
+    end function Select_2nd
 
-      implicit none
-
-      real, intent(in):: lfn_i,lfn_im1,lfn_im2,lfn_ip1,lfn_ip2
-      real, intent(in):: dx
-      real:: diff2x_p,diff2x_m 
+    pure function Select_4th (dx, lfn_i, lfn_im1, lfn_im2, lfn_ip1, lfn_ip2) &
+        result (return_value)
 
       ! 4th-order advection scheme in the x,y-direction (DME)
 
-      diff2x_p=0.
-      diff2x_m=0.
-      diff2x_p=(7.0*lfn_ip1+7.0*lfn_i-lfn_ip2-lfn_im1)/(12.*dx)
-      diff2x_m=(7.0*lfn_i+7.0*lfn_im1-lfn_ip1-lfn_im2)/(12.*dx)
-      select_4th=diff2x_p-diff2x_m
-
-    end function select_4th
-
-    real function select_weno3(dx,lfn_it,lfn_im1t,lfn_im2t,lfn_ip1t,lfn_ip2t,uf)
-
       implicit none
 
-      real, intent(in)::lfn_it,lfn_im1t,lfn_im2t,lfn_ip1t,lfn_ip2t,uf
-      real:: lfn_i,lfn_im1,lfn_im2,lfn_ip1,lfn_ip2
-      real, intent(in):: dx
-      real:: flux_p,flux_m 
-      real, parameter:: gamma1=1./3.,gamma2=2./3.,tol=1e-6
-      real:: w1,w2,w1t,w2t,beta1,beta2 
-      real:: fh_1,fh_2
+      real, intent(in) :: dx, lfn_i, lfn_im1, lfn_im2, lfn_ip1, lfn_ip2
+      real :: return_value
+
+      real :: diff2x_p, diff2x_m
+
+
+      diff2x_p = 0.0
+      diff2x_m = 0.0
+      diff2x_p = (7.0 * lfn_ip1 + 7.0 * lfn_i - lfn_ip2 - lfn_im1) / (12.0 * dx)
+      diff2x_m = (7.0 * lfn_i + 7.0 * lfn_im1 - lfn_ip1 - lfn_im2) / (12.0 * dx)
+      return_value = diff2x_p - diff2x_m
+
+    end function Select_4th
+
+    pure function Select_weno3 (dx, lfn_it, lfn_im1t, lfn_im2t, lfn_ip1t, &
+        lfn_ip2t, uf) result (return_value)
 
       ! 3rd-order advection WENO scheme in the x,y-direction (DME)
 
-      flux_p=0.
-      flux_m=0.
-
-      if (uf .ge. 0.0 ) then
-        lfn_i=lfn_it
-        lfn_im1=lfn_im1t
-        lfn_im2=lfn_im2t
-        lfn_ip1=lfn_ip1t
-      else
-        lfn_i=lfn_it
-        lfn_im1=lfn_ip1t
-        lfn_im2=lfn_ip2t
-        lfn_ip1=lfn_im1t
-      endif
-
-      ! numerical flux at i,j+1/2 face
-      fh_1=-0.5*lfn_im1+1.5*lfn_i
-      fh_2=0.5*lfn_i+0.5*lfn_ip1
-      beta1=(lfn_i-lfn_im1)**2
-      beta2=(lfn_ip1-lfn_i)**2
-      w1t=gamma1/(beta1+tol)**2
-      w2t=gamma2/(beta2+tol)**2
-      w1=w1t/(w1t+w2t)
-      w2=w2t/(w1t+w2t)
-      flux_p=w1*fh_1+w2*fh_2
-      ! numerical flux at i,j-1/2 face
-      fh_1=-0.5*lfn_im2+1.5*lfn_im1
-      fh_2=0.5*lfn_im1+0.5*lfn_i
-      beta1=(lfn_im1-lfn_im2)**2
-      beta2=(lfn_i-lfn_im1)**2
-      w1t=gamma1/(beta1+tol)**2
-      w2t=gamma2/(beta2+tol)**2
-      w1=w1t/(w1t+w2t)
-      w2=w2t/(w1t+w2t)
-      flux_m=w1*fh_1+w2*fh_2
-
-      if (uf .ge. 0.0 ) then
-        select_weno3=(flux_p-flux_m)/dx
-      else
-        select_weno3=(flux_m-flux_p)/dx
-      endif
-
-    end function select_weno3
-
-    real function select_weno5(dx,lfn_it,lfn_im1t,lfn_im2t,lfn_im3t,lfn_ip1t,lfn_ip2t,lfn_ip3t,uf)
-
       implicit none
 
-      real, intent(in):: lfn_it,lfn_im1t,lfn_im2t,lfn_im3t,lfn_ip1t,lfn_ip2t,lfn_ip3t,uf
-      real:: lfn_i,lfn_im1,lfn_im2,lfn_im3,lfn_ip1,lfn_ip2,lfn_ip3
-      real, intent(in):: dx
-      real:: flux_p,flux_m 
-      real, parameter:: gamma1=1./10.,gamma2=3./5.,gamma3=3./10.,tol=1e-6
-      real:: w1,w2,w3,w1t,w2t,w3t,beta1,beta2,beta3 
-      real:: fh_1,fh_2,fh_3
+      real, intent(in) :: dx, lfn_it, lfn_im1t, lfn_im2t, lfn_ip1t, lfn_ip2t, uf
+      real :: return_value
+
+      real, parameter :: GAMMA1 = 1.0 / 3.0, GAMMA2 = 2.0 / 3.0, TOL = 1e-6
+      real :: lfn_i, lfn_im1, lfn_im2, lfn_ip1, lfn_ip2, flux_p,flux_m, &
+          w1, w2, w1t, w2t, beta1, beta2, fh_1, fh_2
+
+
+      if (uf >= 0.0) then
+        lfn_i = lfn_it
+        lfn_im1 = lfn_im1t
+        lfn_im2 = lfn_im2t
+        lfn_ip1 = lfn_ip1t
+      else
+        lfn_i = lfn_it
+        lfn_im1 = lfn_ip1t
+        lfn_im2 = lfn_ip2t
+        lfn_ip1 = lfn_im1t
+      end if
+
+        ! numerical flux at i,j+1/2 face
+      fh_1 = -0.5 * lfn_im1 + 1.5 * lfn_i
+      fh_2 = 0.5 * lfn_i + 0.5 * lfn_ip1
+      beta1 = (lfn_i - lfn_im1) ** 2
+      beta2 = (lfn_ip1 - lfn_i) ** 2
+      w1t = GAMMA1 / (beta1 + TOL) ** 2
+      w2t = GAMMA2 / (beta2 + TOL) ** 2
+      w1 = w1t / (w1t + w2t)
+      w2 = w2t / (w1t + w2t)
+      flux_p = w1 * fh_1 + w2 * fh_2
+        ! numerical flux at i,j-1/2 face
+      fh_1 = -0.5 * lfn_im2 + 1.5 * lfn_im1
+      fh_2 = 0.5 * lfn_im1 + 0.5 * lfn_i
+      beta1 = (lfn_im1 - lfn_im2) ** 2
+      beta2 = (lfn_i - lfn_im1) ** 2
+      w1t = GAMMA1 / (beta1 + TOL) ** 2
+      w2t = GAMMA2 / (beta2 + TOL) ** 2
+      w1 = w1t / (w1t + w2t)
+      w2 = w2t / (w1t + w2t)
+      flux_m = w1 * fh_1 + w2 * fh_2
+
+      if (uf >= 0.0 ) then
+        return_value = (flux_p - flux_m) / dx
+      else
+        return_value = (flux_m - flux_p) / dx
+      end if
+
+    end function Select_weno3
+
+    pure function Select_weno5 (dx, lfn_it, lfn_im1t, lfn_im2t, lfn_im3t, lfn_ip1t, &
+        lfn_ip2t, lfn_ip3t, uf) result (return_value)
 
       ! 5th-order advection WENO scheme in the x,y-direction (DME)
 
-      flux_p=0.
-      flux_m=0.
+      implicit none
 
-      if (uf .ge. 0.0 ) then
-        lfn_i=lfn_it
-        lfn_im1=lfn_im1t
-        lfn_im2=lfn_im2t
-        lfn_im3=lfn_im3t
-        lfn_ip1=lfn_ip1t
-        lfn_ip2=lfn_ip2t
+      real, intent(in):: dx, lfn_it, lfn_im1t, lfn_im2t, lfn_im3t, lfn_ip1t, lfn_ip2t, lfn_ip3t, uf
+      real :: return_value
+
+      real, parameter:: GAMMA1 = 1.0 / 10.0, GAMMA2 = 3.0 / 5.0, GAMMA3 = 3.0 / 10.0, TOL = 1e-6
+      real :: lfn_i, lfn_im1, lfn_im2, lfn_im3, lfn_ip1, lfn_ip2, lfn_ip3,  flux_p, flux_m , &
+          w1, w2, w3, w1t, w2t, w3t, beta1, beta2, beta3, fh_1, fh_2, fh_3
+
+
+      if (uf >= 0.0) then
+        lfn_i = lfn_it
+        lfn_im1 = lfn_im1t
+        lfn_im2 = lfn_im2t
+        lfn_im3 = lfn_im3t
+        lfn_ip1 = lfn_ip1t
+        lfn_ip2 = lfn_ip2t
       else
-        lfn_i=lfn_it
-        lfn_im1=lfn_ip1t
-        lfn_im2=lfn_ip2t
-        lfn_im3=lfn_ip3t
-        lfn_ip1=lfn_im1t
-        lfn_ip2=lfn_im2t
+        lfn_i = lfn_it
+        lfn_im1 = lfn_ip1t
+        lfn_im2 = lfn_ip2t
+        lfn_im3 = lfn_ip3t
+        lfn_ip1 = lfn_im1t
+        lfn_ip2 = lfn_im2t
       endif
 
-      ! numerical flux at i,j+1/2 face
-      fh_1=(2.0*lfn_im2-7.0*lfn_im1+11.0*lfn_i)/6.0
-      fh_2=(-1.0*lfn_im1+5.0*lfn_i+2.0*lfn_ip1)/6.0
-      fh_3=(2.0*lfn_i+5.0*lfn_ip1-1.0*lfn_ip2)/6.0
-      beta1=(13.0/12.0)*(lfn_im2-2.0*lfn_im1+lfn_i)**2+0.25*(lfn_im2-4.0*lfn_im1+3.0*lfn_i)**2
-      beta2=(13.0/12.0)*(lfn_im1-2.0*lfn_i+lfn_ip1)**2+0.25*(lfn_im1-lfn_ip1)**2
-      beta3=(13.0/12.0)*(lfn_i-2.0*lfn_ip1+lfn_ip2)**2+0.25*(3.0*lfn_i-4.0*lfn_ip1+lfn_ip2)**2
-      w1t=gamma1/(beta1+tol)**2
-      w2t=gamma2/(beta2+tol)**2
-      w3t=gamma3/(beta3+tol)**2
-      w1=w1t/(w1t+w2t+w3t)
-      w2=w2t/(w1t+w2t+w3t)
-      w3=w3t/(w1t+w2t+w3t)
-      flux_p=w1*fh_1+w2*fh_2+w3*fh_3
-      ! numerical flux at i,j-1/2 face
-      fh_1=(2.0*lfn_im3-7.0*lfn_im2+11.0*lfn_im1)/6.0
-      fh_2=(-1.0*lfn_im2+5.0*lfn_im1+2.0*lfn_i)/6.0
-      fh_3=(2.0*lfn_im1+5.0*lfn_i-1.0*lfn_ip1)/6.0
-      beta1=(13.0/12.0)*(lfn_im3-2.0*lfn_im2+lfn_im1)**2+0.25*(lfn_im3-4.0*lfn_im2+3.0*lfn_im1)**2
-      beta2=(13.0/12.0)*(lfn_im2-2.0*lfn_im1+lfn_i)**2+0.25*(lfn_im2-lfn_i)**2
-      beta3=(13.0/12.0)*(lfn_im1-2.0*lfn_i+lfn_ip1)**2+0.25*(3.0*lfn_im1-4.0*lfn_i+lfn_ip1)**2
-      w1t=gamma1/(beta1+tol)**2
-      w2t=gamma2/(beta2+tol)**2
-      w3t=gamma3/(beta3+tol)**2
-      w1=w1t/(w1t+w2t+w3t)
-      w2=w2t/(w1t+w2t+w3t)
-      w3=w3t/(w1t+w2t+w3t)
-      flux_m=w1*fh_1+w2*fh_2+w3*fh_3
+        ! numerical flux at i,j+1/2 face
+      fh_1 = (2.0 * lfn_im2 - 7.0 * lfn_im1 + 11.0 * lfn_i) / 6.0
+      fh_2 = (-1.0 * lfn_im1 + 5.0 * lfn_i + 2.0 * lfn_ip1) / 6.0
+      fh_3 = (2.0 * lfn_i + 5.0 * lfn_ip1 - 1.0 * lfn_ip2) / 6.0
+      beta1 = (13.0 / 12.0) * (lfn_im2 - 2.0 * lfn_im1 + lfn_i) ** 2 + &
+          0.25 * (lfn_im2 - 4.0 * lfn_im1 + 3.0 * lfn_i) ** 2
+      beta2 = (13.0 / 12.0) * (lfn_im1 - 2.0 * lfn_i + lfn_ip1) ** 2 + &
+          0.25 * (lfn_im1 - lfn_ip1) ** 2
+      beta3 = (13.0 / 12.0) * (lfn_i - 2.0 * lfn_ip1 + lfn_ip2) ** 2 + &
+          0.25 * (3.0 * lfn_i - 4.0 * lfn_ip1 + lfn_ip2) ** 2
+      w1t = GAMMA1 / (beta1 + TOL) ** 2
+      w2t = GAMMA2 / (beta2 + TOL) ** 2
+      w3t = GAMMA3 / (beta3 + TOL) ** 2
+      w1 = w1t / (w1t + w2t + w3t)
+      w2 = w2t / (w1t + w2t + w3t)
+      w3 = w3t / (w1t + w2t + w3t)
+      flux_p = w1 * fh_1 + w2 * fh_2 + w3 * fh_3
 
-      if (uf .ge. 0.0 ) then
-        select_weno5=(flux_p-flux_m)/dx
+        ! numerical flux at i,j-1/2 face
+      fh_1 = (2.0 * lfn_im3 - 7.0 * lfn_im2 + 11.0 * lfn_im1) / 6.0
+      fh_2 = (-1.0 * lfn_im2 + 5.0 * lfn_im1 + 2.0 * lfn_i) / 6.0
+      fh_3 = (2.0 * lfn_im1 + 5.0 * lfn_i - 1.0 * lfn_ip1) / 6.0
+      beta1 = (13.0 / 12.0) * (lfn_im3 - 2.0 * lfn_im2 + lfn_im1) ** 2 + &
+          0.25 * (lfn_im3 - 4.0 * lfn_im2 + 3.0 * lfn_im1) ** 2
+      beta2 = (13.0 / 12.0) * (lfn_im2 - 2.0 * lfn_im1 + lfn_i) ** 2 + &
+          0.25 * (lfn_im2 - lfn_i) ** 2
+      beta3 = (13.0 / 12.0) * (lfn_im1 - 2.0 * lfn_i + lfn_ip1) ** 2 + &
+          0.25 * (3.0 * lfn_im1 - 4.0 * lfn_i + lfn_ip1) ** 2
+      w1t = GAMMA1 / (beta1 + TOL) ** 2
+      w2t = GAMMA2 / (beta2 + TOL) ** 2
+      w3t = GAMMA3 / (beta3 + TOL) ** 2
+      w1 = w1t / (w1t + w2t + w3t)
+      w2 = w2t / (w1t + w2t + w3t)
+      w3 = w3t / (w1t + w2t + w3t)
+      flux_m = w1 * fh_1 + w2 * fh_2 + w3 * fh_3
+
+      if (uf >= 0.0) then
+        return_value = (flux_p - flux_m) / dx
       else
-        select_weno5=(flux_m-flux_p)/dx
+        return_value = (flux_m - flux_p) / dx
       endif
 
-    end function select_weno5
+    end function Select_weno5
 
     subroutine Continue_at_boundary(ix,iy, & ! do x direction or y direction
           ims,ime,jms,jme, &                ! memory dims
