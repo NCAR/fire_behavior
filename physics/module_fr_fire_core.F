@@ -726,27 +726,24 @@
 
     end subroutine advance_ls_reinit
 
-    subroutine tign_update(ifts,ifte,jfts,jfte, &              ! tile dims
-                       ifms,ifme,jfms,jfme, &              ! memory dims
-                       ifds,jfds,ifde,jfde, &              ! domain dims         
-                       ts,dt,boundary_guard,&              ! scalars in
-                       fire_print_msg,      &
-                       lfn_in,lfn_out,tign  &              ! arrays inout          
-                      )
+    subroutine tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+        ifds, jfds, ifde, jfde, ts, dt, boundary_guard, fire_print_msg, &
+        lfn_in, lfn_out, tign)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 
-      integer,intent(in)::ifts,ifte,jfts,jfte,ifms,ifme,jfms,jfme,ifds,jfds,ifde,jfde
-      integer,intent(in)::boundary_guard,fire_print_msg
-      real,dimension(ifms:ifme,jfms:jfme),intent(inout)::tign
-      real,dimension(ifms:ifme,jfms:jfme),intent(in)::lfn_in,lfn_out
-      real,intent(in)::ts,dt
-      real::time_now
-      integer::i,j,k,kk
+      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+          ifds, jfds, ifde, jfde
+      integer, intent (in) :: boundary_guard, fire_print_msg
+      real, dimension (ifms:ifme, jfms:jfme), intent (inout):: tign
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_in, lfn_out
+      real, intent(in)::ts,dt
+      real :: time_now
+      integer :: i, j, k, kk
       intrinsic epsilon
-      character(len=128)::msg
+      character (len = 128) :: msg
 
 
       ! compute ignition time by interpolation
@@ -759,42 +756,43 @@
       ! tign(i,j)= ts + ((ts + td) - ts) * lfn_in / (lfn_in - lfn_out)
       !        = ts + dt * lfn_in / (lfn_in - lfn_out)
     
-      time_now=ts+dt
-      time_now = time_now + abs(time_now)*epsilon(time_now)*2.
-      do j=jfts,jfte
-          do i=ifts,ifte
+      time_now = ts + dt
+      time_now = time_now + abs (time_now) * epsilon (time_now) * 2.0
+      do j = jfts, jfte
+          do i = ifts, ifte
               ! interpolate the cross-over time
-              if (.not. lfn_out(i,j)>0 .and. lfn_in(i,j)>0)then
-                  tign(i,j) = ts + dt * lfn_in(i,j) / (lfn_in(i,j) - lfn_out(i,j))
-          endif
+              if (.not. lfn_out(i, j) > 0 .and. lfn_in(i, j) > 0)then
+                  tign(i, j) = ts + dt * lfn_in(i, j) / (lfn_in(i, j) - lfn_out(i, j))
+          end if
               ! set the ignition time outside of burning region
               if(lfn_out(i,j)>0.)tign(i,j)=time_now
-          enddo
-      enddo
+          end do
+      end do
 
         ! stop simulation if fire is within boundary_guard grid points from the domain boundaries 
-      do j=jfts,jfte
-        if (j.le.boundary_guard .or. j.gt.(jfde-boundary_guard)) then
-          do i=ifts,ifte
-            if (lfn_out(i,j).lt.0.) then 
+      do j = jfts, jfte
+        if (j <= boundary_guard .or. j > (jfde - boundary_guard)) then
+          do i = ifts, ifte
+            if (lfn_out(i,j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
               write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
               call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
-            endif
-          enddo
-        endif
-      enddo
-      do i=ifts,ifte
+            end if
+          end do
+        end if
+      end do
+
+      do i = ifts, ifte
         if (i.le.boundary_guard .or. i.gt.(ifde-boundary_guard)) then
-          do j=jfts,jfte
-            if (lfn_out(i,j).lt.0.) then 
+          do j = jfts, jfte
+            if (lfn_out(i, j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
               write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
               call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
-            endif
-          enddo
-        endif
-      enddo
+            end if
+          end do
+        end if
+      end do
     
     end subroutine tign_update
 
@@ -1197,7 +1195,7 @@
         lfn_im3 = lfn_ip3t
         lfn_ip1 = lfn_im1t
         lfn_ip2 = lfn_im2t
-      endif
+      end if
 
         ! numerical flux at i,j+1/2 face
       fh_1 = (2.0 * lfn_im2 - 7.0 * lfn_im1 + 11.0 * lfn_i) / 6.0
@@ -1239,7 +1237,7 @@
         return_value = (flux_p - flux_m) / dx
       else
         return_value = (flux_m - flux_p) / dx
-      endif
+      end if
 
     end function Select_weno5
 
@@ -1250,85 +1248,84 @@
           itso,iteo,jtso,jteo, &            ! tile dims where set
           lfn,fire_print_msg)               ! array
 
+      ! extend array by one beyond the domain by linear continuation
+
       implicit none
 
-      !*** description
-      ! extend array by one beyond the domain by linear continuation
-      !*** arguments
-      integer, intent(in)::ix,iy              ! not 0 = do x or y (1 or 2) direction
-      integer, intent(in)::ims,ime,jms,jme, & ! memory dims
-          ids,ide,jds,jde,                  & ! domain dims
-          its,ite,jts,jte                     ! tile dims
-      integer, intent(out)::itso,jtso,iteo,jteo ! where set
-      real,intent(inout),dimension(ims:ime,jms:jme)::lfn
-      integer, intent(in)::fire_print_msg
+      integer, intent (in) :: ix,iy              ! not 0 = do x or y (1 or 2) direction
+      integer, intent (in) :: ims,ime,jms,jme, & ! memory dims
+          ids, ide, jds, jde,                  & ! domain dims
+          its, ite, jts, jte                     ! tile dims
+      integer, intent(out) :: itso, jtso, iteo, jteo ! where set
+      real,intent(inout), dimension (ims:ime, jms:jme) :: lfn
+      integer, intent(in) :: fire_print_msg
 
-      integer i,j
-      character(len=128)::msg
-      integer::its1,ite1,jts1,jte1
-      integer,parameter::halo=1           ! only 1 domain halo is needed since ENO1 is used near domain boundaries
+      integer :: i, j
+      character (len = 128) :: msg
+      integer :: its1, ite1, jts1, jte1
+      integer, parameter :: HALO = 1           ! only 1 domain halo is needed since ENO1 is used near domain boundaries
 
-      ! for dislay only
-      itso=its
-      jtso=jts
-      iteo=ite
-      jteo=jte
-      ! go halo width beyond if at patch boundary but not at domain boudnary
-      ! assume we have halo need to compute the value we do not have
-      ! the next thread that would conveniently computer the extended values at patch corners
-      ! besides halo may not transfer values outside of the domain
-      !
-      its1=its
-      jts1=jts
-      ite1=ite
-      jte1=jte
-      if(.not.its.eq.ids)its1=its-halo
-      if(.not.jts.eq.jds)jts1=jts-halo
-      if(.not.ite.eq.ide)ite1=ite+halo
-      if(.not.jte.eq.jde)jte1=jte+halo
-      if(ix.ne.0)then
-        if(its.eq.ids)then
-            do j=jts1,jte1
-                lfn(ids-1,j)=EX(lfn(ids,j),lfn(ids+1,j))
+        ! for dislay only
+      itso = its
+      jtso = jts
+      iteo = ite
+      jteo = jte
+        ! go halo width beyond if at patch boundary but not at domain boudnary
+        ! assume we have halo need to compute the value we do not have
+        ! the next thread that would conveniently computer the extended values at patch corners
+        ! besides halo may not transfer values outside of the domain
+      its1 = its
+      jts1 = jts
+      ite1 = ite
+      jte1 = jte
+      if (.not. its .eq. ids) its1 = its - HALO
+      if (.not. jts .eq. jds) jts1 = jts - HALO
+      if (.not. ite .eq. ide) ite1 = ite + HALO
+      if (.not. jte .eq. jde) jte1 = jte + HALO
+      if (ix /= 0) then
+        if(its == ids)then
+            do j = jts1, jte1
+                lfn(ids - 1, j) = EX (lfn(ids, j), lfn(ids + 1, j))
             enddo
-            itso=ids-1
-        endif
-        if(ite.eq.ide)then
-            do j=jts1,jte1
-                lfn(ide+1,j)=EX(lfn(ide,j),lfn(ide-1,j))
-            enddo
-            iteo=ide+1
-        endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write(msg,'(8(a,i5))')'Continue_at_boundary: x:',its,':',ite,',',jts,':',jte,' ->',itso,':',iteo,',',jts1,':',jte1
+            itso = ids - 1
+        end if
+        if (ite == ide) then
+            do j = jts1, jte1
+                lfn(ide + 1, j) = EX(lfn(ide, j), lfn(ide - 1, j))
+            end do
+            iteo = ide + 1
+        end if
+        !$OMP CRITICAL(FIRE_UTIL_CRIT)
+        write (msg,'(8(a, i5))') 'Continue_at_boundary: x:', its, ':', ite, &
+           ',', jts, ':', jte, ' ->', itso, ':', iteo, ',' ,jts1, ':', jte1
         call message(msg, fire_print_msg)
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-      endif
-      if(iy.ne.0)then
-        if(jts.eq.jds)then
-            do i=its1,ite1
-                lfn(i,jds-1)=EX(lfn(i,jds),lfn(i,jds+1))
-            enddo
-            jtso=jds-1
+        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+      end if
+      if (iy /= 0) then
+        if (jts == jds) then
+            do i = its1, ite1
+              lfn(i, jds - 1) = EX (lfn (i, jds), lfn(i, jds + 1))
+            end do
+            jtso = jds - 1
+        end if
+        if (jte == jde) then
+            do i=its1, ite1
+                lfn(i, jde + 1) = EX (lfn(i, jde), lfn(i, jde - 1))
+            end do
+            jteo = jde + 1
         endif
-        if(jte.eq.jde)then
-            do i=its1,ite1
-                lfn(i,jde+1)=EX(lfn(i,jde),lfn(i,jde-1))
-            enddo
-            jteo=jde+1
-        endif
-      !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write(msg,'(8(a,i5))')'Continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-      !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+        !$OMP CRITICAL(FIRE_UTIL_CRIT)
+        write (msg, '(8(a, i5))') 'Continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
+        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
         call message(msg, fire_print_msg)
-      endif
+      end if
       ! corners of the domain
-      if(ix.ne.0.and.iy.ne.0)then
-        if(its.eq.ids.and.jts.eq.jds)lfn(ids-1,jds-1)=EX(lfn(ids,jds),lfn(ids+1,jds+1))
-        if(its.eq.ids.and.jte.eq.jde)lfn(ids-1,jde+1)=EX(lfn(ids,jde),lfn(ids+1,jde-1))
-        if(ite.eq.ide.and.jts.eq.jds)lfn(ide+1,jds-1)=EX(lfn(ide,jds),lfn(ide-1,jds+1))
-        if(ite.eq.ide.and.jte.eq.jde)lfn(ide+1,jde+1)=EX(lfn(ide,jde),lfn(ide-1,jde-1))
-      endif
+      if(ix /= 0 .and. iy /= 0)then
+        if(its == ids .and. jts == jds) lfn(ids - 1, jds - 1) = EX (lfn(ids, jds), lfn(ids + 1, jds + 1))
+        if(its == ids .and. jte == jde) lfn(ids - 1, jde + 1) = EX (lfn(ids, jde), lfn(ids + 1, jde - 1))
+        if(ite == ide .and. jts == jds) lfn(ide + 1, jds - 1) = EX (lfn(ide, jds), lfn(ide - 1, jds + 1))
+        if(ite == ide .and. jte == jde) lfn(ide + 1, jde + 1) = EX (lfn(ide, jde), lfn(ide - 1, jde - 1))
+      end if
 
       return
 
