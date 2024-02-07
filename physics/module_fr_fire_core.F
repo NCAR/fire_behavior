@@ -154,7 +154,7 @@
                   + txx * (1 - tyy) * tignf(1 + 1, 1) &
                   + txx * tyy * tignf(1 + 1, 1 + 1)
  
-             call fuel_left_cell_1 (fuel_left_ff, fire_area_ff, &
+             call Fuel_left_cell_1 (fuel_left_ff, fire_area_ff, &
                  lffij, lffij1, lffi1j, lffi1j1, &
                  tifij, tifij1, tifi1j, tifi1j1, &
                  time_now, fuel_time(icl,jcl), fire_print_msg)
@@ -166,7 +166,7 @@
                 write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
                     ' of refined mesh fuel burnt', 1 - fuel_left_ff, ' fire area', fire_area_ff
                 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                call crash(msg)
+                call Crash(msg)
               endif
 
               helpsum1 = helpsum1 + fuel_left_ff
@@ -196,7 +196,7 @@
                  write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
                      ' fuel burnt', 1 - fuel_frac(i, j), ' but fire area', fire_area(i, j)
                  !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                     call crash (msg)
+                     call Crash (msg)
                end if
              else
                frat = (1 - fuel_frac(i, j)) / fire_area(i, j)
@@ -207,12 +207,12 @@
       !$OMP CRITICAL(FIRE_CORE_CRIT)
       write (msg,'(a, 4i6, a, f10.7)') 'fuel_left: tile', its, ite, jts, jte, ' max fuel burnt/area', fmax 
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call message (msg, fire_print_msg)
+      call Message (msg, fire_print_msg)
 
       return
-    end subroutine fuel_left
+    end subroutine Fuel_left
 
-    subroutine fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
+    subroutine Fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
         lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
         time_now, fuel_time_cell, fire_print_msg)
 
@@ -339,12 +339,12 @@
       if(out > 1.0)then
         !$OMP CRITICAL(FIRE_CORE_CRIT)
         write (msg, *) 'out=', out, '>1 area=', area,' ta=', ta
-        call message (msg, fire_print_msg)
+        call Message (msg, fire_print_msg)
         write(msg,*)'tign=', tign00, tign01, tign10, tign11,' time_now=', time_now
         !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call message(msg, fire_print_msg)
-        !call message('WARNING: fuel_left_cell_1: fuel fraction > 1')
-        call crash ('fuel_left_cell_1: fuel fraction > 1')
+        call Message(msg, fire_print_msg)
+        !call Message('WARNING: fuel_left_cell_1: fuel fraction > 1')
+        call Crash ('fuel_left_cell_1: fuel fraction > 1')
       end if
 
       !out = max(out,0.) ! make sure out is between 0 and 1
@@ -353,9 +353,9 @@
       fuel_frac_left = out
       fire_frac_area = area
 
-    end subroutine fuel_left_cell_1
+    end subroutine Fuel_left_cell_1
 
-    subroutine prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
+    subroutine Prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, &
         fire_advection, fire_slope_factor, fire_lsm_band_ngp, fire_print_msg, &
@@ -431,7 +431,7 @@
       !$OMP CRITICAL(FIRE_CORE_CRIT)
       write (msg, '(a8, i5, a6, i5, 3(a1, i5))') 'prop_ls: tile ', ifts, ':', ifte, ',', jfts, ':', jfte
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call message(msg, fire_print_msg)
+      call Message(msg, fire_print_msg)
 
         ! Runge-Kutta step 1
       do j = jfts, jfte
@@ -440,7 +440,7 @@
         end do
       end do
 
-      call tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+      call Tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fire_advection, fire_slope_factor, &
@@ -454,7 +454,7 @@
       end do
 
         ! Runge-Kutta step 2
-     call tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+     call Tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
@@ -468,7 +468,7 @@
       end do
 
         ! Runge-Kutta step 3
-     call tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
+     call Tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
@@ -490,18 +490,18 @@
           ' dx=',dx,' dy=',dy
       !$OMP END CRITICAL(FIRE_CORE_CRIT)
 
-      call message (msg,fire_print_msg)
+      call Message (msg,fire_print_msg)
       if (dt > tbound)then
         !$OMP CRITICAL(FIRE_CORE_CRIT)
         write (msg,'(2(a, f10.2))') 'prop_ls: WARNING: time step ', dt, &
             ' > bound =', tbound
         !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call message (msg, fire_print_msg)
+        call Message (msg, fire_print_msg)
       end if
     
-    end subroutine prop_ls_rk3
+    end subroutine Prop_ls_rk3
 
-    subroutine reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+    subroutine Reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, fire_print_msg) 
@@ -557,7 +557,7 @@
         ! 1 iter each time step is enoguh
       do nts = 1, fire_lsm_reinit_iter
           ! Runge-Kutta step 1
-        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+        call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
             ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
             lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
             fire_upwinding_reinit)
@@ -567,7 +567,7 @@
             lfn_s1, fire_print_msg)
 
           ! Runge-Kutta step 2
-        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+        call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
             ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
             lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
             fire_upwinding_reinit)
@@ -577,7 +577,7 @@
             lfn_s2,fire_print_msg)
 
           ! Runge-Kutta step 3
-        call advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+        call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
             ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, &
             lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
             fire_upwinding_reinit) 
@@ -596,9 +596,9 @@
         end do
       end do
 
-    end subroutine reinit_ls_rk3
+    end subroutine Reinit_ls_rk3
 
-    subroutine advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+    subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, lfn_s0, &
         lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit)
 
@@ -625,7 +625,7 @@
             diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
             diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
             diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
-            diff2x = select_eno (diffLx, diffRx)
+            diff2x = Select_eno (diffLx, diffRx)
             diff2y = Select_eno (diffLy, diffRy)
           else
             select case (fire_upwinding_reinit)
@@ -724,9 +724,9 @@
         end do
       end do
 
-    end subroutine advance_ls_reinit
+    end subroutine Advance_ls_reinit
 
-    subroutine tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+    subroutine Tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, jfds, ifde, jfde, ts, dt, boundary_guard, fire_print_msg, &
         lfn_in, lfn_out, tign)
 
@@ -776,7 +776,7 @@
             if (lfn_out(i,j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
               write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
-              call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
+              call Crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
             end if
           end do
         end if
@@ -788,211 +788,225 @@
             if (lfn_out(i, j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
               write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
-              call crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
+              call Crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
             end if
           end do
         end if
       end do
     
-    end subroutine tign_update
+    end subroutine Tign_update
 
-    subroutine tend_ls( &
-        ids,ide,jds,jde,    &              ! domain - nodes where lfn defined
-        its,ite,jts,jte,    &              ! region - nodes where tend computed
-        ims,ime,jms,jme,    &              ! memory dims for ros 
-        t,dt,dx,dy,         &              ! scalars in
-        fire_upwinding, &
-        fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_slope_factor,       &
-        fire_lsm_band_ngp, fire_print_msg,  &
-        lfn,                &              ! arrays in
-        tbound,             &              ! scalars out 
-        tend, ros,          &              ! arrays out
-        grid,               &
-        ros_model &
-        )
+    subroutine Tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
+        t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
+        fire_viscosity_band, fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+        fire_lsm_band_ngp, fire_print_msg, lfn, tbound, tend, ros, grid, ros_model)
+
+      ! compute the right hand side of the level set equation
 
       implicit none
 
-      ! purpose
-      ! compute the right hand side of the level set equation
-
-      integer,intent(in)::ims,ime,jms,jme,its,ite,jts,jte
-      integer, intent(in)::ids,ide,jds,jde
-      integer, intent(in):: fire_upwinding,fire_viscosity_ngp, &
-                     fire_advection,fire_lsm_band_ngp,fire_print_msg
-      real,intent(in)::fire_viscosity,fire_viscosity_bg,fire_viscosity_band,fire_slope_factor
-      real,intent(in)::t                                 ! time
-      real,intent(in)::dt,dx,dy                          ! mesh step
-      real,dimension(ims:ime,jms:jme),intent(inout)::lfn ! level set function 
-      real,dimension(ims:ime,jms:jme),intent(out)::tend  ! tendency (rhs of the level set pde)
-      real,dimension(ims:ime,jms:jme),intent(out)::ros   ! rate of spread 
-      real,intent(out)::tbound                           ! max allowed time step
+      integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte
+      integer, intent (in) :: ids, ide, jds, jde
+      integer, intent (in):: fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp, fire_print_msg
+      real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
+      real, intent (in) :: t                                    ! time
+      real, intent (in) :: dt, dx, dy                           ! mesh step
+      real, dimension(ims:ime, jms:jme), intent (inout) :: lfn ! level set function 
+      real, dimension(ims:ime, jms:jme), intent (out) :: tend  ! tendency (rhs of the level set pde)
+      real, dimension(ims:ime, jms:jme), intent (out) :: ros   ! rate of spread 
+      real, intent (out) :: tbound                             ! max allowed time step
       type (state_fire_t), target :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
-      real:: te,diffLx,diffLy,diffRx,diffRy, & 
-         diffCx,diffCy,diff2x,diff2y,grad,rr, &
-         ros_base,ros_wind,ros_slope,ros_back,advx,advy,scale,nvx,nvy, &
-         speed,tanphi
-      integer::i,j,itso,iteo,jtso,jteo
-      character(len=128)msg
+      real :: te, diffLx, diffLy, diffRx, diffRy, diffCx, diffCy, &
+         diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
+         ros_back, advx, advy, scale, nvx, nvy, speed, tanphi
+      integer :: i, j, itso, iteo, jtso, jteo
+      character (len = 128) :: msg
 
-        ! constants
-      real, parameter:: eps=epsilon(0.0)
-      !intrinsic epsilon
-      real, parameter:: zero=0.,one=1.,tol=100*eps, &
-          safe=2.,rmin=safe*tiny(zero),rmax=huge(zero)/safe
+      real, parameter :: EPS = epsilon (0.0)
+      real, parameter :: ZERO = 0.0 , ONE = 1.0, TOL = 100 * EPS, &
+          SAFE = 2.0, RMIN = SAFE * tiny (ZERO), RMAX = huge (ZERO) / SAFE
       real :: diff2xn, diff2yn
       real :: a_valor, signo_x, signo_y
-      real :: threshold_HLl,threshold_HLu
-      real :: threshold_AV,fire_viscosity_var
-      integer,parameter :: bdy_eno1=10
+      real :: threshold_HLl, threshold_HLu
+      real :: threshold_AV, fire_viscosity_var
+      integer,parameter :: BDY_ENO1 = 10
 
-        ! f90 intrinsic function
-      intrinsic max,min,sqrt,nint,tiny,huge
+      intrinsic :: max, min, sqrt, nint, tiny, huge
 
 
-      threshold_HLl=-fire_lsm_band_ngp*dx 
-      threshold_HLu=fire_lsm_band_ngp*dx
-      threshold_AV=fire_viscosity_ngp*dx
+      threshold_HLl = -fire_lsm_band_ngp * dx
+      threshold_HLu = fire_lsm_band_ngp * dx
+      threshold_AV = fire_viscosity_ngp * dx
 
-      call Continue_at_boundary(1,1, &   !extend by extrapolation but never down
-          ims,ime,jms,jme, &                                 ! memory dims
-          ids,ide,jds,jde, &                                 ! domain
-          its,ite,jts,jte, &                                 ! tile
-          itso,iteo,jtso,jteo, &                             ! where set now
-          lfn,fire_print_msg)                                               ! field 
+      call Continue_at_boundary (1, 1, ims, ime, jms, jme, ids, ide, jds, jde, &
+          its, ite, jts, jte, itso, iteo, jtso, jteo, lfn, fire_print_msg)
 
-      tbound=0    
-      do j=jts,jte
-        do i=its,ite
+      tbound = 0.0
+      do j = jts, jte
+        do i = its, ite
             ! one sided differences
-            diffRx = (lfn(i+1,j)-lfn(i,j))/dx
-            diffLx = (lfn(i,j)-lfn(i-1,j))/dx
-            diffRy = (lfn(i,j+1)-lfn(i,j))/dy
-            diffLy = (lfn(i,j)-lfn(i,j-1))/dy
-            diffCx = diffLx+diffRx   ! 	TWICE CENTRAL DIFFERENCE
-            diffCy = diffLy+diffRy
+          diffRx = (lfn(i + 1, j) - lfn(i, j)) / dx
+          diffLx = (lfn(i, j) - lfn(i - 1, j)) / dx
+          diffRy = (lfn(i, j + 1) - lfn(i, j)) / dy
+          diffLy = (lfn(i, j) - lfn(i, j - 1)) / dy
+            ! twice central difference
+          diffCx = diffLx + diffRx
+          diffCy = diffLy + diffRy
+            ! use eno1 near domain boundaries
+          if (i < ids + BDY_ENO1 .or. i > ide - BDY_ENO1 .or. &
+              j < jds + BDY_ENO1 .or. j > jde - BDY_ENO1) then 
+            diff2x = Select_eno (diffLx, diffRx)
+            diff2y = Select_eno (diffLy, diffRy)
+            grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+          else
+            select case (fire_upwinding)
+                ! none
+              case (0)
+                grad = sqrt (diffCx ** 2 + diffCy ** 2)
 
-            if (i.lt.ids+bdy_eno1 .OR. i.gt.ide-bdy_eno1 .OR. j.lt.jds+bdy_eno1 .OR. j.gt.jde-bdy_eno1) then ! DME: use eno1 near domain boundaries
-              diff2x=select_eno(diffLx,diffRx)
-              diff2y=select_eno(diffLy,diffRy)
-              grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-            else
-              select case(fire_upwinding)
-              case(0)  ! none
-                  grad=sqrt(diffCx**2 + diffCy**2)
-              case(1) ! standard
-                  diff2x=select_upwind(diffLx,diffRx)
-                  diff2y=select_upwind(diffLy,diffRy)
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(2) ! godunov per osher/fedkiw
-                  diff2x=select_godunov(diffLx,diffRx)
-                  diff2y=select_godunov(diffLy,diffRy)
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(3) ! eno
-                  diff2x=select_eno(diffLx,diffRx)
-                  diff2y=select_eno(diffLy,diffRy)
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(4) ! Sethian - twice stronger pushdown of bumps
-                  grad=sqrt(max(diffLx,0.)**2+min(diffRx,0.)**2   &
-                          + max(diffLy,0.)**2+min(diffRy,0.)**2)
-              case(5) ! 2nd order (DME)
-                  diff2x=select_2nd(rr,dx,lfn(i,j),lfn(i-1,j),lfn(i+1,j))
-                  diff2y=select_2nd(rr,dy,lfn(i,j),lfn(i,j-1),lfn(i,j+1))
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(6) ! 3rd-order WENO (DME)
-                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
-                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
-                  signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
-                  signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
-                  diff2x=select_weno3(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j),signo_x)
-                  diff2y=select_weno3(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2),signo_y)
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(7) ! 5th-order WENO (DME)
-                  a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
-                          select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
-                  signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
-                  signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
-                  diff2x=select_weno5(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i-3,j),lfn(i+1,j),lfn(i+2,j),lfn(i+3,j),signo_x)
-                  diff2y=select_weno5(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j-3),lfn(i,j+1),lfn(i,j+2),lfn(i,j+3),signo_y)
-                  grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-              case(8) ! high-order local band method WENO3/ENO1 (DME)
-                  if (abs(lfn(i,j)).lt.threshold_HLu) then
-                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
-                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
-                    signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
-                    signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
-                    diff2x=select_weno3(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j),signo_x)
-                    diff2y=select_weno3(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2),signo_y)
-                    grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-                  else
-                    diff2x=select_eno(diffLx,diffRx)
-                    diff2y=select_eno(diffLy,diffRy)
-                    grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-                  endif
-              case(9) ! high-order local band method WENO5/ENO1 (DME)
-                  if (abs(lfn(i,j)).lt.threshold_HLu) then
-                    a_valor=select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))*grid%uf(i,j)+ &
-                            select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))*grid%vf(i,j)
-                    signo_x=a_valor*select_4th(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i+1,j),lfn(i+2,j))
-                    signo_y=a_valor*select_4th(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
-                    diff2x=select_weno5(dx,lfn(i,j),lfn(i-1,j),lfn(i-2,j),lfn(i-3,j),lfn(i+1,j),lfn(i+2,j),lfn(i+3,j),signo_x)
-                    diff2y=select_weno5(dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j-3),lfn(i,j+1),lfn(i,j+2),lfn(i,j+3),signo_y)
-                    grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-                  else
-                    diff2x=select_eno(diffLx,diffRx)
-                    diff2y=select_eno(diffLy,diffRy)
-                    grad=sqrt(diff2x*diff2x + diff2y*diff2y)
-                  endif
+                ! standard
+              case (1)
+                diff2x = Select_upwind (diffLx, diffRx)
+                diff2y = Select_upwind (diffLy, diffRy)
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! godunov per osher/fedkiw
+              case (2)
+                diff2x = Select_godunov (diffLx, diffRx)
+                diff2y = Select_godunov (diffLy, diffRy)
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! ENO1
+              case (3)
+                diff2x = Select_eno (diffLx, diffRx)
+                diff2y = Select_eno (diffLy, diffRy)
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! Sethian - twice stronger pushdown of bumps
+              case(4)
+                grad = sqrt (max (diffLx, 0.0) ** 2 + min (diffRx, 0.0) ** 2 &
+                    + max (diffLy, 0.0) ** 2 + min(diffRy, 0.0) ** 2)
+                ! 2nd order
+              case(5)
+                diff2x = Select_2nd (rr, dx, lfn(i, j), lfn(i - 1, j), lfn(i + 1, j))
+                diff2y = Select_2nd (rr, dy, lfn(i, j), lfn(i, j - 1), lfn(i, j + 1))
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! WENO3
+              case(6)
+                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
+                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), &
+                    lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
+                signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
+                    lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2))
+                diff2x = Select_weno3 (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), &
+                    lfn(i + 1, j), lfn(i + 2, j), signo_x)
+                diff2y = Select_weno3 (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), & 
+                    lfn(i, j + 1), lfn(i, j + 2), signo_y)
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! WENO5
+              case(7)
+                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j)+ &
+                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
+                signo_y = a_valor * Select_4th (dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
+                diff2x = Select_weno5 (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), &
+                    lfn(i - 3, j), lfn(i + 1, j), lfn(i + 2, j), lfn(i + 3, j), signo_x)
+                diff2y = Select_weno5 (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), &
+                    lfn(i ,j - 3), lfn(i, j + 1), lfn(i, j + 2), lfn(i, j + 3), signo_y)
+                grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+
+                ! WENO3/ENO1
+              case(8)
+                if (abs (lfn(i, j)) < threshold_HLu) then
+                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
+                      Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                  signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), & 
+                      lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
+                  signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
+                      lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2))
+                  diff2x = Select_weno3 (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), &
+                      lfn(i + 1, j), lfn(i + 2, j), signo_x)
+                  diff2y = Select_weno3 (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), &
+                      lfn(i, j + 1), lfn(i, j + 2), signo_y)
+                  grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+                else
+                  diff2x = Select_eno (diffLx, diffRx)
+                  diff2y = Select_eno (diffLy, diffRy)
+                  grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+                end if
+
+                ! WENO5/ENO1
+              case(9)
+                if (abs (lfn(i, j)) < threshold_HLu) then
+                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
+                      Select_4th (dy,lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                  signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), &
+                      lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
+                  signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
+                      lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2))
+                  diff2x = Select_weno5 (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), &
+                      lfn(i - 3, j), lfn(i + 1, j), lfn(i + 2, j), lfn(i + 3, j), signo_x)
+                  diff2y = Select_weno5 (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), &
+                      lfn(i, j - 3), lfn(i, j + 1), lfn(i, j + 2), lfn(i, j + 3), signo_y)
+                  grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+                else
+                  diff2x = Select_eno (diffLx, diffRx)
+                  diff2y = Select_eno (diffLy, diffRy)
+                  grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+                end if
+
               case default
-                   grad=0.
-              end select
-            endif
-              ! DME use the same discretization scheme from fire_upwinding option to calculate the normals
-            scale=sqrt(grad**2.0+eps) 
-            nvx=diff2x/scale 
-            nvy=diff2y/scale 
+                 grad = 0.0
+
+            end select
+          end if
+
+            ! same scheme from fire_upwinding to calc normals
+          scale = sqrt (grad ** 2.0 + EPS)
+          nvx = diff2x / scale
+          nvy = diff2y / scale
 
             ! wind speed in direction of spread
-            speed =  grid%uf(i,j)*nvx + grid%vf(i,j)*nvy
+          speed =  grid%uf(i,j) * nvx + grid%vf(i, j) * nvy
             ! get rate of spread from wind speed and slope
-            call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
-            nvx, nvy, i, j, grid, fire_advection)
-            rr=ros_base + ros_wind + fire_slope_factor*ros_slope
+          call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
+              nvx, nvy, i, j, grid, fire_advection)
+          rr = ros_base + ros_wind + fire_slope_factor * ros_slope
 
-            if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
-            ros(i, j) = rr
+          if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
+          ros(i, j) = rr
+            ! normal term 
+          te = -rr * grad
 
-            te = -rr*grad   ! normal term 
+            ! CFL condition
+          if (grad > 0.0) tbound = max (tbound, rr * (abs (diff2x) / dx + &
+              abs (diff2y) / dy) / grad)
 
-            ! cfl condition
-            if (grad > 0.) then
-                 tbound = max(tbound,rr*(abs(diff2x)/dx+abs(diff2y)/dy)/grad)
-            endif
+            ! Artificial viscosity
+          if (abs (lfn(i,j)) < threshold_AV .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
+              (j > jds + BDY_ENO1 .and. j < jde - BDY_ENO1)) then 
+            fire_viscosity_var=fire_viscosity_bg
+          else if (abs(lfn(i,j)) >= threshold_AV .and. abs(lfn(i,j)) < threshold_AV * (1.0 + fIre_viscosity_band) .and. &
+              (i > ids + 10 .and. i < ide - 10) .and. (j > jds + 10 .and. j < jde - 10)) then
+            fire_viscosity_var = min (fire_viscosity_bg + (fire_viscosity - fire_viscosity_bg) * &
+                (abs (lfn(i, j)) - threshold_AV) / (fire_viscosity_band * threshold_AV), fire_viscosity)
+          else
+            fire_viscosity_var = fire_viscosity
+          end if
+          te = te + fire_viscosity_var * abs (rr) * ((diffRx - diffLx) + (diffRy - diffLy))
+          tend(i, j) = te
+        end do
+      end do        
 
-            ! DME: adds spatially variable artificial viscosity
-            if (abs(lfn(i,j)).lt.threshold_AV .AND. (i.gt.ids+bdy_eno1 .and. i.lt.ide-bdy_eno1) .AND. &
-                (j.gt.jds+bdy_eno1 .and. j.lt.jde-bdy_eno1)) then 
-              fire_viscosity_var=fire_viscosity_bg
-            elseif (abs(lfn(i,j)).ge.threshold_AV .AND. abs(lfn(i,j)).lt.threshold_AV*(1.0+fire_viscosity_band) .AND. &
-                (i.gt.ids+10 .and. i.lt.ide-10) .AND. (j.gt.jds+10 .and. j.lt.jde-10)) then
-              fire_viscosity_var=min(fire_viscosity_bg+(fire_viscosity-fire_viscosity_bg)* &
-                  (abs(lfn(i,j))-threshold_AV)/(fire_viscosity_band*threshold_AV),fire_viscosity)
-            else
-              fire_viscosity_var=fire_viscosity
-            endif
-            te=te + fire_viscosity_var*abs(rr)*((diffRx-diffLx)+(diffRy-diffLy))
-            tend(i,j)=te
-        enddo
-      enddo        
+        ! final CFL bound
+      tbound = 1.0 / (tbound + TOL)
 
-        ! the final CFL bound
-      tbound = 1/(tbound+tol)
-
-    end subroutine tend_ls
+    end subroutine Tend_ls
 
     pure function Select_upwind (diff_lx, diff_rx) result (return_value)
 
@@ -1036,7 +1050,7 @@
 
       return_value = diff2x
 
-    end function select_godunov
+    end function Select_godunov
 
     pure function Select_eno (diff_lx, diff_rx) result (return_value)
 
@@ -1241,29 +1255,26 @@
 
     end function Select_weno5
 
-    subroutine Continue_at_boundary(ix,iy, & ! do x direction or y direction
-          ims,ime,jms,jme, &                ! memory dims
-          ids,ide,jds,jde, &                ! domain dims
-          its,ite,jts,jte, &                ! tile dims
-          itso,iteo,jtso,jteo, &            ! tile dims where set
-          lfn,fire_print_msg)               ! array
+    subroutine Continue_at_boundary (ix, iy, & ! do x direction or y direction
+          ims, ime, jms, jme, ids, ide, jds, jde, its, ite, jts, jte, &
+          itso,iteo,jtso,jteo, lfn, fire_print_msg)
 
       ! extend array by one beyond the domain by linear continuation
 
       implicit none
 
-      integer, intent (in) :: ix,iy              ! not 0 = do x or y (1 or 2) direction
-      integer, intent (in) :: ims,ime,jms,jme, & ! memory dims
-          ids, ide, jds, jde,                  & ! domain dims
-          its, ite, jts, jte                     ! tile dims
-      integer, intent(out) :: itso, jtso, iteo, jteo ! where set
-      real,intent(inout), dimension (ims:ime, jms:jme) :: lfn
+      integer, intent (in) :: ix, iy ! not 0 = do x or y (1 or 2) direction
+      integer, intent (in) :: ims, ime, jms, jme, ids, ide, jds, jde, its, ite, jts, jte
+      integer, intent (out) :: itso, jtso, iteo, jteo 
+      real, dimension (ims:ime, jms:jme), intent (inout) :: lfn
       integer, intent(in) :: fire_print_msg
 
       integer :: i, j
       character (len = 128) :: msg
       integer :: its1, ite1, jts1, jte1
-      integer, parameter :: HALO = 1           ! only 1 domain halo is needed since ENO1 is used near domain boundaries
+
+        ! only 1 domain halo is needed since ENO1 is used near domain boundaries
+      integer, parameter :: HALO = 1
 
         ! for dislay only
       itso = its
@@ -1282,56 +1293,59 @@
       if (.not. jts .eq. jds) jts1 = jts - HALO
       if (.not. ite .eq. ide) ite1 = ite + HALO
       if (.not. jte .eq. jde) jte1 = jte + HALO
+
       if (ix /= 0) then
-        if(its == ids)then
-            do j = jts1, jte1
-                lfn(ids - 1, j) = EX (lfn(ids, j), lfn(ids + 1, j))
-            enddo
-            itso = ids - 1
+        if (its == ids)then
+          do j = jts1, jte1
+            lfn(ids - 1, j) = Ex (lfn(ids, j), lfn(ids + 1, j))
+          end do
+          itso = ids - 1
         end if
         if (ite == ide) then
-            do j = jts1, jte1
-                lfn(ide + 1, j) = EX(lfn(ide, j), lfn(ide - 1, j))
-            end do
-            iteo = ide + 1
+          do j = jts1, jte1
+            lfn(ide + 1, j) = Ex(lfn(ide, j), lfn(ide - 1, j))
+          end do
+          iteo = ide + 1
         end if
         !$OMP CRITICAL(FIRE_UTIL_CRIT)
         write (msg,'(8(a, i5))') 'Continue_at_boundary: x:', its, ':', ite, &
            ',', jts, ':', jte, ' ->', itso, ':', iteo, ',' ,jts1, ':', jte1
-        call message(msg, fire_print_msg)
+        call Message(msg, fire_print_msg)
         !$OMP END CRITICAL(FIRE_UTIL_CRIT)
       end if
+
       if (iy /= 0) then
         if (jts == jds) then
-            do i = its1, ite1
-              lfn(i, jds - 1) = EX (lfn (i, jds), lfn(i, jds + 1))
-            end do
-            jtso = jds - 1
+          do i = its1, ite1
+            lfn(i, jds - 1) = Ex (lfn (i, jds), lfn(i, jds + 1))
+          end do
+          jtso = jds - 1
         end if
         if (jte == jde) then
-            do i=its1, ite1
-                lfn(i, jde + 1) = EX (lfn(i, jde), lfn(i, jde - 1))
-            end do
-            jteo = jde + 1
-        endif
+          do i = its1, ite1
+              lfn(i, jde + 1) = Ex (lfn(i, jde), lfn(i, jde - 1))
+          end do
+          jteo = jde + 1
+        end if
         !$OMP CRITICAL(FIRE_UTIL_CRIT)
         write (msg, '(8(a, i5))') 'Continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
         !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-        call message(msg, fire_print_msg)
+        call Message(msg, fire_print_msg)
       end if
+
       ! corners of the domain
       if(ix /= 0 .and. iy /= 0)then
-        if(its == ids .and. jts == jds) lfn(ids - 1, jds - 1) = EX (lfn(ids, jds), lfn(ids + 1, jds + 1))
-        if(its == ids .and. jte == jde) lfn(ids - 1, jde + 1) = EX (lfn(ids, jde), lfn(ids + 1, jde - 1))
-        if(ite == ide .and. jts == jds) lfn(ide + 1, jds - 1) = EX (lfn(ide, jds), lfn(ide - 1, jds + 1))
-        if(ite == ide .and. jte == jde) lfn(ide + 1, jde + 1) = EX (lfn(ide, jde), lfn(ide - 1, jde - 1))
+        if (its == ids .and. jts == jds) lfn(ids - 1, jds - 1) = Ex (lfn(ids, jds), lfn(ids + 1, jds + 1))
+        if (its == ids .and. jte == jde) lfn(ids - 1, jde + 1) = Ex (lfn(ids, jde), lfn(ids + 1, jde - 1))
+        if (ite == ide .and. jts == jds) lfn(ide + 1, jds - 1) = Ex (lfn(ide, jds), lfn(ide - 1, jds + 1))
+        if (ite == ide .and. jte == jde) lfn(ide + 1, jde + 1) = Ex (lfn(ide, jde), lfn(ide - 1, jde - 1))
       end if
 
       return
 
     contains
 
-      pure function EX (a,b) result (return_value)
+      pure function Ex (a,b) result (return_value)
 
         implicit none
 
@@ -1343,7 +1357,7 @@
           ! extrapolation, max quarded
         return_value = (1.0 - BIAS) * (2.0 * a - b) + BIAS * max (2.0 * a - b, a, b)
 
-      end function EX
+      end function Ex
 
     end subroutine Continue_at_boundary
 
