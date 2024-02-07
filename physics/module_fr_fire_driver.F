@@ -4,7 +4,7 @@
     use module_fr_fire_model, only: Fire_model
     use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
-    use module_fr_fire_fuel_anderson_mod, only: fuel_anderson_t
+    use fuel_anderson_mod, only: fuel_anderson_t
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t

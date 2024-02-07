@@ -1,4 +1,4 @@
-  module module_fr_fire_fuel_anderson_mod
+  module fuel_anderson_mod
 
     ! =============================================================================
     ! Anderson 13 surface fire fuel models, along with some
@@ -134,5 +134,5 @@
 
     end subroutine Init_anderson_fuel_model
 
-  end module module_fr_fire_fuel_anderson_mod
+  end module fuel_anderson_mod
 
