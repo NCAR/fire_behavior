@@ -1,4 +1,4 @@
-  module module_fr_fire_fuel_moisture_model
+  module fmc_model_wrffire_mod
 
     !***************************************************************************************!
     !***                                  Fuel moisture model                            ***!
@@ -553,4 +553,4 @@ end subroutine copy2old
 
 end subroutine advance_moisture
 
-  end module module_fr_fire_fuel_moisture_model
+  end module fmc_model_wrffire_mod

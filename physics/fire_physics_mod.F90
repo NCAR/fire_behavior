@@ -1,5 +1,5 @@
 
-  module module_fr_fire_phys
+  module fire_physics_mod
 
     use constants_mod, only : XLV, CMBCNST
     use state_mod, only: state_fire_t
@@ -92,5 +92,5 @@
 
     end subroutine Calc_smoke_emissions
 
-  end module module_fr_fire_phys
+  end module fire_physics_mod
 

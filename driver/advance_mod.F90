@@ -2,7 +2,7 @@
 
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
-    use module_fr_fire_driver, only : fire_driver_em
+    use fire_driver_mod, only : Advance_fire_components
     use stderrout_mod, only: Message
 
     implicit none
@@ -34,7 +34,7 @@
 
         ! Fire advance
       call message('Advance_state: FIRE step start',config_flags%fire_print_msg)
-      call fire_driver_em (grid, config_flags)
+      call Advance_fire_components (grid, config_flags)
       call message('Advance_state: FIRE step complete',config_flags%fire_print_msg)
 
       grid%datetime_now = grid%datetime_start

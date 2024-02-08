@@ -58,13 +58,13 @@ list(APPEND _io_files io/namelist_mod.F90
 
 
 # WRF Physics
-list(APPEND _wrffire_physics physics/module_fr_fire_core.F
-                             physics/module_fr_fire_driver.F
-			     physics/module_fr_fire_model.F
-			     physics/module_fr_fire_phys.F
-			     physics/module_fr_fire_fuel_moisture_model.F
+list(APPEND _wrffire_physics physics/level_set_mod.F90
+                             physics/fire_driver_mod.F90
+			     physics/fire_model_mod.F90
+			     physics/fire_physics_mod.F90
+			     physics/fmc_model_wrffire_mod.F90
 			     physics/ignition_line_mod.F90
-			     physics/ros_wrffire_mod.F
+			     physics/ros_wrffire_mod.F90
 			     physics/fuel_anderson_mod.F90)
 
 # Driver

@@ -1,8 +1,8 @@
 
-  module module_fr_fire_driver
+  module fire_driver_mod
 
-    use module_fr_fire_model, only: Fire_model
-    use module_fr_fire_fuel_moisture_model, only: Init_fuel_moisture, Fuel_moisture_model
+    use fire_model_mod, only: Advance_fire_model
+    use fmc_model_wrffire_mod, only: Init_fuel_moisture, Fuel_moisture_model
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
     use fuel_anderson_mod, only: fuel_anderson_t
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -14,7 +14,7 @@
 
     private
 
-    public :: Fire_driver_em, Init_fire_driver
+    public :: Advance_fire_components, Init_fire_components
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
@@ -24,7 +24,7 @@
 
   contains
 
-    subroutine Init_fire_driver (grid, config_flags)
+    subroutine Init_fire_components (grid, config_flags)
 
       implicit none
 
@@ -47,9 +47,9 @@
             grid, fuel_model,config_flags)
       enddo
 
-    end subroutine Init_fire_driver
+    end subroutine Init_fire_components
 
-    subroutine Fire_driver_em (grid, config_flags)
+    subroutine Advance_fire_components (grid, config_flags)
 
       implicit none
 
@@ -62,7 +62,7 @@
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
       do ij=1,grid%num_tiles
-        call Fire_model (config_flags, ros_model, ignition_lines, grid, &
+        call Advance_fire_model (config_flags, ros_model, ignition_lines, grid, &
             grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
       enddo
 
@@ -70,7 +70,7 @@
         call Print_summary (config_flags, grid)
       endif
 
-    end subroutine Fire_driver_em
+    end subroutine Advance_fire_components
 
           real function Calc_domain_stats (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b) result (return_value)
 
@@ -238,4 +238,4 @@
 
     end subroutine Print_summary
 
-  end module module_fr_fire_driver
+  end module fire_driver_mod

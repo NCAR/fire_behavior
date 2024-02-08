@@ -1,5 +1,5 @@
 
-  module module_fr_fire_core
+  module level_set_mod
 
     use ros_wrffire_mod, only: ros_wrffire_t
     use stderrout_mod, only: Crash, Message
@@ -1361,5 +1361,5 @@
 
     end subroutine Continue_at_boundary
 
-  end module module_fr_fire_core
+  end module level_set_mod
 

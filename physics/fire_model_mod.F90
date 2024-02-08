@@ -1,8 +1,8 @@
-  module module_fr_fire_model
+  module fire_model_mod
 
-    use module_fr_fire_core, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
+    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
     use stderrout_mod, only: Crash, Message
-    use module_fr_fire_phys, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
+    use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
@@ -10,11 +10,11 @@
 
     private
 
-    public :: Fire_model
+    public :: Advance_fire_model
 
   contains
 
-    subroutine fire_model (config_flags, ros_model, ignition_line, grid, i_start, i_end, j_start, j_end)
+    subroutine Advance_fire_model (config_flags, ros_model, ignition_line, grid, i_start, i_end, j_start, j_end)
 
     ! This subroutine implements the fire spread model.
     ! Wind and height must be given on 1 more node beyond the domain bounds. 
@@ -152,6 +152,6 @@
 
       call Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
 
-    end subroutine fire_model
+    end subroutine Advance_fire_model
 
-  end module module_fr_fire_model
+  end module fire_model_mod

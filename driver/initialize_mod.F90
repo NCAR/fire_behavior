@@ -4,7 +4,7 @@
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use wrf_mod, only : wrf_t
-    use module_fr_fire_driver, only : init_fire_driver
+    use fire_driver_mod, only : Init_fire_components
     use stderrout_mod, only: Message
 
     private
@@ -65,7 +65,7 @@
 
         ! Fire init
       call message ('Init_fire_state: FIRE initialization start',config_flags%fire_print_msg)
-      call init_fire_driver (grid, config_flags)
+      call Init_fire_components (grid, config_flags)
       call message ('Init_fire_state: FIRE initialization complete',config_flags%fire_print_msg)
 
       if (DEBUG_LOCAL) then
