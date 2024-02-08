@@ -11,7 +11,7 @@
 
     private
 
-    public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
+    public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Extrapol_var_at_bdys
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
 
@@ -532,7 +532,6 @@
       integer :: nts, i, j, k, kk
       intrinsic epsilon
       character (len = 128) :: msg
-      integer :: itso, iteo, jtso, jteo
       real :: threshold_HLl, threshold_HLu
       integer, parameter :: BDY_ENO1 = 10
 
@@ -548,9 +547,8 @@
         end do
       end do
 
-      call Continue_at_boundary(1, 1, ifms, ifme, jfms, jfme, ifds, ifde, &
-          jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
-          lfn_s3, fire_print_msg)
+      call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, &
+          jfds, jfde, ifts, ifte, jfts, jfte, lfn_s3)
 
       dt_s = 0.0001 * dx
         ! iterate to solve to steady state reinit PDE
@@ -562,9 +560,8 @@
             lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
             fire_upwinding_reinit)
 
-        call Continue_at_boundary(1, 1, ifms, ifme, jfms, jfme, ifds,ifde, &
-            jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
-            lfn_s1, fire_print_msg)
+        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, &
+            jfds, jfde, ifts, ifte, jfts, jfte, lfn_s1)
 
           ! Runge-Kutta step 2
         call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
@@ -572,9 +569,8 @@
             lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
             fire_upwinding_reinit)
 
-        call Continue_at_boundary (1, 1, ifms, ifme, jfms, jfme,ifds,ifde, &
-            jfds, jfde, ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
-            lfn_s2,fire_print_msg)
+        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, &
+            jfds, jfde, ifts, ifte, jfts, jfte, lfn_s2)
 
           ! Runge-Kutta step 3
         call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
@@ -582,9 +578,8 @@
             lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
             fire_upwinding_reinit) 
 
-        call Continue_at_boundary (1, 1,  ifms, ifme, jfms, jfme, ifds, ifde, &
-            jfds,jfde,  ifts, ifte, jfts, jfte, itso, iteo, jtso, jteo, &
-            lfn_s3, fire_print_msg)
+        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, &
+            jfds,jfde,  ifts, ifte, jfts, jfte, lfn_s3)
       end do
 
       do j = jfts, jfte 
@@ -821,7 +816,7 @@
       real :: te, diffLx, diffLy, diffRx, diffRy, diffCx, diffCy, &
          diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
          ros_back, advx, advy, scale, nvx, nvy, speed, tanphi
-      integer :: i, j, itso, iteo, jtso, jteo
+      integer :: i, j
       character (len = 128) :: msg
 
       real, parameter :: EPS = epsilon (0.0)
@@ -840,8 +835,8 @@
       threshold_HLu = fire_lsm_band_ngp * dx
       threshold_AV = fire_viscosity_ngp * dx
 
-      call Continue_at_boundary (1, 1, ims, ime, jms, jme, ids, ide, jds, jde, &
-          its, ite, jts, jte, itso, iteo, jtso, jteo, lfn, fire_print_msg)
+      call Extrapol_var_at_bdys (ims, ime, jms, jme, ids, ide, jds, jde, &
+          its, ite, jts, jte, lfn)
 
       tbound = 0.0
       do j = jts, jte
@@ -1255,97 +1250,68 @@
 
     end function Select_weno5
 
-    subroutine Continue_at_boundary (ix, iy, & ! do x direction or y direction
-          ims, ime, jms, jme, ids, ide, jds, jde, its, ite, jts, jte, &
-          itso,iteo,jtso,jteo, lfn, fire_print_msg)
+    subroutine Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+        ifts, ifte, jfts, jfte, var)
 
-      ! extend array by one beyond the domain by linear continuation
+      ! extend 2D array beyond domain boundaries
 
       implicit none
 
-      integer, intent (in) :: ix, iy ! not 0 = do x or y (1 or 2) direction
-      integer, intent (in) :: ims, ime, jms, jme, ids, ide, jds, jde, its, ite, jts, jte
-      integer, intent (out) :: itso, jtso, iteo, jteo 
-      real, dimension (ims:ime, jms:jme), intent (inout) :: lfn
-      integer, intent(in) :: fire_print_msg
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: var
 
       integer :: i, j
-      character (len = 128) :: msg
-      integer :: its1, ite1, jts1, jte1
+      integer :: ifts1, ifte1, jfts1, jfte1
 
-        ! only 1 domain halo is needed since ENO1 is used near domain boundaries
+        ! only 1 is needed since ENO1 is 
+        ! used near domain boundaries
       integer, parameter :: HALO = 1
 
-        ! for dislay only
-      itso = its
-      jtso = jts
-      iteo = ite
-      jteo = jte
-        ! go halo width beyond if at patch boundary but not at domain boudnary
+
+        ! Go HALO width beyond if not a tile in a domain corner
         ! assume we have halo need to compute the value we do not have
-        ! the next thread that would conveniently computer the extended values at patch corners
-        ! besides halo may not transfer values outside of the domain
-      its1 = its
-      jts1 = jts
-      ite1 = ite
-      jte1 = jte
-      if (.not. its .eq. ids) its1 = its - HALO
-      if (.not. jts .eq. jds) jts1 = jts - HALO
-      if (.not. ite .eq. ide) ite1 = ite + HALO
-      if (.not. jte .eq. jde) jte1 = jte + HALO
+      ifts1 = ifts
+      jfts1 = jfts
+      ifte1 = ifte
+      jfte1 = jfte
+      if (.not. ifts == ifds) ifts1 = ifts - HALO
+      if (.not. jfts == jfds) jfts1 = jfts - HALO
+      if (.not. ifte == ifde) ifte1 = ifte + HALO
+      if (.not. jfte == jfde) jfte1 = jfte + HALO
 
-      if (ix /= 0) then
-        if (its == ids)then
-          do j = jts1, jte1
-            lfn(ids - 1, j) = Ex (lfn(ids, j), lfn(ids + 1, j))
-          end do
-          itso = ids - 1
-        end if
-        if (ite == ide) then
-          do j = jts1, jte1
-            lfn(ide + 1, j) = Ex(lfn(ide, j), lfn(ide - 1, j))
-          end do
-          iteo = ide + 1
-        end if
-        !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write (msg,'(8(a, i5))') 'Continue_at_boundary: x:', its, ':', ite, &
-           ',', jts, ':', jte, ' ->', itso, ':', iteo, ',' ,jts1, ':', jte1
-        call Message(msg, fire_print_msg)
-        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
+      if (ifts == ifds)then
+        do j = jfts1, jfte1
+          var(ifds - 1, j) = Extrapol (var(ifds, j), var(ifds + 1, j))
+        end do
       end if
 
-      if (iy /= 0) then
-        if (jts == jds) then
-          do i = its1, ite1
-            lfn(i, jds - 1) = Ex (lfn (i, jds), lfn(i, jds + 1))
-          end do
-          jtso = jds - 1
-        end if
-        if (jte == jde) then
-          do i = its1, ite1
-              lfn(i, jde + 1) = Ex (lfn(i, jde), lfn(i, jde - 1))
-          end do
-          jteo = jde + 1
-        end if
-        !$OMP CRITICAL(FIRE_UTIL_CRIT)
-        write (msg, '(8(a, i5))') 'Continue_at_boundary: y:',its,':',ite,',',jts,':',jte,' ->',its1,':',ite1,',',jtso,':',jteo
-        !$OMP END CRITICAL(FIRE_UTIL_CRIT)
-        call Message(msg, fire_print_msg)
+      if (ifte == ifde) then
+        do j = jfts1, jfte1
+          var(ifde + 1, j) = Extrapol (var(ifde, j), var(ifde - 1, j))
+        end do
       end if
 
-      ! corners of the domain
-      if(ix /= 0 .and. iy /= 0)then
-        if (its == ids .and. jts == jds) lfn(ids - 1, jds - 1) = Ex (lfn(ids, jds), lfn(ids + 1, jds + 1))
-        if (its == ids .and. jte == jde) lfn(ids - 1, jde + 1) = Ex (lfn(ids, jde), lfn(ids + 1, jde - 1))
-        if (ite == ide .and. jts == jds) lfn(ide + 1, jds - 1) = Ex (lfn(ide, jds), lfn(ide - 1, jds + 1))
-        if (ite == ide .and. jte == jde) lfn(ide + 1, jde + 1) = Ex (lfn(ide, jde), lfn(ide - 1, jde - 1))
+      if (jfts == jfds) then
+        do i = ifts1, ifte1
+          var(i, jfds - 1) = Extrapol (var(i, jfds), var(i, jfds + 1))
+        end do
       end if
 
-      return
+      if (jfte == jfde) then
+        do i = ifts1, ifte1
+          var(i, jfde + 1) = Extrapol (var(i, jfde), var(i, jfde - 1))
+        end do
+      end if
+
+        ! corners
+      if (ifts == ifds .and. jfts == jfds) var(ifds - 1, jfds - 1) = Extrapol (var(ifds, jfds), var(ifds + 1, jfds + 1))
+      if (ifts == ifds .and. jfte == jfde) var(ifds - 1, jfde + 1) = Extrapol (var(ifds, jfde), var(ifds + 1, jfde - 1))
+      if (ifte == ifde .and. jfts == jfds) var(ifde + 1, jfds - 1) = Extrapol (var(ifde, jfds), var(ifde - 1, jfds + 1))
+      if (ifte == ifde .and. jfte == jfde) var(ifde + 1, jfde + 1) = Extrapol (var(ifde, jfde), var(ifde - 1, jfde - 1))
 
     contains
 
-      pure function Ex (a,b) result (return_value)
+      pure function Extrapol (a, b) result (return_value)
 
         implicit none
 
@@ -1357,9 +1323,9 @@
           ! extrapolation, max quarded
         return_value = (1.0 - BIAS) * (2.0 * a - b) + BIAS * max (2.0 * a - b, a, b)
 
-      end function Ex
+      end function Extrapol
 
-    end subroutine Continue_at_boundary
+    end subroutine Extrapol_var_at_bdys
 
   end module level_set_mod
 

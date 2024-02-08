@@ -1,6 +1,6 @@
   module fire_model_mod
 
-    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Continue_at_boundary
+    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Extrapol_var_at_bdys
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -40,7 +40,6 @@
       integer :: ignitions_done
         ! number of gridpts ignited in a given ignition
       integer :: ignited_tile(config_flags%fire_num_ignitions)
-      integer :: itso, iteo, jtso, jteo
 
 
       ifds = grid%ifds
@@ -113,12 +112,8 @@
           end do
         end do
 
-        call Continue_at_boundary(1, 1, &   !extend by extrapolation but never down
-                                  ifms, ifme, jfms, jfme, &
-                                  ifds, ifde, jfds, jfde, &
-                                  ifts, ifte, jfts, jfte, &
-                                  itso, iteo, jtso, jteo, &
-                                  grid%lfn, config_flags%fire_print_msg)
+        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            ifts, ifte, jfts, jfte, grid%lfn)
 
       else if (.not. config_flags%fire_is_real_perim) then
         do ig = 1, config_flags%fire_num_ignitions
