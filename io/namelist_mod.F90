@@ -32,7 +32,6 @@
       real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
       real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
       integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
-      real :: fire_slope_factor = 1.0         ! "slope correction factor" "-"
       integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file"
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
@@ -172,7 +171,6 @@
       real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
       real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
       integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
-      real :: fire_slope_factor = 1.0         ! "slope correction factor" "-"
       integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file" 
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
@@ -220,7 +218,7 @@
       namelist /fire/  fire_print_msg, fire_atm_feedback, fire_boundary_guard, &
           fire_upwinding, fire_viscosity, fire_advection, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_slope_factor, fire_fmc_read, fmoist_run, &
+          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_fmc_read, fmoist_run, &
           fmoist_freq, fmoist_dt, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
@@ -274,7 +272,6 @@
       this%fire_viscosity_bg = fire_viscosity_bg
       this%fire_viscosity_band = fire_viscosity_band
       this%fire_viscosity_ngp = fire_viscosity_ngp
-      this%fire_slope_factor = fire_slope_factor
       this%fire_fmc_read = fire_fmc_read
       this%fmoist_run = fmoist_run
       this%fmoist_freq = fmoist_freq

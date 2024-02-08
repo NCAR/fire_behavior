@@ -28,6 +28,7 @@
     public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
+    integer, parameter :: BDY_ENO1 = 10, SLOPE_FACTOR = 1.0
 
   contains
 
@@ -372,7 +373,7 @@
     subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_slope_factor, fire_lsm_band_ngp, &
+        fire_advection, fire_lsm_band_ngp, &
         tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, grid, ros_model)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
@@ -381,7 +382,7 @@
       
       integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           fire_upwinding, fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
-      real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
+      real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
       real, intent (in) :: dx, dy, ts, dt
@@ -389,6 +390,7 @@
       type (state_fire_t) :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
+        ! to store tendency (rhs of the level set pde)
       real, dimension(ifms:ifme, jfms:jfme) :: tend
       real :: tbound2, tbound3
       integer :: i, j
@@ -405,7 +407,7 @@
       call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+          fire_viscosity_ngp, fire_advection, &
           fire_lsm_band_ngp, lfn_0, tbound, tend, ros, grid, ros_model)
 
       do j = jfts, jfte 
@@ -418,7 +420,7 @@
      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+         fire_viscosity_ngp, fire_advection, &
          fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
@@ -431,7 +433,7 @@
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+         fire_viscosity_ngp, fire_advection, &
          fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
@@ -442,7 +444,7 @@
         end do
       end do     
 
-        ! CFL check
+        ! CFL check, tbound is the max allowed time step
       tbound = min (tbound, tbound2, tbound3)
 
       if (dt > tbound) then
@@ -485,12 +487,11 @@
       integer :: nts, i, j, k, kk
       intrinsic epsilon
       character (len = 128) :: msg
-      real :: threshold_HLl, threshold_HLu
-      integer, parameter :: BDY_ENO1 = 10
+      real :: threshold_hll, threshold_hlu
 
 
-      threshold_HLl = -fire_lsm_band_ngp * dx 
-      threshold_HLu = fire_lsm_band_ngp * dx
+      threshold_hll = -fire_lsm_band_ngp * dx
+      threshold_hlu = fire_lsm_band_ngp * dx
 
         ! Define S0 based on current lfn values
       do j = jfts, jfte 
@@ -509,7 +510,7 @@
       do nts = 1, fire_lsm_reinit_iter
           ! Runge-Kutta step 1
         call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
-            ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
             lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
             fire_upwinding_reinit)
 
@@ -518,7 +519,7 @@
 
           ! Runge-Kutta step 2
         call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
-            ifts, ifte, jfts, jfte, dx, dy, dt_s, BDY_ENO1, threshold_HLu, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
             lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
             fire_upwinding_reinit)
 
@@ -527,7 +528,7 @@
 
           ! Runge-Kutta step 3
         call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
-            ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, &
+            ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
             lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
             fire_upwinding_reinit) 
 
@@ -547,7 +548,7 @@
     end subroutine Reinit_ls_rk3
 
     subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
-        ifts, ifte, jfts, jfte, dx, dy, dt_s, bdy_eno1, threshold_HLu, lfn_s0, &
+        ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, lfn_s0, &
         lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit)
 
       ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
@@ -555,11 +556,11 @@
       implicit none
 
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, &
-          jfte, ifds, ifde, jfds, jfde, bdy_eno1
+          jfte, ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_s0, lfn_ini, lfn_curr
-      real, dimension (ifms:ifme, jfms:jfme), intent (inout) :: lfn_fin
-      real, intent (in) :: dx, dy, dt_s, threshold_HLu, rk_coeff
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_fin
+      real, intent (in) :: dx, dy, dt_s, threshold_hlu, rk_coeff
 
       integer :: i, j
       real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, tend_r
@@ -567,8 +568,8 @@
 
       do j = jfts, jfte 
         do i = ifts, ifte 
-          if (i < ifds + bdy_eno1 .or. i > ifde - bdy_eno1 .or. &
-              j < jfds + bdy_eno1 .or. j > jfde - bdy_eno1) then
+          if (i < ifds + BDY_ENO1 .or. i > ifde - BDY_ENO1 .or. &
+              j < jfds + BDY_ENO1 .or. j > jfde - BDY_ENO1) then
             diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
             diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
             diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
@@ -602,7 +603,7 @@
                     lfn_curr(i, j + 2), lfn_curr(i, j + 3), lfn_s0(i, j) * diff2y)
 
               case (3)
-                if (lfn_curr(i, j) < threshold_HLu) then
+                if (lfn_curr(i, j) < threshold_hlu) then
                   diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
                       lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
                   diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), & 
@@ -623,7 +624,7 @@
                 endif
 
               case(4)
-                if (lfn_curr(i, j) < threshold_HLu) then
+                if (lfn_curr(i, j) < threshold_hlu) then
                   diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
                       lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
                   diff2y = Select_4th (dy,lfn_curr(i, j), lfn_curr(i, j - 1), &
@@ -644,7 +645,7 @@
                 endif
 
               case default
-                if (lfn_curr(i,j) < threshold_HLu) then
+                if (lfn_curr(i,j) < threshold_hlu) then
                   diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
                       lfn_curr(i - 2, j), lfn_curr(i + 1, j), lfn_curr(i + 2, j))
                   diff2y = Select_4th (dy, lfn_curr(i, j), lfn_curr(i, j - 1), &
@@ -746,46 +747,33 @@
 
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, fire_advection, fire_slope_factor, &
+        fire_viscosity_band, fire_viscosity_ngp, fire_advection, &
         fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
 
       ! compute the right hand side of the level set equation
 
       implicit none
 
-      integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte
-      integer, intent (in) :: ids, ide, jds, jde
-      integer, intent (in):: fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
-      real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
-      real, intent (in) :: t                                    ! time
-      real, intent (in) :: dt, dx, dy                           ! mesh step
-      real, dimension(ims:ime, jms:jme), intent (inout) :: lfn ! level set function 
-      real, dimension(ims:ime, jms:jme), intent (out) :: tend  ! tendency (rhs of the level set pde)
-      real, dimension(ims:ime, jms:jme), intent (out) :: ros   ! rate of spread 
-      real, intent (out) :: tbound                             ! max allowed time step
+      integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte, ids, ide, jds, jde, &
+          fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
+      real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
+      real, dimension(ims:ime, jms:jme), intent (in out) :: lfn
+      real, dimension(ims:ime, jms:jme), intent (out) :: tend, ros
+      real, intent (out) :: tbound
       type (state_fire_t) :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
-      real :: te, diffLx, diffLy, diffRx, diffRy, diffCx, diffCy, &
+      real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
+      real :: te, difflx, diffly, diffrx, diffry, diffcx, diffcy, &
          diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
-         ros_back, advx, advy, scale, nvx, nvy, speed, tanphi
+         scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
+         threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
 
-      real, parameter :: EPS = epsilon (0.0)
-      real, parameter :: ZERO = 0.0 , ONE = 1.0, TOL = 100 * EPS, &
-          SAFE = 2.0, RMIN = SAFE * tiny (ZERO), RMAX = huge (ZERO) / SAFE
-      real :: diff2xn, diff2yn
-      real :: a_valor, signo_x, signo_y
-      real :: threshold_HLl, threshold_HLu
-      real :: threshold_AV, fire_viscosity_var
-      integer,parameter :: BDY_ENO1 = 10
 
-      intrinsic :: max, min, sqrt, nint, tiny, huge
-
-
-      threshold_HLl = -fire_lsm_band_ngp * dx
-      threshold_HLu = fire_lsm_band_ngp * dx
-      threshold_AV = fire_viscosity_ngp * dx
+      threshold_hll = -fire_lsm_band_ngp * dx
+      threshold_hlu = fire_lsm_band_ngp * dx
+      threshold_av = fire_viscosity_ngp * dx
 
       call Extrapol_var_at_bdys (ims, ime, jms, jme, ids, ide, jds, jde, &
           its, ite, jts, jte, lfn)
@@ -794,47 +782,47 @@
       do j = jts, jte
         do i = its, ite
             ! one sided differences
-          diffRx = (lfn(i + 1, j) - lfn(i, j)) / dx
-          diffLx = (lfn(i, j) - lfn(i - 1, j)) / dx
-          diffRy = (lfn(i, j + 1) - lfn(i, j)) / dy
-          diffLy = (lfn(i, j) - lfn(i, j - 1)) / dy
+          diffrx = (lfn(i + 1, j) - lfn(i, j)) / dx
+          difflx = (lfn(i, j) - lfn(i - 1, j)) / dx
+          diffry = (lfn(i, j + 1) - lfn(i, j)) / dy
+          diffly = (lfn(i, j) - lfn(i, j - 1)) / dy
             ! twice central difference
-          diffCx = diffLx + diffRx
-          diffCy = diffLy + diffRy
+          diffcx = difflx + diffrx
+          diffcy = diffly + diffry
             ! use eno1 near domain boundaries
           if (i < ids + BDY_ENO1 .or. i > ide - BDY_ENO1 .or. &
               j < jds + BDY_ENO1 .or. j > jde - BDY_ENO1) then 
-            diff2x = Select_eno (diffLx, diffRx)
-            diff2y = Select_eno (diffLy, diffRy)
+            diff2x = Select_eno (difflx, diffrx)
+            diff2y = Select_eno (diffly, diffry)
             grad = sqrt (diff2x * diff2x + diff2y * diff2y)
           else
             select case (fire_upwinding)
                 ! none
               case (0)
-                grad = sqrt (diffCx ** 2 + diffCy ** 2)
+                grad = sqrt (diffcx ** 2 + diffcy ** 2)
 
                 ! standard
               case (1)
-                diff2x = Select_upwind (diffLx, diffRx)
-                diff2y = Select_upwind (diffLy, diffRy)
+                diff2x = Select_upwind (difflx, diffrx)
+                diff2y = Select_upwind (diffly, diffry)
                 grad = sqrt (diff2x * diff2x + diff2y * diff2y)
 
                 ! godunov per osher/fedkiw
               case (2)
-                diff2x = Select_godunov (diffLx, diffRx)
-                diff2y = Select_godunov (diffLy, diffRy)
+                diff2x = Select_godunov (difflx, diffrx)
+                diff2y = Select_godunov (diffly, diffry)
                 grad = sqrt (diff2x * diff2x + diff2y * diff2y)
 
                 ! ENO1
               case (3)
-                diff2x = Select_eno (diffLx, diffRx)
-                diff2y = Select_eno (diffLy, diffRy)
+                diff2x = Select_eno (difflx, diffrx)
+                diff2y = Select_eno (diffly, diffry)
                 grad = sqrt (diff2x * diff2x + diff2y * diff2y)
 
                 ! Sethian - twice stronger pushdown of bumps
               case(4)
-                grad = sqrt (max (diffLx, 0.0) ** 2 + min (diffRx, 0.0) ** 2 &
-                    + max (diffLy, 0.0) ** 2 + min(diffRy, 0.0) ** 2)
+                grad = sqrt (max (difflx, 0.0) ** 2 + min (diffrx, 0.0) ** 2 &
+                    + max (diffly, 0.0) ** 2 + min(diffry, 0.0) ** 2)
                 ! 2nd order
               case(5)
                 diff2x = Select_2nd (rr, dx, lfn(i, j), lfn(i - 1, j), lfn(i + 1, j))
@@ -869,7 +857,7 @@
 
                 ! WENO3/ENO1
               case(8)
-                if (abs (lfn(i, j)) < threshold_HLu) then
+                if (abs (lfn(i, j)) < threshold_hlu) then
                   a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
                       Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
                   signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), & 
@@ -882,14 +870,14 @@
                       lfn(i, j + 1), lfn(i, j + 2), signo_y)
                   grad = sqrt (diff2x * diff2x + diff2y * diff2y)
                 else
-                  diff2x = Select_eno (diffLx, diffRx)
-                  diff2y = Select_eno (diffLy, diffRy)
+                  diff2x = Select_eno (difflx, diffrx)
+                  diff2y = Select_eno (diffly, diffry)
                   grad = sqrt (diff2x * diff2x + diff2y * diff2y)
                 end if
 
                 ! WENO5/ENO1
               case(9)
-                if (abs (lfn(i, j)) < threshold_HLu) then
+                if (abs (lfn(i, j)) < threshold_hlu) then
                   a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
                       Select_4th (dy,lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
                   signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), &
@@ -902,8 +890,8 @@
                       lfn(i, j - 3), lfn(i, j + 1), lfn(i, j + 2), lfn(i, j + 3), signo_y)
                   grad = sqrt (diff2x * diff2x + diff2y * diff2y)
                 else
-                  diff2x = Select_eno (diffLx, diffRx)
-                  diff2y = Select_eno (diffLy, diffRy)
+                  diff2x = Select_eno (difflx, diffrx)
+                  diff2y = Select_eno (diffly, diffry)
                   grad = sqrt (diff2x * diff2x + diff2y * diff2y)
                 end if
 
@@ -913,39 +901,38 @@
             end select
           end if
 
-            ! same scheme from fire_upwinding to calc normals
+            ! Calc normal
           scale = sqrt (grad ** 2.0 + EPS)
           nvx = diff2x / scale
           nvy = diff2y / scale
 
-            ! wind speed in direction of spread
-          speed =  grid%uf(i,j) * nvx + grid%vf(i, j) * nvy
-            ! get rate of spread from wind speed and slope
+            ! Get rate of spread from wind speed and slope
           call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
               nvx, nvy, i, j, grid, fire_advection)
-          rr = ros_base + ros_wind + fire_slope_factor * ros_slope
-
+          rr = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
           if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
           ros(i, j) = rr
-            ! normal term 
-          te = -rr * grad
 
             ! CFL condition
           if (grad > 0.0) tbound = max (tbound, rr * (abs (diff2x) / dx + &
               abs (diff2y) / dy) / grad)
 
-            ! Artificial viscosity
-          if (abs (lfn(i,j)) < threshold_AV .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
+            ! Tendency level set function
+          te = -rr * grad
+
+            ! Add to tend effect Artificial viscosity
+          if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
               (j > jds + BDY_ENO1 .and. j < jde - BDY_ENO1)) then 
-            fire_viscosity_var=fire_viscosity_bg
-          else if (abs(lfn(i,j)) >= threshold_AV .and. abs(lfn(i,j)) < threshold_AV * (1.0 + fIre_viscosity_band) .and. &
+            fire_viscosity_var = fire_viscosity_bg
+          else if (abs(lfn(i,j)) >= threshold_av .and. abs(lfn(i,j)) < threshold_av * (1.0 + fIre_viscosity_band) .and. &
               (i > ids + 10 .and. i < ide - 10) .and. (j > jds + 10 .and. j < jde - 10)) then
             fire_viscosity_var = min (fire_viscosity_bg + (fire_viscosity - fire_viscosity_bg) * &
-                (abs (lfn(i, j)) - threshold_AV) / (fire_viscosity_band * threshold_AV), fire_viscosity)
+                (abs (lfn(i, j)) - threshold_av) / (fire_viscosity_band * threshold_av), fire_viscosity)
           else
             fire_viscosity_var = fire_viscosity
           end if
-          te = te + fire_viscosity_var * abs (rr) * ((diffRx - diffLx) + (diffRy - diffLy))
+
+          te = te + fire_viscosity_var * abs (rr) * ((diffrx - difflx) + (diffry - diffly))
           tend(i, j) = te
         end do
       end do        
