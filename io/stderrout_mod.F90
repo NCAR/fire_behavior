@@ -6,7 +6,7 @@
 
     private
 
-    public :: Message, Crash
+    public :: Message, Crash, Stop_simulation
 
   contains
 
@@ -42,5 +42,16 @@
       if (fire_print_msg >= mlevel) write (OUTPUT_UNIT, *) 'FIRE:' // trim (msg)
 
     end subroutine Message
+
+    subroutine Stop_simulation (msg)
+
+      implicit none
+
+      character (len = *), intent (in) :: msg
+
+
+      write (ERROR_UNIT, *) 'ERROR:' // trim (msg)
+
+    end subroutine Stop_simulation
 
   end module stderrout_mod

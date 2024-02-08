@@ -1,24 +1,38 @@
 
   module level_set_mod
 
+  ! References:
+  !
+  ! Based on S. Osher and R. Fedkiw, Level set methods and dynamic implicit surfaces,
+  ! Springer, 2003, Sec. 6.4, as implemented in toolboxLS for Matlab by
+  ! I. Mitchell, A toolbox of Level Set Methods (Version 1.1), TR-2007-11,
+  ! Dept. Computer Science, University of British Columbia, 2007
+  ! http://www.cs.ubc.ca/\~mitchell/Toolbo\LS
+  !
+  ! D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate
+  ! fire-spread algorithm in the Weather Research and Forecasting model using the
+  ! level-set method", Journal of Advances in Modeling Earth Systems, 2018
+  ! https://doi.org/10.1002/2017MS001108
+
     use ros_wrffire_mod, only: ros_wrffire_t
-    use stderrout_mod, only: Crash, Message
+    use stderrout_mod, only: Crash, Message, Stop_simulation
     use state_mod, only: state_fire_t
     use ignition_line_mod, only : ignition_line_t
     use ros_wrffire_mod, only : ros_wrffire_t
+    use constants_mod, only : MSG_LEN
 
     implicit none
 
     private
 
-    public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Extrapol_var_at_bdys
+    public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
 
   contains
 
     subroutine Fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
-        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fire_print_msg )
+        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fire_print_msg)
 
       implicit none
 
@@ -355,151 +369,90 @@
 
     end subroutine Fuel_left_cell_1
 
-    subroutine Prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
+    subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_slope_factor, fire_lsm_band_ngp, fire_print_msg, &
-        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out,tign,ros,  grid, ros_model)
+        fire_advection, fire_slope_factor, fire_lsm_band_ngp, &
+        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, grid, ros_model)
 
+      ! Purpose: Advance the level set function from time ts to time ts + dt
 
       implicit none
-
-      !***************************************************************************************!
-      !*** Level-set method recoded for true mpi communications and added                  ***!
-      !*** 3rd-order Runge-Kutta time integration and 3rd/5th-order WENO advection schemes ***!
-      !*** Implemented by: Domingo Munoz-Esparza (NCAR/RAL, April 2016)                    ***!
-      !*** Reference: D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate      ***!
-      !*** fire-spread algorithm in the Weather Research and Forecasting model using the   ***!
-      !*** level-set method", Journal of Advances in Modeling Earth Systems, 2018          ***!
-      !*** https://doi.org/10.1002/2017MS001108                                            ***!
-      !***************************************************************************************!
-
-      ! Propagation of closed curve by a level function method. The level function
-      ! lfn is defined by its values at the nodes of a rectangular grid. 
-      ! The area where lfn < 0 is inside the curve. The curve is 
-      ! described implicitly by lfn=0. Points where the curve intersects gridlines
-      ! can be found by linear interpolation from nodes.
-      !
-      ! The level function is advanced from time ts to time ts + dt. 
-      !
-      ! The level function should be initialized to (an approximation of) the signed
-      ! distance from the curve. If the initial curve is a circle, the initial level
-      ! function is simply the distance from the center minus the radius.
-      ! 
-      ! The curve moves outside with speed given by function speed_func.
-      !   
-      ! Method: Godunov/ENO method for the normal motion. The timestep is checked for
-      ! CFL condition. For a straight segment in a constant field and locally linear
-      ! level function, the method reduces to the exact normal motion. The advantage of 
-      ! the level set method is that it treats automatically special cases such as
-      ! the curve approaching itself and merging components of the area inside the curve.
-      !
-      ! Based on S. Osher and R. Fedkiw, Level set methods and dynamic implicit surfaces,
-      ! Springer, 2003, Sec. 6.4, as implemented in toolboxLS for Matlab by 
-      ! I. Mitchell, A toolbox of Level Set Methods (Version 1.1), TR-2007-11,
-      ! Dept. Computer Science, University of British Columbia, 2007
-      ! http://www.cs.ubc.ca/\~mitchell/Toolbo\LS
-      ! 
-  
-      integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte
-      integer, intent(in) :: fire_upwinding, fire_viscosity_ngp, &
-          fire_advection, fire_lsm_band_ngp, fire_print_msg
+      
+      integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+          fire_upwinding, fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
-      real, dimension (ifms:ifme, jfms:jfme), intent(inout) :: lfn_in, tign
-      real, dimension (ifms:ifme, jfms:jfme), intent(inout) :: lfn_1, lfn_2, lfn_0 
-      real, dimension (ifms:ifme, jfms:jfme), intent(out) :: lfn_out,ros
-      real, intent(in) :: dx, dy, ts, dt
-      real, intent(out) :: tbound
-      type (state_fire_t), target :: grid
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
+      real, intent (in) :: dx, dy, ts, dt
+      real, intent (out) :: tbound
+      type (state_fire_t) :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
-      real,dimension (ifms:ifme, jfms:jfme):: tend
-      real :: grad2, rr, tbound2, tbound3
-      real :: gradx, grady, aspeed, err, aerr, time_now
-      integer :: i, j, its1, ite1, jts1, jte1, k, kk
-      character (len=128) :: msg
-      integer :: nfirenodes, nfireline
-      real :: sum_err, min_err, max_err, sum_aerr, min_aerr, max_aerr   
+      real, dimension(ifms:ifme, jfms:jfme) :: tend
+      real :: tbound2, tbound3
+      integer :: i, j
+      character (len = MSG_LEN) :: msg
 
-      integer, parameter :: MSTEP = 1000, PRINTL = 1
-      real, parameter :: zero=0.,one=1.,EPS = epsilon (ZERO), TOL= 100 * eps, &
-          SAFE = 2.0, rmin = SAFE * tiny (ZERO), RMAX = huge (ZERO) / SAFE
-
-      intrinsic max, min, sqrt, nint, epsilon, tiny, huge
-
-
-      !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write (msg, '(a8, i5, a6, i5, 3(a1, i5))') 'prop_ls: tile ', ifts, ':', ifte, ',', jfts, ':', jfte
-      !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call Message(msg, fire_print_msg)
 
         ! Runge-Kutta step 1
       do j = jfts, jfte
         do i = ifts, ifte
-            lfn_0(i, j) = lfn_in(i, j)
+          lfn_0(i, j) = lfn_in(i, j)
         end do
       end do
 
-      call Tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fire_advection, fire_slope_factor, &
-          fire_lsm_band_ngp, fire_print_msg, lfn_0, tbound, tend, &
-          ros, grid, ros_model) 
+          fire_lsm_band_ngp, lfn_0, tbound, tend, ros, grid, ros_model)
 
       do j = jfts, jfte 
         do i = ifts, ifte 
-            lfn_1(i,j) = lfn_0(i,j) + (dt / 3.0) * tend(i,j) 
+          lfn_1(i,j) = lfn_0(i,j) + (dt / 3.0) * tend(i,j) 
         end do
       end do
 
         ! Runge-Kutta step 2
-     call Tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
+     call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
-         fire_lsm_band_ngp, fire_print_msg, lfn_1, tbound2, tend, &
-         ros, grid, ros_model)
+         fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
-            lfn_2(i, j) = lfn_0(i, j) + (dt / 2.0) * tend(i, j)
+          lfn_2(i, j) = lfn_0(i, j) + (dt / 2.0) * tend(i, j)
         end do
       end do
 
         ! Runge-Kutta step 3
-     call Tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
+     call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
          fire_viscosity_ngp, fire_advection, fire_slope_factor, &
-         fire_lsm_band_ngp, fire_print_msg, lfn_2, tbound3, tend, &
-         ros, grid, ros_model)
+         fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
-            lfn_out(i, j) = lfn_0(i, j) + dt * tend(i, j)
-            lfn_2(i, j) = lfn_out(i, j) ! lfn_2=lfn_out (needed for reinitialization purposes)
+          lfn_out(i, j) = lfn_0(i, j) + dt * tend(i, j)
+            ! lfn_2=lfn_out (needed for reinitialization)
+          lfn_2(i, j) = lfn_out(i, j)
         end do
       end do     
 
         ! CFL check
       tbound = min (tbound, tbound2, tbound3)
 
-      !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write (msg,'(a, f10.2, 4(a, f7.2))') 'prop_ls: time', ts, ' dt=', dt, ' bound', min(tbound, 999.99), &
-          ' dx=',dx,' dy=',dy
-      !$OMP END CRITICAL(FIRE_CORE_CRIT)
-
-      call Message (msg,fire_print_msg)
-      if (dt > tbound)then
-        !$OMP CRITICAL(FIRE_CORE_CRIT)
-        write (msg,'(2(a, f10.2))') 'prop_ls: WARNING: time step ', dt, &
-            ' > bound =', tbound
-        !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call Message (msg, fire_print_msg)
+      if (dt > tbound) then
+        !$omp critical
+        write (msg, '(2(a, f10.2))') 'CFL violation: time step ', dt, ' > bound =', tbound
+        call Stop_simulation (msg)
+        !$omp end critical
       end if
     
-    end subroutine Prop_ls_rk3
+    end subroutine Prop_level_set
 
     subroutine Reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
@@ -791,10 +744,10 @@
     
     end subroutine Tign_update
 
-    subroutine Tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
+    subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
         fire_viscosity_band, fire_viscosity_ngp, fire_advection, fire_slope_factor, &
-        fire_lsm_band_ngp, fire_print_msg, lfn, tbound, tend, ros, grid, ros_model)
+        fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
 
       ! compute the right hand side of the level set equation
 
@@ -802,7 +755,7 @@
 
       integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte
       integer, intent (in) :: ids, ide, jds, jde
-      integer, intent (in):: fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp, fire_print_msg
+      integer, intent (in):: fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, fire_slope_factor
       real, intent (in) :: t                                    ! time
       real, intent (in) :: dt, dx, dy                           ! mesh step
@@ -810,14 +763,13 @@
       real, dimension(ims:ime, jms:jme), intent (out) :: tend  ! tendency (rhs of the level set pde)
       real, dimension(ims:ime, jms:jme), intent (out) :: ros   ! rate of spread 
       real, intent (out) :: tbound                             ! max allowed time step
-      type (state_fire_t), target :: grid
+      type (state_fire_t) :: grid
       type (ros_wrffire_t), intent (in) :: ros_model
 
       real :: te, diffLx, diffLy, diffRx, diffRy, diffCx, diffCy, &
          diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
          ros_back, advx, advy, scale, nvx, nvy, speed, tanphi
       integer :: i, j
-      character (len = 128) :: msg
 
       real, parameter :: EPS = epsilon (0.0)
       real, parameter :: ZERO = 0.0 , ONE = 1.0, TOL = 100 * EPS, &
@@ -1001,7 +953,7 @@
         ! final CFL bound
       tbound = 1.0 / (tbound + TOL)
 
-    end subroutine Tend_ls
+    end subroutine Calc_tend_ls
 
     pure function Select_upwind (diff_lx, diff_rx) result (return_value)
 

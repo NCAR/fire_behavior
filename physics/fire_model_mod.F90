@@ -1,6 +1,6 @@
   module fire_model_mod
 
-    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_ls_rk3, Extrapol_var_at_bdys
+    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -69,10 +69,10 @@
         !   propagate level set function in time
         !   set lfn_out tign
         !   lfn does not change, tign has no halos
-      call prop_ls_rk3 (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
+      call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
           config_flags%fire_upwinding, config_flags%fire_viscosity, &
           config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp, &
-          config_flags%fire_advection, config_flags%fire_slope_factor, config_flags%fire_lsm_band_ngp, config_flags%fire_print_msg, &
+          config_flags%fire_advection, config_flags%fire_slope_factor, config_flags%fire_lsm_band_ngp, &
           tbound, grid%lfn, grid%lfn_0,grid%lfn_1,grid%lfn_2, grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model) 
 
       call tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
