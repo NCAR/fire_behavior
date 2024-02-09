@@ -51,6 +51,7 @@
 
 
       write (ERROR_UNIT, *) 'ERROR:' // trim (msg)
+      stop
 
     end subroutine Stop_simulation
 
