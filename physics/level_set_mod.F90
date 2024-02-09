@@ -766,6 +766,7 @@
          scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
          threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
+      character (len = MSG_LEN) :: msg
 
 
       threshold_hll = -fire_lsm_band_ngp * dx
@@ -893,7 +894,10 @@
                 end if
 
               case default
-                 grad = 0.0
+                !$omp critical
+                write (msg, '(a, i2)') 'Unknown upwinding option in level set : ', fire_upwinding
+                call Stop_simulation (msg)
+                !$omp end critical
 
             end select
           end if
