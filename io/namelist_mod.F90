@@ -35,9 +35,6 @@
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
-      real :: fire_ext_grnd = 50.0            ! "extinction depth of sfc fire heat"   "m"
-      real :: fire_ext_crwn = 50.0            ! "extinction depth of crown fire heat" "m"
-      real :: fire_crwn_hgt = 15.0            ! "height that heat from crown fire is released" "m"
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
@@ -173,9 +170,6 @@
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
-      real :: fire_ext_grnd = 50.0            ! "extinction depth of sfc fire heat"   "m"
-      real :: fire_ext_crwn = 50.0            ! "extinction depth of crown fire heat" "m"
-      real :: fire_crwn_hgt = 15.0            ! "height that heat from crown fire is released" "m"
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
@@ -217,7 +211,7 @@
           fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_fmc_read, fmoist_run, &
-          fmoist_freq, fmoist_dt, fire_ext_grnd, fire_ext_crwn, fire_crwn_hgt, &
+          fmoist_freq, fmoist_dt, &
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
             ! Ignitions
@@ -273,9 +267,6 @@
       this%fmoist_run = fmoist_run
       this%fmoist_freq = fmoist_freq
       this%fmoist_dt = fmoist_dt
-      this%fire_ext_grnd = fire_ext_grnd
-      this%fire_ext_crwn = fire_ext_crwn
-      this%fire_crwn_hgt = fire_crwn_hgt
       this%fire_wind_height = fire_wind_height
       this%fire_is_real_perim = fire_is_real_perim
       this%nfmc = nfmc
