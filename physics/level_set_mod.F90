@@ -761,7 +761,7 @@
       type (ros_wrffire_t), intent (in) :: ros_model
 
       real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
-      real :: te, difflx, diffly, diffrx, diffry, diffcx, diffcy, &
+      real :: difflx, diffly, diffrx, diffry, diffcx, diffcy, &
          diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
          scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
          threshold_hlu, threshold_av, fire_viscosity_var
@@ -915,7 +915,7 @@
               abs (diff2y) / dy) / grad)
 
             ! Tendency level set function
-          te = -rr * grad
+          tend(i, j) = -rr * grad
 
             ! Add to tend effect Artificial viscosity
           if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
@@ -929,8 +929,7 @@
             fire_viscosity_var = fire_viscosity
           end if
 
-          te = te + fire_viscosity_var * abs (rr) * ((diffrx - difflx) + (diffry - diffly))
-          tend(i, j) = te
+          tend(i, j) = tend(i, j) + fire_viscosity_var * abs (rr) * ((diffrx - difflx) + (diffry - diffly))
         end do
       end do        
 
