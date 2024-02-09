@@ -93,7 +93,7 @@
       real :: fire_ignition_radius5 = 0.0
 
         ! Atmosphere
-      integer :: ids = 1, jds = 1, kds = 1, kde = 1
+      integer :: kds = 1, kde = 1
     contains
       procedure, public :: Initialization => Init_namelist
       procedure, public :: Init_fire_block => Init_fire_block
