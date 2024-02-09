@@ -17,7 +17,6 @@
       real :: dt = 2.0
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
-      integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order,
                                               ! 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
@@ -32,13 +31,15 @@
       real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
       integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
       integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file"
+
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
-      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
-      logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
+
+      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
+      logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
       real :: frac_fburnt_to_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
@@ -154,7 +155,6 @@
 
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
-      integer :: fire_boundary_guard = 8      ! "cells to stop when fire close to domain boundary"
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order, 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
@@ -207,7 +207,7 @@
           fire_ignition_end_lat5 = 0.0, &
           fire_ignition_ros5 = 0.01, fire_ignition_start_time5 = 0.0, fire_ignition_end_time5 = 0.0, fire_ignition_radius5 = 0.0
 
-      namelist /fire/  fire_print_msg, fire_atm_feedback, fire_boundary_guard, &
+      namelist /fire/  fire_print_msg, fire_atm_feedback, &
           fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_fmc_read, fmoist_run, &
@@ -251,7 +251,6 @@
 
       this%fire_print_msg = fire_print_msg
       this%fire_atm_feedback = fire_atm_feedback
-      this%fire_boundary_guard = fire_boundary_guard
       this%fire_upwinding = fire_upwinding
       this%fire_viscosity = fire_viscosity
       this%fire_lsm_reinit = fire_lsm_reinit

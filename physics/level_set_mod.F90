@@ -672,7 +672,7 @@
     end subroutine Advance_ls_reinit
 
     subroutine Tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-        ifds, jfds, ifde, jfde, ts, dt, boundary_guard, fire_print_msg, &
+        ifds, jfds, ifde, jfde, ts, dt, fire_print_msg, &
         lfn_in, lfn_out, tign)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -681,7 +681,7 @@
 
       integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           ifds, jfds, ifde, jfde
-      integer, intent (in) :: boundary_guard, fire_print_msg
+      integer, intent (in) :: fire_print_msg
       real, dimension (ifms:ifme, jfms:jfme), intent (inout):: tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_in, lfn_out
       real, intent(in)::ts,dt
@@ -689,6 +689,8 @@
       integer :: i, j, k, kk
       intrinsic epsilon
       character (len = 128) :: msg
+
+      integer, parameter :: BOUNDARY_GUARD = 8
 
 
       ! compute ignition time by interpolation
@@ -716,7 +718,7 @@
 
         ! stop simulation if fire is within boundary_guard grid points from the domain boundaries 
       do j = jfts, jfte
-        if (j <= boundary_guard .or. j > (jfde - boundary_guard)) then
+        if (j <= BOUNDARY_GUARD .or. j > (jfde - BOUNDARY_GUARD)) then
           do i = ifts, ifte
             if (lfn_out(i,j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
@@ -728,7 +730,7 @@
       end do
 
       do i = ifts, ifte
-        if (i.le.boundary_guard .or. i.gt.(ifde-boundary_guard)) then
+        if (i.le. BOUNDARY_GUARD .or. i.gt.(ifde - BOUNDARY_GUARD)) then
           do j = jfts, jfte
             if (lfn_out(i, j) < 0.0) then 
               write (OUTPUT_UNIT, *) 'j-boundary reached'
