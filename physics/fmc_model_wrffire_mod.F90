@@ -165,9 +165,6 @@ real:: moisture_time
     ! time - assume dt does not change
     time_start = grid%itimestep * grid%dt
 
-    ! decide what to run
-    if(config_flags%fire_fmc_read.ne.0.and.config_flags%fmoist_run)call crash('fmoist_run=T requires fire_fmc_read=0')
-
     grid%run_advance_moisture = .false. ! default
     moisture_time = time_start
 

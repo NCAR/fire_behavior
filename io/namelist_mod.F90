@@ -13,10 +13,14 @@
       integer :: start_year = -1, start_month = -1, start_day = -1, start_hour = -1, start_minute = -1, start_second = -1, &
           end_year = -1, end_month = -1, end_day = -1, end_hour = -1, end_minute = -1, end_second = -1, interval_output = -1, &
           interval_atm = -1
-      integer :: num_tiles = 1, num_tiles_x = 1, num_tiles_y = 1
       real :: dt = 2.0
+
+      integer :: num_tiles = 1, num_tiles_x = 1, num_tiles_y = 1
+
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
+      logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
+
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order,
                                               ! 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
       real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
@@ -25,25 +29,24 @@
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
-      logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
-      real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
       real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
       real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
       integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
-      integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file"
+
+      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
+      logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
+      real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
+
+      real :: frac_fburnt_to_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
+      real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
+      real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
+      real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
-
-      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
-      logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
-      real :: frac_fburnt_to_smoke = 0.02        ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
-      real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
-      real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
-      real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
         ! Ignitions
       integer :: fire_num_ignitions = 0 ! "number of ignition lines"
@@ -166,7 +169,6 @@
       real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
       real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
       integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
-      integer :: fire_fmc_read = 1            ! "ground fuel moisture is set by: if 0, in wrfinput; if 1, user-presc; if 2, read from file" 
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
@@ -210,7 +212,7 @@
       namelist /fire/  fire_print_msg, fire_atm_feedback, &
           fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
-          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_fmc_read, fmoist_run, &
+          fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fmoist_run, &
           fmoist_freq, fmoist_dt, &
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
@@ -262,7 +264,6 @@
       this%fire_viscosity_bg = fire_viscosity_bg
       this%fire_viscosity_band = fire_viscosity_band
       this%fire_viscosity_ngp = fire_viscosity_ngp
-      this%fire_fmc_read = fire_fmc_read
       this%fmoist_run = fmoist_run
       this%fmoist_freq = fmoist_freq
       this%fmoist_dt = fmoist_dt

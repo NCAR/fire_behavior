@@ -258,9 +258,6 @@ do j=jfts,jfte
 
         grid%ischap(i,j)=fuel_model%ichap(k)
         grid%fgip(i,j)=fuel_model%fgi(k)
-        ! PAJM: is it possible that if fire_fmc_read == 0, needed by the FMC model, grid%fmc_g is not initialized?
-        ! This line not needed since fmc_g is initialized from the config_flags in the init_state sub
-        if (config_flags%fire_fmc_read == 1) grid%fmc_g(i, j) = config_flags%fuelmc_g
 
         !     ...Settings of fire spread parameters from Rothermel follows. These
         !        don't need to be recalculated later.
