@@ -372,8 +372,7 @@
 
     subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
-        fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, &
-        fire_advection, fire_lsm_band_ngp, &
+        fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, &
         tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, grid, ros_model)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
@@ -381,7 +380,7 @@
       implicit none
       
       integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
-          fire_upwinding, fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
+          fire_upwinding, fire_viscosity_ngp, fire_lsm_band_ngp
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
@@ -407,8 +406,7 @@
       call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-          fire_viscosity_ngp, fire_advection, &
-          fire_lsm_band_ngp, lfn_0, tbound, tend, ros, grid, ros_model)
+          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound, tend, ros, grid, ros_model)
 
       do j = jfts, jfte 
         do i = ifts, ifte 
@@ -420,8 +418,7 @@
      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_advection, &
-         fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, grid, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -433,8 +430,7 @@
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_advection, &
-         fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -747,15 +743,14 @@
 
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, fire_advection, &
-        fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
+        fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
 
       ! compute the right hand side of the level set equation
 
       implicit none
 
       integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte, ids, ide, jds, jde, &
-          fire_upwinding,fire_viscosity_ngp, fire_advection, fire_lsm_band_ngp
+          fire_upwinding,fire_viscosity_ngp, fire_lsm_band_ngp
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
       real, dimension(ims:ime, jms:jme), intent (in out) :: lfn
       real, dimension(ims:ime, jms:jme), intent (out) :: tend, ros
@@ -908,7 +903,7 @@
 
             ! Get rate of spread from wind speed and slope
           call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
-              nvx, nvy, i, j, grid, fire_advection)
+              nvx, nvy, i, j, grid)
           rr = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
           if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
           ros(i, j) = rr

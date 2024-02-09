@@ -14,6 +14,7 @@
 
       ! fuelheat: fuel particle low heat content [btu/lb]
     real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
+    integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type :: ros_wrffire_t
     contains
@@ -23,7 +24,7 @@
 
   contains
 
-    subroutine Calc_ros_wrffire (this, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, grid, fire_advection)
+    subroutine Calc_ros_wrffire (this, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, grid)
 
       implicit none
 
@@ -40,7 +41,6 @@
       real, intent(out) :: ros_base, ros_wind, ros_slope ! rate of spread contribution due to fuel, wind, and slope
       real, intent(in) :: nvx, nvy
       integer, intent(in) :: i,j         ! node mesh coordinates
-      integer, intent(in) :: fire_advection
       type (state_fire_t), target :: grid
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
@@ -50,7 +50,7 @@
       real ::cor_wind, cor_slope
 
 
-      if (fire_advection.ne.0) then ! from flags in module_fr_fire_util
+      if (FIRE_ADVECTION /= 0) then ! from flags in module_fr_fire_util
           ! wind speed is total speed 
         speed = sqrt(grid%uf(i,j) * grid%uf(i,j) + grid%vf(i,j) * grid%vf(i,j)) +tiny(speed)
           ! slope is total slope
