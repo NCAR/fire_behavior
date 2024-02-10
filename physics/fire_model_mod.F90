@@ -16,9 +16,7 @@
 
     subroutine Advance_fire_model (config_flags, ros_model, ignition_line, grid, i_start, i_end, j_start, j_end)
 
-    ! This subroutine implements the fire spread model.
-    ! Wind and height must be given on 1 more node beyond the domain bounds. 
-    ! it uses lfn on a strip of width 2 from neighboring tiles.
+      ! Purpose advance the fire from time_start to time_start + dt
 
       implicit none
 
@@ -59,21 +57,10 @@
 
       time_start = grid%itimestep * grid%dt
 
-        ! advance the model from time_start to time_start+dt
-        ! return the fuel fraction burnt this call in each fire cell
-        ! will call module_fr_fire_speed::normal_spread for propagation speed
-        ! We cannot simply compute the spread rate here because that will change with the
-        ! angle of the wind and the direction of propagation, thus it is done in subroutine
-        ! normal_spread at each fire time step.
-
-        !   propagate level set function in time
-        !   set lfn_out tign
-        !   lfn does not change, tign has no halos
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
-          config_flags%fire_upwinding, config_flags%fire_viscosity, &
-          config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, config_flags%fire_viscosity_ngp, &
-          config_flags%fire_lsm_band_ngp, &
-          tbound, grid%lfn, grid%lfn_0,grid%lfn_1,grid%lfn_2, grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model) 
+          config_flags%fire_upwinding, config_flags%fire_viscosity, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, &
+          config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
+          grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model)
 
       call tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
           time_start, grid%dt, config_flags%fire_print_msg, grid%lfn, grid%lfn_out, grid%tign_g)
@@ -83,9 +70,8 @@
 
       if (config_flags%fire_lsm_reinit) call reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &                     
           ifds, ifde, jfds, jfde, time_start, grid%dt, grid%dx, grid%dy, config_flags%fire_upwinding_reinit, &
-          config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, &
-          grid%lfn, grid%lfn_2, grid%lfn_s0, grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, &
-          config_flags%fire_print_msg)
+          config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, grid%lfn, grid%lfn_2, grid%lfn_s0, &
+           grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, config_flags%fire_print_msg)
 
       do j = jfts, jfte
         do i = ifts, ifte
