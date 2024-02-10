@@ -25,7 +25,7 @@
 
     private
 
-    public :: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys
+    public :: Fuel_left, Update_ignition_times, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
     integer, parameter :: BDY_ENO1 = 10, SLOPE_FACTOR = 1.0
@@ -671,9 +671,11 @@
 
     end subroutine Advance_ls_reinit
 
-    subroutine Tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-        ifds, jfds, ifde, jfde, ts, dt, fire_print_msg, &
-        lfn_in, lfn_out, tign)
+    subroutine Update_ignition_times (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+        ifds, jfds, ifde, jfde, ts, dt, lfn_in, lfn_out, tign)
+
+      ! Purpose: compute ignition time by interpolation.
+      !          the node was not burning at start but it is burning at end
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
@@ -681,67 +683,26 @@
 
       integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           ifds, jfds, ifde, jfde
-      integer, intent (in) :: fire_print_msg
-      real, dimension (ifms:ifme, jfms:jfme), intent (inout):: tign
+      real, intent(in) :: ts, dt
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_in, lfn_out
-      real, intent(in)::ts,dt
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: tign
       real :: time_now
-      integer :: i, j, k, kk
-      intrinsic epsilon
-      character (len = 128) :: msg
-
-      integer, parameter :: BOUNDARY_GUARD = 8
+      integer :: i, j
 
 
-      ! compute ignition time by interpolation
-      ! the node was not burning at start but it is burning at end
-      ! interpolate from the level functions at start and at end
-      ! lfn_in==lfn   is the level set function value at time ts
-      ! lfn_out  is the level set function value at time ts+dt (after reinitialization)
-      ! 0        is the level set function value at time tign(i,j)
-      ! thus assuming the level function is approximately linear =>
-      ! tign(i,j)= ts + ((ts + td) - ts) * lfn_in / (lfn_in - lfn_out)
-      !        = ts + dt * lfn_in / (lfn_in - lfn_out)
-    
       time_now = ts + dt
       time_now = time_now + abs (time_now) * epsilon (time_now) * 2.0
       do j = jfts, jfte
-          do i = ifts, ifte
-              ! interpolate the cross-over time
-              if (.not. lfn_out(i, j) > 0 .and. lfn_in(i, j) > 0)then
-                  tign(i, j) = ts + dt * lfn_in(i, j) / (lfn_in(i, j) - lfn_out(i, j))
+        do i = ifts, ifte
+            ! interpolate the cross-over time
+          if (lfn_out(i, j) <= 0.0 .and. lfn_in(i, j) > 0.0) then
+            tign(i, j) = ts + dt * lfn_in(i, j) / (lfn_in(i, j) - lfn_out(i, j))
           end if
-              ! set the ignition time outside of burning region
-              if(lfn_out(i,j)>0.)tign(i,j)=time_now
-          end do
+          if (lfn_out(i,j) > 0.0) tign(i, j) = time_now
+        end do
       end do
 
-        ! stop simulation if fire is within boundary_guard grid points from the domain boundaries 
-      do j = jfts, jfte
-        if (j <= BOUNDARY_GUARD .or. j > (jfde - BOUNDARY_GUARD)) then
-          do i = ifts, ifte
-            if (lfn_out(i,j) < 0.0) then 
-              write (OUTPUT_UNIT, *) 'j-boundary reached'
-              write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
-              call Crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
-            end if
-          end do
-        end if
-      end do
-
-      do i = ifts, ifte
-        if (i.le. BOUNDARY_GUARD .or. i.gt.(ifde - BOUNDARY_GUARD)) then
-          do j = jfts, jfte
-            if (lfn_out(i, j) < 0.0) then 
-              write (OUTPUT_UNIT, *) 'j-boundary reached'
-              write (OUTPUT_UNIT, *) 'i, j, lfn_out = ', i, j, lfn_out(i, j)
-              call Crash ('wrf: SUCCESS COMPLETE WRF. Fire has reached domain boundary.')
-            end if
-          end do
-        end if
-      end do
-    
-    end subroutine Tign_update
+    end subroutine Update_ignition_times
 
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
@@ -1188,6 +1149,37 @@
       end if
 
     end function Select_weno5
+
+    subroutine Stop_if_close_to_bdy (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+        ifds, jfds, ifde, jfde, lfn_out)
+
+      implicit none
+
+      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+          ifds, jfds, ifde, jfde
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_out
+
+      integer, parameter :: BOUNDARY_GUARD = 8
+      integer :: i, j
+
+
+      do j = jfts, jfte
+        if (j <= BOUNDARY_GUARD .or. j > (jfde - BOUNDARY_GUARD)) then
+          do i = ifts, ifte
+            if (lfn_out(i, j) < 0.0) call Stop_simulation ('Fire too close to domain boundary.')
+          end do
+        end if
+      end do
+
+      do i = ifts, ifte
+        if (i <= BOUNDARY_GUARD .or. i > (ifde - BOUNDARY_GUARD)) then
+          do j = jfts, jfte
+            if (lfn_out(i, j) < 0.0) call Stop_simulation ('Fire too close to domain boundary.')
+          end do
+        end if
+      end do
+
+    end subroutine Stop_if_close_to_bdy
 
     subroutine Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, var)

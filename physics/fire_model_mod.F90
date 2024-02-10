@@ -1,6 +1,6 @@
   module fire_model_mod
 
-    use level_set_mod, only: Fuel_left, Tign_update, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys
+    use level_set_mod, only: Fuel_left, Update_ignition_times, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
@@ -60,10 +60,12 @@
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
           config_flags%fire_upwinding, config_flags%fire_viscosity, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, &
           config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
-          grid%lfn_out,grid%tign_g,grid%ros, grid, ros_model)
+          grid%lfn_out, grid%tign_g, grid%ros, grid, ros_model)
 
-      call tign_update (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
-          time_start, grid%dt, config_flags%fire_print_msg, grid%lfn, grid%lfn_out, grid%tign_g)
+      call Stop_if_close_to_bdy (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, grid%lfn_out)
+
+      call Update_ignition_times (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
+          time_start, grid%dt, grid%lfn, grid%lfn_out, grid%tign_g)
 
       call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
            grid%ros, grid%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
