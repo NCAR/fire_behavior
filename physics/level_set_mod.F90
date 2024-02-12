@@ -25,7 +25,7 @@
 
     private
 
-    public :: Fuel_left, Update_ignition_times, Reinit_ls_rk3, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
+    public :: Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
     integer, parameter :: BDY_ENO1 = 10, SLOPE_FACTOR = 1.0
@@ -452,18 +452,19 @@
     
     end subroutine Prop_level_set
 
-    subroutine Reinit_ls_rk3 (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
+    subroutine Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, fire_print_msg) 
 
-      ! Level-set function reinitialization
-      ! Referencess:
-      ! Sussman, Smereka, Osher. Journal of Computational Physics 114, 146-159 (1994)
-      !
-      ! D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate
-      ! fire-spread algorithm in the Weather Research and Forecasting model using the
-      ! level-set method", Journal of Advances in Modeling Earth Systems, 2018
+    ! Purpose: Level-set function reinitialization
+    !
+    ! Referencess:
+    ! Sussman, Smereka, Osher. Journal of Computational Physics 114, 146-159 (1994)
+    !
+    ! D. Munoz-Esparza, B. Kosovic, P. Jimenez, J. Coen: "An accurate
+    ! fire-spread algorithm in the Weather Research and Forecasting model using the
+    ! level-set method", Journal of Advances in Modeling Earth Systems, 2018
       
 
       implicit none
@@ -471,29 +472,23 @@
       integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       integer, intent (in) :: ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp
-      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_in, tign
-      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
-      real, dimension (ifms:ifme, jfms:jfme),intent (inout) :: lfn_out
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
       real, intent (in) :: dx, dy, ts, dt
-      integer, intent(in) :: fire_print_msg
+      integer, intent (in) :: fire_print_msg
 
-      real :: dt_s
-      real, dimension (ifts:ifte, jfts:jfte) :: tend_1, tend_2, tend_3
-      real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, time_now
-      integer :: nts, i, j, k, kk
-      intrinsic epsilon
-      character (len = 128) :: msg
-      real :: threshold_hll, threshold_hlu
+      real :: dt_s, threshold_hlu
+      integer :: nts, i, j
 
 
-      threshold_hll = -fire_lsm_band_ngp * dx
       threshold_hlu = fire_lsm_band_ngp * dx
 
         ! Define S0 based on current lfn values
       do j = jfts, jfte 
         do i = ifts, ifte 
-            lfn_s0(i, j) = lfn_2(i,j) / sqrt (lfn_2(i, j) ** 2.0 + dx ** 2.0) 
-            lfn_s3(i, j) = lfn_2(i,j)
+          lfn_s0(i, j) = lfn_2(i,j) / sqrt (lfn_2(i, j) ** 2.0 + dx ** 2.0)
+          lfn_s3(i, j) = lfn_2(i,j)
         end do
       end do
 
@@ -541,7 +536,7 @@
         end do
       end do
 
-    end subroutine Reinit_ls_rk3
+    end subroutine Reinit_level_set
 
     subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, lfn_s0, &
@@ -886,8 +881,8 @@
           if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
               (j > jds + BDY_ENO1 .and. j < jde - BDY_ENO1)) then 
             fire_viscosity_var = fire_viscosity_bg
-          else if (abs(lfn(i,j)) >= threshold_av .and. abs(lfn(i,j)) < threshold_av * (1.0 + fIre_viscosity_band) .and. &
-              (i > ids + 10 .and. i < ide - 10) .and. (j > jds + 10 .and. j < jde - 10)) then
+          else if (abs (lfn(i,j)) >= threshold_av .and. abs (lfn(i,j)) < threshold_av * (1.0 + fIre_viscosity_band) .and. &
+              (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. (j > jds + BDY_ENO1 .and. j < jde - BDY_ENO1)) then
             fire_viscosity_var = min (fire_viscosity_bg + (fire_viscosity - fire_viscosity_bg) * &
                 (abs (lfn(i, j)) - threshold_av) / (fire_viscosity_band * threshold_av), fire_viscosity)
           else
@@ -896,7 +891,7 @@
 
           tend(i, j) = tend(i, j) + fire_viscosity_var * abs (rr) * ((diffrx - difflx) + (diffry - diffly))
         end do
-      end do        
+      end do
 
         ! final CFL bound
       tbound = 1.0 / (tbound + TOL)
