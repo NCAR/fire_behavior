@@ -435,8 +435,6 @@
       do j = jfts, jfte
         do i = ifts, ifte
           lfn_out(i, j) = lfn_0(i, j) + dt * tend(i, j)
-            ! lfn_2=lfn_out (needed for reinitialization)
-          lfn_2(i, j) = lfn_out(i, j)
         end do
       end do     
 
@@ -487,8 +485,8 @@
         ! Define S0 based on current lfn values
       do j = jfts, jfte 
         do i = ifts, ifte 
-          lfn_s0(i, j) = lfn_2(i,j) / sqrt (lfn_2(i, j) ** 2.0 + dx ** 2.0)
-          lfn_s3(i, j) = lfn_2(i,j)
+          lfn_s0(i, j) = lfn_out(i,j) / sqrt (lfn_out(i, j) ** 2.0 + dx ** 2.0)
+          lfn_s3(i, j) = lfn_out(i,j)
         end do
       end do
 
