@@ -23,15 +23,16 @@
 
       integer :: fire_upwinding = 9           ! "upwind normal spread: 1=standard, 2=godunov, 3=eno, 4=sethian, 5=2nd-order,
                                               ! 6=WENO3, 7=WENO5, 8=hybrid WENO3/ENO1, 9=hybrid WENO5/ENO1" "1"
-      real :: fire_viscosity = 0.4            ! "artificial viscosity in level set method" "1"
+      real :: fire_viscosity = 0.4            ! artificial viscosity in level set method farm from near-front region
+      real :: fire_viscosity_bg = 0.4         ! artificial viscosity in level set method the near-front region. Should be lower/equal to fire_viscosity
+      integer :: fire_viscosity_ngp = 2       ! number of grid points around lfn=0 where fire_viscosity_bg is used. Defines the near front region
+      real :: fire_viscosity_band = 0.5       ! number of times the near front region, used to transition from fire_viscosity_bg to fire_viscosity
+
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
-      real :: fire_viscosity_bg = 0.4         ! "artificial viscosity in the near-front region" "1"
-      real :: fire_viscosity_band = 0.5       ! "number of times the hybrid advection band to transition from fire_viscosity_bg to fire_viscosity" "1"
-      integer :: fire_viscosity_ngp = 2       ! "number of grid points around lfn=0 where low artificial viscosity is used = fire_viscosity_bg"
 
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
