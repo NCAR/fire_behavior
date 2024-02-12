@@ -548,7 +548,7 @@
           jfte, ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_s0, lfn_ini, lfn_curr
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: lfn_fin
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_fin
       real, intent (in) :: dx, dy, dt_s, threshold_hlu, rk_coeff
 
       integer :: i, j
