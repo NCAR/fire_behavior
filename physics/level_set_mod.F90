@@ -410,7 +410,7 @@
 
       do j = jfts, jfte 
         do i = ifts, ifte 
-          lfn_1(i,j) = lfn_0(i,j) + (dt / 3.0) * tend(i,j) 
+          lfn_1(i, j) = lfn_0(i, j) + (dt / 3.0) * tend(i, j)
         end do
       end do
 
@@ -428,7 +428,7 @@
 
         ! Runge-Kutta step 3
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
-         ifms, ifme, jfms, jfme, ts+dt, dt, dx, dy, fire_upwinding, &
+         ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
 
