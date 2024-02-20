@@ -46,6 +46,10 @@
             grid%jfds, grid%jfde, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
             grid%lfn)
 
+        call Extrapol_var_at_bdys (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, &
+            grid%jfds, grid%jfde, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+            grid%tign_g)
+
         call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
             grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
             grid%j_start(ij), grid%j_end(ij), grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, &
