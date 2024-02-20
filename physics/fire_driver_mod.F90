@@ -2,6 +2,7 @@
   module fire_driver_mod
 
     use fire_model_mod, only: Advance_fire_model
+    use level_set_mod, only : Extrapol_var_at_bdys
     use fmc_model_wrffire_mod, only: Init_fuel_moisture, Fuel_moisture_model
     use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
     use fuel_anderson_mod, only: fuel_anderson_t
@@ -41,6 +42,10 @@
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
       do ij=1,grid%num_tiles
+        call Extrapol_var_at_bdys (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, &
+            grid%jfds, grid%jfde, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+            grid%lfn)
+
         call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
             grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
             grid%j_start(ij), grid%j_end(ij), grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, &
