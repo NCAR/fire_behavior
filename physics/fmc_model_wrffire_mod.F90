@@ -150,404 +150,403 @@
 
     subroutine Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
-implicit none
+      implicit none
 
-type (state_fire_t), target :: grid
-type (namelist_t), intent (in) :: config_flags
-type (fuel_anderson_t), intent (in) :: fuel_model
-type (ros_wrffire_t), intent (in) :: ros_model
+      type (state_fire_t), target :: grid
+      type (namelist_t), intent (in) :: config_flags
+      type (fuel_anderson_t), intent (in) :: fuel_model
+      type (ros_wrffire_t), intent (in) :: ros_model
 
-character(len=128)msg
-integer :: ij
-real:: time_start
-real:: moisture_time
+      character (len = 128) :: msg
+      integer :: ij
+      real :: time_start, moisture_time
 
-    ! time - assume dt does not change
-    time_start = grid%itimestep * grid%dt
 
-    grid%run_advance_moisture = .false. ! default
-    moisture_time = time_start
+        ! time - assume dt does not change
+      time_start = grid%itimestep * grid%dt
 
-        if(config_flags%fmoist_freq > 0)then  ! regular timestep. go by multiples?
-            if(mod(grid%itimestep,config_flags%fmoist_freq) .eq. 0)then
-                write(msg,'(a,i10,a,i10)')'moisture model runs because timestep ',grid%itimestep,' is a multiple of ', &
-                    config_flags%fmoist_freq
-                call message(msg,config_flags%fire_print_msg)
-                grid%run_advance_moisture = .true.
-            endif
-        else
-            if(.not. moisture_time  < grid%fmoist_nexttime) then ! no, by time interval
-                write(msg,'(a,f12.2,a)')'moisture model runs because time ',grid%fmoist_nexttime,'s has arrived'
-                call message(msg,config_flags%fire_print_msg)
-                grid%run_advance_moisture = .true.
-            endif
-        endif
-        if(grid%run_advance_moisture)then ! decide on timing
-            grid%dt_moisture  = moisture_time - grid%fmoist_lasttime  ! Time since moisture model run the last time. Should be long.
-            grid%fmoist_lasttime = moisture_time
-            if(config_flags%fmoist_freq > 0)then
-                write(msg,'(a,f12.2,a,i10,a)')'moisture time step is ',grid%dt_moisture,'s running every ', &
-                    config_flags%fmoist_freq,' steps'
-                call message(msg,config_flags%fire_print_msg)
-            else
-                grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
-                write(msg,'(a,f12.2,a,f12.2,a)')'moisture time step is ',grid%dt_moisture,'s next run at ',grid%fmoist_nexttime,'s'
-                call message(msg,config_flags%fire_print_msg)
-            endif
-        endif
+      grid%run_advance_moisture = .false.
+      moisture_time = time_start
+
+      if (config_flags%fmoist_freq > 0) then
+        if (mod (grid%itimestep, config_flags%fmoist_freq) == 0) then
+          write (msg, '(a,i10,a,i10)') 'moisture model runs because timestep ', grid%itimestep, ' is a multiple of ', &
+            config_flags%fmoist_freq
+          call message(msg,config_flags%fire_print_msg)
+          grid%run_advance_moisture = .true.
+        end if
+      else
+        if (.not. moisture_time < grid%fmoist_nexttime) then
+          write(msg, '(a,f12.2,a)') 'moisture model runs because time ', grid%fmoist_nexttime, 's has arrived'
+          call message(msg,config_flags%fire_print_msg)
+          grid%run_advance_moisture = .true.
+        end if
+      end if
+        ! decide on timing
+      if (grid%run_advance_moisture) then
+          ! Time since moisture model run the last time. Should be long.
+        grid%dt_moisture = moisture_time - grid%fmoist_lasttime
+        grid%fmoist_lasttime = moisture_time
+        if(config_flags%fmoist_freq > 0)then
+          write (msg,'(a,f12.2,a,i10,a)') 'moisture time step is ', grid%dt_moisture, 's running every ', &
+              config_flags%fmoist_freq,' steps'
+            call Message (msg, config_flags%fire_print_msg)
+          else
+            grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
+            write (msg, '(a,f12.2,a,f12.2,a)') 'moisture time step is ', grid%dt_moisture, 's next run at ', grid%fmoist_nexttime, 's'
+            call Message (msg, config_flags%fire_print_msg)
+        end if
+      end if
 
       if (grid%run_advance_moisture) then
         call Message ('advance_moisture start', config_flags%fire_print_msg)
-        do ij=1,grid%num_tiles
-          call Advance_moisture (grid%itimestep.eq.1, & ! initialize?
+        do ij = 1, grid%num_tiles
+          call Advance_moisture (grid%itimestep == 1 , & ! initialize?
               grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
               config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
               grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
               grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
               grid%fmc_lag, config_flags%fuelmc_g)
-        enddo
-        call Message ('advance_moisture end',config_flags%fire_print_msg)
+        end do
+        call Message ('advance_moisture end', config_flags%fire_print_msg)
 
-        call Message ('fuel_moisture start',config_flags%fire_print_msg)
-        do ij=1,grid%num_tiles
+        call Message ('fuel_moisture start', config_flags%fire_print_msg)
+        do ij = 1, grid%num_tiles
           call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij),    &
+              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
               config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
-        enddo
-        call Message ('fuel_moisture end',config_flags%fire_print_msg)
+        end do
+        call Message ('fuel_moisture end', config_flags%fire_print_msg)
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
-        do ij=1,grid%num_tiles
+        do ij = 1, grid%num_tiles
           call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
               grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              grid%dx,grid%dy, grid%nfuel_cat,grid%fuel_time,  grid, fuel_model, config_flags)
-        enddo
+              grid%dx,grid%dy, grid%nfuel_cat, grid%fuel_time, grid, fuel_model, config_flags)
+        end do
       end if
 
     end subroutine Fuel_moisture_model
 
-subroutine fuel_moisture(                &
-    nfmc,                                &
-    ifds, ifde, jfds, jfde,              & ! fire grid dimensions
-    ifms, ifme, jfms, jfme,              &
-    ifts,ifte,jfts,jfte,                 &
-    fire_print_msg,                      &
-    nfuel_cat,                           & ! fuel data
-    fmc_gc,                              & ! moisture contents by class on atmospheric grid
-    fmc_g                                & ! weighted fuel moisture contents on fire grid
-    )
+    subroutine fuel_moisture(                &
+      nfmc,                                &
+      ifds, ifde, jfds, jfde,              & ! fire grid dimensions
+      ifms, ifme, jfms, jfme,              &
+      ifts,ifte,jfts,jfte,                 &
+      fire_print_msg,                      &
+      nfuel_cat,                           & ! fuel data
+      fmc_gc,                              & ! moisture contents by class on atmospheric grid
+      fmc_g                                & ! weighted fuel moisture contents on fire grid
+      )
 
-implicit none
+      implicit none
 
-!**** arguments
-integer, intent(in)::                    &
-    nfmc,                                &
-    ifds, ifde, jfds, jfde,              & ! fire grid dimensions
-    ifms, ifme, jfms, jfme,              &
-    ifts,ifte,jfts,jfte,                 &
-    fire_print_msg
+      integer, intent(in)::                    &
+         nfmc,                                &
+         ifds, ifde, jfds, jfde,              & ! fire grid dimensions
+         ifms, ifme, jfms, jfme,              &
+         ifts,ifte,jfts,jfte,                 &
+         fire_print_msg
 
-real,intent(in),dimension(ifms:ifme,jfms:jfme):: nfuel_cat ! fuel data
-real,intent(in),dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
-real,intent(out),dimension(ifms:ifme,jfms:jfme):: fmc_g ! fuel data
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+      real, dimension(ifms:ifme, nfmc, jfms:jfme), intent (in) :: fmc_gc
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: fmc_g
 
-!**** local
-integer::i,j,k,n
-character(len=128)::msg
-
-do j=jfts,jfte
-    do i=ifts,ifte
-        fmc_g(i,j)=0.               ! initialize sum over classes
-    enddo
-enddo
-
-do k=1,MOISTURE_CLASSES
-
-    ! add moisture contents for class k to the fuel moisture
-    do j=jfts,jfte
-        do i=ifts,ifte
-            n = nfuel_cat(i,j)
-            if(n > 0)then
-                fmc_g(i,j)=fmc_g(i,j)+fmc_gw(n,k)*fmc_gc(i,k,j)      ! add to sum over classes
-            endif
-        enddo
-    enddo
-
-enddo
+      integer :: i, j, k, n
+      character (len = 128) :: msg
 
 
-end subroutine fuel_moisture
+      do j = jfts, jfte
+        do i = ifts, ifte
+          fmc_g(i, j) = 0.0
+        end do
+      end do
 
-subroutine advance_moisture(    &
-    initialize,                 & ! initialize timestepping. true on the first call at time 0, then false
-    ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
-    ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
-    fire_print_msg,             &
-    nfmc,                       & ! dimension of moisture fields
-    moisture_dt,                & ! timestep = time step time elapsed from the last call
-    fmep_decay_tlag,            & ! moisture extended model assimilated diffs. decay time lag
-    rain,                       & ! accumulated rain 
-    t2, q2, psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
-    rain_old,                   & ! previous value of accumulated rain
-    t2_old, q2_old, psfc_old,   & ! previous values of the atmospheric state at surface
-    rh_fire,                    & ! relative humidity at surface, for diagnostic only
-    fmc_gc,                     & ! fuel moisture by class, updated
-    fmep,                       & ! fuel moisture extended model parameters
-    fmc_equi,                   & ! fuel moisture equilibrium by class, for diagnostics only
-    fmc_lag,                    & ! fuel moisture tendency by classe, for diagnostics only
-    fuelmc_g                    & ! fuel moisture content ground from namelist
-    )
+      do k = 1, MOISTURE_CLASSES
+          ! add moisture contents for class k to the fuel moisture
+        do j = jfts, jfte
+          do i = ifts, ifte
+            n = nfuel_cat(i, j)
+            if (n > 0) then
+                ! add to sum over classes
+              fmc_g(i, j) = fmc_g(i, j) + fmc_gw(n, k) * fmc_gc(i, k, j)
+            end if
+          end do
+        end do
+      end do
 
-implicit none
 
-!*** arguments
-logical, intent(in):: initialize
-integer, intent(in)::           &
-    ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
-    ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
-    nfmc,                       & ! number of moisture fields
-    fire_print_msg
-real, intent(in):: moisture_dt, fmep_decay_tlag
-real, intent(in), dimension(ifms:ifme,jfms:jfme):: t2, q2, psfc, rain
-real, intent(inout), dimension(ifms:ifme,jfms:jfme):: t2_old, q2_old, psfc_old, rain_old 
-real, intent(inout), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_gc
-real, intent(inout), dimension(ifms:ifme,2,jfms:jfme):: fmep
-real, intent(out), dimension(ifms:ifme,nfmc,jfms:jfme):: fmc_equi, fmc_lag
-real, intent(out), dimension(ifms:ifme,jfms:jfme)::rh_fire 
-real, intent(in) :: fuelmc_g
+    end subroutine fuel_moisture
 
-!*** global
-! fuel properties moisture set by init_fuel_cats
+    subroutine Advance_moisture(    &
+        initialize,                 & ! initialize timestepping. true on the first call at time 0, then false
+        ifms,ifme,  jfms,jfme,      & ! fire memory dimensions
+        ifts,ifte,  jfts,jfte,      & ! fire tile dimensions
+        fire_print_msg,             &
+        nfmc,                       & ! dimension of moisture fields
+        moisture_dt,                & ! timestep = time step time elapsed from the last call
+        fmep_decay_tlag,            & ! moisture extended model assimilated diffs. decay time lag
+        rain,                       & ! accumulated rain 
+        t2, q2, psfc,               & ! temperature (K), vapor contents (kg/kg), pressure (Pa) at the surface
+        rain_old,                   & ! previous value of accumulated rain
+        t2_old, q2_old, psfc_old,   & ! previous values of the atmospheric state at surface
+        rh_fire,                    & ! relative humidity at surface, for diagnostic only
+        fmc_gc,                     & ! fuel moisture by class, updated
+        fmep,                       & ! fuel moisture extended model parameters
+        fmc_equi,                   & ! fuel moisture equilibrium by class, for diagnostics only
+        fmc_lag,                    & ! fuel moisture tendency by classe, for diagnostics only
+        fuelmc_g                    & ! fuel moisture content ground from namelist
+        )
 
-!*** local
-integer:: i,j,k
-real::rain_int, T, P, Q, QRS, ES, RH, tend, EMC_d, EMC_w, EMC, R, rain_diff, fmc, rlag, equi, &
-    d, w, rhmax, rhmin, change, rainmax,rainmin, fmc_old, H, deltaS, deltaE
-real, parameter::tol=1e-2 ! relative change larger than that will switch to exponential ode solver 
-character(len=256)::msg
-integer::msglevel=2
-logical, parameter::check_data=.true.,check_rh=.false.
-real::epsilon,Pws,Pw
+      implicit none
 
-!*** executable
+      logical, intent (in) :: initialize
+      integer, intent (in) :: ifms,ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfmc, fire_print_msg
+      real, intent (in) :: moisture_dt, fmep_decay_tlag
+      real, intent (in), dimension (ifms:ifme, jfms:jfme) :: t2, q2, psfc, rain
+      real, intent (inout), dimension (ifms:ifme, jfms:jfme) :: t2_old, q2_old, psfc_old, rain_old 
+      real, intent (inout), dimension (ifms:ifme, nfmc, jfms:jfme) :: fmc_gc
+      real, intent (inout), dimension (ifms:ifme, 2, jfms:jfme) :: fmep
+      real, intent (out), dimension (ifms:ifme, nfmc, jfms:jfme) :: fmc_equi, fmc_lag
+      real, intent (out), dimension (ifms:ifme, jfms:jfme) :: rh_fire 
+      real, intent (in) :: fuelmc_g
 
-! check arguments
+      integer :: i, j, k
+      real :: rain_int, T, P, Q, QRS, ES, RH, tend, EMC_d, EMC_w, EMC, R, rain_diff, fmc, rlag, equi, &
+          d, w, rhmax, rhmin, change, rainmax,rainmin, fmc_old, H, deltaS, deltaE
+      real, parameter :: TOL = 1e-2 ! relative change larger than that will switch to exponential ode solver 
+      logical, parameter :: CHECK_DATA = .true., CHECK_RH=.false.
+      character (len = 256) :: msg
+      integer :: msglevel = 2
+      real :: epsilon, Pws, Pw
 
-if(msglevel>1)then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-    write(msg,'(a,f10.2,a,i4,a,i4)')'advance moisture dt=',moisture_dt,'s using ',MOISTURE_CLASSES,' classes from possible ',nfmc
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-    call message(msg,fire_print_msg)
-endif
 
-if(MOISTURE_CLASSES > nfmc .or. MOISTURE_CLASSES > MAX_MOISTURE_CLASSES)then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-    write(msg,*)'advance_moisture: moisture_classes=',MOISTURE_CLASSES, &
-       ' > nfmc=',nfmc,' or >  max_moisture_classes=',MAX_MOISTURE_CLASSES
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-    call crash(msg)
-endif
+      if (msglevel > 1) then
+        !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+        write (msg, '(a,f10.2,a,i4,a,i4)') 'advance moisture dt=', moisture_dt, 's using ', MOISTURE_CLASSES, &
+            ' classes from possible ', nfmc
+        !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+        call Message (msg, fire_print_msg)
+      end if
 
-if(initialize) then 
-    call message('advance_moisture: initializing, copying surface variables to old',fire_print_msg)
-    call copy2old
-endif
+      if(MOISTURE_CLASSES > nfmc .or. MOISTURE_CLASSES > MAX_MOISTURE_CLASSES)then
+        !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+        write(msg,*)'advance_moisture: moisture_classes=', MOISTURE_CLASSES, &
+            ' > nfmc=', nfmc, ' or >  max_moisture_classes=', MAX_MOISTURE_CLASSES
+        !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+        call Crash (msg)
+      end if
 
-if(check_data)then
-    do j=jfts,jfte
-        do i=ifts,ifte
-            if( .not.(t2(i,j)>0.0 .and. psfc(i,j)>0.0 .and. .not. q2(i,j) < 0.0 ))then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-                 write(msg,'(a,2i4,a,3e12.2)')'At i j',i,j,' t2 psfc q2 are ',t2(i,j),psfc(i,j),q2(i,j)
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-                 call message(msg,fire_print_msg) 
-                 call crash('invalid data passed from WRF, must have t2 psfc>0, q2 >= 0')
-            endif
-        enddo
-    enddo
-endif
+      if (initialize) then 
+        call Message ('advance_moisture: initializing, copying surface variables to old', fire_print_msg)
+        call Copy2old ()
+      end if
 
-! one time step
+      if(CHECK_DATA)then
+        do j = jfts, jfte
+          do i = ifts, ifte
+            if (.not. (t2(i, j) > 0.0 .and. psfc(i,j) > 0.0 .and. .not. q2(i, j) < 0.0)) then
+              !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+              write (msg,'(a,2i4,a,3e12.2)') 'At i j', i, j, ' t2 psfc q2 are ', t2(i,j), psfc(i,j), q2(i,j)
+              !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+              call Message (msg, fire_print_msg) 
+              call crash ('invalid data passed from WRF, must have t2 psfc>0, q2 >= 0')
+            end if
+          end do
+        end do
+      end if
 
-rhmax=-huge(rhmax)
-rhmin=huge(rhmin)
-rainmax=-huge(rainmax)
-rainmin= huge(rainmin)
-do j=jfts,jfte
-    do k=1,MOISTURE_CLASSES
-        do i=ifts,ifte
-            ! old fuel moisture contents
-            ! compute the rain intensity from the difference of accumulated rain
-            rain_diff = rain(i,j) - rain_old(i,j)
-            if(moisture_dt > 0.)then
-                rain_int  = 3600. * rain_diff / moisture_dt 
+        ! one time step
+      rhmax = -huge (rhmax)
+      rhmin = huge (rhmin)
+      rainmax = -huge (rainmax)
+      rainmin = huge (rainmin)
+      Loop_j: do j = jfts, jfte
+        Loop_fmc_classes: do k = 1, MOISTURE_CLASSES
+          Loop_i: do i = ifts, ifte
+              ! old fuel moisture contents
+              ! compute the rain intensity from the difference of accumulated rain
+            rain_diff = rain(i, j) - rain_old(i, j)
+            if (moisture_dt > 0.0)then
+              rain_int = 3600.0 * rain_diff / moisture_dt 
             else
-                rain_int  = 0.
+              rain_int = 0.0
             endif
             rainmax = max(rainmax,rain_int)
             rainmin = min(rainmin,rain_int)
             R = rain_int - rain_threshold(k)
 
-            ! average the inputs for second order accuracy
+              ! average the inputs for second order accuracy
             T = 0.5 * (t2_old(i,j) + t2(i,j))
             P = 0.5 * (psfc_old(i,j) + psfc(i,j))
             Q = 0.5 * (q2_old(i,j) + q2(i,j))
 
-            ! compute the relative humidity
-            ! ES=610.78*exp(17.269*(T-273.161)/(T-35.861))
-            ! QRS=0.622*ES/(P-0.378*ES)
-            ! RH = Q/QRS
-            ! function rh_from_q from Adam Kochanski following Murphy and Koop, Q.J.R. Meteorol. Soc (2005) 131 1539-1565 eq. (10)
+              ! compute the relative humidity
+              ! ES=610.78*exp(17.269*(T-273.161)/(T-35.861))
+              ! QRS=0.622*ES/(P-0.378*ES)
+              ! RH = Q/QRS
+              ! function rh_from_q from Adam Kochanski following Murphy and Koop, Q.J.R. Meteorol. Soc (2005) 131 1539-1565 eq. (10)
             epsilon = 0.622 ! Molecular weight of water (18.02 g/mol) to molecular weight of dry air (28.97 g/mol)
-            ! vapor pressure [Pa]
+              ! vapor pressure [Pa]
             Pw=q*P/(epsilon+(1-epsilon)*q); 
-            ! saturation vapor pressure [Pa]
+              ! saturation vapor pressure [Pa]
             Pws= exp( 54.842763 - 6763.22/T - 4.210 * log(T) + 0.000367*T + &
                 tanh(0.0415*(T - 218.8)) * (53.878 - 1331.22/T - 9.44523 * log(T) + 0.014025*T))
-            !realtive humidity [1]
+              !realtive humidity [1]
             RH = Pw/Pws
-            rh_fire(i,j)=RH
-            rhmax=max(RH,rhmax)         
-            rhmin=min(RH,rhmin)         
+            rh_fire(i, j) = RH
+            rhmax = max (RH, rhmax)         
+            rhmin = min (RH, rhmin)         
 
-            deltaE = fmep(i,1,j)
-            deltaS = fmep(i,2,j)
+            deltaE = fmep(i, 1, j)
+            deltaS = fmep(i, 2, j)
 
-            if(.not.check_rh)then
-                RH = min(RH,1.0)
+            if (.not. CHECK_RH) then
+              RH = min (RH, 1.0)
             else
-                if(RH < 0.0 .or. RH > 1.0 .or. RH .ne. RH )then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-                    write(msg,'(a,2i6,5(a,f10.2))')'At i,j ',i,j,' RH=',RH, &
-                        ' from T=',T,' P=',P,' Q=',Q
-                    call message(msg,fire_print_msg) 
-                    call crash('Relative humidity must be between 0 and 1, saturated water contents must be >0')
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-                endif
-            endif 
+              if (RH < 0.0 .or. RH > 1.0 .or. RH .ne. RH ) then
+                !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+                write(msg,'(a,2i6,5(a,f10.2))')'At i,j ',i,j,' RH=',RH, &
+                    ' from T=',T,' P=',P,' Q=',Q
+                    call Message (msg, fire_print_msg) 
+                    call Crash ('Relative humidity must be between 0 and 1, saturated water contents must be >0')
+                !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+              end if
+            end if 
             !print *,'ADV_MOIST i=',i,' j=',j,' T=',T,' P=',P,' Q=',Q,' ES=',ES,' QRS=',QRS,' RH=',RH
 
-            if (R > 0.) then
-                select case(wetting_model(k))
-                case(1) ! saturation_moisture=2.5 wetting_lag=14h saturation_rain=8 mm/h calibrated to VanWagner&Pickett 1985 per 24 hours
-                    EMC_w=saturation_moisture(k) + deltaS
-                    EMC_d=saturation_moisture(k) + deltaS
-                    rlag=rec_wetting_lag_sec(k) * (1. - exp(-R/saturation_rain(k)))
-                end select
-            else ! not raining
-                select case(drying_model(k))
-                case(1) ! Van Wagner and Pickett (1972) per Viney (1991) eq (7) (8)
-                    H = RH * 100.
-                    d=0.942*H**0.679 + 0.000499*exp(0.1*H) + 0.18*(21.1+273.15-T)*(1-exp(-0.115*H)) ! equilibrium moisture for drying
-                    w=0.618*H**0.753 + 0.000454*exp(0.1*H) + 0.18*(21.1+273.15-T)*(1-exp(-0.115*H)) ! equilibrium moisture for adsorbtion
-                    if(d.ne.d.or.w.ne.w)call crash('equilibrium moisture calculation failed, result is NaN')
-                    d = d*0.01
-                    w = w*0.01
-                    EMC_d = max(max(d,w)+deltaE,0.0)
-                    EMC_w = max(min(d,w)+deltaE,0.0)
-                    rlag=rec_drying_lag_sec(k)
-                end select
-            endif
-            !*** MODELS THAT ARE NOT OF THE EXPONENTIAL TIME LAG KIND 
-            ! ARE RESPONSIBLE FOR THEIR OWN LOGIC, THESE MODELS
-            ! SHOULD COMPUTE fmc_gc(i,k,j) DIRECTLY AND SET TLAG < 0
-            !
-            if(rlag > 0.0)then
+            if (R > 0.0) then
+              select case (wetting_model(k))
+                ! saturation_moisture=2.5 wetting_lag=14h saturation_rain=8 mm/h calibrated to VanWagner&Pickett 1985 per 24 hours
+              case(1)
+                  EMC_w = saturation_moisture(k) + deltaS
+                  EMC_d = saturation_moisture(k) + deltaS
+                  rlag = rec_wetting_lag_sec(k) * (1.0 - exp(-R / saturation_rain(k)))
+              end select
+            else
+                ! not raining
+              select case (drying_model(k))
+                ! Van Wagner and Pickett (1972) per Viney (1991) eq (7) (8)
+              case(1)
+                H = RH * 100.0
+                  ! equilibrium moisture for drying
+                d = 0.942*H**0.679 + 0.000499*exp(0.1*H) + 0.18*(21.1+273.15-T)*(1-exp(-0.115*H))
+                  ! equilibrium moisture for adsorbtion
+                w = 0.618*H**0.753 + 0.000454*exp(0.1*H) + 0.18*(21.1+273.15-T)*(1-exp(-0.115*H))
+                if (d .ne. d .or. w .ne. w) call Crash ('equilibrium moisture calculation failed, result is NaN')
+                d = d * 0.01
+                w = w * 0.01
+                EMC_d = max (max (d, w) + deltaE, 0.0)
+                EMC_w = max (min (d, w) + deltaE, 0.0)
+                rlag = rec_drying_lag_sec(k)
+              end select
+            end if
+              !*** MODELS THAT ARE NOT OF THE EXPONENTIAL TIME LAG KIND 
+              ! ARE RESPONSIBLE FOR THEIR OWN LOGIC, THESE MODELS
+              ! SHOULD COMPUTE fmc_gc(i,k,j) DIRECTLY AND SET TLAG < 0
+            If_rlag:  if (rlag > 0.0) then
+                ! take old from before, no initialization
+              if (.not. initialize .or. fmc_gc_initialization(k) == 0) then
+                fmc_old = fmc_gc(i, k, j)
+              else if (fmc_gc_initialization(k) == 1) then
+                   ! from scalar fuelmc_g
+                fmc_old = fuelmc_g
+              else if (fmc_gc_initialization(k) == 2)then
+                  ! from computed equilibrium
+                fmc_old = 0.5 * (EMC_d + EMC_w)
+              else if (fmc_gc_initialization(k) == 3)then
+                  ! from scalar parameter
+                fmc_old = fmc_gc_initial_value(k)
+              else
+                call Crash ('bad value of fmc_gc_initialization(k), must be between 0 and 2')
+              end if
+                 ! take lower or upper equilibrium value 
+              equi = max (min (fmc_old, EMC_d),EMC_w)
 
-                if(.not.initialize .or. fmc_gc_initialization(k).eq.0)then ! take old from before, no initialization
-                    fmc_old = fmc_gc(i,k,j)
-                elseif(fmc_gc_initialization(k).eq.1)then ! from scalar fuelmc_g
-                    fmc_old = fuelmc_g
-                elseif(fmc_gc_initialization(k).eq.2)then ! from computed equilibrium
-                    fmc_old=0.5*(EMC_d+EMC_w)
-                elseif(fmc_gc_initialization(k).eq.3)then ! from scalar parameter
-                    fmc_old = fmc_gc_initial_value(k)
-                else
-                    call crash('bad value of fmc_gc_initialization(k), must be between 0 and 2')
-                endif
-                equi = max(min(fmc_old, EMC_d),EMC_w) ! take lower or upper equilibrium value 
+              change = moisture_dt * rlag 
 
-                change = moisture_dt * rlag 
-
-                if(change  < tol)then
-                     if(fire_print_msg.ge.3)call message('midpoint method',fire_print_msg)
-                     fmc = fmc_old + (equi - fmc_old)*change*(1.0 - 0.5*change)  ! 2nd order Taylor
-                else
-                     if(fire_print_msg.ge.3)call message('exponential method',fire_print_msg)
-                     fmc = fmc_old + (equi - fmc_old)*(1 - exp(-change))
-                endif
-                fmc_gc(i,k,j) = fmc
+              if(change < TOL)then
+                 if (fire_print_msg >= 3) call Message ('midpoint method', fire_print_msg)
+                   ! 2nd order Taylor
+                 fmc = fmc_old + (equi - fmc_old) * change * (1.0 - 0.5 * change)
+              else
+                if (fire_print_msg >= 3) call Message ('exponential method', fire_print_msg)
+                fmc = fmc_old + (equi - fmc_old) * (1 - exp (-change))
+              end if
+              fmc_gc(i, k, j) = fmc
 
                 ! diagnostics out
-                fmc_equi(i,k,j)=equi
-                fmc_lag(i,k,j)=1.0/(3600.0*rlag)
-                 
+              fmc_equi(i, k, j) = equi
+              fmc_lag(i, k, j) = 1.0 / (3600.0 * rlag)
+               
                 ! diagnostic prints
-                if(fire_print_msg.ge.3)then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-                    write(msg,*)'i=',i,' j=',j,'EMC_w=',EMC_w,' EMC_d=',EMC_d
-                    call message(msg,fire_print_msg)
-                    write(msg,*)'fmc_old=',fmc,' equi=',equi,' change=',change,' fmc=',fmc
-                    call message(msg,fire_print_msg)
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-                endif
+              if (fire_print_msg >= 3) then
+                !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+                write (msg, *) 'i=', i,' j=', j, 'EMC_w=', EMC_w, ' EMC_d=', EMC_d
+                call Message(msg,fire_print_msg)
+                write (msg, *) 'fmc_old=', fmc, ' equi=', equi, ' change=', change,' fmc=', fmc
+                call Message (msg, fire_print_msg)
+                !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+              end if
+            end if If_rlag
+          end do Loop_i
+        end do Loop_fmc_classes
+      end do Loop_j
 
-            endif
-      enddo
-   enddo
-enddo
+        ! assimilated differences decay
+      do j = jfts, jfte
+        do k = 1, 2
+          do i = ifts, ifte
+            change = moisture_dt / (fmep_decay_tlag * 3600.0)
+            if (change < TOL) then
+              fmep(i, k, j) = fmep(i, k, j) * (1.0 - change * (1.0 - 0.5 * change))
+            else
+              fmep(i, k, j) = fmep(i, k, j) * exp (-change)
+            end if
+          end do
+        end do
+      end do
+
+      if (fire_print_msg >= 2) then
+        !$OMP CRITICAL(SFIRE_PHYS_CRIT)
+        write (msg, 2) 'Rain intensity    min', rainmin, ' max', rainmax, ' mm/h'
+        call Message (msg, fire_print_msg) 
+        if (rainmin < 0.0) then
+          call message('WARNING rain accumulation must increase',fire_print_msg)
+        end if
+        write (msg, 2) 'Relative humidity min',100*rhmin,' max',100*rhmax,'%'
+        call Message (msg, fire_print_msg) 
+        if(.not. (rhmax <= 1.0 .and. rhmin >= 0)) then
+          call Message ('WARNING Relative humidity must be between 0 and 100%', fire_print_msg)
+        end if
+  2     format (2(a,f10.2),a)
+        !$OMP END CRITICAL(SFIRE_PHYS_CRIT)
+      end if
+
+      call Copy2old ()
+
+      return
+
+    contains
+
+      subroutine Copy2old ()
+
+        implicit none
+
+        integer :: i, j
 
 
-! assimilated differences decay
-do j=jfts,jfte
-  do k=1,2
-    do i=ifts,ifte
-      change = moisture_dt / (fmep_decay_tlag * 3600.)
-      if(change < tol) then
-        fmep(i,k,j) = fmep(i,k,j)*(1.0 - change * (1.0 - 0.5 * change))
-      else
-        fmep(i,k,j) = fmep(i,k,j)*exp(-change)
-      endif
-    enddo
-  enddo
-enddo
+        do j = jfts, jfte
+          do i = ifts ,ifte
+            rain_old(i, j) = rain(i, j)
+            t2_old(i, j) = t2(i, j)
+            q2_old(i, j) = q2(i, j)
+            psfc_old(i, j) = psfc(i, j)
+          end do
+        end do
 
+      end subroutine Copy2old
 
-if(fire_print_msg.ge.2)then
-!$OMP CRITICAL(SFIRE_PHYS_CRIT)
-    write(msg,2)'Rain intensity    min',rainmin,  ' max',rainmax,' mm/h'
-    call message(msg,fire_print_msg) 
-    if(rainmin <0.)then
-        call message('WARNING rain accumulation must increase',fire_print_msg)
-    endif
-    write(msg,2)'Relative humidity min',100*rhmin,' max',100*rhmax,'%'
-    call message(msg,fire_print_msg) 
-    if(.not.(rhmax<=1.0 .and. rhmin>=0))then
-        call message('WARNING Relative humidity must be between 0 and 100%',fire_print_msg)
-    endif
-2   format(2(a,f10.2),a)
-!$OMP END CRITICAL(SFIRE_PHYS_CRIT)
-endif
-
-call copy2old
-
-return
-
-contains
-
-subroutine copy2old
-
-do j=jfts,jfte
-    do i=ifts,ifte
-        rain_old(i,j) = rain(i,j)
-        t2_old(i,j) = t2(i,j)
-        q2_old(i,j) = q2(i,j)
-        psfc_old(i,j) = psfc(i,j)
-    enddo
-enddo
-
-end subroutine copy2old
-
-end subroutine advance_moisture
+    end subroutine Advance_moisture
 
   end module fmc_model_wrffire_mod
