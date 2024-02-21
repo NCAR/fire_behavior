@@ -1,4 +1,3 @@
-
   module fire_driver_mod
 
     use fire_model_mod, only: Advance_fire_model
@@ -41,7 +40,7 @@
 
       call fuel_model%Initialization (config_flags%fuelmc_c)
 
-      do ij=1,grid%num_tiles
+      do ij = 1, grid%num_tiles
         call Extrapol_var_at_bdys (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, &
             grid%jfds, grid%jfde, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
             grid%lfn)
@@ -68,29 +67,25 @@
       integer :: stat_lev = 1
       integer :: ij
 
+
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
 
-      do ij=1,grid%num_tiles
+      do ij = 1, grid%num_tiles
         call Advance_fire_model (config_flags, ros_model, ignition_lines, grid, &
             grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
-      enddo
+      end do
 
-      if (config_flags%fire_print_msg >= stat_lev) then
-        call Print_summary (config_flags, grid)
-      endif
+      if (config_flags%fire_print_msg >= stat_lev) call Print_summary (config_flags, grid)
 
     end subroutine Advance_fire_components
 
-          real function Calc_domain_stats (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b) result (return_value)
-
-#ifdef DM_PARALLEL
-      USE module_dm , only : wrf_dm_sum_real , wrf_dm_max_real
-#endif
+    function Calc_domain_stats (fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, a, b) result (return_value)
 
       implicit none
 
-      integer, intent(in)::  fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
-      real, intent(in), dimension(ifms:ifme, jfms:jfme) :: a, b
+      integer, intent (in) :: fun, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: a, b
+      real :: return_value
 
       real :: lsum, void
       integer :: i, j
@@ -99,7 +94,7 @@
       character (len = 256) :: msg
 
 
-      if(fun .eq. REAL_SUM) then
+      if (fun == REAL_SUM) then
         void = 0.0
         lsum = void
         do j = jfts, jfte
@@ -107,7 +102,7 @@
             lsum = lsum + a(i,j)
           end do
         end do
-      else if (fun .eq. RNRM_SUM) then
+      else if (fun == RNRM_SUM) then
         void = 0.0
         lsum = void
         do j = jfts, jfte
@@ -115,7 +110,7 @@
             lsum = lsum + sqrt (a(i, j) * a(i, j) + b(i, j) * b(i, j))
           end do
         end do
-      else if (fun .eq. REAL_MAX) then
+      else if (fun == REAL_MAX) then
         void = - huge (lsum)
         lsum = void
         do j = jfts, jfte
@@ -123,7 +118,7 @@
             lsum = max (lsum, a(i, j))
           end do
         end do
-      else if (fun .eq. RNRM_MAX) then
+      else if (fun == RNRM_MAX) then
         void = 0.0
         lsum = void
         do j = jfts, jfte
@@ -137,40 +132,13 @@
 
       if (lsum .ne. lsum) call Crash ('fun_real: NaN detected')
 
-      dosum = fun .eq. REAL_SUM .or. fun .eq. RNRM_SUM
-      domax = fun .eq. REAL_MAX .or. fun .eq. RNRM_MAX
+      dosum = fun == REAL_SUM .or. fun == RNRM_SUM
+      domax = fun == REAL_MAX .or. fun == RNRM_MAX
 
-      ! get process sum over all threads
-      !$OMP SINGLE
-      ! only one thread should write to shared variable
       psum = void
-      !$OMP END SINGLE
-      !$OMP BARRIER
-      ! now all threads know psum
-
-      !$OMP CRITICAL(RDSUM)
-      ! each thread adds its own lsum
       if (dosum) psum = psum + lsum
       if (domax) psum = max (psum, lsum)
-      !$OMP END CRITICAL(RDSUM)
-
-      ! wait till all theads are done
-      !$OMP BARRIER
-
-      ! get global sum over all processes
-      !$OMP SINGLE
-      ! only one threads will do the mpi communication
-#ifdef DM_PARALLEL
-          if (dosum) gsum = wrf_dm_sum_real ( psum )
-          if (domax) gsum = wrf_dm_max_real ( psum )
-#else
-          gsum = psum
-#endif
-      if (gsum .ne. gsum) call Crash ('fun_real: NaN detected')
-      !$OMP END SINGLE
-
-      !$OMP BARRIER
-      ! now gsum is known to all threads
+      gsum = psum
 
       return_value = gsum
 
@@ -220,7 +188,6 @@
       mqf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnqfx, &
           grid%fgrnqfx)
 
-      !$OMP MASTER
       write (msg, 91) time_start, 'Average wind        ', aw, 'm/s'
       call Message (msg, config_flags%fire_print_msg, stat_lev)
 
@@ -241,7 +208,6 @@
 
       write (msg, 91) time_start,'Max latent heat flux',mqf,'W/m^2'
       call Message (msg, config_flags%fire_print_msg, stat_lev)
-      !$OMP END MASTER
 
  91   format('Time ',f11.3,' s ',a,e12.3,1x,a)
 
