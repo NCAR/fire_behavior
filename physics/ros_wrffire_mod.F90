@@ -80,6 +80,7 @@
         ros_wind = 1.2974 * spdms ** 1.41
         ros_wind = max (ros_wind, ros_back)
         ros_slope = 0.0
+        ros_base = 0.0
       end if
 
       ros_wind = ros_wind * cor_wind
