@@ -28,89 +28,70 @@
 
       implicit none
 
-      !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      !     ... calculates fire spread rate with McArthur formula or Rothermel
-      !           using fuel type of fuel cell
-      !      
-      !         m/s =(ft/min) *.3048/60. =(ft/min) * .00508   ! conversion rate
-      !         ft/min = m/s * 2.2369 * 88. = m/s *  196.850 ! conversion rate
-      !      
-      !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+      ! m/s = (ft/min) * 0.3048 / 60.0 = (ft/min) * .00508
+      ! ft/min = m/s * 2.2369 * 88.0 = m/s *  196.850
 
       class (ros_wrffire_t), intent (in) :: this
-      real, intent(out) :: ros_base, ros_wind, ros_slope ! rate of spread contribution due to fuel, wind, and slope
-      real, intent(in) :: nvx, nvy
-      integer, intent(in) :: i,j         ! node mesh coordinates
-      type (state_fire_t), target :: grid
+      real, intent (out) :: ros_base, ros_wind, ros_slope
+      real, intent (in) :: nvx, nvy
+      integer, intent(in) :: i, j
+      type (state_fire_t), intent (in) :: grid
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
       real :: umid, phis, phiw, spdms, umidm, excess
       real :: ros_back
-      real, parameter::ros_max=6.
-      real ::cor_wind, cor_slope
+      real, parameter :: ROS_MAX = 6.0
+      real :: cor_wind, cor_slope
 
 
-      if (FIRE_ADVECTION /= 0) then ! from flags in module_fr_fire_util
+      if (FIRE_ADVECTION /= 0) then
           ! wind speed is total speed 
-        speed = sqrt(grid%uf(i,j) * grid%uf(i,j) + grid%vf(i,j) * grid%vf(i,j)) +tiny(speed)
+        speed = sqrt (grid%uf(i, j) * grid%uf(i, j) + grid%vf(i, j) * grid%vf(i, j)) + tiny (speed)
           ! slope is total slope
-        tanphi = sqrt(grid%dzdxf(i,j) * grid%dzdxf(i,j) + grid%dzdyf(i,j) * grid%dzdyf(i,j)) + tiny(tanphi)
+        tanphi = sqrt (grid%dzdxf(i, j) * grid%dzdxf(i, j) + grid%dzdyf(i, j) * grid%dzdyf(i, j)) + tiny (tanphi)
           ! cos of wind and spread, if >0
-        cor_wind =  max(0., (grid%uf(i,j) * nvx + grid%vf(i,j) * nvy) / speed)
+        cor_wind =  max (0.0, (grid%uf(i, j) * nvx + grid%vf(i, j) * nvy) / speed)
           ! cos of slope and spread, if >0
-        cor_slope = max(0., (grid%dzdxf(i,j) * nvx + grid%dzdyf(i,j) * nvy) / tanphi)
+        cor_slope = max (0.0, (grid%dzdxf(i, j) * nvx + grid%dzdyf(i, j) * nvy) / tanphi)
       else
           ! wind speed in spread direction
-        speed = grid%uf(i,j) * nvx + grid%vf(i,j) * nvy
+        speed = grid%uf(i, j) * nvx + grid%vf(i, j) * nvy
           ! slope in spread direction
-        tanphi = grid%dzdxf(i,j) * nvx + grid%dzdyf(i,j) * nvy
-        cor_wind = 1.
-        cor_slope = 1.
-      endif
+        tanphi = grid%dzdxf(i, j) * nvx + grid%dzdyf(i, j) * nvy
+        cor_wind = 1.0
+        cor_slope = 1.0
+      end if
 
-      if (.not. grid%ischap(i,j) > 0.) then
-        ! Fuel is not chaparral, calculate rate of spread using Rothermel formula
-        ! ... if wind is 0 or into fireline, phiw = 0, &this reduces to backing ros.
-        spdms = max(speed,0.)            ! 
-        umidm = min(spdms,30.)           ! max input wind spd is 30 m/s   !param!
-        umid = umidm * 196.850           ! m/s to ft/min
-          !  eqn.: phiw = c * umid**bbb(i,j) * (grid%betafl(i,j)/betaop)**(-e) ! wind coef
-        phiw = umid**grid%bbb(i,j) * grid%phiwc(i,j) ! wind coef
-        phis=0.
-        if (tanphi .gt. 0.) then
-        phis = 5.275 *(grid%betafl(i,j))**(-0.3) *tanphi**2   ! slope factor
-        endif
-        ! rosm = grid%r_0(i,j)*(1. + phiw + phis)  * .00508 ! spread rate, m/s
-        ros_base = grid%r_0(i,j) * .00508
-        ros_wind = ros_base*phiw
-        ros_slope= ros_base*phis!
+      if (.not. grid%ischap(i,j) > 0.0) then
+          ! Rothermel
+        spdms = max (speed, 0.0)
+        umidm = min (spdms, 30.0)
+        umid = umidm * 196.850 ! m/s to ft/min
+        phiw = umid ** grid%bbb(i, j) * grid%phiwc(i, j)
+        phis = 0.0
+        if (tanphi > 0.0) phis = 5.275 * (grid%betafl(i, j)) ** (-0.3) * tanphi ** 2
+        ros_base = grid%r_0(i, j) * 0.00508 ! ft/min to m/s
+        ros_wind = ros_base * phiw
+        ros_slope = ros_base * phis
       else
-        ! Chaparral fuel, spread rate only depends on windspeed, not fuel character
-        spdms = max(speed,0.)
-        ! rosm = 1.2974 * spdms**1.41       ! spread rate, m/s
-        ! note: backing ros is 0 for chaparral without setting nozero value below
-        ! sp_n=.03333  
-        ! chaparral backing fire spread rate 0.033 m/s   ! param!
-        ! rosm= max(rosm, sp_n)   ! no less than backing r.o.s.
+        spdms = max (speed, 0.0)
+        ros_back = 0.03333    ! chaparral backing fire spread rate 0.033 m/s   ! param!
+          ! spread rate, m/s
+        ros_wind = 1.2974 * spdms ** 1.41
+        ros_wind = max (ros_wind, ros_back)
+        ros_slope = 0.0
+      end if
 
-        ros_back=.03333    ! chaparral backing fire spread rate 0.033 m/s   ! param!
-        ros_wind = 1.2974 * spdms**1.41       ! spread rate, m/s
-        ros_wind = max(ros_wind, ros_back)
-        ros_slope =0.
-      endif
-
-        ! if advection, multiply by the cosines
       ros_wind = ros_wind * cor_wind
       ros_slope = ros_slope * cor_slope
 
-        !     ----------note!  put an 6 m/s cap on max spread rate -----------
-      excess = ros_base + ros_wind + ros_slope - ros_max
-
-      if (excess > 0.)then
-          ! take it out of wind and slope in proportion
+        ! Limit the ros
+      excess = ros_base + ros_wind + ros_slope - ROS_MAX
+      if (excess > 0.0) then
+          ! take excess out of wind and slope in proportion
         ros_wind = ros_wind - excess * ros_wind / (ros_wind + ros_slope)
         ros_slope = ros_slope - excess * ros_slope/ (ros_wind + ros_slope)
-      endif
+      end if
 
     end subroutine Calc_ros_wrffire
 
@@ -219,7 +200,7 @@
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
           k = ksb(int (nfuel_cat(i, j)))
-          if(k == NO_FUEL_CAT)then
+          if(k == NO_FUEL_CAT) then
             grid%fgip(i, j) = 0.0
             grid%ischap(i, j) = 0.0
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
