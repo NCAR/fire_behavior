@@ -1,7 +1,6 @@
   module ros_wrffire_mod
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
-    use fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT, NO_FUEL_CAT
     use stderrout_mod, only: Crash, Message
     use state_mod, only : state_fire_t
     use namelist_mod, only: namelist_t
@@ -97,7 +96,7 @@
     end subroutine Calc_ros_wrffire
 
     subroutine Set_ros_parameters_wrffire (this, ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        fdx, fdy, nfuel_cat, fuel_time, grid, fuel_model, config_flags)
+        fdx, fdy, nfuel_cat, fuel_time, grid, config_flags)
 
       implicit none
 
@@ -108,7 +107,6 @@
 
       class (ros_wrffire_t), intent (in) :: this
       type (state_fire_t) :: grid
-      type (fuel_anderson_t) :: fuel_model
       integer, intent(in) :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       real, intent(in) :: fdx, fdy                                    ! fire mesh spacing
       type (namelist_t), intent(in) :: config_flags
@@ -127,7 +125,7 @@
 
         ! Cross walk to Scott & Burgan
       do kk = 1, NF_SB
-        ksb(kk) = NO_FUEL_CAT
+        ksb(kk) = grid%fuels%no_fuel_cat
       end do
         ! Anderson 1982
       ksb(1) = 1
@@ -201,7 +199,7 @@
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
           k = ksb(int (nfuel_cat(i, j)))
-          if(k == NO_FUEL_CAT) then
+          if(k == grid%fuels%no_fuel_cat) then
             grid%fgip(i, j) = 0.0
             grid%ischap(i, j) = 0.0
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
@@ -214,7 +212,7 @@
               ! Ib/ROS zero for no fuel
             grid%iboros(i, j) = 0.0
           else
-            if (k < 1 .or. k > N_FUEL_CAT) then
+            if (k < 1 .or. k > grid%fuels%n_fuel_cat) then
               !$OMP CRITICAL(FIRE_PHYS_CRIT)
               write(msg, '(3(a,i5))') 'nfuel_cat(', i, ',', j, ')=', k
               !$OMP END CRITICAL(FIRE_PHYS_CRIT)
@@ -225,58 +223,58 @@
               ! set fuel time constant: weight=1000 => 40% decrease over 10 min
               ! fuel decreases as exp(-t/fuel_time) 
               ! exp(-600*0.85/1000) = approx 0.6 
-            fuel_time(i, j) = fuel_model%weight(k) / 0.85 ! cell based
+            fuel_time(i, j) = grid%fuels%weight(k) / 0.85 ! cell based
 
-            grid%ischap(i, j) = fuel_model%ichap(k)
-            grid%fgip(i, j) = fuel_model%fgi(k)
+            grid%ischap(i, j) = grid%fuels%ichap(k)
+            grid%fgip(i, j) = grid%fuels%fgi(k)
 
               ! Settings of fire spread parameters from Rothermel
               ! No need to recalculate if FMC does not change
             bmst = grid%fmc_g(i, j) / (1.0 + grid%fmc_g(i, j))
               !  fuelload without moisture
-            fuelloadm = (1.0 - bmst) * fuel_model%fgi(k)
+            fuelloadm = (1.0 - bmst) * grid%fuels%fgi(k)
             fuelload = fuelloadm * (0.3048) ** 2 * 2.205 ! to lb/ft^2
-            fueldepth = fuel_model%fueldepthm(k) / 0.3048 ! to ft
+            fueldepth = grid%fuels%fueldepthm(k) / 0.3048 ! to ft
               ! packing ratio
-            grid%betafl(i, j) = fuelload / (fueldepth * fuel_model%fueldens(k))
+            grid%betafl(i, j) = fuelload / (fueldepth * grid%fuels%fueldens(k))
               ! optimum packing ratio
-            betaop = 3.348 * fuel_model%savr(k) ** (-0.8189)
+            betaop = 3.348 * grid%fuels%savr(k) ** (-0.8189)
               ! heat of preignition, btu/lb
             qig = 250.0 + 1116.0 * grid%fmc_g(i, j)
               ! effective heating number
-            epsilon = exp (-138.0 / fuel_model%savr(k))
+            epsilon = exp (-138.0 / grid%fuels%savr(k))
               ! ovendry bulk density, lb/ft^3
             rhob = fuelload/fueldepth
 
               ! const in wind coef
-            c = 7.47 * exp (-0.133 * fuel_model%savr(k) ** 0.55)
-            grid%bbb(i,j) = 0.02526 * fuel_model%savr(k) ** 0.54
-            e = 0.715 * exp (-3.59e-4 * fuel_model%savr(k))
+            c = 7.47 * exp (-0.133 * grid%fuels%savr(k) ** 0.55)
+            grid%bbb(i,j) = 0.02526 * grid%fuels%savr(k) ** 0.54
+            e = 0.715 * exp (-3.59e-4 * grid%fuels%savr(k))
             grid%phiwc(i,j) = c * (grid%betafl(i, j) / betaop) ** (-e)
 
-            rtemp2 = fuel_model%savr(k) ** 1.5
+            rtemp2 = grid%fuels%savr(k) ** 1.5
               ! maximum rxn vel, 1/min
             gammax = rtemp2 / (495.0 + 0.0594 * rtemp2)
               ! coef for optimum rxn vel
-            a = 1.0 / (4.774 * fuel_model%savr(k) ** 0.1 - 7.27)
+            a = 1.0 / (4.774 * grid%fuels%savr(k) ** 0.1 - 7.27)
             ratio = grid%betafl(i,j)/betaop
               !optimum rxn vel, 1/min
             gamma = gammax * (ratio ** a) * exp(a * (1.0 - ratio))
 
              ! net fuel loading, lb/ft^2
-            wn = fuelload/(1 + fuel_model%st(k))
-            rtemp1 = grid%fmc_g(i, j) / fuel_model%fuelmce(k)
+            wn = fuelload/(1 + grid%fuels%st(k))
+            rtemp1 = grid%fmc_g(i, j) / grid%fuels%fuelmce(k)
               ! moist damp coef
             etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
               ! mineral damping coef
-            etas = 0.174 * fuel_model%se(k) ** (-0.19)
+            etas = 0.174 * grid%fuels%se(k) ** (-0.19)
               !rxn intensity,btu/ft^2 min
             ir = gamma * wn * FUELHEAT * etam * etas
             ! irm = ir * 1055./( 0.3048**2 * 60.) * 1.e-6     !for mw/m^2
-            grid%iboros(i,j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 12.6 / fuel_model%savr(k)) ! I_R x t_r (kJ m^-2)
+            grid%iboros(i,j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 12.6 / grid%fuels%savr(k)) ! I_R x t_r (kJ m^-2)
               ! propagating flux ratio
-            xifr = exp((0.792 + 0.681 * fuel_model%savr(k) ** 0.5) &
-                * (grid%betafl(i, j) + 0.1)) / (192.0 + 0.2595 * fuel_model%savr(k))
+            xifr = exp((0.792 + 0.681 * grid%fuels%savr(k) ** 0.5) &
+                * (grid%betafl(i, j) + 0.1)) / (192.0 + 0.2595 * grid%fuels%savr(k))
 
               ! r_0 is the spread rate for a fire on flat ground with no wind.
               ! default spread rate in ft/min

@@ -11,6 +11,7 @@
     use constants_mod, only : PI
     use stderrout_mod, only: Stop_simulation
     use tiles_mod, only : Calc_tiles_dims
+    use fuel_mod, only : fuel_t
 
     implicit none
 
@@ -72,6 +73,8 @@
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
+
+      class (fuel_t), allocatable :: fuels
 
         ! New vars defined on fire grid for NUOPC coupling
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"

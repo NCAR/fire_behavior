@@ -29,7 +29,6 @@
 
     use constants_mod, only : XLV
     use stderrout_mod, only: Crash, Message
-    use fuel_anderson_mod, only: fuel_anderson_t, N_FUEL_CAT
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -38,7 +37,8 @@
 
     public :: Init_fuel_moisture, Fuel_moisture_model
         
-    integer, parameter :: MFUELCATS = N_FUEL_CAT + 1, MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5
+    integer, parameter :: MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5
+    integer :: mfuelcats
     character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
     data moisture_class_name /'1-h', '10-h', '100-h', '1000-h', 'Live'/
                                                           ! time lag [h] approaching equilibrium moisture
@@ -58,33 +58,34 @@
                                                            fmc_gc_initialization = [ 2,  2,   2,   2,   3 ]
     real, dimension(MAX_MOISTURE_CLASSES) :: rec_drying_lag_sec, rec_wetting_lag_sec, fmc_gc_initial_value
       ! fuel moisture class weights
-    real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fmc_gw
+    real, dimension (:, :), allocatable :: fmc_gw
 
   contains
 
-    subroutine Init_fuel_moisture (grid, config_flags, fuel_model)
+    subroutine Init_fuel_moisture (grid, config_flags)
 
       implicit none
 
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
-      type (fuel_anderson_t), intent (in) :: fuel_model
 
-      real, dimension (MFUELCATS) :: fgi_t, fmc_gwt
-      real, dimension (MFUELCATS, MAX_MOISTURE_CLASSES) :: fgi_c
+      real, dimension (:), allocatable :: fgi_t, fmc_gwt
+      real, dimension (:, :), allocatable :: fgi_c
       integer :: i, k
       character (len = 128) :: msg
       real :: rat
 
 
+      mfuelcats = grid%fuels%n_fuel_cat + 1
+
+      allocate (fmc_gw(mfuelcats, MAX_MOISTURE_CLASSES))
+      allocate (fgi_t(mfuelcats))
+      allocate (fmc_gwt(mfuelcats))
+      allocate (fgi_c(mfuelcats, MAX_MOISTURE_CLASSES))
+
       grid%fmoist_lasttime = grid%itimestep * grid%dt
       grid%fmoist_nexttime = grid%fmoist_lasttime
 
-        ! From read_namelist_fire
-      if (N_FUEL_CAT > MFUELCATS) then
-        write(msg,*)'N_FUEL_CAT =',N_FUEL_CAT,' is too large, increase MFUELCATS'
-        call crash(msg)
-      endif
 
         ! convert fuel loads in the fuel classes to internal as weights adding up to one
         ! copy the fuel weights and scale to 1
@@ -93,11 +94,11 @@
 
         ! WARNING: initialization from scalars tied to a particular model with 5 fuel moisture classes
         ! the rest of the code can be used for various models with different number of fuel moisture classes
-      fgi_c(1:MFUELCATS, 1) = fuel_model%fgi_1h
-      fgi_c(1:MFUELCATS, 2) = fuel_model%fgi_10h
-      fgi_c(1:MFUELCATS, 3) = fuel_model%fgi_100h
-      fgi_c(1:MFUELCATS, 4) = fuel_model%fgi_1000h
-      fgi_c(1:MFUELCATS, 5) = fuel_model%fgi_live
+      fgi_c(1:mfuelcats, 1) = grid%fuels%fgi_1h
+      fgi_c(1:mfuelcats, 2) = grid%fuels%fgi_10h
+      fgi_c(1:mfuelcats, 3) = grid%fuels%fgi_100h
+      fgi_c(1:mfuelcats, 4) = grid%fuels%fgi_1000h
+      fgi_c(1:mfuelcats, 5) = grid%fuels%fgi_live
       fmc_gc_initial_value(1) = config_flags%fuelmc_g
       fmc_gc_initial_value(2) = config_flags%fuelmc_g
       fmc_gc_initial_value(3) = config_flags%fuelmc_g
@@ -106,7 +107,7 @@
 
       call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
           config_flags%fire_print_msg)
-      do i = 1, MFUELCATS
+      do i = 1, mfuelcats
         fgi_t(i) = 0.0
         do k = 1, MAX_MOISTURE_CLASSES
           if(fgi_c(i,k) >= 0.0) then
@@ -117,14 +118,14 @@
           end if
         end do
 
-        if (fgi_t(i) > 0.0 .or. fuel_model%fgi(i) > 0.0) then
+        if (fgi_t(i) > 0.0 .or. grid%fuels%fgi(i) > 0.0) then
           if (fgi_t(i) > 0.0) then
-            rat = fuel_model%fgi(i) / fgi_t(i)
+            rat = grid%fuels%fgi(i) / fgi_t(i)
           else
             rat = 0.0
           end if
           write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
-              'fuel category', i, 'fuel load', fuel_model%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
+              'fuel category', i, 'fuel load', grid%fuels%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
           call Message (msg, config_flags%fire_print_msg)
         end if
 
@@ -148,13 +149,12 @@
 
     end subroutine Init_fuel_moisture
 
-    subroutine Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
+    subroutine Fuel_moisture_model (grid, config_flags, ros_model)
 
       implicit none
 
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
-      type (fuel_anderson_t), intent (in) :: fuel_model
       type (ros_wrffire_t), intent (in) :: ros_model
 
       character (len = 128) :: msg
@@ -222,13 +222,13 @@
         do ij = 1, grid%num_tiles
           call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
               grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              grid%dx,grid%dy, grid%nfuel_cat, grid%fuel_time, grid, fuel_model, config_flags)
+              grid%dx,grid%dy, grid%nfuel_cat, grid%fuel_time, grid, config_flags)
         end do
       end if
 
     end subroutine Fuel_moisture_model
 
-    subroutine fuel_moisture(                &
+    subroutine fuel_moisture (                &
       nfmc,                                &
       ifds, ifde, jfds, jfde,              & ! fire grid dimensions
       ifms, ifme, jfms, jfme,              &
@@ -241,7 +241,7 @@
 
       implicit none
 
-      integer, intent(in)::                    &
+      integer, intent(in) ::                    &
          nfmc,                                &
          ifds, ifde, jfds, jfde,              & ! fire grid dimensions
          ifms, ifme, jfms, jfme,              &

@@ -49,6 +49,9 @@
       integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
       real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
 
+        ! Objects
+      integer :: fuel_opt = 1 ! Fuel model
+
         ! Ignitions
       integer :: fire_num_ignitions = 0 ! "number of ignition lines"
 
@@ -182,6 +185,9 @@
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
+        ! Objects
+      integer :: fuel_opt = 1 ! Fuel model
+
         ! ignitions
       integer :: fire_num_ignitions = 0
 
@@ -217,6 +223,8 @@
           fmoist_freq, fmoist_dt, &
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
+            ! objects
+          fuel_opt, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -276,6 +284,8 @@
       this%fuelmc_g = fuelmc_g
       this%fuelmc_g_live = fuelmc_g_live
       this%fuelmc_c = fuelmc_c
+
+      this%fuel_opt = fuel_opt
 
       this%fire_num_ignitions = fire_num_ignitions
 

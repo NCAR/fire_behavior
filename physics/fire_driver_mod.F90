@@ -8,7 +8,8 @@
     use ros_wrffire_mod, only : ros_wrffire_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
-    use stderrout_mod, only: Crash, Message
+    use stderrout_mod, only: Message, Stop_simulation
+    use fuel_mod, only : FUEL_ANDERSON
 
     implicit none
 
@@ -19,7 +20,6 @@
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
     type (ignition_line_t), dimension(:), allocatable :: ignition_lines
-    type (fuel_anderson_t) :: fuel_model
     type (ros_wrffire_t) :: ros_model
 
   contains
@@ -36,9 +36,18 @@
 
       call Initialize_ignitions (config_flags, ignition_lines)
 
-      if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags, fuel_model)
+        ! Initialize fuel model
+      select case (config_flags%fuel_opt)
+        case (FUEL_ANDERSON)
+          allocate (fuel_anderson_t::grid%fuels)
 
-      call fuel_model%Initialization (config_flags%fuelmc_c)
+        case default
+          call Stop_simulation ('The selected fuel_opt does not exist')
+      end select
+      call grid%fuels%Initialization (config_flags%fuelmc_c)
+
+        ! Initialize FMC model
+      if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
 
       do ij = 1, grid%num_tiles
         call Extrapol_var_at_bdys (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, &
@@ -52,8 +61,8 @@
         call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
             grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
             grid%j_start(ij), grid%j_end(ij), grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, &
-            grid, fuel_model,config_flags)
-      enddo
+            grid, config_flags)
+      end do
 
     end subroutine Init_fire_components
 
@@ -68,7 +77,7 @@
       integer :: ij
 
 
-      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, fuel_model, ros_model)
+      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, ros_model)
 
       do ij = 1, grid%num_tiles
         call Advance_fire_model (config_flags, ros_model, ignition_lines, grid, &
@@ -127,10 +136,10 @@
           end do
         end do
       else
-        call Crash ('fun_real: bad fun')
+        call Stop_simulation ('fun_real: bad fun')
       end if
 
-      if (lsum .ne. lsum) call Crash ('fun_real: NaN detected')
+      if (lsum .ne. lsum) call Stop_simulation ('fun_real: NaN detected')
 
       dosum = fun == REAL_SUM .or. fun == RNRM_SUM
       domax = fun == REAL_MAX .or. fun == RNRM_MAX
