@@ -9,7 +9,7 @@
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
     use wrf_mod, only : wrf_t, G, RERADIUS
     use constants_mod, only : PI
-    use stderrout_mod, only: Message, Stop_simulation
+    use stderrout_mod, only: Stop_simulation
     use tiles_mod, only : Calc_tiles_dims
 
     implicit none
