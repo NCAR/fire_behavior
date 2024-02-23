@@ -24,7 +24,6 @@
     type :: state_fire_t
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
                  ifts, ifte, jfts, jfte, kfts, kfte, ifps, ifpe, jfps, jfpe, kfps, kfpe
-!      real, dimension (:, :), allocatable :: lats, lons, elevations, dz_dxs, dz_dys, fuel_cats
       real :: dx = 200.0 , dy = 200.0
       real :: dt = 2.0              ! "TEMPORAL RESOLUTION"      "SECONDS"
       integer :: itimestep = 0
