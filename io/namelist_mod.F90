@@ -51,6 +51,7 @@
 
         ! Objects
       integer :: fuel_opt = 1 ! Fuel model
+      integer :: ros_opt = 0 ! ROS parameterization
 
         ! Ignitions
       integer :: fire_num_ignitions = 0 ! "number of ignition lines"
@@ -187,6 +188,7 @@
 
         ! Objects
       integer :: fuel_opt = 1 ! Fuel model
+      integer :: ros_opt = 0 ! ROS parameterization
 
         ! ignitions
       integer :: fire_num_ignitions = 0
@@ -224,7 +226,7 @@
           fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
             ! objects
-          fuel_opt, &
+          fuel_opt, ros_opt, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -286,6 +288,7 @@
       this%fuelmc_c = fuelmc_c
 
       this%fuel_opt = fuel_opt
+      this%ros_opt = ros_opt
 
       this%fire_num_ignitions = fire_num_ignitions
 

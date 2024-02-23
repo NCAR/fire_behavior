@@ -49,6 +49,7 @@ list(APPEND _state_files state/state_mod.F90
 list(APPEND _share_files share/proj_lc_mod.F90
                          share/datetime_mod.F90
 			 share/fuel_mod.F90
+			 share/ros_mod.F90
                          share/constants_mod.F90)
 
 # IO

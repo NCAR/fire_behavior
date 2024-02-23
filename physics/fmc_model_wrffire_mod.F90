@@ -29,7 +29,7 @@
 
     use constants_mod, only : XLV
     use stderrout_mod, only: Crash, Message
-    use ros_wrffire_mod, only : ros_wrffire_t
+    use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
 
@@ -155,7 +155,7 @@
 
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
-      type (ros_wrffire_t), intent (in) :: ros_model
+      class (ros_t), intent (in out) :: ros_model
 
       character (len = 128) :: msg
       integer :: ij
@@ -220,9 +220,9 @@
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
         do ij = 1, grid%num_tiles
-          call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              grid%dx,grid%dy, grid%nfuel_cat, grid%fuel_time, grid, config_flags)
+          call ros_model%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
+              grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
+              grid%fuels, grid%nfuel_cat, grid%fmc_g, grid%fuel_time)
         end do
       end if
 

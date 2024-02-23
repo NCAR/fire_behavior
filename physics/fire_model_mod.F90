@@ -4,7 +4,7 @@
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ignition_line_mod, only: ignition_line_t, Ignite_fire
-    use ros_wrffire_mod, only : ros_wrffire_t
+    use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
     use namelist_mod, only : namelist_t
 
@@ -14,14 +14,13 @@
 
   contains
 
-    subroutine Advance_fire_model (config_flags, ros_model, ignition_line, grid, i_start, i_end, j_start, j_end)
+    subroutine Advance_fire_model (config_flags, ignition_line, grid, i_start, i_end, j_start, j_end)
 
       ! Purpose advance the fire from time_start to time_start + dt
 
       implicit none
 
       type (namelist_t), intent (in) :: config_flags
-      type (ros_wrffire_t), intent (in) :: ros_model
       type(ignition_line_t), dimension (:), intent(in):: ignition_line
       type (state_fire_t), intent (in out) :: grid
       integer, intent (in) :: i_start, i_end, j_start, j_end
@@ -60,7 +59,7 @@
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
           config_flags%fire_upwinding, config_flags%fire_viscosity, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, &
           config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
-          grid%lfn_out, grid%tign_g, grid%ros, grid, ros_model)
+          grid%lfn_out, grid%tign_g, grid%ros, grid, grid%ros_param)
 
       call Stop_if_close_to_bdy (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, grid%lfn_out)
 
@@ -68,7 +67,7 @@
           time_start, grid%dt, grid%lfn, grid%lfn_out, grid%tign_g)
 
       call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-           grid%ros, grid%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
+           grid%ros, grid%ros_param%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
 
       if (config_flags%fire_lsm_reinit) call Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           ifds, ifde, jfds, jfde, time_start, grid%dt, grid%dx, grid%dy, config_flags%fire_upwinding_reinit, &
@@ -130,7 +129,7 @@
       end do
 
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-          ifts, ifte, jfts, jfte, grid%fgip, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
+          ifts, ifte, jfts, jfte, grid%fuel_load_g, fuel_frac_burnt, grid%fgrnhfx, grid%fgrnqfx)
 
       call Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
 

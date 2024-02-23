@@ -12,6 +12,7 @@
     use stderrout_mod, only: Stop_simulation
     use tiles_mod, only : Calc_tiles_dims
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    use ros_mod, only : ros_t
 
     implicit none
 
@@ -36,13 +37,6 @@
       real, dimension(:, :), allocatable :: zsf    ! terrain height
       real, dimension(:, :), allocatable :: dzdxf  ! terrain grad
       real, dimension(:, :), allocatable :: dzdyf  ! terrain grad
-      real, dimension(:, :), allocatable :: bbb    ! ta rate of spread formula coeff
-      real, dimension(:, :), allocatable :: betafl ! a rate of spread formula variable
-      real, dimension(:, :), allocatable :: phiwc  ! a rate of spread formula coeff
-      real, dimension(:, :), allocatable :: r_0    ! a rate of spread formula variable
-      real, dimension(:, :), allocatable :: fgip   ! a rate of spread formula coeff
-      real, dimension(:, :), allocatable :: ischap ! a rate of spread formula switch
-      real, dimension(:, :), allocatable :: iboros ! Ib divided by ROS
       real, dimension(:, :), allocatable :: fmc_g  ! fuel moisture, ground
       real, dimension(:, :), allocatable :: lfn    ! "level function" "1"
       real, dimension(:, :), allocatable :: lfn_hist ! "level function history" "1"
@@ -54,6 +48,7 @@
       real, dimension(:, :), allocatable :: lfn_s2 ! "level set function for reinitialization integration" "1"
       real, dimension(:, :), allocatable :: lfn_s3 ! "level set function for reinitialization integration" "1"
       real, dimension(:, :), allocatable :: lfn_out
+      real, dimension(:, :), allocatable :: fuel_load_g ! [kg m-2]
       real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
       real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
@@ -75,6 +70,7 @@
       real, dimension(:, :), allocatable :: emis_smoke
 
       class (fuel_t), allocatable :: fuels
+      class (ros_t), allocatable :: ros_param
 
         ! New vars defined on fire grid for NUOPC coupling
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
@@ -110,6 +106,7 @@
       procedure, public :: Convert_sb_to_ander => Convert_scottburgan_to_anderson
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
+      procedure, public :: Init_fuel_vars => Init_fuel_vars
       procedure, public :: Initialization => Init_domain
       procedure :: Init_latlons => Init_latlons
       procedure :: Init_tiles => Init_tiles
@@ -256,13 +253,6 @@
       allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
       this%uf = 0.
       this%vf = 0.
-      allocate (this%bbb(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%betafl(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%phiwc(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%r_0(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fgip(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%ischap(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%iboros(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fmc_g(this%ifms:this%ifme, this%jfms:this%jfme))
       this%fmc_g = config_flags%fuelmc_g
 
@@ -280,6 +270,7 @@
       allocate (this%lfn_s2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_out(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fuel_load_g(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
 
@@ -349,6 +340,29 @@
       if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
 
     end subroutine Init_domain
+
+    subroutine Init_fuel_vars (this)
+
+      implicit none
+
+      class (state_fire_t), intent(in out) :: this
+
+      integer :: ij, i, j, ifts, ifte, jfts, jfte
+
+
+      do ij = 1, this%num_tiles
+        ifts = this%i_start(ij)
+        ifte = this%i_end(ij)
+        jfts = this%j_start(ij)
+        jfte = this%j_end(ij)
+        do j = jfts, jfte
+          do i = ifts, ifte
+            this%fuel_load_g(i, j) = this%fuels%fgi(int (this%nfuel_cat(i, j)))
+          end do
+        end do
+      end do
+
+    end subroutine Init_fuel_vars
 
     subroutine Init_latlons (this, geogrid)
 

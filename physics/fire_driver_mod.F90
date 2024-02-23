@@ -1,15 +1,18 @@
   module fire_driver_mod
 
-    use fire_model_mod, only: Advance_fire_model
+    use fire_model_mod, only : Advance_fire_model
     use level_set_mod, only : Extrapol_var_at_bdys
-    use fmc_model_wrffire_mod, only: Init_fuel_moisture, Fuel_moisture_model
-    use ignition_line_mod, only: ignition_line_t, Initialize_ignitions
-    use fuel_anderson_mod, only: fuel_anderson_t
-    use ros_wrffire_mod, only : ros_wrffire_t
-    use state_mod, only: state_fire_t
-    use namelist_mod, only: namelist_t
-    use stderrout_mod, only: Message, Stop_simulation
+    use fmc_model_wrffire_mod, only : Init_fuel_moisture, Fuel_moisture_model
+    use ignition_line_mod, only : ignition_line_t, Initialize_ignitions
+    use state_mod, only : state_fire_t
+    use namelist_mod, only : namelist_t
+    use stderrout_mod, only : Message, Stop_simulation
+
     use fuel_mod, only : FUEL_ANDERSON
+    use fuel_anderson_mod, only : fuel_anderson_t
+
+    use ros_mod, only : ROS_WRFFIRE
+    use ros_wrffire_mod, only : ros_wrffire_t
 
     implicit none
 
@@ -20,7 +23,6 @@
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
     type (ignition_line_t), dimension(:), allocatable :: ignition_lines
-    type (ros_wrffire_t) :: ros_model
 
   contains
 
@@ -45,9 +47,20 @@
           call Stop_simulation ('The selected fuel_opt does not exist')
       end select
       call grid%fuels%Initialization (config_flags%fuelmc_c)
+      call grid%Init_fuel_vars ()
 
         ! Initialize FMC model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
+
+        ! Initialize ROS parameterization
+      select case (config_flags%ros_opt)
+        case (ROS_WRFFIRE)
+          allocate (ros_wrffire_t::grid%ros_param)
+
+        case default
+          call Stop_simulation ('The selected ros_opt does not exist')
+      end select
+      call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme)
 
       do ij = 1, grid%num_tiles
         call Extrapol_var_at_bdys (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, &
@@ -58,10 +71,8 @@
             grid%jfds, grid%jfde, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
             grid%tign_g)
 
-        call ros_model%Set_ros_parameters (grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-            grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
-            grid%j_start(ij), grid%j_end(ij), grid%dx, grid%dy, grid%nfuel_cat,grid%fuel_time, &
-            grid, config_flags)
+        call grid%ros_param%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
+            grid%j_start(ij), grid%j_end(ij), grid%fuels, grid%nfuel_cat, grid%fmc_g, grid%fuel_time)
       end do
 
     end subroutine Init_fire_components
@@ -77,10 +88,10 @@
       integer :: ij
 
 
-      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, ros_model)
+      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, grid%ros_param)
 
       do ij = 1, grid%num_tiles
-        call Advance_fire_model (config_flags, ros_model, ignition_lines, grid, &
+        call Advance_fire_model (config_flags, ignition_lines, grid, &
             grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
       end do
 

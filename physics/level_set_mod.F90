@@ -1,4 +1,3 @@
-
   module level_set_mod
 
   ! References:
@@ -18,7 +17,7 @@
     use stderrout_mod, only: Crash, Message, Stop_simulation
     use state_mod, only: state_fire_t
     use ignition_line_mod, only : ignition_line_t
-    use ros_wrffire_mod, only : ros_wrffire_t
+    use ros_mod, only : ros_t
     use constants_mod, only : MSG_LEN
 
     implicit none
@@ -387,7 +386,7 @@
       real, intent (in) :: dx, dy, ts, dt
       real, intent (out) :: tbound
       type (state_fire_t) :: grid
-      type (ros_wrffire_t), intent (in) :: ros_model
+      class (ros_t), intent (in) :: ros_model
 
         ! to store tendency (rhs of the level set pde)
       real, dimension(ifms:ifme, jfms:jfme) :: tend
@@ -697,7 +696,7 @@
 
     end subroutine Update_ignition_times
 
-    subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ims, ime, jms, jme, &
+    subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ifms, ifme, jfms, jfme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
         fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
 
@@ -705,14 +704,14 @@
 
       implicit none
 
-      integer, intent (in) :: ims, ime, jms, jme, its, ite, jts, jte, ids, ide, jds, jde, &
+      integer, intent (in) :: ifms, ifme, jfms, jfme, its, ite, jts, jte, ids, ide, jds, jde, &
           fire_upwinding,fire_viscosity_ngp, fire_lsm_band_ngp
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
-      real, dimension(ims:ime, jms:jme), intent (in out) :: lfn
-      real, dimension(ims:ime, jms:jme), intent (out) :: tend, ros
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros
       real, intent (out) :: tbound
       type (state_fire_t) :: grid
-      type (ros_wrffire_t), intent (in) :: ros_model
+      class (ros_t), intent (in) :: ros_model
 
       real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
       real :: difflx, diffly, diffrx, diffry, diffcx, diffcy, &
@@ -727,7 +726,7 @@
       threshold_hlu = fire_lsm_band_ngp * dx
       threshold_av = fire_viscosity_ngp * dx
 
-      call Extrapol_var_at_bdys (ims, ime, jms, jme, ids, ide, jds, jde, &
+      call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ids, ide, jds, jde, &
           its, ite, jts, jte, lfn)
 
       tbound = 0.0
@@ -862,8 +861,8 @@
           nvy = diff2y / scale
 
             ! Get rate of spread from wind speed and slope
-          call ros_model%Calc_ros (ros_base, ros_wind, ros_slope, &
-              nvx, nvy, i, j, grid)
+          call ros_model%Calc_ros (ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, &
+              nvx, nvy, i, j, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf)
           rr = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
           if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
           ros(i, j) = rr

@@ -1,9 +1,10 @@
   module ros_wrffire_mod
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
-    use stderrout_mod, only: Crash, Message
     use state_mod, only : state_fire_t
-    use namelist_mod, only: namelist_t
+    use namelist_mod, only : namelist_t
+    use ros_mod, only : ros_t
+    use fuel_mod, only : fuel_t
 
     implicit none
 
@@ -15,15 +16,17 @@
     real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
-    type :: ros_wrffire_t
+    type, extends(ros_t) :: ros_wrffire_t
+      real, dimension(:, :), allocatable :: bbb, ischap, betafl, fuel_time, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
-      procedure, public :: Set_ros_parameters => Set_ros_parameters_wrffire
+      procedure, public :: Init => Init_ros_wrffire
+      procedure, public :: Set_params => Set_ros_parameters_wrffire
     end type ros_wrffire_t
 
   contains
 
-    subroutine Calc_ros_wrffire (this, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, grid)
+    subroutine Calc_ros_wrffire (this, ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
 
       implicit none
 
@@ -31,10 +34,11 @@
       ! ft/min = m/s * 2.2369 * 88.0 = m/s *  196.850
 
       class (ros_wrffire_t), intent (in) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme
       real, intent (out) :: ros_base, ros_wind, ros_slope
       real, intent (in) :: nvx, nvy
-      integer, intent(in) :: i, j
-      type (state_fire_t), intent (in) :: grid
+      integer, intent (in) :: i, j
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
       real :: umid, phis, phiw, spdms, umidm, excess
@@ -45,31 +49,31 @@
 
       if (FIRE_ADVECTION /= 0) then
           ! wind speed is total speed 
-        speed = sqrt (grid%uf(i, j) * grid%uf(i, j) + grid%vf(i, j) * grid%vf(i, j)) + tiny (speed)
+        speed = sqrt (uf(i, j) * uf(i, j) + vf(i, j) * vf(i, j)) + tiny (speed)
           ! slope is total slope
-        tanphi = sqrt (grid%dzdxf(i, j) * grid%dzdxf(i, j) + grid%dzdyf(i, j) * grid%dzdyf(i, j)) + tiny (tanphi)
+        tanphi = sqrt (dzdxf(i, j) * dzdxf(i, j) + dzdyf(i, j) * dzdyf(i, j)) + tiny (tanphi)
           ! cos of wind and spread, if >0
-        cor_wind =  max (0.0, (grid%uf(i, j) * nvx + grid%vf(i, j) * nvy) / speed)
+        cor_wind =  max (0.0, (uf(i, j) * nvx + vf(i, j) * nvy) / speed)
           ! cos of slope and spread, if >0
-        cor_slope = max (0.0, (grid%dzdxf(i, j) * nvx + grid%dzdyf(i, j) * nvy) / tanphi)
+        cor_slope = max (0.0, (dzdxf(i, j) * nvx + dzdyf(i, j) * nvy) / tanphi)
       else
           ! wind speed in spread direction
-        speed = grid%uf(i, j) * nvx + grid%vf(i, j) * nvy
+        speed = uf(i, j) * nvx + vf(i, j) * nvy
           ! slope in spread direction
-        tanphi = grid%dzdxf(i, j) * nvx + grid%dzdyf(i, j) * nvy
+        tanphi = dzdxf(i, j) * nvx + dzdyf(i, j) * nvy
         cor_wind = 1.0
         cor_slope = 1.0
       end if
 
-      if (.not. grid%ischap(i,j) > 0.0) then
+      if (.not. this%ischap(i,j) > 0.0) then
           ! Rothermel
         spdms = max (speed, 0.0)
         umidm = min (spdms, 30.0)
         umid = umidm * 196.850 ! m/s to ft/min
-        phiw = umid ** grid%bbb(i, j) * grid%phiwc(i, j)
+        phiw = umid ** this%bbb(i, j) * this%phiwc(i, j)
         phis = 0.0
-        if (tanphi > 0.0) phis = 5.275 * (grid%betafl(i, j)) ** (-0.3) * tanphi ** 2
-        ros_base = grid%r_0(i, j) * 0.00508 ! ft/min to m/s
+        if (tanphi > 0.0) phis = 5.275 * (this%betafl(i, j)) ** (-0.3) * tanphi ** 2
+        ros_base = this%r_0(i, j) * 0.00508 ! ft/min to m/s
         ros_wind = ros_base * phiw
         ros_slope = ros_base * phis
       else
@@ -95,8 +99,27 @@
 
     end subroutine Calc_ros_wrffire
 
-    subroutine Set_ros_parameters_wrffire (this, ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        fdx, fdy, nfuel_cat, fuel_time, grid, config_flags)
+    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme)
+
+      implicit none
+
+      class (ros_wrffire_t), intent (in out) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme
+
+
+      allocate (this%iboros(ifms:ifme, jfms:jfme))
+ 
+      allocate (this%ischap(ifms:ifme, jfms:jfme))
+      allocate (this%betafl(ifms:ifme, jfms:jfme))
+      allocate (this%bbb(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_time(ifms:ifme, jfms:jfme))
+      allocate (this%phiwc(ifms:ifme, jfms:jfme))
+      allocate (this%r_0(ifms:ifme, jfms:jfme))
+
+    end subroutine Init_ros_wrffire
+
+    subroutine Set_ros_parameters_wrffire (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+        fuels, nfuel_cat, fmc_g, fuel_time)
 
       implicit none
 
@@ -105,17 +128,15 @@
     !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
     !                        so BMST = FUELMC_G / (1 + FUELMC_G)
 
-      class (ros_wrffire_t), intent (in) :: this
-      type (state_fire_t) :: grid
-      integer, intent(in) :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
-      real, intent(in) :: fdx, fdy                                    ! fire mesh spacing
-      type (namelist_t), intent(in) :: config_flags
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat  ! fuel data
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: fuel_time ! fire params arrays
+      class (ros_wrffire_t), intent (in out) :: this
+      integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      class (fuel_t), intent (in) :: fuels
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: fuel_time
 
 
       real ::  fuelload, fueldepth, rtemp1, rtemp2, qig, epsilon, rhob, wn, betaop, e, c, &
-          xifr, etas, etam, a, gammax, gamma, ratio, ir, fuelloadm,fdxinv,fdyinv, bmst
+          xifr, etas, etam, a, gammax, gamma, ratio, ir, fuelloadm, bmst
       integer:: i, j, k, kk
       character (len = 128) :: msg
 
@@ -123,86 +144,76 @@
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
           k = int (nfuel_cat(i, j))
-          if(k == grid%fuels%no_fuel_cat) then
-            grid%fgip(i, j) = 0.0
-            grid%ischap(i, j) = 0.0
+          if(k == fuels%no_fuel_cat) then
+            this%ischap(i, j) = 0.0
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
-            grid%betafl(i, j) = 1.0
-            grid%bbb(i, j) = 1.0
+            this%betafl(i, j) = 1.0
+            this%bbb(i, j) = 1.0
               ! does not matter, just what was there before
             fuel_time(i, j) = 7.0 / 0.85
-            grid%phiwc(i, j) = 0.0
-            grid%r_0(i, j) = 0.0
+            this%phiwc(i, j) = 0.0
+            this%r_0(i, j) = 0.0
               ! Ib/ROS zero for no fuel
-            grid%iboros(i, j) = 0.0
+            this%iboros(i, j) = 0.0
           else
-            if (k < 1 .or. k > grid%fuels%n_fuel_cat) then
-              !$OMP CRITICAL(FIRE_PHYS_CRIT)
-              write(msg, '(3(a,i5))') 'nfuel_cat(', i, ',', j, ')=', k
-              !$OMP END CRITICAL(FIRE_PHYS_CRIT)
-              call Message (msg, config_flags%fire_print_msg)
-              call Crash ('Set_fire_params: fuel category out of bounds')
-            end if
-
               ! set fuel time constant: weight=1000 => 40% decrease over 10 min
               ! fuel decreases as exp(-t/fuel_time) 
               ! exp(-600*0.85/1000) = approx 0.6 
-            fuel_time(i, j) = grid%fuels%weight(k) / 0.85 ! cell based
+            fuel_time(i, j) = fuels%weight(k) / 0.85 ! cell based
 
-            grid%ischap(i, j) = grid%fuels%ichap(k)
-            grid%fgip(i, j) = grid%fuels%fgi(k)
+            this%ischap(i, j) = fuels%ichap(k)
 
               ! Settings of fire spread parameters from Rothermel
               ! No need to recalculate if FMC does not change
-            bmst = grid%fmc_g(i, j) / (1.0 + grid%fmc_g(i, j))
+            bmst = fmc_g(i, j) / (1.0 + fmc_g(i, j))
               !  fuelload without moisture
-            fuelloadm = (1.0 - bmst) * grid%fuels%fgi(k)
+            fuelloadm = (1.0 - bmst) * fuels%fgi(k)
             fuelload = fuelloadm * (0.3048) ** 2 * 2.205 ! to lb/ft^2
-            fueldepth = grid%fuels%fueldepthm(k) / 0.3048 ! to ft
+            fueldepth = fuels%fueldepthm(k) / 0.3048 ! to ft
               ! packing ratio
-            grid%betafl(i, j) = fuelload / (fueldepth * grid%fuels%fueldens(k))
+            this%betafl(i, j) = fuelload / (fueldepth * fuels%fueldens(k))
               ! optimum packing ratio
-            betaop = 3.348 * grid%fuels%savr(k) ** (-0.8189)
+            betaop = 3.348 * fuels%savr(k) ** (-0.8189)
               ! heat of preignition, btu/lb
-            qig = 250.0 + 1116.0 * grid%fmc_g(i, j)
+            qig = 250.0 + 1116.0 * fmc_g(i, j)
               ! effective heating number
-            epsilon = exp (-138.0 / grid%fuels%savr(k))
+            epsilon = exp (-138.0 / fuels%savr(k))
               ! ovendry bulk density, lb/ft^3
             rhob = fuelload/fueldepth
 
               ! const in wind coef
-            c = 7.47 * exp (-0.133 * grid%fuels%savr(k) ** 0.55)
-            grid%bbb(i,j) = 0.02526 * grid%fuels%savr(k) ** 0.54
-            e = 0.715 * exp (-3.59e-4 * grid%fuels%savr(k))
-            grid%phiwc(i,j) = c * (grid%betafl(i, j) / betaop) ** (-e)
+            c = 7.47 * exp (-0.133 * fuels%savr(k) ** 0.55)
+            this%bbb(i,j) = 0.02526 * fuels%savr(k) ** 0.54
+            e = 0.715 * exp (-3.59e-4 * fuels%savr(k))
+            this%phiwc(i,j) = c * (this%betafl(i, j) / betaop) ** (-e)
 
-            rtemp2 = grid%fuels%savr(k) ** 1.5
+            rtemp2 = fuels%savr(k) ** 1.5
               ! maximum rxn vel, 1/min
             gammax = rtemp2 / (495.0 + 0.0594 * rtemp2)
               ! coef for optimum rxn vel
-            a = 1.0 / (4.774 * grid%fuels%savr(k) ** 0.1 - 7.27)
-            ratio = grid%betafl(i,j)/betaop
+            a = 1.0 / (4.774 * fuels%savr(k) ** 0.1 - 7.27)
+            ratio = this%betafl(i,j)/betaop
               !optimum rxn vel, 1/min
             gamma = gammax * (ratio ** a) * exp(a * (1.0 - ratio))
 
              ! net fuel loading, lb/ft^2
-            wn = fuelload/(1 + grid%fuels%st(k))
-            rtemp1 = grid%fmc_g(i, j) / grid%fuels%fuelmce(k)
+            wn = fuelload/(1 + fuels%st(k))
+            rtemp1 = fmc_g(i, j) / fuels%fuelmce(k)
               ! moist damp coef
             etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
               ! mineral damping coef
-            etas = 0.174 * grid%fuels%se(k) ** (-0.19)
+            etas = 0.174 * fuels%se(k) ** (-0.19)
               !rxn intensity,btu/ft^2 min
             ir = gamma * wn * FUELHEAT * etam * etas
             ! irm = ir * 1055./( 0.3048**2 * 60.) * 1.e-6     !for mw/m^2
-            grid%iboros(i,j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 12.6 / grid%fuels%savr(k)) ! I_R x t_r (kJ m^-2)
+            this%iboros(i, j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 12.6 / fuels%savr(k)) ! I_R x t_r (kJ m^-2)
               ! propagating flux ratio
-            xifr = exp((0.792 + 0.681 * grid%fuels%savr(k) ** 0.5) &
-                * (grid%betafl(i, j) + 0.1)) / (192.0 + 0.2595 * grid%fuels%savr(k))
+            xifr = exp((0.792 + 0.681 * fuels%savr(k) ** 0.5) &
+                * (this%betafl(i, j) + 0.1)) / (192.0 + 0.2595 * fuels%savr(k))
 
               ! r_0 is the spread rate for a fire on flat ground with no wind.
               ! default spread rate in ft/min
-            grid%r_0(i, j) = ir * xifr / (rhob * epsilon * qig)
+            this%r_0(i, j) = ir * xifr / (rhob * epsilon * qig)
           end if
         end do Loop_i
       end do Loop_j
