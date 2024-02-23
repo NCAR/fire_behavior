@@ -9,7 +9,8 @@
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
     use wrf_mod, only : wrf_t, G, RERADIUS
     use constants_mod, only : PI
-    use stderrout_mod, only: Message
+    use stderrout_mod, only: Message, Stop_simulation
+    use tiles_mod, only : Calc_tiles_dims
 
     implicit none
 
@@ -108,6 +109,7 @@
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
       procedure :: Init_latlons => Init_latlons
+      procedure :: Init_tiles => Init_tiles
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Interpolate_profile => Interpolate_profile
       procedure, public :: Print => Print_domain ! private
@@ -315,7 +317,7 @@
       this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
       call this%Init_latlons (geogrid)
 
-      call Init_tiles ( this, config_flags )
+      call this%Init_tiles (config_flags)
 
     end subroutine Init_domain
 
@@ -373,241 +375,24 @@
 
     end subroutine Init_latlons
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!! This code is borrowed from module_tiles.F in WRF, specifically SUBROUTINE set_tiles2 !!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    subroutine Init_tiles (grid, config_flags)
-
-     implicit none
-
-     class (state_fire_t), intent(in out) :: grid
-     type (namelist_t), intent (in) :: config_flags
-
-     !  Local data.
-
-     INTEGER                                :: num_tiles_x, num_tiles_y, num_tiles
-     INTEGER                                :: spx, epx, spy, epy, t, tt, ts, te
-     INTEGER                                :: smx, emx, smy, emy
-     INTEGER                                :: ntiles
-     INTEGER                                :: nt
-     CHARACTER*255                          :: mess
-     logical, parameter                     :: DEBUG_LOCAL = .false.
-
-     ! We are using DATA_ORDER_XZY
-     spx = grid%ifps ; epx = grid%ifpe ; spy = grid%jfps ; epy = grid%jfpe
-     smx = grid%ifms ; emx = grid%ifme ; smy = grid%jfms ; emy = grid%jfme
-
-     ! Check to make sure patches are within memory bounds
-     call error_test_lt(grid%ifps,smx)
-     call error_test_gt(grid%ifpe,emx)
-     call error_test_lt(grid%jfps,smy)
-     call error_test_gt(grid%jfpe,emy)
-
-     num_tiles   = config_flags%num_tiles
-     num_tiles_x = 0
-     num_tiles_y = 0
-
-     ALLOCATE(grid%i_start(num_tiles))
-     ALLOCATE(grid%i_end(num_tiles))
-     ALLOCATE(grid%j_start(num_tiles))
-     ALLOCATE(grid%j_end(num_tiles))
-
-     ! Compute number of tiles in x and y based on user-specified total number of tiles
-     call least_aspect( num_tiles, 1, 1, num_tiles_y, num_tiles_x )
-
-     ! Make sure number of tiles in x and y are at least 1
-     num_tiles_x=max( num_tiles_x , 1)
-     num_tiles_y=max( num_tiles_y , 1)
-
-     ! Compute start and end tile indices
-     nt = 1
-     DO t = 0, num_tiles-1
-
-       ! do y
-        ntiles = t / num_tiles_x
-        CALL region_bounds( spy, epy,                                  &
-                            num_tiles_y, ntiles,                       &
-                            ts, te )
-        ! first y (major dimension)
-        IF ( ts .LE. te ) THEN  ! converse happens if number of tiles > number of points in dim
-!!!
-! This bit allows the user to specify execution out onto the halo region
-! in the call to set_tiles. If the low patch boundary specified by the arguments
-! is less than what the model already knows to be the patch boundary and if
-! the user hasn't erred by specifying something that would fall off memory
-! (safety tests are higher up in this routine, outside the IF) then adjust
-! the tile boundary of the low edge tiles accordingly. Likewise for high edges.
-!          IF ( jps .lt. spy .and. ts .eq. spy ) ts = jps ;
-!          IF ( jpe .gt. epy .and. te .eq. epy ) te = jpe ;
-!
-          grid%j_start(nt) = max ( ts , grid%jfds )
-          grid%j_end(nt)   = min ( te , grid%jfde )
-
-          ! now x
-          ntiles = mod(t,num_tiles_x)
-          CALL region_bounds( spx, epx,                                  &
-                              num_tiles_x, ntiles,                       &
-                              ts, te )
-          IF ( ts .LE. te ) THEN  ! converse happens if number of tiles > number of points in dim
-!            IF ( ips .lt. spx .and. ts .eq. spx ) ts = ips ;
-!            IF ( ipe .gt. epx .and. te .eq. epx ) te = ipe ;
-!!!
-            grid%i_start(nt) = max ( ts , grid%ifds )
-            grid%i_end(nt)   = min ( te , grid%ifde )
-            if (DEBUG_LOCAL) then
-              WRITE(OUTPUT_UNIT,'("WRF-FIRE TILE ",I3," IS ",I6," IE ",I6," JS ",I6," JE ",I6)') &
-                        nt,grid%i_start(nt),grid%i_end(nt),grid%j_start(nt),grid%j_end(nt)
-            endif
-            nt = nt + 1
-          ENDIF
-        ENDIF
-     END DO
-     num_tiles = nt-1
-
-     if (DEBUG_LOCAL) then
-       WRITE(OUTPUT_UNIT,'("WRF-FIRE NUMBER OF TILES = ",I3," TOTAL, ",I3," IN X, ",I3," IN Y")')num_tiles,num_tiles_x,num_tiles_y
-     endif
-
-     grid%num_tiles = num_tiles
-
-     contains
-
-    subroutine error_test_lt (A,B)
+    subroutine Init_tiles (this, config_flags)
 
       implicit none
 
-      integer, intent (in) :: A, B
+      class (state_fire_t), intent(in out) :: this
+      type (namelist_t), intent (in) :: config_flags
 
-      if (A .lt. B) then
-        write (ERROR_UNIT, *)
-        write (ERROR_UNIT, *) 'FATAL ERROR: PATCH IS OUT OF MEMORY BOUNDS!'
-        stop
-      endif
-     
-    end subroutine error_test_lt
+      integer :: num_tiles
 
-    subroutine error_test_gt (A,B)
+      num_tiles = config_flags%num_tiles
+      call Calc_tiles_dims (this%ifps, this%ifpe, this%jfps, this%jfpe, num_tiles, &
+          this%i_start, this%i_end, this%j_start, this%j_end)
 
-      implicit none
-
-      integer, intent (in) :: A, B
-
-      if (A .gt. B) then
-        write (ERROR_UNIT, *)
-        write (ERROR_UNIT, *) 'FATAL ERROR: PATCH IS OUT OF MEMORY BOUNDS!'
-        stop
-      endif
-
-    end subroutine error_test_gt
+      if (num_tiles /= config_flags%num_tiles) then
+        call Stop_simulation ('Not able to use the number of tiles specified')
+      end if
 
     end subroutine Init_tiles
-
-    SUBROUTINE least_aspect( nparts, minparts_y, minparts_x, nparts_y, nparts_x )
-    IMPLICIT NONE
-    !  Input data.
-    INTEGER, INTENT(IN)           :: nparts,                &
-                                     minparts_y, minparts_x
-    ! Output data.
-    INTEGER, INTENT(OUT)          :: nparts_y, nparts_x
-    ! Local data.
-    INTEGER                       :: x, y, mini
-    mini = 2*nparts
-    nparts_y = 1
-    nparts_x = nparts
-    DO y = 1, nparts
-       IF ( mod( nparts, y ) .eq. 0 ) THEN
-          x = nparts / y
-          IF (       abs( y-x ) .LT. mini       &
-               .AND. y .GE. minparts_y                &
-               .AND. x .GE. minparts_x    ) THEN
-             mini = abs( y-x )
-             nparts_y = y
-             nparts_x = x
-          END IF
-       END IF
-    END DO
-    END SUBROUTINE least_aspect
-
-    SUBROUTINE region_bounds( region_start, region_end, &
-                             num_p, p,                 &
-                             patch_start, patch_end )
-   ! 1-D decomposition routine: Given starting and ending indices of a
-   ! vector, the number of patches dividing the vector, and the number of
-   ! the patch, give the start and ending indices of the patch within the
-   ! vector.  This will work with tiles too.  Implementation note.  This is
-   ! implemented somewhat inefficiently, now, with a loop, so we can use the
-   ! locproc function above, which returns processor number for a given
-   ! index, whereas what we want is index for a given processor number.
-   ! With a little thought and a lot of debugging, we can come up with a
-   ! direct expression for what we want.  For time being, we loop...
-   ! Remember that processor numbering starts with zero.
-
-   IMPLICIT NONE
-   INTEGER, INTENT(IN)                    :: region_start, region_end, num_p, p
-   INTEGER, INTENT(OUT)                   :: patch_start, patch_end
-   INTEGER                                :: offset, i
-   patch_end = -999999999
-   patch_start = 999999999
-   offset = region_start
-   do i = 0, region_end - offset
-     if ( locproc( i, region_end-region_start+1, num_p ) == p ) then
-       patch_end = max(patch_end,i)
-       patch_start = min(patch_start,i)
-     endif
-   enddo
-   patch_start = patch_start + offset
-   patch_end   = patch_end   + offset
-   RETURN
-   END SUBROUTINE region_bounds
-
-   RECURSIVE SUBROUTINE rlocproc(p,maxi,nproc,ml,mr,ret)
-   IMPLICIT NONE
-   INTEGER, INTENT(IN)  :: p, maxi, nproc, ml, mr
-   INTEGER, INTENT(OUT) :: ret
-   INTEGER              :: width, rem, ret2, bl, br, mid, adjust, &
-                           p_r, maxi_r, nproc_r, zero
-   adjust = 0
-   rem = mod( maxi, nproc )
-   width = maxi / nproc
-   mid = maxi / 2
-   IF ( rem>0 .AND. (((mod(rem,2).EQ.0).OR.(rem.GT.2)).OR.(p.LE.mid))) THEN
-     width = width + 1
-   END IF
-   IF ( p.LE.mid .AND. mod(rem,2).NE.0 ) THEN
-     adjust = adjust + 1
-   END IF
-   bl = max(width,ml) ;
-   br = max(width,mr) ;
-   IF      (p<bl) THEN
-     ret = 0
-   ELSE IF (p>maxi-br-1) THEN
-     ret = nproc-1
-   ELSE
-     p_r = p - bl
-     maxi_r = maxi-bl-br+adjust
-     nproc_r = max(nproc-2,1)
-     zero = 0
-     CALL rlocproc( p_r, maxi_r, nproc_r, zero, zero, ret2 )  ! Recursive
-     ret = ret2 + 1
-   END IF
-   RETURN
-   END SUBROUTINE rlocproc
-
-   INTEGER FUNCTION locproc( i, m, numpart )
-   implicit none
-   integer, intent(in) :: i, m, numpart
-   integer             :: retval, ii, im, inumpart, zero
-   ii = i
-   im = m
-   inumpart = numpart
-   zero = 0
-   CALL rlocproc( ii, im, inumpart, zero, zero, retval )
-   locproc = retval
-   RETURN
-   END FUNCTION locproc
 
     subroutine Interpolate_vars_atm_to_fire (this, wrf, config_flags)
 

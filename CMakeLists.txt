@@ -43,7 +43,8 @@ find_package(NetCDF REQUIRED Fortran)
 # Add source files
 
 # State
-list(APPEND _state_files state/state_mod.F90)
+list(APPEND _state_files state/state_mod.F90
+	                 state/tiles_mod.F90)
 
 list(APPEND _share_files share/proj_lc_mod.F90
                          share/datetime_mod.F90
