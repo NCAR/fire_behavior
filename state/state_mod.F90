@@ -11,7 +11,7 @@
     use constants_mod, only : PI
     use stderrout_mod, only: Stop_simulation
     use tiles_mod, only : Calc_tiles_dims
-    use fuel_mod, only : fuel_t
+    use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
 
     implicit none
 
@@ -107,6 +107,7 @@
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
     contains
+      procedure, public :: Convert_sb_to_ander => Convert_scottburgan_to_anderson
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Initialization => Init_domain
@@ -119,6 +120,30 @@
     end type state_fire_t
 
   contains
+
+    subroutine Convert_scottburgan_to_anderson (this)
+
+      implicit none
+
+      class (state_fire_t), intent(in out) :: this
+
+      integer :: i, j, ij, ifts, ifte, jfts, jfte
+
+
+      do ij = 1, this%num_tiles
+        ifts = this%i_start(ij)
+        ifte = this%i_end(ij)
+        jfts = this%j_start(ij)
+        jfte = this%j_end(ij)
+
+        do j = jfts, jfte
+          do i = ifts, ifte
+            this%nfuel_cat(i, j) = real (Crosswalk_from_scottburgan_to_anderson (int (this%nfuel_cat(i, j))))
+          end do
+        end do
+      end do
+
+    end subroutine Convert_scottburgan_to_anderson
 
     subroutine Handle_output (this, config_flags)
 
@@ -320,6 +345,8 @@
       call this%Init_latlons (geogrid)
 
       call this%Init_tiles (config_flags)
+
+      if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
 
     end subroutine Init_domain
 

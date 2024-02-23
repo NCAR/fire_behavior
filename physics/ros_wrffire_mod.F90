@@ -119,86 +119,10 @@
       integer:: i, j, k, kk
       character (len = 128) :: msg
 
-      integer, parameter :: NF_SB = 204 ! maximum category on 
-      integer, dimension (1:NF_SB) :: ksb ! Anderson82 + S&B2005 fuel categories array
-
-
-        ! Cross walk to Scott & Burgan
-      do kk = 1, NF_SB
-        ksb(kk) = grid%fuels%no_fuel_cat
-      end do
-        ! Anderson 1982
-      ksb(1) = 1
-      ksb(2) = 2
-      ksb(3) = 3
-      ksb(4) = 4
-      ksb(5) = 5
-      ksb(6) = 6
-      ksb(7) = 7
-      ksb(8) = 8
-      ksb(9) = 9
-      ksb(10) = 10
-      ksb(11) = 11
-      ksb(12) = 12
-      ksb(13) = 13
-        ! Scott & Burgan crosswalks
-        ! Short grass -- 1
-      ksb(101) = 1
-      ksb(104) = 1
-      ksb(107) = 1
-        ! Timber grass and understory -- 2
-      ksb(102) = 2
-      ksb(121) = 2
-      ksb(122) = 2
-      ksb(123) = 2
-      ksb(124) = 2
-        ! Tall grass -- 3
-      ksb(103) = 3
-      ksb(105) = 3
-      ksb(106) = 3
-      ksb(108) = 3
-      ksb(109) = 3
-        ! Chaparral -- 4
-      ksb(145) = 4
-      ksb(147) = 4
-        ! Brush -- 5
-      ksb(142) = 5
-        ! Dormant Brushi -- 6
-      ksb(141) = 6
-      ksb(146) = 6
-        ! Southern Rough -- 7
-      ksb(143) = 7
-      ksb(144) = 7
-      ksb(148) = 7
-      ksb(149) = 7
-        ! Compact Timber Litter -- 8
-      ksb(181) = 8
-      ksb(183) = 8
-      ksb(184) = 8
-      ksb(187) = 8
-        ! Hardwood Litter -- 9
-      ksb(182) = 9
-      ksb(186) = 9
-      ksb(188) = 9
-      ksb(189) = 9
-        ! Timber (understory) -- 10
-      ksb(161) = 10
-      ksb(162) = 10
-      ksb(163) = 10
-      ksb(164) = 10
-      ksb(165) = 10
-        ! Light Logging Slash -- 11
-      ksb(185) = 11
-      ksb(201) = 11
-        ! Medium Logging Slash -- 12
-      ksb(202) = 12
-        ! Heavy Logging Slash -- 13
-      ksb(203) = 13
-      ksb(204) = 13
 
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
-          k = ksb(int (nfuel_cat(i, j)))
+          k = int (nfuel_cat(i, j))
           if(k == grid%fuels%no_fuel_cat) then
             grid%fgip(i, j) = 0.0
             grid%ischap(i, j) = 0.0
