@@ -25,13 +25,12 @@
         integer, intent (in) :: ifms, ifme, jfms, jfme
       end subroutine Init
 
-      subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, nfuel_cat, fmc_g, fuel_time)
+      subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, nfuel_cat, fmc_g)
         import :: ros_t, fuel_t
         class (ros_t), intent (in out) :: this
         integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
         class (fuel_t), intent (in) :: fuels
         real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
-        real, dimension(ifms:ifme, jfms:jfme), intent (out) :: fuel_time
       end subroutine Set_params
 
       subroutine Calc_ros (this, ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)

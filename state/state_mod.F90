@@ -347,7 +347,7 @@
 
       class (state_fire_t), intent(in out) :: this
 
-      integer :: ij, i, j, ifts, ifte, jfts, jfte
+      integer :: ij, i, j, ifts, ifte, jfts, jfte, k
 
 
       do ij = 1, this%num_tiles
@@ -357,7 +357,17 @@
         jfte = this%j_end(ij)
         do j = jfts, jfte
           do i = ifts, ifte
-            this%fuel_load_g(i, j) = this%fuels%fgi(int (this%nfuel_cat(i, j)))
+            k = int (this%nfuel_cat(i, j))
+            this%fuel_load_g(i, j) = this%fuels%fgi(k)
+            if (k == this%fuels%no_fuel_cat) then
+              this%fuel_time(i, j) = 0.0
+            else
+                ! set fuel time constant (the e-folding time)
+                ! burn time from fuels: weight=1000 => 40% decrease over 10 min
+                ! fuel decreases as exp(-t/fuel_time)
+                ! exp(-600*0.85/1000) = approx 0.6
+              this%fuel_time(i, j) = this%fuels%weight(k) / 0.85
+            end if
           end do
         end do
       end do

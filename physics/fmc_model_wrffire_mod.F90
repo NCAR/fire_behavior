@@ -222,7 +222,7 @@
         do ij = 1, grid%num_tiles
           call ros_model%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
               grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              grid%fuels, grid%nfuel_cat, grid%fmc_g, grid%fuel_time)
+              grid%fuels, grid%nfuel_cat, grid%fmc_g)
         end do
       end if
 

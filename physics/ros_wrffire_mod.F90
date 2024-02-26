@@ -17,7 +17,7 @@
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type, extends(ros_t) :: ros_wrffire_t
-      real, dimension(:, :), allocatable :: bbb, ischap, betafl, fuel_time, phiwc, r_0
+      real, dimension(:, :), allocatable :: bbb, ischap, betafl, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
       procedure, public :: Init => Init_ros_wrffire
@@ -112,27 +112,20 @@
       allocate (this%ischap(ifms:ifme, jfms:jfme))
       allocate (this%betafl(ifms:ifme, jfms:jfme))
       allocate (this%bbb(ifms:ifme, jfms:jfme))
-      allocate (this%fuel_time(ifms:ifme, jfms:jfme))
       allocate (this%phiwc(ifms:ifme, jfms:jfme))
       allocate (this%r_0(ifms:ifme, jfms:jfme))
 
     end subroutine Init_ros_wrffire
 
     subroutine Set_ros_parameters_wrffire (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        fuels, nfuel_cat, fmc_g, fuel_time)
+        fuels, nfuel_cat, fmc_g)
 
       implicit none
-
-    !D      BMST           RATIO OF LATENT TO SENSIBLE HEAT FROM SFC BURN:
-    !                        % of total fuel mass that is water (not quite
-    !                        = % fuel moisture).    BMST= (H20)/(H20+DRY)
-    !                        so BMST = FUELMC_G / (1 + FUELMC_G)
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       class (fuel_t), intent (in) :: fuels
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: fuel_time
 
 
       real ::  fuelload, fueldepth, rtemp1, rtemp2, qig, epsilon, rhob, wn, betaop, e, c, &
@@ -149,20 +142,11 @@
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
             this%betafl(i, j) = 1.0
             this%bbb(i, j) = 1.0
-              ! does not matter, just what was there before
-            fuel_time(i, j) = 7.0 / 0.85
             this%phiwc(i, j) = 0.0
             this%r_0(i, j) = 0.0
-              ! Ib/ROS zero for no fuel
             this%iboros(i, j) = 0.0
           else
-              ! set fuel time constant: weight=1000 => 40% decrease over 10 min
-              ! fuel decreases as exp(-t/fuel_time) 
-              ! exp(-600*0.85/1000) = approx 0.6 
-            fuel_time(i, j) = fuels%weight(k) / 0.85 ! cell based
-
             this%ischap(i, j) = fuels%ichap(k)
-
               ! Settings of fire spread parameters from Rothermel
               ! No need to recalculate if FMC does not change
             bmst = fmc_g(i, j) / (1.0 + fmc_g(i, j))
