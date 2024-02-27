@@ -1,9 +1,9 @@
   module fire_model_mod
 
-    use level_set_mod, only: Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
+    use level_set_mod, only: Ignite_fire, Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
-    use ignition_line_mod, only: ignition_line_t, Ignite_fire
+    use ignition_line_mod, only: ignition_line_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
     use namelist_mod, only : namelist_t
@@ -105,7 +105,7 @@
         do ig = 1, config_flags%fire_num_ignitions
             !  for now, check for ignition every time step...
             !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 
-          call ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+          call Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
               ignition_line(ig), time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, & 
               grid%lfn, grid%tign_g,ignited)
           ignitions_done = ignitions_done + 1
