@@ -149,13 +149,12 @@
 
     end subroutine Init_fuel_moisture
 
-    subroutine Fuel_moisture_model (grid, config_flags, ros_model)
+    subroutine Fuel_moisture_model (grid, config_flags)
 
       implicit none
 
       type (state_fire_t), target :: grid
       type (namelist_t), intent (in) :: config_flags
-      class (ros_t), intent (in out) :: ros_model
 
       character (len = 128) :: msg
       integer :: ij
@@ -220,7 +219,7 @@
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
         do ij = 1, grid%num_tiles
-          call ros_model%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
+          call grid%ros_param%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
               grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
               grid%fuels, grid%nfuel_cat, grid%fmc_g)
         end do

@@ -88,7 +88,7 @@
       integer :: ij
 
 
-      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags, grid%ros_param)
+      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags)
 
       do ij = 1, grid%num_tiles
         call Advance_fire_model (config_flags, ignition_lines, grid, &
