@@ -1,6 +1,6 @@
   module fire_model_mod
 
-    use level_set_mod, only: Ignite_fire, Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
+    use level_set_mod, only: Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use ros_mod, only : ros_t
@@ -80,8 +80,8 @@
 
         ! Check for ignitions
       ig = 1
-      start_time_ig = grid%ignition_lines(ig)%start_time 
-      end_time_ig  = grid%ignition_lines(ig)%end_time
+      start_time_ig = grid%ignition_lines%start_time(ig)
+      end_time_ig  = grid%ignition_lines%end_time(ig)
       ignitions_done = 0
 
       if (config_flags%fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
@@ -103,8 +103,8 @@
         do ig = 1, config_flags%fire_num_ignitions
             !  for now, check for ignition every time step...
             !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 
-          call Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-              grid%ignition_lines(ig), time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, & 
+          call grid%ignition_lines%Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+              ig, time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, &
               grid%lfn, grid%tign_g, ignited)
           ignitions_done = ignitions_done + 1
           ignited_tile(ignitions_done) = ignited

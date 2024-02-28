@@ -33,9 +33,10 @@
       integer :: ij
 
 
+        ! Ignitions lines
       call grid%Init_ignition_lines (config_flags)
 
-        ! Initialize fuel model
+        ! Fuel model
       select case (config_flags%fuel_opt)
         case (FUEL_ANDERSON)
           allocate (fuel_anderson_t::grid%fuels)
@@ -46,10 +47,10 @@
       call grid%fuels%Initialization (config_flags%fuelmc_c)
       call grid%Init_fuel_vars ()
 
-        ! Initialize FMC model
+        ! FMC model
       if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
 
-        ! Initialize ROS parameterization
+        ! Rate of spread parameterization
       select case (config_flags%ros_opt)
         case (ROS_WRFFIRE)
           allocate (ros_wrffire_t::grid%ros_param)

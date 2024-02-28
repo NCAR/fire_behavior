@@ -13,7 +13,7 @@
     use tiles_mod, only : Calc_tiles_dims
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use ros_mod, only : ros_t
-    use ignition_line_mod, only : ignition_line_t, Initialize_ignitions
+    use ignition_line_mod, only : ignition_line_t
 
     implicit none
 
@@ -72,7 +72,7 @@
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
-      type (ignition_line_t), dimension(:), allocatable :: ignition_lines
+      type (ignition_line_t) :: ignition_lines
 
 
         ! New vars defined on fire grid for NUOPC coupling
@@ -387,7 +387,7 @@
       type (namelist_t), intent (in) :: config_flags
 
 
-      call Initialize_ignitions (config_flags, this%ignition_lines)
+      call this%ignition_lines%Init (config_flags)
 
     end subroutine Init_ignition_lines
 
