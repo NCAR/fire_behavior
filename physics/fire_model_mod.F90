@@ -3,7 +3,6 @@
     use level_set_mod, only: Ignite_fire, Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
     use stderrout_mod, only: Crash, Message
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
-    use ignition_line_mod, only: ignition_line_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
     use namelist_mod, only : namelist_t
@@ -14,14 +13,13 @@
 
   contains
 
-    subroutine Advance_fire_model (config_flags, ignition_line, grid, i_start, i_end, j_start, j_end)
+    subroutine Advance_fire_model (config_flags, grid, i_start, i_end, j_start, j_end)
 
       ! Purpose advance the fire from time_start to time_start + dt
 
       implicit none
 
       type (namelist_t), intent (in) :: config_flags
-      type(ignition_line_t), dimension (:), intent(in):: ignition_line
       type (state_fire_t), intent (in out) :: grid
       integer, intent (in) :: i_start, i_end, j_start, j_end
 
@@ -82,8 +80,8 @@
 
         ! Check for ignitions
       ig = 1
-      start_time_ig = ignition_line(ig)%start_time 
-      end_time_ig  = ignition_line(ig)%end_time
+      start_time_ig = grid%ignition_lines(ig)%start_time 
+      end_time_ig  = grid%ignition_lines(ig)%end_time
       ignitions_done = 0
 
       if (config_flags%fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
@@ -106,8 +104,8 @@
             !  for now, check for ignition every time step...
             !        if(ignition_line(ig)%end_time>=time_start.and.ignition_line(ig)%start_time<time_start+dt)then 
           call Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-              ignition_line(ig), time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, & 
-              grid%lfn, grid%tign_g,ignited)
+              grid%ignition_lines(ig), time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, & 
+              grid%lfn, grid%tign_g, ignited)
           ignitions_done = ignitions_done + 1
           ignited_tile(ignitions_done) = ignited
             !        endif

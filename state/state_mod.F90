@@ -13,6 +13,7 @@
     use tiles_mod, only : Calc_tiles_dims
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use ros_mod, only : ros_t
+    use ignition_line_mod, only : ignition_line_t, Initialize_ignitions
 
     implicit none
 
@@ -71,6 +72,8 @@
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
+      type (ignition_line_t), dimension(:), allocatable :: ignition_lines
+
 
         ! New vars defined on fire grid for NUOPC coupling
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
@@ -108,6 +111,7 @@
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Init_fuel_vars => Init_fuel_vars
       procedure, public :: Initialization => Init_domain
+      procedure, public :: Init_ignition_lines => Init_ignition_lines
       procedure :: Init_latlons => Init_latlons
       procedure :: Init_tiles => Init_tiles
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
@@ -373,6 +377,19 @@
       end do
 
     end subroutine Init_fuel_vars
+
+    subroutine Init_ignition_lines (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+
+      type (namelist_t), intent (in) :: config_flags
+
+
+      call Initialize_ignitions (config_flags, this%ignition_lines)
+
+    end subroutine Init_ignition_lines
 
     subroutine Init_latlons (this, geogrid)
 

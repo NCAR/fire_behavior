@@ -44,6 +44,7 @@ find_package(NetCDF REQUIRED Fortran)
 
 # State
 list(APPEND _state_files state/state_mod.F90
+			 state/ignition_line_mod.F90
 	                 state/tiles_mod.F90)
 
 list(APPEND _share_files share/proj_lc_mod.F90
@@ -66,7 +67,6 @@ list(APPEND _wrffire_physics physics/level_set_mod.F90
 			     physics/fire_model_mod.F90
 			     physics/fire_physics_mod.F90
 			     physics/fmc_model_wrffire_mod.F90
-			     physics/ignition_line_mod.F90
 			     physics/ros_wrffire_mod.F90
 			     physics/fuel_anderson_mod.F90)
 

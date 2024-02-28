@@ -3,7 +3,6 @@
     use fire_model_mod, only : Advance_fire_model
     use level_set_mod, only : Extrapol_var_at_bdys
     use fmc_model_wrffire_mod, only : Init_fuel_moisture, Fuel_moisture_model
-    use ignition_line_mod, only : ignition_line_t, Initialize_ignitions
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use stderrout_mod, only : Message, Stop_simulation
@@ -22,8 +21,6 @@
 
     integer, parameter:: REAL_SUM = 10, REAL_MAX = 20, RNRM_SUM = 30, RNRM_MAX = 40
 
-    type (ignition_line_t), dimension(:), allocatable :: ignition_lines
-
   contains
 
     subroutine Init_fire_components (grid, config_flags)
@@ -36,7 +33,7 @@
       integer :: ij
 
 
-      call Initialize_ignitions (config_flags, ignition_lines)
+      call grid%Init_ignition_lines (config_flags)
 
         ! Initialize fuel model
       select case (config_flags%fuel_opt)
@@ -91,7 +88,7 @@
       if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags)
 
       do ij = 1, grid%num_tiles
-        call Advance_fire_model (config_flags, ignition_lines, grid, &
+        call Advance_fire_model (config_flags, grid, &
             grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
       end do
 

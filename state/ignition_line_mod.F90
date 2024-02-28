@@ -1,7 +1,7 @@
   module ignition_line_mod
 
     use namelist_mod, only: namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
-    use stderrout_mod, only: Crash, Message
+    use stderrout_mod, only: Stop_simulation
 
     implicit none
 
@@ -10,7 +10,6 @@
     public :: ignition_line_t, Initialize_ignitions
 
     integer :: fire_num_ignitions
-    integer, parameter :: FIRE_MAX_IGNITIONS = 5
 
     type :: ignition_line_t
       real  ros, &        ! subscale rate of spread during the ignition process
@@ -37,7 +36,7 @@
       integer :: i
 
 
-      if (config_flags%fire_num_ignitions > FIRE_MAX_IGNITIONS_IN_NAMELIST) call Crash ('FIRE_MAX_IGNITIONS_IN_NAMELIST too small')
+      if (config_flags%fire_num_ignitions > FIRE_MAX_IGNITIONS_IN_NAMELIST) call Stop_simulation ('FIRE_MAX_IGNITIONS_IN_NAMELIST too small')
 
       ignition_line(1)%start_x = config_flags%fire_ignition_start_lon1
       ignition_line(1)%start_y = config_flags%fire_ignition_start_lat1
@@ -86,7 +85,7 @@
 
       do i = 1, config_flags%fire_num_ignitions
           ! Count the ignitions
-        if (ignition_line(i)%radius <= 0.0) call Crash ('Radius ignition line must be > 0')
+        if (ignition_line(i)%radius <= 0.0) call Stop_simulation ('Radius ignition line must be > 0')
           ! Expand ignition data given as zero
         if (ignition_line(i)%end_x == 0.0) ignition_line(i)%end_x = ignition_line(i)%start_x
         if (ignition_line(i)%end_y == 0.0) ignition_line(i)%end_y = ignition_line(i)%start_y
