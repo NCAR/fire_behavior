@@ -13,6 +13,25 @@
 
   contains
 
+    pure subroutine Copy_lfnout_to_lfn (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, lfn_out, lfn)
+
+      implicit none
+
+      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_out
+      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: lfn
+
+      integer :: i, j
+
+
+      do j = jfts, jfte
+        do i = ifts, ifte
+          lfn(i, j) = lfn_out(i, j)
+        end do
+      end do
+
+    end subroutine Copy_lfnout_to_lfn
+
     subroutine Advance_fire_model (config_flags, grid, i_start, i_end, j_start, j_end)
 
       ! Purpose advance the fire from time_start to time_start + dt
@@ -69,13 +88,8 @@
           config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, grid%lfn, grid%lfn_2, grid%lfn_s0, &
            grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, config_flags%fire_print_msg)
 
-      do j = jfts, jfte
-        do i = ifts, ifte
-          grid%lfn(i, j) = grid%lfn_out(i, j)
-        end do
-      end do
+      call Copy_lfnout_to_lfn (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, grid%lfn_out, grid%lfn)
 
-        ! Check for ignitions
       call Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
 
         ! compute the heat fluxes from the fuel burned
