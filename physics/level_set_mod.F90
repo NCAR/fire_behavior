@@ -32,7 +32,7 @@
   contains
 
     subroutine Fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
-        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fire_print_msg)
+        lfn, tign, fuel_time, time_now, fuel_frac_end, fire_area, fire_print_msg)
 
       implicit none
 
@@ -43,7 +43,7 @@
           fire_print_msg
       real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
       real, intent (in) :: time_now
-      real, intent (out), dimension (ifs:ife, jfs:jfe) :: fuel_frac
+      real, intent (out), dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
       real, intent (out), dimension (ims:ime, jms:jme) :: fire_area
 
       integer :: i, j, ir, jr, icl, jcl, isubcl, jsubcl, i2, j2, ii, jj
@@ -79,8 +79,8 @@
         !  Changes made by Volodymyr Kondratenko 09/24/2009
       do icl = its, ite
         do jcl = jts, jte
-          helpsum1 = 0
-          helpsum2 = 0
+          helpsum1 = 0.0
+          helpsum2 = 0.0
             ! Loop over subcells in cell #(icl,jcl)
           do isubcl = 1, ir
             do jsubcl = 1, jr 
@@ -187,7 +187,7 @@
               helpsum2 = helpsum2 + fire_area_ff
             end do
           end do
-          fuel_frac(icl, jcl) = helpsum1 
+          fuel_frac_end(icl, jcl) = helpsum1
           fire_area(icl, jcl) = helpsum2
         end do 
       end do
@@ -195,7 +195,7 @@
         ! finish the averaging
       do j = jts, jte
         do i = its, ite        
-          fuel_frac(i, j) = fuel_frac(i,j) / (ir * jr) ! multiply by weight for averaging over coarse cell
+          fuel_frac_end(i, j) = fuel_frac_end(i,j) / (ir * jr) ! multiply by weight for averaging over coarse cell
           fire_area(i, j) = fire_area(i,j) / (ir * jr) ! 
         end do
       end do
@@ -205,15 +205,15 @@
       do j = jts, jte
           do i = its, ite        
              if (fire_area(i, j) == 0.0) then
-               if (fuel_frac(i, j) < 1.-1e-6) then
+               if (fuel_frac_end(i, j) < 1.-1e-6) then
                  !$OMP CRITICAL(FIRE_CORE_CRIT)
                  write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
-                     ' fuel burnt', 1 - fuel_frac(i, j), ' but fire area', fire_area(i, j)
+                     ' fuel burnt', 1 - fuel_frac_end(i, j), ' but fire area', fire_area(i, j)
                  !$OMP END CRITICAL(FIRE_CORE_CRIT)
                      call Crash (msg)
                end if
              else
-               frat = (1 - fuel_frac(i, j)) / fire_area(i, j)
+               frat = (1 - fuel_frac_end(i, j)) / fire_area(i, j)
                fmax = max (fmax, frat)
              end if
           end do

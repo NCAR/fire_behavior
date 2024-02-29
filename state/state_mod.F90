@@ -55,7 +55,7 @@
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
       real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
       real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
-      real, dimension(:, :), allocatable :: burnt_area_dt ! "fraction of cell area burnt on current dt" "-"
+      real, dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
       real, dimension(:, :), allocatable :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fcanhfx ! "heat flux from crown fire" "W/m^2"
@@ -288,7 +288,7 @@
       allocate (this%fire_area(this%ifms:this%ifme, this%jfms:this%jfme))
       this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
 
-      allocate (this%burnt_area_dt(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%fuel_frac_burnt_dt(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fgrnhfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fgrnqfx(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fcanhfx(this%ifms:this%ifme, this%jfms:this%jfme))
@@ -655,7 +655,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lons', this%lons(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
-      call Add_netcdf_var (file_output, ['nx', 'ny'], 'burnt_area_dt', this%burnt_area_dt(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fuel_frac_burnt_dt', this%fuel_frac_burnt_dt(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fuel_frac', this%fuel_frac(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'emis_smoke', this%emis_smoke(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_t2', this%fire_t2(1:this%nx, 1:this%ny))

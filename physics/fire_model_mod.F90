@@ -100,13 +100,13 @@
 
       do j = jfts, jfte
         do i = ifts, ifte
-          grid%burnt_area_dt(i, j) = grid%fuel_frac(i, j) - fuel_frac_end(i, j) ! fuel lost this timestep
+          grid%fuel_frac_burnt_dt(i, j) = grid%fuel_frac(i, j) - fuel_frac_end(i, j) ! fuel lost this timestep
           grid%fuel_frac(i, j) = fuel_frac_end(i, j) ! copy new value to state array
         end do
       end do
 
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-          ifts, ifte, jfts, jfte, grid%fuel_load_g, grid%burnt_area_dt, grid%fgrnhfx, grid%fgrnqfx)
+          ifts, ifte, jfts, jfte, grid%fuel_load_g, grid%fuel_frac_burnt_dt, grid%fgrnhfx, grid%fgrnqfx)
 
       call Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
 
