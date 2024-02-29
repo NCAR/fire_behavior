@@ -15,15 +15,14 @@
   contains
 
     subroutine Calc_fire_fluxes (dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-      iffs, iffe, jffs, jffe, fuel_load_g, fuel_frac_burnt, grnhft, grnqft)
+      iffs, iffe, jffs, jffe, fuel_load_g, burnt_area_dt, grnhft, grnqft)
 
       implicit none
 
       type (state_fire_t), target :: grid
       real, intent(in) :: dt
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, iffs, iffe, jffs, jffe
-      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_load_g
-      real, dimension(iffs:iffe, jffs:jffe), intent (in) :: fuel_frac_burnt
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_load_g, burnt_area_dt
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: grnhft, grnqft
 
       integer :: i, j
@@ -33,7 +32,7 @@
       do j = jfts, jfte
         do i = ifts, ifte
             ! surface fuel dry mass burnt this call [kg/m2]
-          dmass = fuel_load_g(i, j) * fuel_frac_burnt(i, j)
+          dmass = fuel_load_g(i, j) * burnt_area_dt(i, j)
           bmst = grid%fmc_g(i, j)/(1.0 + grid%fmc_g(i, j))
             ! surface fire sensible heat flux [W/m2]
           grnhft(i, j) = (dmass / dt) * (1.0 - bmst) * CMBCNST
