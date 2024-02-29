@@ -43,12 +43,7 @@
       integer, intent (in) :: i_start, i_end, j_start, j_end
 
       integer :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
-      integer :: ignited, ig, i, j
-      real :: tbound, tfa, thf, mhf, tqf, mqf, aw, mw
-      character (len = 128) :: msg
-      integer :: stat_lev = 1
-      real :: start_time_ig, end_time_ig, time_start
-      integer :: ignitions_done
+      real :: tbound, time_start
 
 
       ifds = grid%ifds
