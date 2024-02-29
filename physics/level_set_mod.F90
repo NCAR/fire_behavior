@@ -32,7 +32,7 @@
   contains
 
     subroutine Fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
-        lfn, tign, fuel_time, time_now, fuel_frac_end, fire_area, fire_print_msg)
+        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fuel_frac_burnt_dt, fire_print_msg)
 
       implicit none
 
@@ -43,9 +43,10 @@
           fire_print_msg
       real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
       real, intent (in) :: time_now
-      real, intent (out), dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
-      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area
+      real, intent (in out), dimension (ims:ime, jms:jme) :: fuel_frac
+      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area, fuel_frac_burnt_dt
 
+      real, dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
       integer :: i, j, ir, jr, icl, jcl, isubcl, jsubcl, i2, j2, ii, jj
       real :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, rx, ry, tignf(2,2)
          ! help variables instead of arrays fuel_left_f and fire_area_f 
@@ -195,8 +196,10 @@
         ! finish the averaging
       do j = jts, jte
         do i = its, ite        
-          fuel_frac_end(i, j) = fuel_frac_end(i,j) / (ir * jr) ! multiply by weight for averaging over coarse cell
-          fire_area(i, j) = fire_area(i,j) / (ir * jr) ! 
+          fuel_frac_end(i, j) = fuel_frac_end(i, j) / (ir * jr)
+          fuel_frac_burnt_dt(i, j) = fuel_frac(i, j) - fuel_frac_end(i, j)
+          fuel_frac(i, j) = fuel_frac_end(i, j)
+          fire_area(i, j) = fire_area(i, j) / (ir * jr)
         end do
       end do
 

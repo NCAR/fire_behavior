@@ -42,8 +42,6 @@
       type (state_fire_t), intent (in out) :: grid
       integer, intent (in) :: i_start, i_end, j_start, j_end
 
-      real, dimension(i_start:i_end, j_start:j_end) :: fuel_frac_end
-
       integer :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       integer :: ignited, ig, i, j
       real :: tbound, tfa, thf, mhf, tqf, mqf, aw, mw
@@ -92,18 +90,9 @@
 
       call Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
 
-        ! compute the heat fluxes from the fuel burned
-        ! needs lfn and tign from neighbors so halo must be updated before
       call fuel_left (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
-          grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, fuel_frac_end, grid%fire_area, &
-          config_flags%fire_print_msg)
-
-      do j = jfts, jfte
-        do i = ifts, ifte
-          grid%fuel_frac_burnt_dt(i, j) = grid%fuel_frac(i, j) - fuel_frac_end(i, j) ! fuel lost this timestep
-          grid%fuel_frac(i, j) = fuel_frac_end(i, j) ! copy new value to state array
-        end do
-      end do
+          grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, grid%fuel_frac, grid%fire_area, &
+          grid%fuel_frac_burnt_dt, config_flags%fire_print_msg)
 
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, grid%fuel_load_g, grid%fuel_frac_burnt_dt, grid%fgrnhfx, grid%fgrnqfx)
