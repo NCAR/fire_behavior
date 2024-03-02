@@ -2,7 +2,7 @@
 
     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
-    use namelist_mod, only : namelist_t, NUM_FMC
+    use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use proj_lc_mod, only : proj_lc_t
     use datetime_mod, only : datetime_t
@@ -14,6 +14,7 @@
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use ros_mod, only : ros_t
     use ignition_line_mod, only : ignition_line_t
+    use fmc_mod, only : fmc_t
 
     implicit none
 
@@ -21,7 +22,6 @@
 
     public :: state_fire_t
 
-    integer, parameter :: NUM_FMEP = 2
     integer, parameter :: N_POINTS_IN_HALO = 5
 
     type :: state_fire_t
@@ -73,7 +73,7 @@
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
       type (ignition_line_t) :: ignition_lines
-
+      class (fmc_t), allocatable :: fmc_param
 
         ! New vars defined on fire grid for NUOPC coupling
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
@@ -86,21 +86,8 @@
       real, dimension(:, :), allocatable :: fire_t2_old     ! "TEMP at 2 M, previous value"       "K"
       real, dimension(:, :), allocatable :: fire_q2_old     ! "Value of 2m specific humidity, previous value" "kg/kg"
 
-        ! FMC model
-      real, dimension(:, :, :), allocatable :: fmc_gc ! "fuel moisture contents by class" "1"
-      real, dimension(:, :, :), allocatable :: fmep  ! "fuel moisture extended model parameters" "1"
-      real, dimension(:, :, :), allocatable :: fmc_equi ! "fuel moisture contents by class equilibrium (diagnostics only)" "1"
-      real, dimension(:, :, :), allocatable :: fmc_lag ! "fuel moisture contents by class time lag (diagnostics only)" "h"
-
       integer, dimension(:), allocatable :: i_start, i_end, j_start, j_end
 
-      real :: fmoist_lasttime       ! "last time the moisture model was run" "s"
-      real :: fmoist_nexttime       ! "next time the moisture model will run" "s"
-      real :: dt_moisture           ! Time since moisture model run the last time
-      logical :: run_advance_moisture ! Whether the moisture model should be advanced
-      
-      real :: u_frame               ! "FRAME X WIND"         "m s-1"
-      real :: v_frame               ! "FRAME Y WIND"         "m s-1"
       real :: unit_fxlong, unit_fxlat
       integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
@@ -306,11 +293,6 @@
       allocate (this%fire_rain_old(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_t2_old(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fire_q2_old(this%ifms:this%ifme, this%jfms:this%jfme))
-
-      allocate (this%fmc_gc(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
-      allocate (this%fmc_equi(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
-      allocate (this%fmc_lag(this%ifms:this%ifme, NUM_FMC, this%jfms:this%jfme))
-      allocate (this%fmep(this%ifms:this%ifme, NUM_FMEP, this%jfms:this%jfme))
 
       this%dt = config_flags%dt
 

@@ -2,7 +2,6 @@
 
     use fire_model_mod, only : Advance_fire_model
     use level_set_mod, only : Extrapol_var_at_bdys
-    use fmc_model_wrffire_mod, only : Init_fuel_moisture, Fuel_moisture_model
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
     use stderrout_mod, only : Message, Stop_simulation
@@ -12,6 +11,9 @@
 
     use ros_mod, only : ROS_WRFFIRE
     use ros_wrffire_mod, only : ros_wrffire_t
+
+    use fmc_mod, only : FMC_WRFFIRE
+    use fmc_wrffire_mod, only : fmc_wrffire_t
 
     implicit none
 
@@ -27,7 +29,7 @@
 
       implicit none
 
-      type (state_fire_t), target :: grid
+      type (state_fire_t) :: grid
       type (namelist_t), intent(in) :: config_flags
 
       integer :: ij
@@ -48,7 +50,15 @@
       call grid%Init_fuel_vars ()
 
         ! FMC model
-      if (config_flags%fmoist_run) call Init_fuel_moisture (grid, config_flags)
+      select case (config_flags%fmc_opt)
+        case (FMC_WRFFIRE)
+          allocate (fmc_wrffire_t::grid%fmc_param)
+
+        case default
+          call Stop_simulation ('The selected fmc_param does not exist')
+      end select
+      if (config_flags%fmoist_run) call grid%fmc_param%Init (grid%fuels, config_flags%fuelmc_g, config_flags%fuelmc_g_live, grid%ifms, &
+          grid%ifme, grid%jfms, grid%jfme, grid%itimestep, grid%dt)
 
         ! Rate of spread parameterization
       select case (config_flags%ros_opt)
@@ -86,7 +96,12 @@
       integer :: ij
 
 
-      if (config_flags%fmoist_run) call Fuel_moisture_model (grid, config_flags)
+      if (config_flags%fmoist_run) call grid%fmc_param%Advance_fmc_model (config_flags%fmoist_freq, config_flags%fmoist_dt, &
+          grid%itimestep, grid%dt, grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+          grid%i_start, grid%i_end, grid%j_start, &
+          grid%j_end, grid%num_tiles, config_flags%fmep_decay_tlag, grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, &
+          grid%fire_rain_old, grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, config_flags%fuelmc_g, &
+          config_flags%fire_print_msg, grid%fmc_g, grid%nfuel_cat, grid%fuels, grid%ros_param)
 
       do ij = 1, grid%num_tiles
         call Advance_fire_model (config_flags, grid, &

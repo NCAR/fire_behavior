@@ -51,6 +51,7 @@ list(APPEND _share_files share/proj_lc_mod.F90
                          share/datetime_mod.F90
 			 share/fuel_mod.F90
 			 share/ros_mod.F90
+			 share/fmc_mod.F90
                          share/constants_mod.F90)
 
 # IO
@@ -66,7 +67,7 @@ list(APPEND _wrffire_physics physics/level_set_mod.F90
                              physics/fire_driver_mod.F90
 			     physics/fire_model_mod.F90
 			     physics/fire_physics_mod.F90
-			     physics/fmc_model_wrffire_mod.F90
+			     physics/fmc_wrffire_mod.F90
 			     physics/ros_wrffire_mod.F90
 			     physics/fuel_anderson_mod.F90)
 

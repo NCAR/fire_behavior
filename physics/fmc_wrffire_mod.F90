@@ -1,4 +1,4 @@
-  module fmc_model_wrffire_mod
+  module fmc_wrffire_mod
 
     !***************************************************************************************!
     !***                                  Fuel moisture model                            ***!
@@ -27,17 +27,32 @@
     ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
     ! 30%  Completely cured, treat as dead fuel
 
-    use constants_mod, only : XLV
-    use stderrout_mod, only: Crash, Message
+    use stderrout_mod, only : Crash, Message
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
-    use namelist_mod, only: namelist_t
+    use namelist_mod, only : namelist_t
+    use fmc_mod, only : fmc_t
+    use fuel_mod, only : fuel_t
 
     private
 
-    public :: Init_fuel_moisture, Fuel_moisture_model
+    public :: fmc_wrffire_t
+
+    type, extends(fmc_t) :: fmc_wrffire_t
+      real :: fmoist_lasttime, fmoist_nexttime, dt_moisture
+      logical :: run_advance_moisture
+      real, dimension(:, :, :), allocatable :: fmc_gc ! fuel moisture contents by class
+      real, dimension(:, :, :), allocatable :: fmep  ! fuel moisture extended model parameters
+      real, dimension(:, :, :), allocatable :: fmc_equi ! fuel moisture contents by class equilibrium (diagnostics only)
+      real, dimension(:, :, :), allocatable :: fmc_lag ! fuel moisture contents by class time lag (diagnostics only) [h]
+    contains
+      procedure, public :: Init => Init_fmc_wrffire
+      procedure, public :: Advance_fmc_model => Fuel_moisture_model
+    end type fmc_wrffire_t
         
-    integer, parameter :: MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5
+    integer, parameter :: MAX_MOISTURE_CLASSES = 5, MOISTURE_CLASSES = 5, NUM_FMC = 5, NUM_FMEP = 2
+
+
     integer :: mfuelcats
     character (len = 80), dimension (MAX_MOISTURE_CLASSES) :: moisture_class_name
     data moisture_class_name /'1-h', '10-h', '100-h', '1000-h', 'Live'/
@@ -62,12 +77,14 @@
 
   contains
 
-    subroutine Init_fuel_moisture (grid, config_flags)
+    subroutine Init_fmc_wrffire (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
 
       implicit none
 
-      type (state_fire_t), target :: grid
-      type (namelist_t), intent (in) :: config_flags
+      class (fmc_wrffire_t), intent (in out) :: this
+      class (fuel_t), intent (in) :: fuels
+      integer, intent (in) :: ifms, ifme, jfms, jfme, itimestep
+      real, intent (in) :: fuelmc_g, fuelmc_g_live, dt
 
       real, dimension (:), allocatable :: fgi_t, fmc_gwt
       real, dimension (:, :), allocatable :: fgi_c
@@ -76,37 +93,42 @@
       real :: rat
 
 
-      mfuelcats = grid%fuels%n_fuel_cat + 1
+      allocate (this%fmc_gc(ifms:ifme, NUM_FMC, jfms:jfme))
+      allocate (this%fmc_equi(ifms:ifme, NUM_FMC, jfms:jfme))
+      allocate (this%fmc_lag(ifms:ifme, NUM_FMC, jfms:jfme))
+      allocate (this%fmep(ifms:ifme, NUM_FMEP, jfms:jfme))
+      this%fmep = 0.0
+
+      mfuelcats = fuels%n_fuel_cat + 1
 
       allocate (fmc_gw(mfuelcats, MAX_MOISTURE_CLASSES))
       allocate (fgi_t(mfuelcats))
       allocate (fmc_gwt(mfuelcats))
       allocate (fgi_c(mfuelcats, MAX_MOISTURE_CLASSES))
 
-      grid%fmoist_lasttime = grid%itimestep * grid%dt
-      grid%fmoist_nexttime = grid%fmoist_lasttime
-
+      this%fmoist_lasttime = itimestep * dt
+      this%fmoist_nexttime = this%fmoist_lasttime
 
         ! convert fuel loads in the fuel classes to internal as weights adding up to one
         ! copy the fuel weights and scale to 1
         ! just checking
-      if (MAX_MOISTURE_CLASSES /= 5) call crash('Must have 5 fuel classes, modify source code if not')
+      if (MAX_MOISTURE_CLASSES /= 5) call crash ('Must have 5 fuel classes, modify source code if not')
 
         ! WARNING: initialization from scalars tied to a particular model with 5 fuel moisture classes
         ! the rest of the code can be used for various models with different number of fuel moisture classes
-      fgi_c(1:mfuelcats, 1) = grid%fuels%fgi_1h
-      fgi_c(1:mfuelcats, 2) = grid%fuels%fgi_10h
-      fgi_c(1:mfuelcats, 3) = grid%fuels%fgi_100h
-      fgi_c(1:mfuelcats, 4) = grid%fuels%fgi_1000h
-      fgi_c(1:mfuelcats, 5) = grid%fuels%fgi_live
-      fmc_gc_initial_value(1) = config_flags%fuelmc_g
-      fmc_gc_initial_value(2) = config_flags%fuelmc_g
-      fmc_gc_initial_value(3) = config_flags%fuelmc_g
-      fmc_gc_initial_value(4) = config_flags%fuelmc_g
-      fmc_gc_initial_value(5) = config_flags%fuelmc_g_live
+      fgi_c(1:mfuelcats, 1) = fuels%fgi_1h
+      fgi_c(1:mfuelcats, 2) = fuels%fgi_10h
+      fgi_c(1:mfuelcats, 3) = fuels%fgi_100h
+      fgi_c(1:mfuelcats, 4) = fuels%fgi_1000h
+      fgi_c(1:mfuelcats, 5) = fuels%fgi_live
+      fmc_gc_initial_value(1) = fuelmc_g
+      fmc_gc_initial_value(2) = fuelmc_g
+      fmc_gc_initial_value(3) = fuelmc_g
+      fmc_gc_initial_value(4) = fuelmc_g
+      fmc_gc_initial_value(5) = fuelmc_g_live
 
-      call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
-          config_flags%fire_print_msg)
+!      call Message ('Scaling fuel loads within each fuel category to averaging weights of fuel moisture classes', &
+!          config_flags%fire_print_msg)
       do i = 1, mfuelcats
         fgi_t(i) = 0.0
         do k = 1, MAX_MOISTURE_CLASSES
@@ -118,15 +140,15 @@
           end if
         end do
 
-        if (fgi_t(i) > 0.0 .or. grid%fuels%fgi(i) > 0.0) then
+        if (fgi_t(i) > 0.0 .or. fuels%fgi(i) > 0.0) then
           if (fgi_t(i) > 0.0) then
-            rat = grid%fuels%fgi(i) / fgi_t(i)
+            rat = fuels%fgi(i) / fgi_t(i)
           else
             rat = 0.0
           end if
-          write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
-              'fuel category', i, 'fuel load', grid%fuels%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
-          call Message (msg, config_flags%fire_print_msg)
+!          write(msg,'(a,i4,1x,a,g13.6,1x,a,g13.6,1x,a,g13.6)') &
+!              'fuel category', i, 'fuel load', fuels%fgi(i), 'total by class', fgi_t(i), 'ratio', rat
+!          call Message (msg, config_flags%fire_print_msg)
         end if
 
           ! fuel moisture averaging weights for fuel classes in category i
@@ -136,7 +158,7 @@
             fmc_gw(i,k) = fgi_c(i,k) / fgi_t(i)
             fmc_gwt(i) = fmc_gwt(i) + fmc_gw(i,k)
           else
-            fmc_gw(i,k) = 0.
+            fmc_gw(i,k) = 0.0
           end if
         end do
       end do
@@ -147,108 +169,94 @@
         rec_wetting_lag_sec(i) = 1.0 / (3600.0 * wetting_lag(i))
       end do
 
-    end subroutine Init_fuel_moisture
+    end subroutine Init_fmc_wrffire
 
-    subroutine Fuel_moisture_model (grid, config_flags)
+    subroutine Fuel_moisture_model (this, fmoist_freq, fmoist_dt, itimestep, dt, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, i_start, i_end, j_start, &
+            j_end, num_tiles, fmep_decay_tlag, fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, &
+            fire_psfc_old, fire_rh_fire, fuelmc_g, fire_print_msg, fmc_g, nfuel_cat, fuels, ros_param)
 
       implicit none
 
-      type (state_fire_t), target :: grid
-      type (namelist_t), intent (in) :: config_flags
+      class (fmc_wrffire_t), intent (in out) :: this
+      class (ros_t), intent (in out) :: ros_param
+      class (fuel_t), intent (in) :: fuels
+      integer, intent (in) :: fmoist_freq, itimestep, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, num_tiles, fire_print_msg
+      integer, dimension(num_tiles) :: i_start, i_end, j_start, j_end
+      real, intent (in) ::  fmoist_dt, dt, fmep_decay_tlag, fuelmc_g
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, &
+          fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
 
       character (len = 128) :: msg
       integer :: ij
       real :: time_start, moisture_time
 
 
-        ! time - assume dt does not change
-      time_start = grid%itimestep * grid%dt
-
-      grid%run_advance_moisture = .false.
+      time_start = itimestep * dt
       moisture_time = time_start
 
-      if (config_flags%fmoist_freq > 0) then
-        if (mod (grid%itimestep, config_flags%fmoist_freq) == 0) then
-          write (msg, '(a,i10,a,i10)') 'moisture model runs because timestep ', grid%itimestep, ' is a multiple of ', &
-            config_flags%fmoist_freq
-          call message(msg,config_flags%fire_print_msg)
-          grid%run_advance_moisture = .true.
-        end if
+      this%run_advance_moisture = .false.
+      if (fmoist_freq > 0) then
+        if (mod (itimestep, fmoist_freq) == 0) this%run_advance_moisture = .true.
       else
-        if (.not. moisture_time < grid%fmoist_nexttime) then
-          write(msg, '(a,f12.2,a)') 'moisture model runs because time ', grid%fmoist_nexttime, 's has arrived'
-          call message(msg,config_flags%fire_print_msg)
-          grid%run_advance_moisture = .true.
-        end if
+        if (.not. moisture_time < this%fmoist_nexttime) this%run_advance_moisture = .true.
       end if
-        ! decide on timing
-      if (grid%run_advance_moisture) then
-          ! Time since moisture model run the last time. Should be long.
-        grid%dt_moisture = moisture_time - grid%fmoist_lasttime
-        grid%fmoist_lasttime = moisture_time
-        if(config_flags%fmoist_freq > 0)then
-          write (msg,'(a,f12.2,a,i10,a)') 'moisture time step is ', grid%dt_moisture, 's running every ', &
-              config_flags%fmoist_freq,' steps'
-            call Message (msg, config_flags%fire_print_msg)
+
+      if (this%run_advance_moisture) then
+        this%dt_moisture = moisture_time - this%fmoist_lasttime
+        this%fmoist_lasttime = moisture_time
+        if (fmoist_freq > 0)then
+            continue
           else
-            grid%fmoist_nexttime = moisture_time + config_flags%fmoist_dt
-            write (msg, '(a,f12.2,a,f12.2,a)') 'moisture time step is ', grid%dt_moisture, 's next run at ', grid%fmoist_nexttime, 's'
-            call Message (msg, config_flags%fire_print_msg)
+            this%fmoist_nexttime = moisture_time + fmoist_dt
         end if
       end if
 
-      if (grid%run_advance_moisture) then
-        call Message ('advance_moisture start', config_flags%fire_print_msg)
-        do ij = 1, grid%num_tiles
-          call Advance_moisture (grid%itimestep == 1 , & ! initialize?
-              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              config_flags%fire_print_msg, config_flags%nfmc, grid%dt_moisture, config_flags%fmep_decay_tlag, &
-              grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, grid%fire_rain_old, grid%fire_t2_old, &
-              grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, grid%fmc_gc,  grid%fmep,  grid%fmc_equi, &
-              grid%fmc_lag, config_flags%fuelmc_g)
+      if (this%run_advance_moisture) then
+        do ij = 1, num_tiles
+          call Advance_moisture (itimestep == 1 , & ! initialize?
+              ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
+              fire_print_msg, NUM_FMC, this%dt_moisture, fmep_decay_tlag, &
+              fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, &
+              fire_q2_old, fire_psfc_old, fire_rh_fire, this%fmc_gc,  this%fmep,  this%fmc_equi, &
+              this%fmc_lag, fuelmc_g)
         end do
-        call Message ('advance_moisture end', config_flags%fire_print_msg)
 
-        call Message ('fuel_moisture start', config_flags%fire_print_msg)
-        do ij = 1, grid%num_tiles
-          call Fuel_moisture (config_flags%nfmc, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
-              grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              config_flags%fire_print_msg, grid%nfuel_cat, grid%fmc_gc, grid%fmc_g)
+        do ij = 1, num_tiles
+          call Fuel_moisture (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
+              fire_print_msg, nfuel_cat, this%fmc_gc, fmc_g)
         end do
-        call Message ('fuel_moisture end', config_flags%fire_print_msg)
 
           ! fuel moisture may have changed, reset the precomputed ros parameters
-        do ij = 1, grid%num_tiles
-          call grid%ros_param%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-              grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij), &
-              grid%fuels, grid%nfuel_cat, grid%fmc_g)
+        do ij = 1, num_tiles
+          call ros_param%Set_params (ifms, ifme, jfms, jfme, &
+              i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
+              fuels, nfuel_cat, fmc_g)
         end do
       end if
 
     end subroutine Fuel_moisture_model
 
     subroutine fuel_moisture (                &
-      nfmc,                                &
       ifds, ifde, jfds, jfde,              & ! fire grid dimensions
       ifms, ifme, jfms, jfme,              &
       ifts,ifte,jfts,jfte,                 &
       fire_print_msg,                      &
       nfuel_cat,                           & ! fuel data
-      fmc_gc,                              & ! moisture contents by class on atmospheric grid
+      fmc_gc,                              &
       fmc_g                                & ! weighted fuel moisture contents on fire grid
       )
 
       implicit none
 
       integer, intent(in) ::                    &
-         nfmc,                                &
          ifds, ifde, jfds, jfde,              & ! fire grid dimensions
          ifms, ifme, jfms, jfme,              &
          ifts,ifte,jfts,jfte,                 &
          fire_print_msg
 
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
-      real, dimension(ifms:ifme, nfmc, jfms:jfme), intent (in) :: fmc_gc
+      real, dimension(ifms:ifme, NUM_FMC, jfms:jfme), intent (in) :: fmc_gc
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: fmc_g
 
       integer :: i, j, k, n
@@ -262,18 +270,15 @@
       end do
 
       do k = 1, MOISTURE_CLASSES
-          ! add moisture contents for class k to the fuel moisture
         do j = jfts, jfte
           do i = ifts, ifte
             n = nfuel_cat(i, j)
             if (n > 0) then
-                ! add to sum over classes
               fmc_g(i, j) = fmc_g(i, j) + fmc_gw(n, k) * fmc_gc(i, k, j)
             end if
           end do
         end do
       end do
-
 
     end subroutine fuel_moisture
 
@@ -303,9 +308,9 @@
       integer, intent (in) :: ifms,ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfmc, fire_print_msg
       real, intent (in) :: moisture_dt, fmep_decay_tlag
       real, intent (in), dimension (ifms:ifme, jfms:jfme) :: t2, q2, psfc, rain
-      real, intent (inout), dimension (ifms:ifme, jfms:jfme) :: t2_old, q2_old, psfc_old, rain_old 
-      real, intent (inout), dimension (ifms:ifme, nfmc, jfms:jfme) :: fmc_gc
-      real, intent (inout), dimension (ifms:ifme, 2, jfms:jfme) :: fmep
+      real, intent (in out), dimension (ifms:ifme, jfms:jfme) :: t2_old, q2_old, psfc_old, rain_old
+      real, intent (in out), dimension (ifms:ifme, nfmc, jfms:jfme) :: fmc_gc
+      real, intent (in out), dimension (ifms:ifme, NUM_FMEP, jfms:jfme) :: fmep
       real, intent (out), dimension (ifms:ifme, nfmc, jfms:jfme) :: fmc_equi, fmc_lag
       real, intent (out), dimension (ifms:ifme, jfms:jfme) :: rh_fire 
       real, intent (in) :: fuelmc_g
@@ -392,7 +397,7 @@
             Pws= exp( 54.842763 - 6763.22/T - 4.210 * log(T) + 0.000367*T + &
                 tanh(0.0415*(T - 218.8)) * (53.878 - 1331.22/T - 9.44523 * log(T) + 0.014025*T))
               !realtive humidity [1]
-            RH = Pw/Pws
+            RH = Pw / Pws
             rh_fire(i, j) = RH
             rhmax = max (RH, rhmax)         
             rhmin = min (RH, rhmin)         
@@ -426,7 +431,7 @@
                 ! not raining
               select case (drying_model(k))
                 ! Van Wagner and Pickett (1972) per Viney (1991) eq (7) (8)
-              case(1)
+              case (1)
                 H = RH * 100.0
                   ! equilibrium moisture for drying
                 d = 0.942*H**0.679 + 0.000499*exp(0.1*H) + 0.18*(21.1+273.15-T)*(1-exp(-0.115*H))
@@ -548,4 +553,4 @@
 
     end subroutine Advance_moisture
 
-  end module fmc_model_wrffire_mod
+  end module fmc_wrffire_mod
