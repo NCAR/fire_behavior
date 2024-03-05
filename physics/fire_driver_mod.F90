@@ -97,11 +97,11 @@
 
 
       if (config_flags%fmoist_run) call grid%fmc_param%Advance_fmc_model (config_flags%fmoist_freq, config_flags%fmoist_dt, &
-          grid%itimestep, grid%dt, grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+          grid%itimestep, grid%dt, grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
           grid%i_start, grid%i_end, grid%j_start, &
-          grid%j_end, grid%num_tiles, config_flags%fmep_decay_tlag, grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, &
+          grid%j_end, grid%num_tiles, grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, &
           grid%fire_rain_old, grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, config_flags%fuelmc_g, &
-          config_flags%fire_print_msg, grid%fmc_g, grid%nfuel_cat, grid%fuels, grid%ros_param)
+          grid%fmc_g, grid%nfuel_cat, grid%fuels, grid%ros_param)
 
       do ij = 1, grid%num_tiles
         call Advance_fire_model (config_flags, grid, &

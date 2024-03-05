@@ -4,9 +4,8 @@
 
     private
 
-    public :: namelist_t, NUM_FMC, FIRE_MAX_IGNITIONS_IN_NAMELIST
+    public :: namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
 
-    integer, parameter :: NUM_FMC = 5
     integer, parameter :: FIRE_MAX_IGNITIONS_IN_NAMELIST = 5
 
     type :: namelist_t
@@ -46,8 +45,6 @@
       logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
       integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
-      integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
-      real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
 
         ! Objects
       integer :: fuel_opt = 1 ! Fuel model
@@ -180,8 +177,6 @@
       real :: fmoist_dt = 600                 ! "moisture model time step" "s"
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       logical :: fire_is_real_perim = .false. ! .false. = point/line ignition, .true. = observed perimeter"
-      integer :: nfmc = NUM_FMC               ! "number of fuel moisture classes" related to NUM_NFMC
-      real :: fmep_decay_tlag = 999999        ! "time constant of assimilated adjustments of equilibria decay" "1"
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke " "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
@@ -225,7 +220,7 @@
           fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fmoist_run, &
           fmoist_freq, fmoist_dt, &
-          fire_wind_height, fire_is_real_perim, nfmc, fmep_decay_tlag, frac_fburnt_to_smoke, fuelmc_g, &
+          fire_wind_height, fire_is_real_perim, frac_fburnt_to_smoke, fuelmc_g, &
           fuelmc_g_live, fuelmc_c, &
             ! objects
           fuel_opt, ros_opt, fmc_opt, &
@@ -282,8 +277,6 @@
       this%fmoist_dt = fmoist_dt
       this%fire_wind_height = fire_wind_height
       this%fire_is_real_perim = fire_is_real_perim
-      this%nfmc = nfmc
-      this%fmep_decay_tlag = fmep_decay_tlag
       this%frac_fburnt_to_smoke = frac_fburnt_to_smoke
       this%fuelmc_g = fuelmc_g
       this%fuelmc_g_live = fuelmc_g_live
