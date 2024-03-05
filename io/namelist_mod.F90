@@ -14,7 +14,7 @@
           interval_atm = -1
       real :: dt = 2.0
 
-      integer :: num_tiles = 1, num_tiles_x = 1, num_tiles_y = 1
+      integer :: num_tiles = 1
 
       integer :: fire_print_msg = 0           ! "write fire statistics, 0 no writes, 1+ for more"  ""
       real :: fire_atm_feedback = 1.0         ! "the heat fluxes to the atmosphere are multiplied by this" "1"
@@ -42,9 +42,9 @@
       real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
-      logical :: fmoist_run = .false.         ! "run moisture model (on the atmospheric grid), output to fmc_gc"
-      integer :: fmoist_freq = 0              ! "frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps" "1"
-      real :: fmoist_dt = 600                 ! "moisture model time step" "s"
+      logical :: fmoist_run = .false.         ! run moisture model
+      integer :: fmoist_freq = 0              ! frequency to run moisture model 0: use fmoist_dt, k>0: every k timesteps
+      real :: fmoist_dt = 600.0               ! moisture model time step [s]
 
         ! Objects
       integer :: fuel_opt = 1 ! Fuel model
@@ -346,14 +346,14 @@
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output, &
-          num_tiles, num_tiles_x, num_tiles_y
+          num_tiles
       real :: dt
 
       integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
-          num_tiles, num_tiles_x, num_tiles_y
+          num_tiles
 
 
       start_year = 0
@@ -371,8 +371,6 @@
       dt = 2.0
       interval_output = 0
       num_tiles = 1
-      num_tiles_x = 1
-      num_tiles_y = 1
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -403,8 +401,6 @@
       this%interval_output = interval_output
 
       this%num_tiles = num_tiles
-      this%num_tiles_x = num_tiles_x
-      this%num_tiles_y = num_tiles_y
 
     end subroutine Init_time_block
 
