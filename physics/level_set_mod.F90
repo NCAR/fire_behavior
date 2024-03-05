@@ -24,23 +24,22 @@
 
     private
 
-    public :: Fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
+    public :: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
 
     logical, parameter :: FIRE_GROWS_ONLY = .true.
     integer, parameter :: BDY_ENO1 = 10, SLOPE_FACTOR = 1.0
 
   contains
 
-    subroutine Fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
-        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fuel_frac_burnt_dt, fire_print_msg)
+    subroutine Calc_fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
+        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fuel_frac_burnt_dt)
 
       implicit none
 
       !*** purpose: determine fraction of fuel remaining
       !*** NOTE: because variables are cell centered, need halo/sync width 1 before
 
-      integer, intent (in) :: its, ite, jts, jte, ims, ime, jms, jme, ifs, ife, jfs, jfe, &
-          fire_print_msg
+      integer, intent (in) :: its, ite, jts, jte, ims, ime, jms, jme, ifs, ife, jfs, jfe
       real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
       real, intent (in) :: time_now
       real, intent (in out), dimension (ims:ime, jms:jme) :: fuel_frac
@@ -172,7 +171,7 @@
              call Fuel_left_cell_1 (fuel_left_ff, fire_area_ff, &
                  lffij, lffij1, lffi1j, lffi1j1, &
                  tifij, tifij1, tifi1j, tifi1j1, &
-                 time_now, fuel_time(icl,jcl), fire_print_msg)
+                 time_now, fuel_time(icl,jcl))
 
                 ! consistency check
               if (fire_area_ff < -1e-6 .or.  &
@@ -221,21 +220,16 @@
              end if
           end do
       end do
-      !$OMP CRITICAL(FIRE_CORE_CRIT)
-      write (msg,'(a, 4i6, a, f10.7)') 'fuel_left: tile', its, ite, jts, jte, ' max fuel burnt/area', fmax 
-      !$OMP END CRITICAL(FIRE_CORE_CRIT)
-      call Message (msg, fire_print_msg)
 
       return
-    end subroutine Fuel_left
+    end subroutine Calc_fuel_left
 
     subroutine Fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
         lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
-        time_now, fuel_time_cell, fire_print_msg)
+        time_now, fuel_time_cell)
 
       implicit none
 
-      integer, intent(in) :: fire_print_msg
       real, intent(out) :: fuel_frac_left, fire_frac_area
       real, intent(in) :: lfn00, lfn01, lfn10, lfn11     ! level set function at 4 corners of the cell
       real, intent(in) :: tign00, tign01, tign10, tign11 ! ignition time at the  4 corners of the cell
@@ -353,19 +347,7 @@
       !if(area>0.)out=1. - area*(1. - exp(ta/fuel_time_cell))
       if (area > 0) out = area * exp (ta / fuel_time_cell) + (1.0 - area)
 
-      if(out > 1.0)then
-        !$OMP CRITICAL(FIRE_CORE_CRIT)
-        write (msg, *) 'out=', out, '>1 area=', area,' ta=', ta
-        call Message (msg, fire_print_msg)
-        write(msg,*)'tign=', tign00, tign01, tign10, tign11,' time_now=', time_now
-        !$OMP END CRITICAL(FIRE_CORE_CRIT)
-        call Message(msg, fire_print_msg)
-        !call Message('WARNING: fuel_left_cell_1: fuel fraction > 1')
-        call Crash ('fuel_left_cell_1: fuel fraction > 1')
-      end if
-
-      !out = max(out,0.) ! make sure out is between 0 and 1
-      !out = min(out,1.)
+      if (out > 1.0) call Crash ('fuel_left_cell_1: fuel fraction > 1')
 
       fuel_frac_left = out
       fire_frac_area = area
@@ -455,7 +437,7 @@
     subroutine Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
-        lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, fire_print_msg) 
+        lfn_s1, lfn_s2, lfn_s3, lfn_out, tign)
 
     ! Purpose: Level-set function reinitialization
     !
@@ -476,7 +458,6 @@
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
       real, intent (in) :: dx, dy, ts, dt
-      integer, intent (in) :: fire_print_msg
 
       real :: dt_s, threshold_hlu
       integer :: nts, i, j

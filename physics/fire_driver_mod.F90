@@ -1,10 +1,11 @@
   module fire_driver_mod
 
+    use constants_mod, only : MSG_LEN
     use fire_model_mod, only : Advance_fire_model
     use level_set_mod, only : Extrapol_var_at_bdys
     use state_mod, only : state_fire_t
     use namelist_mod, only : namelist_t
-    use stderrout_mod, only : Message, Stop_simulation
+    use stderrout_mod, only : Print_message, Stop_simulation
 
     use fuel_mod, only : FUEL_ANDERSON
     use fuel_anderson_mod, only : fuel_anderson_t
@@ -92,7 +93,7 @@
       type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in) :: config_flags
 
-      integer :: stat_lev = 1
+      integer, parameter :: PRINT_LEVEL = 1
       integer :: ij
 
 
@@ -108,7 +109,7 @@
             grid%i_start(ij), grid%i_end(ij), grid%j_start(ij), grid%j_end(ij))
       end do
 
-      if (config_flags%fire_print_msg >= stat_lev) call Print_summary (config_flags, grid)
+      if (config_flags%fire_print_msg >= PRINT_LEVEL) call Print_summary (config_flags, grid)
 
     end subroutine Advance_fire_components
 
@@ -160,10 +161,10 @@
           end do
         end do
       else
-        call Stop_simulation ('fun_real: bad fun')
+        call Stop_simulation ('Value not supported for printing summary')
       end if
 
-      if (lsum .ne. lsum) call Stop_simulation ('fun_real: NaN detected')
+      if (lsum .ne. lsum) call Stop_simulation ('NaN detected in calculating summary')
 
       dosum = fun == REAL_SUM .or. fun == RNRM_SUM
       domax = fun == REAL_MAX .or. fun == RNRM_MAX
@@ -188,7 +189,7 @@
       real :: time_start
       integer :: stat_lev = 1
       integer :: ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme
-      character (len = 128) :: msg
+      character (len = MSG_LEN) :: msg
 
       ifds = grid%ifds
       ifde = grid%ifde
@@ -221,28 +222,29 @@
       mqf = Calc_domain_stats (REAL_MAX, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, grid%fgrnqfx, &
           grid%fgrnqfx)
 
+ 91   format('Time ',f11.3,' s ',a,e12.3,1x,a)
+
       write (msg, 91) time_start, 'Average wind        ', aw, 'm/s'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      call Print_message (msg)
 
       write (msg, 91) time_start, 'Maximum wind        ', mw, 'm/s'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      call Print_message (msg)
 
       write (msg, 91) time_start, 'Fire area           ', tfa, 'm^2'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      call Print_message (msg)
 
       write (msg, 91) time_start, 'Heat output         ', thf, 'W'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      call Print_message (msg)
 
-      write (msg, 91) time_start,'Max heat flux       ', mhf, 'W/m^2'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      write (msg, 91) time_start, 'Max heat flux       ', mhf, 'W/m^2'
+      call Print_message (msg)
 
-      write (msg, 91) time_start,'Latent heat output  ', tqf, 'W'
-      call Message(msg, config_flags%fire_print_msg, stat_lev)
+      write (msg, 91) time_start, 'Latent heat output  ', tqf, 'W'
+      call Print_message (msg)
 
-      write (msg, 91) time_start,'Max latent heat flux',mqf,'W/m^2'
-      call Message (msg, config_flags%fire_print_msg, stat_lev)
+      write (msg, 91) time_start, 'Max latent heat flux', mqf, 'W/m^2'
+      call Print_message (msg)
 
- 91   format('Time ',f11.3,' s ',a,e12.3,1x,a)
 
     end subroutine Print_summary
 
