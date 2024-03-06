@@ -1,7 +1,5 @@
   module tiles_mod
 
-    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
-
     implicit none
 
     private

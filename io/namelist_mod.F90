@@ -1,5 +1,7 @@
   module namelist_mod
 
+    use stderrout_mod, only : Stop_simulation, Print_message
+
     implicit none
 
     private
@@ -112,16 +114,15 @@
 
     subroutine Init_atm_block_legacy (this, file_name)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
       implicit none
 
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
       integer :: kde, interval_atm
-      integer, parameter :: MAX_CHAR_LEN = 250
       integer :: unit_nml, io_stat
+      character (len = :), allocatable :: msg
+
 
       namelist /atm/ kde, interval_atm
 
@@ -132,15 +133,12 @@
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
-        stop
+        msg = 'Problems opening namelist file ' // trim (file_name)
+        call Stop_simulation (msg)
       end if
 
       read (unit_nml, nml = atm, iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading namelist atm block'
-        stop
-      end if
+      if (io_stat /= 0) call Stop_simulation ('Problems reading namelist atm block')
       close (unit_nml)
 
       this%interval_atm = interval_atm
@@ -151,8 +149,6 @@
     end subroutine Init_atm_block_legacy
 
     subroutine Init_fire_block (this, file_name)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
 
       implicit none
 
@@ -243,20 +239,18 @@
           fire_ignition_ros5, fire_ignition_start_time5, fire_ignition_end_time5, fire_ignition_radius5
 
       integer :: unit_nml, io_stat
+      character (len = :), allocatable :: msg
+
 
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
-        stop
+        msg = 'Problems opening namelist file ' // trim (file_name)
+        call Stop_simulation (msg)
       end if
 
       read (unit_nml, nml = fire)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading namelist fire block'
-        stop
-      end if
-
+      if (io_stat /= 0) call Stop_simulation ('Problems reading namelist fire block')
       close (unit_nml)
 
       this%fire_print_msg = fire_print_msg
@@ -337,8 +331,6 @@
 
     subroutine Init_time_block (this, file_name)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
       implicit none
 
       class (namelist_t), intent (in out) :: this
@@ -349,6 +341,7 @@
           num_tiles
       real :: dt
 
+      character (len = :), allocatable :: msg
       integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
@@ -374,15 +367,12 @@
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems opening namelist file ', trim (file_name)
-        stop
+        msg = 'Problems opening namelist file ' // trim (file_name)
+        call Stop_simulation (msg)
       end if
 
       read (unit_nml, nml = time, iostat = io_stat)
-      if (io_stat /= 0) then
-        write (ERROR_UNIT, *) 'Problems reading namelist time block'
-        stop
-      end if
+      if (io_stat /= 0) call Stop_simulation ('Problems reading namelist time block')
       close (unit_nml)
 
       this%start_year = start_year
@@ -406,8 +396,6 @@
 
     subroutine Init_namelist (this, file_name)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT
-
       implicit none
 
       class (namelist_t), intent (out) :: this
@@ -416,13 +404,13 @@
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Entering subroutine Read_namelist'
+      if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Read_namelist')
 
       call this%Init_time_block (file_name = trim (file_name))
       call this%Init_fire_block (file_name = trim (file_name))
       call this%Init_atm_block (file_name = trim (file_name))
 
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Leaving subroutine Read_namelist'
+      if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Read_namelist')
 
     end subroutine Init_namelist
 

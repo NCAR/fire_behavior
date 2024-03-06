@@ -1,10 +1,11 @@
   module wrf_mod
 
-    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
-    use datetime_mod, only : datetime_t
-    use proj_lc_mod, only : proj_lc_t
-    use namelist_mod, only : namelist_t
     use constants_mod, only : CP, XLV
+    use datetime_mod, only : datetime_t
+    use namelist_mod, only : namelist_t
+    use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
+    use proj_lc_mod, only : proj_lc_t
+    use stderrout_mod, only : Print_message
 
     implicit none
 
@@ -398,7 +399,7 @@
 
     function Wrf_t_const (file_name, config_flags) result (return_value)
 
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, ERROR_UNIT, REAL32, INT32
+      use, intrinsic :: iso_fortran_env, only : REAL32, INT32
 
       implicit none
 
@@ -414,7 +415,8 @@
       integer (kind = INT32) :: att_int32
 
 
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Entering wrf_t constructor'
+      if (DEBUG_LOCAL) Call Print_message ('Entering wrf_t constructor')
+
       return_value%file_name = trim (file_name)
       call Is_netcdf_file_present (trim (file_name))
 
@@ -505,7 +507,7 @@
       allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%va = 0.0
 
-      if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Leaving wrf_t constructor'
+      if (DEBUG_LOCAL) Call Print_message ('Leaving wrf_t constructor')
 
     end function Wrf_t_const
 
@@ -666,8 +668,6 @@
     end subroutine Print_domain
 
     subroutine Update_atm_state (this, datetime_now)
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 

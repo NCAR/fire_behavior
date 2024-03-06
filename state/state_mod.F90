@@ -1,20 +1,18 @@
   module state_mod
 
-    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
-
-    use namelist_mod, only : namelist_t
-    use geogrid_mod, only : geogrid_t
-    use proj_lc_mod, only : proj_lc_t
-    use datetime_mod, only : datetime_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
-    use wrf_mod, only : wrf_t, G, RERADIUS
     use constants_mod, only : PI
-    use stderrout_mod, only: Stop_simulation
-    use tiles_mod, only : Calc_tiles_dims
-    use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
-    use ros_mod, only : ros_t
-    use ignition_line_mod, only : ignition_line_t
+    use datetime_mod, only : datetime_t
     use fmc_mod, only : fmc_t
+    use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    use geogrid_mod, only : geogrid_t
+    use ignition_line_mod, only : ignition_line_t
+    use namelist_mod, only : namelist_t
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var
+    use proj_lc_mod, only : proj_lc_t
+    use ros_mod, only : ros_t
+    use stderrout_mod, only : Stop_simulation, Print_message
+    use tiles_mod, only : Calc_tiles_dims
+    use wrf_mod, only : wrf_t, G, RERADIUS
 
     implicit none
 
@@ -144,7 +142,7 @@
 
 
       if (this%datetime_now == this%datetime_next_output) then
-        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Writing output...'
+        if (DEBUG_LOCAL) call Print_message ('Writing output...')
         call this%Save_state ()
         call this%datetime_next_output%Add_seconds (config_flags%interval_output)
       end if
@@ -163,7 +161,7 @@
 
 
       If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
-        if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Updating wrfdata...'
+        if (DEBUG_LOCAL) call Print_message ('Updating wrfdata...')
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
         call wrf%Update_atm_state (this%datetime_now)
@@ -312,8 +310,7 @@
         if (allocated (geogrid%lfn_init)) then
           this%lfn_hist(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%lfn_init
         else
-          write (ERROR_UNIT, *) 'Attenting to initialize fire from given  perimeter but no initialization data present'
-          stop
+          Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
         end if
       end if
 
@@ -593,6 +590,8 @@
     end subroutine Interpolate_profile
 
     subroutine Print_domain (this)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 

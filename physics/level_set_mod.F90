@@ -14,7 +14,7 @@
   ! https://doi.org/10.1002/2017MS001108
 
     use ros_wrffire_mod, only: ros_wrffire_t
-    use stderrout_mod, only: Crash, Message, Stop_simulation
+    use stderrout_mod, only: Stop_simulation
     use state_mod, only: state_fire_t
     use ignition_line_mod, only : ignition_line_t
     use ros_mod, only : ros_t
@@ -60,9 +60,7 @@
       ir = fuel_left_irl
       jr = fuel_left_jrl
 
-      if ((ir /= 2) .or. (jr /= 2)) then 
-         call Crash ('fuel_left: ir.ne.2 or jr.ne.2 ')
-      end if
+      if ((ir /= 2) .or. (jr /= 2)) call Stop_simulation ('fuel_left: ir.ne.2 or jr.ne.2 ')
 
       rx = 1.0 / ir 
       ry = 1.0 / jr
@@ -116,7 +114,7 @@
                 txx = 0.5
                 tyy = 0.5
               else
-                call Crash ('fuel_left: isubcl,jsubcl should be only 1 or 2')
+                call Stop_simulation ('fuel_left: isubcl,jsubcl should be only 1 or 2')
               endif 
 
               ! calculation lff and tif in 4 endpoints of subcell
@@ -180,7 +178,7 @@
                 write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
                     ' of refined mesh fuel burnt', 1 - fuel_left_ff, ' fire area', fire_area_ff
                 !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                call Crash(msg)
+                call Stop_simulation (msg)
               endif
 
               helpsum1 = helpsum1 + fuel_left_ff
@@ -212,7 +210,7 @@
                  write (msg, '(a, 2i6, 2(a, f11.8))') 'fuel_left: at node', i, j, &
                      ' fuel burnt', 1 - fuel_frac_end(i, j), ' but fire area', fire_area(i, j)
                  !$OMP END CRITICAL(FIRE_CORE_CRIT)
-                     call Crash (msg)
+                     call Stop_simulation (msg)
                end if
              else
                frat = (1 - fuel_frac_end(i, j)) / fire_area(i, j)
@@ -347,7 +345,7 @@
       !if(area>0.)out=1. - area*(1. - exp(ta/fuel_time_cell))
       if (area > 0) out = area * exp (ta / fuel_time_cell) + (1.0 - area)
 
-      if (out > 1.0) call Crash ('fuel_left_cell_1: fuel fraction > 1')
+      if (out > 1.0) call Stop_simulation ('fuel_left_cell_1: fuel fraction > 1')
 
       fuel_frac_left = out
       fire_frac_area = area

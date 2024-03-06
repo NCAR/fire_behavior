@@ -1,7 +1,5 @@
   module geogrid_mod
 
-    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
-
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present, Is_netcdf_var_present
     use proj_lc_mod, only : proj_lc_t
 
@@ -126,8 +124,6 @@
 
     function Get_atm_proj (this) result (return_value)
 
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
-
       implicit none
 
       class (geogrid_t), intent (in) :: this
@@ -142,12 +138,13 @@
 
     subroutine Print_geogrid (this)
 
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+
       implicit none
 
       class (geogrid_t), intent (in) :: this
 
 
-      write (OUTPUT_UNIT, *)
       write (OUTPUT_UNIT, *) 'Contents of geogrid_t object:'
       if (allocated (this%elevations)) &
           write (OUTPUT_UNIT, *) 'Shape (elevations) = ', shape (this%elevations)
@@ -183,4 +180,3 @@
     end subroutine Print_geogrid
 
   end module geogrid_mod
-

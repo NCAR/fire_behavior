@@ -1,6 +1,6 @@
   module netcdf_mod
 
-    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
+    use stderrout_mod, only : Stop_simulation, Print_message
 
     implicit none
 
@@ -154,10 +154,7 @@
       integer, intent (in) :: status
 
 
-      if (status /= NF90_NOERR) then
-        write (ERROR_UNIT, *) trim (nf90_strerror (status))
-        stop
-      end if
+      if (status /= NF90_NOERR) call Stop_simulation (trim (nf90_strerror (status)))
 
     end subroutine Check_status
 
@@ -253,7 +250,6 @@
     subroutine Get_netcdf_dim (file_name, dim_name, dim_value)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
       implicit none
 
@@ -284,7 +280,6 @@
     subroutine Get_netcdf_var_char_1d (file_name, name_var, var1d)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT
 
       implicit none
 
@@ -293,7 +288,7 @@
 
       integer :: status, ncid, ivar, io_stat, nf_type, nvdims, i, n1, n2
       integer, dimension (NF90_MAX_VAR_DIMS) :: dimids, idims
-      character (len = :), allocatable :: io_errmsg
+      character (len = :), allocatable :: io_errmsg, msg
 
 
       status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
@@ -317,22 +312,19 @@
 
           allocate (character (len = n1) :: var1d(n2), stat = io_stat, errmsg = io_errmsg)
           if (io_stat /= 0) then
-            write (ERROR_UNIT, *) 'Problems allocating char var (1D)'
-            write (ERROR_UNIT, *) io_errmsg
-            stop
+            call Print_message ('Problems allocating char var (1D)')
+            call Stop_simulation (io_errmsg)
           end if
 
           status = nf90_get_var (ncid, ivar, var1d)
           call Check_status (status)
         else
-          write (ERROR_UNIT, *)
-          write (ERROR_UNIT, *) 'FATAL ERROR: ', name_var, ' is not a 2D array'
-          stop
+          msg = 'FATAL ERROR: ' // trim (name_var) // ' is not a 2D array'
+          call Stop_simulation (msg)
         end if
       else
-        write (ERROR_UNIT, *)
-        write (ERROR_UNIT, *) 'FATAL ERROR: ', name_var, ' is not a CHAR variable'
-        stop
+        msg = 'FATAL ERROR: ' // name_var // ' is not a CHAR variable'
+        call Stop_simulation (msg)
       end if
 
       status = nf90_close (ncid)
@@ -343,7 +335,7 @@
     subroutine Get_netcdf_var_int32_3d (file_name, var_name, output)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INT32
+      use, intrinsic :: iso_fortran_env, only : INT32
 
       implicit none
 
@@ -353,6 +345,7 @@
       integer :: status, ncid, ivar, nf_type, nvdims
       integer :: i, n1, n2, n3, io_stat
       integer, dimension(NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: msg
 
 
         ! Open file
@@ -376,22 +369,17 @@
           n2 = idims(2)
           n3 = idims(3)
           allocate (output(n1, n2, n3), stat = io_stat)
-          if (io_stat /= 0) then
-            write (OUTPUT_UNIT, *) 'Problems allocating output variable'
-            stop
-          end if
+          if (io_stat /= 0) call Stop_simulation ('Problems allocating output variable')
 
           status = nf90_get_var (ncid, ivar, output)
           call Check_status (status)
         else
-          write (OUTPUT_UNIT, *)
-          write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a 3D array'
-          stop
+          msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a 3D array'
+          Call Stop_simulation (msg)
         end if
       else
-        write (OUTPUT_UNIT, *)
-        write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not an int32 variable'
-        stop
+        msg = 'FATAL ERROR: ' // trim (var_name) // ' is not an int32 variable'
+        call Stop_simulation (msg)
       end if
 
         ! Closing file
@@ -403,7 +391,7 @@
     subroutine Get_netcdf_var_real32_2d (file_name, var_name, output)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, REAL32
+      use, intrinsic :: iso_fortran_env, only : REAL32
 
       implicit none
 
@@ -413,6 +401,7 @@
       integer :: status, ncid, ivar, nf_type, nvdims
       integer :: i, n1, n2, io_stat
       integer, dimension(NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: msg
 
 
         ! Open file
@@ -435,22 +424,17 @@
           n1 = idims(1)
           n2 = idims(2)
           allocate (output(n1, n2), stat = io_stat)
-          if (io_stat /= 0) then
-            write (OUTPUT_UNIT, *) 'Problems allocating output variable'
-            stop
-          end if
+          if (io_stat /= 0) Call Stop_simulation ('Problems allocating output variable')
 
           status = nf90_get_var (ncid, ivar, output)
           call Check_status (status)
         else
-          write (OUTPUT_UNIT, *)
-          write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a 2D array'
-          stop
+          msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a 2D array'
+          call Stop_simulation (msg)
         end if
       else
-        write (OUTPUT_UNIT, *)
-        write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a real32 variable'
-        stop
+        msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a real32 variable'
+        call Stop_simulation (msg)
       end if
 
         ! Closing file
@@ -462,7 +446,7 @@
     subroutine Get_netcdf_var_real32_3d (file_name, var_name, output)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, REAL32
+      use, intrinsic :: iso_fortran_env, only : REAL32
 
       implicit none
 
@@ -472,6 +456,7 @@
       integer :: status, ncid, ivar, nf_type, nvdims
       integer :: i, n1, n2, n3, io_stat
       integer, dimension(NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: msg
 
 
         ! Open file
@@ -495,22 +480,17 @@
           n2 = idims(2)
           n3 = idims(3)
           allocate (output(n1, n2, n3), stat = io_stat)
-          if (io_stat /= 0) then
-            write (OUTPUT_UNIT, *) 'Problems allocating output variable'
-            stop
-          end if
+          if (io_stat /= 0) call Stop_simulation ('Problems allocating output variable')
 
           status = nf90_get_var (ncid, ivar, output)
           call Check_status (status)
         else
-          write (OUTPUT_UNIT, *)
-          write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a 3D array'
-          stop
+          msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a 3D array'
+          call Stop_simulation (msg)
         end if
       else
-        write (OUTPUT_UNIT, *)
-        write (OUTPUT_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a real32 variable'
-        stop
+        msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a real32 variable'
+        call Stop_simulation (msg)
       end if
 
         ! Closing file
@@ -522,7 +502,7 @@
     subroutine Get_netcdf_var_real32_4d (file_name, var_name, output)
 
       use netcdf
-      use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, REAL32
+      use, intrinsic :: iso_fortran_env, only : REAL32
 
       implicit none
 
@@ -532,6 +512,7 @@
       integer :: status, ncid, ivar, nf_type, nvdims
       integer :: i, n1, n2, n3, n4, io_stat
       integer, dimension(NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: msg
 
 
         ! Open file
@@ -556,22 +537,17 @@
           n3 = idims(3)
           n4 = idims(4)
           allocate (output(n1, n2, n3, n4), stat = io_stat)
-          if (io_stat /= 0) then
-            write (ERROR_UNIT, *) 'Problems allocating output variable'
-            stop
-          end if
+          if (io_stat /= 0) Call Stop_simulation ('Problems allocating output variable')
 
           status = nf90_get_var (ncid, ivar, output)
           call Check_status (status)
         else
-          write (ERROR_UNIT, *)
-          write (ERROR_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a 4D array'
-          stop
+          msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a 4D array'
+          call Stop_simulation (msg)
         end if
       else
-        write (ERROR_UNIT, *)
-        write (ERROR_UNIT, *) 'FATAL ERROR: ', trim (var_name), ' is not a real32 variable'
-        stop
+        msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a real32 variable'
+        call Stop_simulation (msg)
       end if
 
         ! Closing file
@@ -589,12 +565,14 @@
       character (len = *), intent (in) :: file_name
 
       integer :: ncidout, status
+      character (len = :), allocatable :: msg
+
 
       status = nf90_open (trim(file_name), NF90_WRITE, ncidout)
       if (status /= NF90_NOERR) then
-        write (ERROR_UNIT, *) 'Problems opening file ', trim (file_name)
-        write (ERROR_UNIT, *) trim (nf90_strerror (status))
-        stop
+        msg = 'Problems opening file ' // trim (file_name)
+        call Print_message (msg)
+        call Stop_simulation (trim (nf90_strerror (status)))
       end if
 
       status = nf90_close (ncidout)
@@ -630,4 +608,3 @@
     end function Is_netcdf_var_present
 
   end module netcdf_mod
-
