@@ -29,7 +29,7 @@
 
   contains
 
-    subroutine Calc_ros_wrffire (this, ifms, ifme, jfms, jfme, ros, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
+    pure function Calc_ros_wrffire (this, ifms, ifme, jfms, jfme, i, j, nvx, nvy, uf, vf, dzdxf, dzdyf) result (return_value)
 
       implicit none
 
@@ -37,11 +37,9 @@
       ! ft/min = m/s * 2.2369 * 88.0 = m/s *  196.850
 
       class (ros_wrffire_t), intent (in) :: this
-      integer, intent (in) :: ifms, ifme, jfms, jfme
-      real, intent (in) :: nvx, nvy
-      integer, intent (in) :: i, j
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: ros
+      integer, intent (in) :: ifms, ifme, jfms, jfme, i, j
+      real, intent (in) :: nvx, nvy, uf, vf, dzdxf, dzdyf
+      real :: return_value
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
       real :: umid, phis, phiw, spdms, umidm, excess, ros_back, cor_wind, cor_slope, ros_base, ros_wind, ros_slope
@@ -50,23 +48,23 @@
 
       if (FIRE_ADVECTION /= 0) then
           ! wind speed is total speed 
-        speed = sqrt (uf(i, j) * uf(i, j) + vf(i, j) * vf(i, j)) + tiny (speed)
+        speed = sqrt (uf * uf + vf * vf) + tiny (speed)
           ! slope is total slope
-        tanphi = sqrt (dzdxf(i, j) * dzdxf(i, j) + dzdyf(i, j) * dzdyf(i, j)) + tiny (tanphi)
+        tanphi = sqrt (dzdxf * dzdxf + dzdyf * dzdyf) + tiny (tanphi)
           ! cos of wind and spread, if >0
-        cor_wind =  max (0.0, (uf(i, j) * nvx + vf(i, j) * nvy) / speed)
+        cor_wind =  max (0.0, (uf * nvx + vf * nvy) / speed)
           ! cos of slope and spread, if >0
-        cor_slope = max (0.0, (dzdxf(i, j) * nvx + dzdyf(i, j) * nvy) / tanphi)
+        cor_slope = max (0.0, (dzdxf * nvx + dzdyf * nvy) / tanphi)
       else
           ! wind speed in spread direction
-        speed = uf(i, j) * nvx + vf(i, j) * nvy
+        speed = uf * nvx + vf * nvy
           ! slope in spread direction
-        tanphi = dzdxf(i, j) * nvx + dzdyf(i, j) * nvy
+        tanphi = dzdxf * nvx + dzdyf * nvy
         cor_wind = 1.0
         cor_slope = 1.0
       end if
 
-      if (.not. this%ischap(i,j) > 0.0) then
+      if (.not. this%ischap(i, j) > 0.0) then
           ! Rothermel
         spdms = max (speed, 0.0)
         umidm = min (spdms, 30.0)
@@ -98,10 +96,10 @@
         ros_slope = ros_slope - excess * ros_slope/ (ros_wind + ros_slope)
       end if
 
-      ros(i, j) = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
-      if (FIRE_GROWS_ONLY) ros(i, j) = max (ros(i, j), 0.0)
+      return_value = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
+      if (FIRE_GROWS_ONLY) return_value = max (return_value, 0.0)
 
-    end subroutine Calc_ros_wrffire
+    end function Calc_ros_wrffire
 
     subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme)
 

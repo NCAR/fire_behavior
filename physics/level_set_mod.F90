@@ -354,7 +354,7 @@
     subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, &
-        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, grid, ros_model)
+        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, uf, vf, dzdxf, dzdyf, ros_model)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
 
@@ -363,11 +363,11 @@
       integer, intent(in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           fire_upwinding, fire_viscosity_ngp, fire_lsm_band_ngp
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
       real, intent (in) :: dx, dy, ts, dt
       real, intent (out) :: tbound
-      type (state_fire_t) :: grid
       class (ros_t), intent (in) :: ros_model
 
         ! to store tendency (rhs of the level set pde)
@@ -387,7 +387,7 @@
       call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound, tend, ros, grid, ros_model)
+          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
 
       do j = jfts, jfte 
         do i = ifts, ifte 
@@ -399,7 +399,7 @@
      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, grid, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -411,7 +411,7 @@
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, grid, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -679,7 +679,7 @@
 
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ifms, ifme, jfms, jfme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, grid, ros_model)
+        fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
 
       ! compute the right hand side of the level set equation
 
@@ -688,10 +688,10 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme, its, ite, jts, jte, ids, ide, jds, jde, &
           fire_upwinding,fire_viscosity_ngp, fire_lsm_band_ngp
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros
       real, intent (out) :: tbound
-      type (state_fire_t) :: grid
       class (ros_t), intent (in) :: ros_model
 
       real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
@@ -763,8 +763,8 @@
 
                 ! WENO3
               case(6)
-                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
-                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * uf(i, j) + &
+                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * vf(i, j)
                 signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), &
                     lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
                 signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
@@ -777,8 +777,8 @@
 
                 ! WENO5
               case(7)
-                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j)+ &
-                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * uf(i, j)+ &
+                    Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * vf(i, j)
                 signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
                 signo_y = a_valor * Select_4th (dy,lfn(i,j),lfn(i,j-1),lfn(i,j-2),lfn(i,j+1),lfn(i,j+2))
                 diff2x = Select_weno5 (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), &
@@ -790,8 +790,8 @@
                 ! WENO3/ENO1
               case(8)
                 if (abs (lfn(i, j)) < threshold_hlu) then
-                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
-                      Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * uf(i, j) + &
+                      Select_4th (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * vf(i, j)
                   signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), & 
                       lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
                   signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
@@ -810,8 +810,8 @@
                 ! WENO5/ENO1
               case(9)
                 if (abs (lfn(i, j)) < threshold_hlu) then
-                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * grid%uf(i, j) + &
-                      Select_4th (dy,lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * grid%vf(i, j)
+                  a_valor = Select_4th (dx, lfn(i, j), lfn(i - 1, j), lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j)) * uf(i, j) + &
+                      Select_4th (dy,lfn(i, j), lfn(i, j - 1), lfn(i, j - 2), lfn(i, j + 1), lfn(i, j + 2)) * vf(i, j)
                   signo_x = a_valor * Select_4th (dx, lfn(i, j), lfn(i - 1, j), &
                       lfn(i - 2, j), lfn(i + 1, j), lfn(i + 2, j))
                   signo_y = a_valor * Select_4th (dy, lfn(i, j), lfn(i, j - 1), &
@@ -842,8 +842,8 @@
           nvy = diff2y / scale
 
             ! Get rate of spread from wind speed and slope
-          call ros_model%Calc_ros (ifms, ifme, jfms, jfme, ros, &
-              nvx, nvy, i, j, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf)
+          ros(i, j) = ros_model%Calc_ros (ifms, ifme, jfms, jfme, i, j, &
+              nvx, nvy, uf(i, j), vf(i, j), dzdxf(i, j), dzdyf(i, j))
 
             ! CFL condition
           if (grad > 0.0) tbound = max (tbound, ros(i, j) * (abs (diff2x) / dx + &
