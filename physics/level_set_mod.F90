@@ -165,10 +165,9 @@
                   + txx * (1 - tyy) * tignf(1 + 1, 1) &
                   + txx * tyy * tignf(1 + 1, 1 + 1)
  
-             call Fuel_left_cell_1 (fuel_left_ff, fire_area_ff, &
-                 lffij, lffij1, lffi1j, lffi1j1, &
-                 tifij, tifij1, tifi1j, tifi1j1, &
-                 time_now, fuel_time(icl,jcl))
+             call Calc_fuel_left_at_grid_point (lffij, lffij1, lffi1j, lffi1j1, &
+                 tifij, tifij1, tifi1j, tifi1j1, time_now, fuel_time(icl,jcl), &
+                 fuel_left_ff, fire_area_ff)
 
                 ! consistency check
               if (fire_area_ff < -1e-6 .or.  &
@@ -184,23 +183,15 @@
               helpsum2 = helpsum2 + fire_area_ff
             end do
           end do
-          fuel_frac_end(icl, jcl) = helpsum1
-          fire_area(icl, jcl) = helpsum2
+          fuel_frac_end(icl, jcl) = helpsum1 / (ir * jr)
+          fire_area(icl, jcl) = helpsum2 / (ir * jr)
+          fuel_frac_burnt_dt(icl, jcl) = fuel_frac(icl, jcl) - fuel_frac_end(icl, jcl)
+          fuel_frac(icl, jcl) = fuel_frac_end(icl, jcl)
         end do 
       end do
 
-        ! finish the averaging
-      do j = jts, jte
-        do i = its, ite        
-          fuel_frac_end(i, j) = fuel_frac_end(i, j) / (ir * jr)
-          fuel_frac_burnt_dt(i, j) = fuel_frac(i, j) - fuel_frac_end(i, j)
-          fuel_frac(i, j) = fuel_frac_end(i, j)
-          fire_area(i, j) = fire_area(i, j) / (ir * jr)
-        end do
-      end do
-
         ! consistency check after sum
-      fmax = 0
+      fmax = 0.0
       do j = jts, jte
           do i = its, ite        
              if (fire_area(i, j) == 0.0) then
@@ -221,103 +212,34 @@
       return
     end subroutine Calc_fuel_left
 
-    subroutine Fuel_left_cell_1( fuel_frac_left, fire_frac_area, &
-        lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
-        time_now, fuel_time_cell)
+    subroutine Calc_fuel_left_at_grid_point (lfn00, lfn01, lfn10, &
+        lfn11, tign00, tign01, tign10, tign11, time_now, fuel_time_cell, &
+        fuel_frac_left, fire_frac_area)
 
-      implicit none
-
-      real, intent(out) :: fuel_frac_left, fire_frac_area
-      real, intent(in) :: lfn00, lfn01, lfn10, lfn11     ! level set function at 4 corners of the cell
-      real, intent(in) :: tign00, tign01, tign10, tign11 ! ignition time at the  4 corners of the cell
-      real, intent(in) :: time_now                       ! the time now
-      real, intent(in) :: fuel_time_cell                 ! time to burns off to 1/e
-
-      !*** Description
-      ! The area burning is given by the condition L <= 0, where the function P is
-      ! interpolated from lfn(i,j)
-      !
-      ! The time since ignition is the function T, interpolated in from tign(i,j)-time_now.
-      ! The values of tign(i,j) where lfn(i,j)>=0 are ignored, tign(i,j)=0 is taken 
-      ! when lfn(i,j)=0.
-      !
-      ! The function computes an approxmation  of the integral
-      !
-      !
-      !                                  /\
-      !                                  |              
-      ! fuel_frac_left  =      1   -     | 1 -  exp(-T(x,y)/fuel_time_cell)) dxdy
-      !                                  |            
-      !                                 \/
-      !                                0<x<1
-      !                                0<y<1
-      !                             L(x,y)<=0
-      !
-      ! When the cell is not burning at all (all lfn>=0), then fuel_frac(i,j)=1.
-      ! Because of symmetries, the result should not depend on the mesh spacing dx dy
-      ! so dx=1 and dy=1 assumed.
-      !
       ! Example:
       !
       !        lfn<0         lfn>0
-      !      (0,1) -----O--(1,1)            O = points on the fireline, T=tnow
-      !            |      \ |               A = the burning area for computing
-      !            |       \|                        fuel_frac(i,j)
+      !      (0,1) -----O--(1,1)      O = points on the fireline
+      !            |      \ |         A = the burning area for computing
+      !            |       \|             fuel_frac_left(i, j)
       !            |   A    O 
       !            |        |
       !            |        |
       !       (0,0)---------(1,0)
       !       lfn<0          lfn<0
       !
-      ! Approximations allowed: 
-      ! The fireline can be approximated by straight line(s).
-      ! When all cell is burning, approximation by 1 point Gaussian quadrature is OK.
-      ! 
-      ! Requirements:
-      ! 1. The output should be a continuous function of the arrays lfn and
-      !  tign whenever lfn(i,j)=0 implies tign(i,j)=tnow.  
-      ! 2. The output should be invariant to the symmetries of the input in each cell.
-      ! 3. Arbitrary combinations of the signs of lfn(i,j) should work.
-      ! 4. The result should be at least 1st order accurate in the sense that it is
-      !    exact if the time from ignition is a linear function.
-      !
-      ! If time from ignition is approximated by polynomial in the burnt
-      ! region of the cell, this is integral of polynomial times exponential
-      ! over a polygon, which can be computed exactly.
-      !
-      ! Requirement 4 is particularly important when there is a significant decrease
-      ! of the fuel fraction behind the fireline on the mesh scale, because the
-      ! rate of fuel decrease right behind the fireline is much larger 
-      ! (exponential...). This will happen when
-      !
-      ! change of time from ignition within one mesh cell / fuel_time_cell is not << 1
-      !
-      ! This is the same as
-      !
-      !               mesh cell size
-      !  X =    -------------------------      is not << 1
-      !       fireline speed * fuel_time_cell
-      !         
-      !
-      ! When X is large then the fuel burnt in one timestep in the cell is
-      ! approximately proportional to length of  fireline in that cell.
-      !
-      ! When X is small then the fuel burnt in one timestep in the cell is
-      ! approximately proportional to the area of the burning region.
-      !
 
-      !*** calls
-      intrinsic tiny
+      implicit none
 
-      real :: ps, aps, area, ta, out
-      real :: t00, t01, t10, t11
-      real, parameter :: SAFE = tiny (aps)
-      character (len = 128) :: msg
+      real, intent (in) :: lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
+          time_now, fuel_time_cell
+      real, intent (out) :: fuel_frac_left, fire_frac_area
 
-        ! the following algorithm is a very crude approximation
+      real :: ps, aps, ta, t00, t01, t10, t11
+
 
         ! minus time since ignition, 0 if no ignition yet
-        ! it is possible to have 0 in fire region when ignitin time falls in 
+        ! it is possible to have 0 in fire region when ignition time falls in 
         ! inside the time step because lfn is updated at the beginning of the time step
       t00 = tign00 - time_now
       if (lfn00 > 0.0 .or. t00 > 0.0) t00 = 0.0
@@ -327,29 +249,23 @@
       if (lfn10 > 0.0 .or. t10 > 0.0) t10 = 0.0
       t11 = tign11 - time_now
       if (lfn11 > 0.0 .or. t11 > 0.0) t11 = 0.0
-
-        ! approximate burning area, between 0 and 1   
-      ps = lfn00 + lfn01 + lfn10 + lfn11
-      aps = abs (lfn00) + abs (lfn01) + abs (lfn10) + abs (lfn11)
-      aps = max (aps, SAFE)
-      area = (-ps / aps + 1.0) / 2.0
-      area = max (area, 0.0) ! make sure area is between 0 and 1
-      area = min (area, 1.0)
-    
         ! average negative time since ignition
       ta = 0.25 * (t00 + t01 + t10 + t11)
 
-        ! exp decay in the burning area
-      out = 1.0
-      !if(area>0.)out=1. - area*(1. - exp(ta/fuel_time_cell))
-      if (area > 0) out = area * exp (ta / fuel_time_cell) + (1.0 - area)
+        ! Approx burning area
+      ps = lfn00 + lfn01 + lfn10 + lfn11
+      aps = abs (lfn00) + abs (lfn01) + abs (lfn10) + abs (lfn11)
+      aps = max (aps, tiny (aps))
+      fire_frac_area = (-ps / aps + 1.0) / 2.0
+      fire_frac_area = max (fire_frac_area, 0.0)
+      fire_frac_area = min (fire_frac_area, 1.0)
+    
+        ! Calc remaining fuel fraction
+      fuel_frac_left = 1.0
+      if (fire_frac_area > 0.0) fuel_frac_left = fire_frac_area * exp (ta / fuel_time_cell) + (1.0 - fire_frac_area)
+      if (fuel_frac_left > 1.0) call Stop_simulation ('Remaining fuel fraction > 1')
 
-      if (out > 1.0) call Stop_simulation ('fuel_left_cell_1: fuel fraction > 1')
-
-      fuel_frac_left = out
-      fire_frac_area = area
-
-    end subroutine Fuel_left_cell_1
+    end subroutine Calc_fuel_left_at_grid_point
 
     subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
@@ -647,10 +563,7 @@
     subroutine Update_ignition_times (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, jfds, ifde, jfde, ts, dt, lfn_in, lfn_out, tign)
 
-      ! Purpose: compute ignition time by interpolation.
-      !          the node was not burning at start but it is burning at end
-
-      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+      ! compute ignition time for a node that was not burning at start but it is burning at end
 
       implicit none
 
