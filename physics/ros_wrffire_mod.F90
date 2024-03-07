@@ -1,16 +1,19 @@
   module ros_wrffire_mod
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
-    use state_mod, only : state_fire_t
+    use fuel_mod, only : fuel_t
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
-    use fuel_mod, only : fuel_t
+    use state_mod, only : state_fire_t
 
     implicit none
 
     private
 
     public :: ros_wrffire_t
+
+    logical, parameter :: FIRE_GROWS_ONLY = .true.
+    integer, parameter :: SLOPE_FACTOR = 1.0
 
       ! fuelheat: fuel particle low heat content [btu/lb]
     real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
@@ -26,7 +29,7 @@
 
   contains
 
-    subroutine Calc_ros_wrffire (this, ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
+    subroutine Calc_ros_wrffire (this, ifms, ifme, jfms, jfme, ros, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
 
       implicit none
 
@@ -35,16 +38,14 @@
 
       class (ros_wrffire_t), intent (in) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme
-      real, intent (out) :: ros_base, ros_wind, ros_slope
       real, intent (in) :: nvx, nvy
       integer, intent (in) :: i, j
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
+      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: ros
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
-      real :: umid, phis, phiw, spdms, umidm, excess
-      real :: ros_back
+      real :: umid, phis, phiw, spdms, umidm, excess, ros_back, cor_wind, cor_slope, ros_base, ros_wind, ros_slope
       real, parameter :: ROS_MAX = 6.0
-      real :: cor_wind, cor_slope
 
 
       if (FIRE_ADVECTION /= 0) then
@@ -96,6 +97,9 @@
         ros_wind = ros_wind - excess * ros_wind / (ros_wind + ros_slope)
         ros_slope = ros_slope - excess * ros_slope/ (ros_wind + ros_slope)
       end if
+
+      ros(i, j) = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
+      if (FIRE_GROWS_ONLY) ros(i, j) = max (ros(i, j), 0.0)
 
     end subroutine Calc_ros_wrffire
 

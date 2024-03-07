@@ -33,13 +33,13 @@
         real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
       end subroutine Set_params
 
-      subroutine Calc_ros (this, ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
+      subroutine Calc_ros (this, ifms, ifme, jfms, jfme, ros, nvx, nvy, i, j, uf, vf, dzdxf, dzdyf)
         import :: ros_t, fuel_t
         class (ros_t), intent (in) :: this
-        real, intent (out) :: ros_base, ros_wind, ros_slope
         real, intent (in) :: nvx, nvy
         integer, intent (in) :: ifms, ifme, jfms, jfme, i, j
         real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
+        real, dimension(ifms:ifme, jfms:jfme), intent (out) :: ros
       end subroutine Calc_ros
 
     end interface

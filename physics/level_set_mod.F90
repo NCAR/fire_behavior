@@ -26,8 +26,7 @@
 
     public :: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy
 
-    logical, parameter :: FIRE_GROWS_ONLY = .true.
-    integer, parameter :: BDY_ENO1 = 10, SLOPE_FACTOR = 1.0
+    integer, parameter :: BDY_ENO1 = 10
 
   contains
 
@@ -697,7 +696,7 @@
 
       real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
       real :: difflx, diffly, diffrx, diffry, diffcx, diffcy, &
-         diff2x, diff2y, grad, rr, ros_base, ros_wind, ros_slope, &
+         diff2x, diff2y, grad, &
          scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
          threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
@@ -758,8 +757,8 @@
                     + max (diffly, 0.0) ** 2 + min(diffry, 0.0) ** 2)
                 ! 2nd order
               case(5)
-                diff2x = Select_2nd (rr, dx, lfn(i, j), lfn(i - 1, j), lfn(i + 1, j))
-                diff2y = Select_2nd (rr, dy, lfn(i, j), lfn(i, j - 1), lfn(i, j + 1))
+                diff2x = Select_2nd (dx, lfn(i, j), lfn(i - 1, j), lfn(i + 1, j))
+                diff2y = Select_2nd (dy, lfn(i, j), lfn(i, j - 1), lfn(i, j + 1))
                 grad = sqrt (diff2x * diff2x + diff2y * diff2y)
 
                 ! WENO3
@@ -843,18 +842,15 @@
           nvy = diff2y / scale
 
             ! Get rate of spread from wind speed and slope
-          call ros_model%Calc_ros (ifms, ifme, jfms, jfme, ros_base, ros_wind, ros_slope, &
+          call ros_model%Calc_ros (ifms, ifme, jfms, jfme, ros, &
               nvx, nvy, i, j, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf)
-          rr = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
-          if (FIRE_GROWS_ONLY) rr = max (rr, 0.0)
-          ros(i, j) = rr
 
             ! CFL condition
-          if (grad > 0.0) tbound = max (tbound, rr * (abs (diff2x) / dx + &
+          if (grad > 0.0) tbound = max (tbound, ros(i, j) * (abs (diff2x) / dx + &
               abs (diff2y) / dy) / grad)
 
             ! Tendency level set function
-          tend(i, j) = -rr * grad
+          tend(i, j) = -ros(i, j) * grad
 
             ! Add to tend effect Artificial viscosity
           if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
@@ -868,7 +864,7 @@
             fire_viscosity_var = fire_viscosity
           end if
 
-          tend(i, j) = tend(i, j) + fire_viscosity_var * abs (rr) * ((diffrx - difflx) + (diffry - diffly))
+          tend(i, j) = tend(i, j) + fire_viscosity_var * abs (ros(i, j)) * ((diffrx - difflx) + (diffry - diffly))
         end do
       end do
 
@@ -951,14 +947,14 @@
 
     end function Select_eno
       
-    pure function Select_2nd (ros, dx, lfn_i, lfn_im1, lfn_ip1) result (return_value)
+    pure function Select_2nd (dx, lfn_i, lfn_im1, lfn_ip1) result (return_value)
 
       ! 2nd-order advection scheme in the x,y-direction (DME)
 
       implicit none
 
       real, intent(in):: lfn_i, lfn_im1, lfn_ip1
-      real, intent(in):: ros, dx
+      real, intent(in):: dx
       real :: return_value
 
       real  :: diff2x_p, diff2x_m
