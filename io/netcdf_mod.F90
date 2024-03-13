@@ -568,7 +568,7 @@
       character (len = :), allocatable :: msg
 
 
-      status = nf90_open (trim(file_name), NF90_WRITE, ncidout)
+      status = nf90_open (trim(file_name), NF90_NOWRITE, ncidout)
       if (status /= NF90_NOERR) then
         msg = 'Problems opening file ' // trim (file_name)
         call Print_message (msg)
