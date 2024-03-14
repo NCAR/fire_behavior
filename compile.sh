@@ -17,6 +17,8 @@ usage () {
   printf "      'relWithDebInfo'\n"
   printf "  --build-jobs=BUILD_JOBS\n"
   printf "      number of jobs used for building esmx and components\n"
+  printf "  --mpi-off\n"
+  printf "      build without mpi library\n"
   printf "  --nuopc, -n\n"
   printf "      build NUOPC library and module\n"
   printf "  --esmx, -x\n"
@@ -42,6 +44,7 @@ settings () {
   printf "\tBUILD_DIR=${BUILD_DIR}\n"
   printf "\tBUILD_TYPE=${BUILD_TYPE}\n"
   printf "\tBUILD_JOBS=${BUILD_JOBS}\n"
+  printf "\tMPI=${MPI}\n"
   printf "\tNUOPC=${NUOPC}\n"
   printf "\tESMX=${ESMX}\n"
   printf "\tINSTALL_PREFIX=${INSTALL_PREFIX}\n"
@@ -71,6 +74,7 @@ BUILD_DIR="${FIRE_DIR}/build"
 BUILD_TYPE="release"
 BUILD_JOBS=""
 INSTALL_PREFIX="${FIRE_DIR}/install"
+MPI=true
 NUOPC=false
 ESMX=false
 VERBOSE=false
@@ -109,6 +113,9 @@ while :; do
     --prefix=?*) INSTALL_PREFIX=${1#*=} ;;
     --prefix) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
     --prefix=) printf "ERROR: $1 requires an argument.\n"; usage; exit 1 ;;
+    --mpi-off) MPI=false ;;
+    --mpi-off=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --mpi-off=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --nuopc|-n) NUOPC=true ;;
     --nuopc=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --nuopc=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
@@ -190,6 +197,11 @@ fi
 if [ ! -z "${INSTALL_PREFIX}" ]; then
   CMAKE_SETTINGS+=("-DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX}")
   CMAKE_SETTINGS+=("-DCMAKE_PREFIX_PATH=${INSTALL_PREFIX}")
+fi
+if [ "${MPI}" = true ]; then
+  CMAKE_SETTINGS+=("-DDM_PARALLEL=ON")
+else
+  CMAKE_SETTINGS+=("-DDM_PARALLEL=OFF")
 fi
 if [ "${NUOPC}" = true ]; then
   CMAKE_SETTINGS+=("-DNUOPC=ON")

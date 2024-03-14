@@ -39,6 +39,12 @@ install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_
 # third party libraries
 find_package(NetCDF REQUIRED Fortran)
 
+# turn on DM_PARALLEL preprocessor directive
+if(DM_PARALLEL)
+  find_package(MPI REQUIRED)
+  add_compile_definitions(firelib PUBLIC DM_PARALLEL=1)
+endif()
+
 #------------------------------------------------------------------------------
 # Add source files
 
