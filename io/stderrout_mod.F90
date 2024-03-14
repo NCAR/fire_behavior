@@ -23,13 +23,23 @@
 
     subroutine Stop_simulation (msg)
 
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+
       implicit none
 
       character (len = *), intent (in) :: msg
+      integer :: ierr
 
 
       write (ERROR_UNIT, *) 'STOP:' // trim (msg)
+#ifdef DM_PARALLEL
+      call mpi_abort (MPI_COMM_WORLD, 1, ierr)
+      call mpi_finalize (ierr)
+#else
       stop
+#endif
 
     end subroutine Stop_simulation
 
