@@ -1,6 +1,8 @@
-name: Fire Behavior CI Workflow
+name: Fire Behavior Release Test
 
 on:
+  release:
+    types: [ published ]
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:

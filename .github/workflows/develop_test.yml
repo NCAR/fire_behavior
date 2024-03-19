@@ -1,0 +1,145 @@
+name: Fire Behavior Nightly Test (develop)
+
+on:
+  schedule:
+    - cron: '30 6 * * *'
+
+env:
+  build-type: 'release'
+  tests: ''
+  nuopc-flag: true
+  esmx-flag: true
+  openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
+  hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
+  netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
+  netcdff-url: 'https://github.com/Unidata/netcdf-fortran/archive/v4.5.4.tar.gz'
+  esmf-url: 'https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz'
+
+jobs:
+  fire_behavior_linux_test:
+    name: Fire Behavior Test
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+    runs-on: ${{matrix.os}}
+
+    steps:
+    - name: Cache Dependencies
+      id: cache-build-dependencies
+      uses: actions/cache@v4
+      env:
+        cache-name: cache-build-dependencies
+      with:
+        path: "~/stack"
+        key: ${{env.cache-name}}-${{matrix.os}}
+        restore-keys: |
+          ${{env.cache-name}}-${{matrix.os}}
+    - name: Dependency Directory Setup
+      run: |
+        export STACK_DIR=${HOME}/stack
+        mkdir -p ${STACK_DIR}/{include,lib,lib64,bin}
+        export LD_LIBRARY_PATH=${STACK_DIR}/lib64:${STACK_DIR}/lib:${LD_LIBRARY_PATH}
+        echo "STACK_DIR=${STACK_DIR}" >> $GITHUB_ENV
+        echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> $GITHUB_ENV
+        echo "${STACK_DIR}/bin" >> $GITHUB_PATH
+    - name: Install OPENMPI
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir ${{runner.temp}}/openmpi
+          cd ${{runner.temp}}/openmpi
+          curl -L ${{env.openmpi-url}} | tar --strip-components=1 -xz
+          ./configure --quiet --enable-silent-rules --prefix=${{env.STACK_DIR}}
+          make -j 2 install
+        fi
+        echo "CC=${{env.STACK_DIR}}/bin/mpicc" >> $GITHUB_ENV
+        echo "CXX=${{env.STACK_DIR}}/bin/mpicxx" >> $GITHUB_ENV
+        echo "F77=${{env.STACK_DIR}}/bin/mpif77" >> $GITHUB_ENV
+        echo "F90=${{env.STACK_DIR}}/bin/mpif90" >> $GITHUB_ENV
+        echo "FC=${{env.STACK_DIR}}/bin/mpifort" >> $GITHUB_ENV
+        echo "OPENMPI_ROOT=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install HDF5
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir ${{runner.temp}}/hdf5
+          cd ${{runner.temp}}/hdf5
+          curl -L ${{env.hdf5-url}} | tar --strip-components=2 -xz
+          ./configure --quiet --enable-silent-rules --enable-fortran --prefix=${{env.STACK_DIR}}
+          make -j 2 install
+        fi
+        echo "HDF5_ROOT=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install NetCDF-C
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir ${{runner.temp}}/netcdf-c
+          cd ${{runner.temp}}/netcdf-c
+          curl -L ${{env.netcdf-url}} | tar --strip-components=1 -xz
+          CPPFLAGS=-I${STACK_DIR}/include LDFLAGS=-L${STACK_DIR}/lib ./configure --quiet --enable-silent-rules --prefix=${{env.STACK_DIR}}
+          make -j 2 install
+        fi
+        echo "NETCDF_ROOT=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install NetCDF-Fortran
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir ${{runner.temp}}/netcdf-fortran
+          cd ${{runner.temp}}/netcdf-fortran
+          curl -L ${{env.netcdff-url}} | tar --strip-components=1 -xz
+          CPPFLAGS=-I${STACK_DIR}/include LDFLAGS=-L${STACK_DIR}/lib ./configure --quiet --enable-silent-rules --prefix=${{env.STACK_DIR}}
+          make -j 2 install
+        fi
+        echo "NETCDFF_ROOT=$STACK_DIR" >> $GITHUB_ENV
+    - name: Install ESMF
+      env:
+        CACHE_HIT: ${{steps.cache-build-dependencies.outputs.cache-hit}}
+        ESMF_COMM: "openmpi"
+        ESMF_BOPT: "O"
+        ESMF_COMPILER: "gfortran"
+        ESMF_OS: "Linux"
+        ESMF_NETCDF: "nc-config"
+        ESMF_INSTALL_MODDIR: "mod"
+        ESMF_INSTALL_BINDIR: "bin"
+        ESMF_INSTALL_LIBDIR: "lib"
+        ESMF_INSTALL_PREFIX: "${STACK_DIR}"
+      run: |
+        if [[ "$CACHE_HIT" != 'true' ]]; then
+          mkdir ${{runner.temp}}/esmf
+          cd ${{runner.temp}}/esmf
+          export ESMF_DIR=`pwd`
+          curl -L ${{env.esmf-url}} | tar --strip-components=1 -xz
+          make -j 2
+          make install
+        fi
+        echo "ESMFMKFILE=$STACK_DIR/lib/esmf.mk" >> $GITHUB_ENV
+        echo "ESMF_ROOT=$STACK_DIR" >> $GITHUB_ENV
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: develop
+    - name: Build and Test
+      run: |
+        OPTIONS=("")
+        if [ -z "${{env.tests}}" ]; then
+          OPTIONS+=("--test")
+        else
+          OPTIONS+=("--test='${{env.tests}}'")
+        fi
+        if ${{env.nuopc-flag}}; then
+          OPTIONS+=("--nuopc")
+        fi
+        if ${{env.esmx-flag}}; then
+          OPTIONS+=("--esmx")
+        fi
+        ./compile.sh --build-type=${{env.build-type}} ${OPTIONS[@]}
+    - name: Archive Test Results
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: fire-behavior-test-${{matrix.os}}
+        path: build/tests/Testing/Temporary/LastTest.log
