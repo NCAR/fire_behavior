@@ -192,7 +192,7 @@
               !rxn intensity,btu/ft^2 min
             ir = gamma * wn * FUELHEAT * etam * etas
             ! irm = ir * 1055./( 0.3048**2 * 60.) * 1.e-6     !for mw/m^2
-            this%iboros(i, j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 12.6 / fuels%savr(k)) ! I_R x t_r (kJ m^-2)
+            this%iboros(i, j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 384.0 / fuels%savr(k)) ! I_R x t_r (kJ m^-2)
               ! propagating flux ratio
             xifr = exp((0.792 + 0.681 * fuels%savr(k) ** 0.5) &
                 * (this%betafl(i, j) + 0.1)) / (192.0 + 0.2595 * fuels%savr(k))
