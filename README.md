@@ -1,6 +1,6 @@
 # fire_behavior
 
-[![Fire Behavior Nightly Test (develop)](https://github.com/NCAR/fire_behavior/actions/workflows/develop_test.yml/badge.svg?branch=develop)](https://github.com/NCAR/fire_behavior/actions/workflows/develop_test.yml)
+[![Fire Behavior Nightly Test (develop)](https://github.com/NCAR/fire_behavior/actions/workflows/develop_test.yml/badge.svg?event=schedule)](https://github.com/NCAR/fire_behavior/actions/workflows/develop_test.yml)
 
 Developing a fire behavior model based on WRF-Fire for UFS
 
