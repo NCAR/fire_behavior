@@ -12,7 +12,7 @@ module fire_behavior_nuopc
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
-  use constants_mod, only : con_g, XLV, CP, FVIRT, R_D
+  use constants_mod, only : G, XLV, CP, FVIRT, R_D
 
   implicit none
 
@@ -852,7 +852,7 @@ module fire_behavior_nuopc
         if (rho > 0.) then ! avoid unpredictable behavior on the edges
           grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (CP * rho)
           grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (XLV * rho)
-          grid%emis_smoke(i,j) = grid%emis_smoke(i,j) / ((atm_ph(i,j,2) - atm_ph(i,j,1)) / con_g * rho)
+          grid%emis_smoke(i,j) = grid%emis_smoke(i,j) / ((atm_ph(i,j,2) - atm_ph(i,j,1)) / G * rho)
         end if
       enddo
     enddo
