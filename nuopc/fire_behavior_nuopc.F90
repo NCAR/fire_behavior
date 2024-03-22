@@ -12,7 +12,7 @@ module fire_behavior_nuopc
   use namelist_mod, only : namelist_t
   use initialize_mod, only : Init_fire_state
   use advance_mod, only : Advance_state
-  use constants_mod, only : con_g, XLV, CP, con_fvirt, R_D
+  use constants_mod, only : con_g, XLV, CP, FVIRT, R_D
 
   implicit none
 
@@ -848,7 +848,7 @@ module fire_behavior_nuopc
       do i = 1, grid%ifde
         q0   = max(atm_lowest_q(i,j)/(1.-atm_lowest_q(i,j)), 1.e-8)
         rho = atm_lowest_pres(i,j) / (R_D * atm_lowest_t(i,j) * &
-            (1.0 + con_fvirt * q0))
+            (1.0 + FVIRT * q0))
         if (rho > 0.) then ! avoid unpredictable behavior on the edges
           grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (CP * rho)
           grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (XLV * rho)
