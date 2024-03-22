@@ -18,7 +18,6 @@
     use state_mod, only: state_fire_t
     use ignition_line_mod, only : ignition_line_t
     use ros_mod, only : ros_t
-    use constants_mod, only : MSG_LEN
 
     implicit none
 
@@ -290,7 +289,7 @@
       real, dimension(ifms:ifme, jfms:jfme) :: tend
       real :: tbound2, tbound3
       integer :: i, j
-      character (len = MSG_LEN) :: msg
+      character (len = :), allocatable :: msg
 
 
         ! Runge-Kutta step 1
@@ -613,7 +612,7 @@
          scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
          threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
-      character (len = MSG_LEN) :: msg
+      character (len = :), allocatable :: msg
 
 
       threshold_hll = -fire_lsm_band_ngp * dx

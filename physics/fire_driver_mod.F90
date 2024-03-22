@@ -1,6 +1,5 @@
   module fire_driver_mod
 
-    use constants_mod, only : MSG_LEN
     use fire_model_mod, only : Advance_fire_model
     use level_set_mod, only : Extrapol_var_at_bdys
     use state_mod, only : state_fire_t
@@ -189,7 +188,8 @@
       real :: time_start
       integer :: stat_lev = 1
       integer :: ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme
-      character (len = MSG_LEN) :: msg
+      character (len = 256) :: msg
+
 
       ifds = grid%ifds
       ifde = grid%ifde
