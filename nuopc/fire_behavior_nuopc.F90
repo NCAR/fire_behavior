@@ -738,6 +738,8 @@ module fire_behavior_nuopc
     character(len=160)          :: msgString
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph !, atm_pres
     real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres !, atm_pres
+    real, dimension(:, :), allocatable :: grnhfx_kinematic, grnqfx_kinematic, smoke
+
 
     rc = ESMF_SUCCESS
 
@@ -835,7 +837,13 @@ module fire_behavior_nuopc
     enddo
 
 
-    
+    if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
+
+    call Advance_state (grid, config_flags)
+
+    allocate (grnhfx_kinematic(1:grid%nx,1:grid%ny))
+    allocate (grnqfx_kinematic(1:grid%nx,1:grid%ny))
+    allocate (smoke(1:grid%nx,1:grid%ny))
     allocate (atm_lowest_t(1:grid%nx,1:grid%ny))
     allocate (atm_lowest_q(1:grid%nx,1:grid%ny))
     allocate (atm_lowest_pres(1:grid%nx,1:grid%ny))
@@ -850,22 +858,23 @@ module fire_behavior_nuopc
         rho = atm_lowest_pres(i,j) / (R_D * atm_lowest_t(i,j) * &
             (1.0 + FVIRT * q0))
         if (rho > 0.) then ! avoid unpredictable behavior on the edges
-          grid%fgrnhfx(i,j) = grid%fgrnhfx(i,j) / (CP * rho)
-          grid%fgrnqfx(i,j) = grid%fgrnqfx(i,j) / (XLV * rho)
-          grid%emis_smoke(i,j) = grid%emis_smoke(i,j) / ((atm_ph(i,j,2) - atm_ph(i,j,1)) / G * rho)
+           ! convert [W m-2] to [K m s-1]
+          grnhfx_kinematic(i,j)  = grid%fgrnhfx(i,j) / (CP * rho)
+           ! convert [W m-2] to [kg kg-1 m s-1]
+          grnqfx_kinematic(i,j) = grid%fgrnqfx(i,j) / (XLV * rho)
+           ! convert [kg smoke m-2] to [kg smoke kg-1 air]
+          smoke(i,j) = grid%emis_smoke(i,j) / ((atm_ph(i,j,2) - atm_ph(i,j,1)) / G * rho)
         end if
       enddo
     enddo
 
     deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
-    if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
+    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grnhfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
+    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grnqfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
+    ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = smoke(1:grid%nx,1:grid%ny)
 
-    call Advance_state (grid, config_flags)
-
-    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnhfx(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
-    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grid%fgrnqfx(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
-    ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = grid%emis_smoke(1:grid%nx,1:grid%ny)
+    deallocate(grnhfx_kinematic, grnqfx_kinematic, smoke)
 
     call grid%Handle_output (config_flags)
 

@@ -635,6 +635,7 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lats', this%lats(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'lons', this%lons(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnhfx', this%fgrnhfx(1:this%nx, 1:this%ny))
+      call Add_netcdf_var (file_output, ['nx', 'ny'], 'fgrnqfx', this%fgrnqfx(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fire_area', this%fire_area(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fuel_frac_burnt_dt', this%fuel_frac_burnt_dt(1:this%nx, 1:this%ny))
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'fuel_frac', this%fuel_frac(1:this%nx, 1:this%ny))
