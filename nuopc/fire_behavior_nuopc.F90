@@ -34,7 +34,6 @@ module fire_behavior_nuopc
   real(ESMF_KIND_R8), pointer     :: ptr_u3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_v3d(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_ph(:,:,:)
-!  real(ESMF_KIND_R8), pointer     :: ptr_pres(:,:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_hflx_fire(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_evap_fire(:,:)
   real(ESMF_KIND_R8), pointer     :: ptr_smoke_fire(:,:)
@@ -103,10 +102,6 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! Eventually, you will advertise your model's import and
-    ! export fields in this phase.  For now, however, call
-    ! your model's initialization routine(s).
-
       ! Read namelist
     call config_flags%Initialization (file_name = 'namelist.fire')
 
@@ -146,15 +141,7 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-!    ! importable field: inst_pres_levels
-!    call NUOPC_Advertise(importState, &
-!      StandardName="inst_pres_levels", rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-
-!    !  2D fields
+    !  2D fields
 
     ! importable field: inst_surface_roughness
     call NUOPC_Advertise(importState, &
@@ -268,15 +255,9 @@ module fire_behavior_nuopc
 
     ! local variables
     type(ESMF_State)        :: importState, exportState
-    ! type(ESMF_TimeInterval) :: stabilityTimeStep
     type(ESMF_Field)        :: field
     type(ESMF_DistGrid)     :: fire_distgrid
     type(ESMF_Grid)         :: fire_grid
-
-    ! integer, parameter              :: totalNumPoints=100
-    ! integer(ESMF_KIND_I4), pointer  :: mask(:)
-    ! real(ESMF_KIND_R8), pointer     :: lon(:), lat(:)
-    ! type(ESMF_VM)                   :: vm
 
     ! working local variables
     integer                        :: lbnd(2),ubnd(2)
@@ -302,7 +283,7 @@ module fire_behavior_nuopc
       rc=rc)
     if(ESMF_STDERRORCHECK(rc)) return
 
-    fire_grid = ESMF_GridCreate(name='FIRE_BEHAVIOR', & 
+    fire_grid = ESMF_GridCreate(name='FIRE_BEHAVIOR', &
       distgrid=fire_distgrid, coordSys = ESMF_COORDSYS_SPH_DEG, &
 !      coordTypeKind=ESMF_TYPEKIND_COORD, & ?
 !      gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,1/), &
@@ -407,23 +388,6 @@ module fire_behavior_nuopc
      ! Get Field memory
      call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_ph, rc=rc)
 
-!     ! importable field on Grid: inst_pres_levels
-!     field = ESMF_FieldCreate(name="inst_pres_levels", grid=fire_grid, &
-!       gridToFieldMap=(/1,2/), ungriddedLBound=(/1/), &
-!       ungriddedUBound=(/grid%kfde - 1/), &
-!       typekind=ESMF_TYPEKIND_R8, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     call NUOPC_Realize(importState, field=field, rc=rc)
-!     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!       line=__LINE__, &
-!       file=__FILE__)) &
-!       return  ! bail out
-!     ! Get Field memory
-!     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_pres, rc=rc)
-
      !  2D fields
 
      ! importable field on Grid: inst_surface_roughness
@@ -440,7 +404,7 @@ module fire_behavior_nuopc
        return  ! bail out
      ! Get Field memory
      call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_z0, &
-       computationalLBound=clb, computationalUBound=cub, rc=rc) 
+       computationalLBound=clb, computationalUBound=cub, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -528,7 +492,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_psfc, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_psfc, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -547,7 +511,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_t2, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -566,7 +530,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_pres, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_pres, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -585,7 +549,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_q, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_q, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -604,7 +568,7 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
      ! Get Field memory
-     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_t, rc=rc) 
+     call ESMF_FieldGet(field, localDe=0, farrayPtr=ptr_lowest_t, rc=rc)
      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
        line=__LINE__, &
        file=__FILE__)) &
@@ -729,15 +693,11 @@ module fire_behavior_nuopc
     type(ESMF_TimeInterval)     :: timeStep
     real(ESMF_KIND_R8)          :: ts
     type(ESMF_State)            :: importState, exportState
-    ! type(ESMF_Time)             :: currTime
-    ! type(ESMF_TimeInterval)     :: timeStep
-    ! type(ESMF_VM)               :: vm
-    ! integer                     :: currentSsiPe
     integer                     :: i, j
     real                        :: wspd, q0, rho
     character(len=160)          :: msgString
-    real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph !, atm_pres
-    real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres !, atm_pres
+    real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph
+    real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres
     real, dimension(:, :), allocatable :: grnhfx_kinematic, grnqfx_kinematic, smoke
 
 
@@ -763,19 +723,6 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! ! Query for VM
-    ! call ESMF_GridCompGet(model, vm=vm, rc=rc)
-    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-    !   line=__LINE__, &
-    !   file=__FILE__)) &
-    !   return  ! bail out
-
-    ! call ESMF_VMLog(vm, "LUMO Advance(): ", ESMF_LOGMSG_INFO, rc=rc)
-    ! if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-    !   line=__LINE__, &
-    !   file=__FILE__)) &
-    !   return  ! bail out
-
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
     ! convert cm to m
@@ -800,23 +747,19 @@ module fire_behavior_nuopc
         grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
         grid%fire_t2(i,j) = max (grid%fire_t2(i,j), 123.4) ! avoid arithmatic error
         grid%fire_psfc(i,j) = max (grid%fire_psfc(i,j), .001)
-!        grid%fire_rain(i,j) = max (grid%fire_t2(i,j), .001)
       end do
-    end do 
-
+    end do
 
     allocate (atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
     allocate (atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
-!    allocate (atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1))
 
     atm_u3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_u3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_v3d(1:grid%nx,1:grid%ny,1:grid%kfde - 1)  = ptr_v3d(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
     atm_ph(1:grid%nx,1:grid%ny,1:grid%kfde - 1)   = ptr_ph(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 
-!    atm_pres(1:grid%nx,1:grid%ny,1:grid%kfde - 1) = ptr_pres(clb3(1):cub3(1),clb3(2):cub3(2),clb3(3):cub3(3))
 #endif
-    
+
     do j = 1, grid%jfde
       do i = 1, grid%ifde
         call grid%Interpolate_profile (config_flags,  & ! for debug output, <= 0 no output
