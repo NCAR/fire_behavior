@@ -699,9 +699,13 @@ module fire_behavior_nuopc
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph
     real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres
     real, dimension(:, :), allocatable :: grnhfx_kinematic, grnqfx_kinematic, smoke
+    real :: dtratio
 
 
     rc = ESMF_SUCCESS
+
+    ! ratio of fire to atmosphere time step
+    dtratio = config_flags%dt / config_flags%interval_atm
 
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
@@ -722,7 +726,6 @@ module fire_behavior_nuopc
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
 #ifdef WITHIMPORTFIELDS
     ! Update atmospheric fields
     ! convert cm to m
@@ -779,8 +782,18 @@ module fire_behavior_nuopc
       enddo
     enddo
 
-
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
+
+    If_reset_fluxes: if (grid%datetime_now == grid%datetime_next_atm_update) then
+
+      call grid%datetime_now%Print_datetime ()
+      call grid%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
+
+      ptr_hflx_fire = 0.
+      ptr_evap_fire = 0.
+      ptr_smoke_fire = 0.
+
+    end if If_reset_fluxes
 
     call Advance_state (grid, config_flags)
 
@@ -813,9 +826,12 @@ module fire_behavior_nuopc
 
     deallocate (atm_u3d, atm_v3d, atm_ph) !, atm_pres)
 
-    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = grnhfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
-    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = grnqfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback
-    ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = smoke(1:grid%nx,1:grid%ny)
+    ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) = ptr_hflx_fire(clb(1):cub(1),clb(2):cub(2)) \
+                 + grnhfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback * dtratio
+    ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) = ptr_evap_fire(clb(1):cub(1),clb(2):cub(2)) \
+                 + grnqfx_kinematic(1:grid%nx,1:grid%ny) * config_flags%fire_atm_feedback * dtratio
+    ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) = ptr_smoke_fire(clb(1):cub(1),clb(2):cub(2)) \
+                 + smoke(1:grid%nx,1:grid%ny)
 
     deallocate(grnhfx_kinematic, grnqfx_kinematic, smoke)
 
