@@ -343,7 +343,8 @@
             k = int (this%nfuel_cat(i, j))
             this%fuel_load_g(i, j) = this%fuels%fgi(k)
             if (k == this%fuels%no_fuel_cat) then
-              this%fuel_time(i, j) = 0.0
+                ! Just what was there before
+              this%fuel_time(i, j) = 7.0 / 0.85
             else
                 ! set fuel time constant (the e-folding time)
                 ! burn time from fuels: weight=1000 => 40% decrease over 10 min
