@@ -159,9 +159,9 @@ module fire_behavior_nuopc
       file=__FILE__)) &
       return  ! bail out
 
-    ! importable field: inst_prec_rate
+    ! importable field: mean_prec_rate
     call NUOPC_Advertise(importState, &
-      StandardName="inst_prec_rate", rc=rc)
+      StandardName="mean_prec_rate", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -410,10 +410,10 @@ module fire_behavior_nuopc
        file=__FILE__)) &
        return  ! bail out
 
-     if (NUOPC_IsConnected(importState, fieldName="inst_prec_rate")) then
+     if (NUOPC_IsConnected(importState, fieldName="mean_prec_rate")) then
        imp_rainrte = .TRUE.
-       ! importable field on Grid: inst_prec_rate
-       field = ESMF_FieldCreate(name="inst_prec_rate", grid=fire_grid, &
+       ! importable field on Grid: mean_prec_rate
+       field = ESMF_FieldCreate(name="mean_prec_rate", grid=fire_grid, &
          typekind=ESMF_TYPEKIND_R8, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
@@ -432,7 +432,7 @@ module fire_behavior_nuopc
          return  ! bail out
      else
        imp_rainrte = .FALSE.
-       call ESMF_StateRemove(importState, (/"inst_prec_rate"/), rc=rc)
+       call ESMF_StateRemove(importState, (/"mean_prec_rate"/), rc=rc)
      endif
 
      if (NUOPC_IsConnected(importState, fieldName="accumulated_lwe_thickness_of_precipitation_amount")) then
