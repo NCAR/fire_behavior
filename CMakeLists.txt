@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 project(
   ufs_fire_behavior 
   VERSION 0.0.1
-  LANGUAGES Fortran CXX)
+  LANGUAGES Fortran CXX C )
 
 # user defined cmake modules
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules/")
