@@ -37,7 +37,7 @@ set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 # third party libraries
-find_package(NetCDF REQUIRED Fortran)
+find_package(netCDF-Fortran REQUIRED)
 
 # turn on DM_PARALLEL preprocessor directive
 if(DM_PARALLEL)
@@ -88,14 +88,18 @@ list(APPEND _driver_files driver/advance_mod.F90
 
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
-target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
-target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:${NetCDF_LIBRARIES}>)
+# target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
+target_link_libraries(firelib PUBLIC netCDF::netcdff MPI::MPI_Fortran )
+set_target_properties( 
+                      firelib
+                      PROPERTIES
+                        Fortran_FORMAT           FREE
+                      )
 
 # configure fire behavior executable
 add_executable(fire_behavior.exe driver/fire_behavior.F90)
 add_dependencies(fire_behavior.exe firelib)
 target_link_libraries(fire_behavior.exe PUBLIC firelib)
-target_link_libraries(fire_behavior.exe PUBLIC NetCDF::NetCDF_Fortran)
 install(TARGETS fire_behavior.exe DESTINATION bin)
 
 if(NUOPC OR ESMX)
