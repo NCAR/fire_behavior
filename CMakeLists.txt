@@ -89,7 +89,10 @@ list(APPEND _driver_files driver/advance_mod.F90
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
 # target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
-target_link_libraries(firelib PUBLIC netCDF::netcdff MPI::MPI_Fortran )
+target_link_libraries(firelib PUBLIC netCDF::netcdff )
+if (DM_PARALLEL)
+  target_link_libraries( firelib PUBLIC MPI::MPI_Fortran )
+endif()
 set_target_properties( 
                       firelib
                       PROPERTIES
