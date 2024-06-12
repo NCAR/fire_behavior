@@ -9,7 +9,7 @@
 
     private
 
-    public :: Init_fire_state, Init_atm_state
+    public :: Init_fire_state, Init_atm_state, Init_fire_state_within_wrf
 
   contains
 
@@ -89,5 +89,24 @@
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_state')
 
     end subroutine Init_fire_state
+
+    subroutine Init_fire_state_within_wrf (state, config_flags)
+
+      implicit none
+
+      type (state_fire_t), intent (in out), optional :: state
+      type (namelist_t), intent (in), optional :: config_flags
+
+      logical :: is_state_present, is_nml_present
+
+
+      is_state_present = present (state)
+      is_nml_present = present (config_flags)
+
+      print *, 'Initializing the CFBM model within WRF'
+      print *, 'Is state present? ', is_state_present
+      print *, 'Is nml present? ', is_nml_present
+
+    end subroutine Init_fire_state_within_wrf
 
   end module initialize_mod
