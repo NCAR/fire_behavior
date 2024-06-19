@@ -104,6 +104,7 @@
       procedure, public :: Interpolate_profile => Interpolate_profile
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Save_state => Save_state
+      procedure, public :: Set_vars_to_default => Set_vars_to_default
     end type state_fire_t
 
   contains
@@ -116,7 +117,6 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme
 
 
-        !pajm
       allocate (this%uf(ifms:ifme, jfms:jfme))
       allocate (this%vf(ifms:ifme, jfms:jfme))
       allocate (this%fmc_g(ifms:ifme, jfms:jfme))
@@ -291,25 +291,11 @@
 
       this%nx = this%ifde
       this%ny = this%jfde
-
       this%dt = config_flags%dt
 
       call this%Allocate_vars (this%ifms, this%ifme, this%jfms, this%jfme)
 
-      ! pajm
-      this%uf = 0.0
-      this%vf = 0.0
-      this%fmc_g = config_flags%fuelmc_g
-        ! Init lfn more than the largest domain side
-      this%lfn(this%ifds:this%ifde, this%jfds:this%jfde) = 2.0 * &
-          max ((this%ifde - this%ifds + 1) * this%dx, (this%jfde - this%jfds + 1) * this%dy)
-        ! Init tign_g a bit into the future
-      this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = epsilon (this%tign_g)
-
-      this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
-      this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
-
-      this%emis_smoke = 0.0
+      call this%Set_vars_to_default (config_flags)
 
       this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
       this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
@@ -324,8 +310,6 @@
         end if
       end if
 
-      this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
-      this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
       call this%Init_latlons (geogrid)
 
       call this%Init_tiles (config_flags)
@@ -664,6 +648,33 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'nfuel_cat', this%nfuel_cat(1:this%nx, 1:this%ny))
 
     end subroutine Save_state
+
+    subroutine Set_vars_to_default (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+
+      this%uf = 0.0
+      this%vf = 0.0
+      this%fmc_g = config_flags%fuelmc_g
+        ! Init lfn more than the largest domain side
+      this%lfn(this%ifds:this%ifde, this%jfds:this%jfde) = 2.0 * &
+          max ((this%ifde - this%ifds + 1) * this%dx, (this%jfde - this%jfds + 1) * this%dy)
+        ! Init tign_g a bit into the future
+      this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = epsilon (this%tign_g)
+
+      this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
+      this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
+
+      this%emis_smoke = 0.0
+
+      this%unit_fxlat = 2.0 * PI / (360.0 * RERADIUS)  ! earth circumference in m / 360 degrees
+      this%unit_fxlong = cos (this%cen_lat * 2.0 * PI / 360.0) * this%unit_fxlat  ! latitude
+
+    end subroutine Set_vars_to_default
 
   end module state_mod
 
