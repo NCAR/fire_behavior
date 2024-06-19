@@ -105,6 +105,7 @@
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Save_state => Save_state
       procedure, public :: Set_vars_to_default => Set_vars_to_default
+      procedure, public :: Set_time_stamps => Set_time_stamps
     end type state_fire_t
 
   contains
@@ -269,25 +270,13 @@
       this%kfts = config_flags%kds
       this%kfte = config_flags%kde
 
-        ! Datetimes
-      this%datetime_start = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
-          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
-      this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
-          config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
-      this%datetime_now = this%datetime_start
-
-      this%datetime_next_output = this%datetime_start
-      call this%datetime_next_output%Add_seconds (config_flags%interval_output)
-
-      this%datetime_next_atm_update = this%datetime_start
+      call this%Set_time_stamps (config_flags)
 
       this%cen_lat = geogrid%cen_lat
       this%cen_lon = geogrid%cen_lon
 
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
-
-      if (DEBUG_LOCAL) call this%Print()
 
       this%nx = this%ifde
       this%ny = this%jfde
@@ -315,6 +304,8 @@
       call this%Init_tiles (config_flags)
 
       if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
+
+      if (DEBUG_LOCAL) call this%Print()
 
     end subroutine Init_domain
 
@@ -648,6 +639,27 @@
       call Add_netcdf_var (file_output, ['nx', 'ny'], 'nfuel_cat', this%nfuel_cat(1:this%nx, 1:this%ny))
 
     end subroutine Save_state
+
+    subroutine Set_time_stamps (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+
+      this%datetime_start = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+      this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
+          config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
+      this%datetime_now = this%datetime_start
+
+      this%datetime_next_output = this%datetime_start
+      call this%datetime_next_output%Add_seconds (config_flags%interval_output)
+
+      this%datetime_next_atm_update = this%datetime_start
+
+    end subroutine Set_time_stamps
 
     subroutine Set_vars_to_default (this, config_flags)
 
