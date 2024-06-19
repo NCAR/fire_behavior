@@ -91,6 +91,7 @@
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
     contains
+      procedure, public :: Allocate_vars => Allocate_vars
       procedure, public :: Convert_sb_to_ander => Convert_scottburgan_to_anderson
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
@@ -106,6 +107,59 @@
     end type state_fire_t
 
   contains
+
+    subroutine Allocate_vars (this, ifms, ifme, jfms, jfme)
+
+      implicit none
+
+      class (state_fire_t), intent(in out) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme
+
+
+        !pajm
+      allocate (this%uf(ifms:ifme, jfms:jfme))
+      allocate (this%vf(ifms:ifme, jfms:jfme))
+      allocate (this%fmc_g(ifms:ifme, jfms:jfme))
+      allocate (this%lfn(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_hist(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_0(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_1(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_2(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_s0(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_s1(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_s2(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_s3(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_out(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_load_g(ifms:ifme, jfms:jfme))
+      allocate (this%flame_length(ifms:ifme, jfms:jfme))
+      allocate (this%ros_front(ifms:ifme, jfms:jfme))
+      allocate (this%tign_g(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_frac(ifms:ifme, jfms:jfme))
+      allocate (this%fire_area(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_frac_burnt_dt(ifms:ifme, jfms:jfme))
+      allocate (this%fgrnhfx(ifms:ifme, jfms:jfme))
+      allocate (this%fgrnqfx(ifms:ifme, jfms:jfme))
+      allocate (this%fcanhfx(ifms:ifme, jfms:jfme))
+      allocate (this%fcanqfx(ifms:ifme, jfms:jfme))
+      allocate (this%ros(ifms:ifme, jfms:jfme))
+      allocate (this%fz0(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_time(ifms:ifme, jfms:jfme))
+      allocate (this%fire_psfc(ifms:ifme, jfms:jfme))
+      allocate (this%fire_rain(ifms:ifme, jfms:jfme))
+      allocate (this%fire_t2(ifms:ifme, jfms:jfme))
+      allocate (this%fire_q2(ifms:ifme, jfms:jfme))
+      allocate (this%fire_rh_fire(ifms:ifme, jfms:jfme))
+      allocate (this%fire_psfc_old(ifms:ifme, jfms:jfme))
+      allocate (this%fire_rain_old(ifms:ifme, jfms:jfme))
+      allocate (this%fire_t2_old(ifms:ifme, jfms:jfme))
+      allocate (this%fire_q2_old(ifms:ifme, jfms:jfme))
+      allocate (this%zsf(ifms:ifme, jfms:jfme))
+      allocate (this%dzdxf(ifms:ifme, jfms:jfme))
+      allocate (this%dzdyf(ifms:ifme, jfms:jfme))
+      allocate (this%nfuel_cat(ifms:ifme, jfms:jfme))
+      allocate (this%emis_smoke(ifms:ifme, jfms:jfme))
+
+    end subroutine Allocate_vars
 
     subroutine Convert_scottburgan_to_anderson (this)
 
@@ -238,67 +292,23 @@
       this%nx = this%ifde
       this%ny = this%jfde
 
-      allocate (this%uf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%vf(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%uf = 0.
-      this%vf = 0.
-      allocate (this%fmc_g(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%fmc_g = config_flags%fuelmc_g
-
-        ! Init lfn more than the largest domain side
-      allocate (this%lfn(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%lfn(this%ifds:this%ifde, this%jfds:this%jfde) = 2.0 * &
-          max ((this%ifde - this%ifds + 1) * this%dx, (this%jfde - this%jfds + 1) * this%dy)
-
-      allocate (this%lfn_hist(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_0(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_1(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_2(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_s0(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_s1(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_s2(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%lfn_out(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fuel_load_g(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))
-
-        ! Init tign_g a bit into the future
-      allocate (this%tign_g(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = epsilon (this%tign_g)
-
-      allocate (this%fuel_frac(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
-
-      allocate (this%fire_area(this%ifms:this%ifme, this%jfms:this%jfme))
-      this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
-
-      allocate (this%fuel_frac_burnt_dt(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fgrnhfx(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fgrnqfx(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fcanhfx(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fcanqfx(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%ros(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fz0(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fuel_time(this%ifms:this%ifme, this%jfms:this%jfme))
-
-      allocate (this%fire_psfc(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_rain(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_q2(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_rh_fire(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_psfc_old(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_rain_old(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_t2_old(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%fire_q2_old(this%ifms:this%ifme, this%jfms:this%jfme))
-
       this%dt = config_flags%dt
 
-      allocate (this%zsf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme))
-      allocate (this%emis_smoke(this%ifms:this%ifme, this%jfms:this%jfme))
+      call this%Allocate_vars (this%ifms, this%ifme, this%jfms, this%jfme)
+
+      ! pajm
+      this%uf = 0.0
+      this%vf = 0.0
+      this%fmc_g = config_flags%fuelmc_g
+        ! Init lfn more than the largest domain side
+      this%lfn(this%ifds:this%ifde, this%jfds:this%jfde) = 2.0 * &
+          max ((this%ifde - this%ifds + 1) * this%dx, (this%jfde - this%jfds + 1) * this%dy)
+        ! Init tign_g a bit into the future
+      this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = epsilon (this%tign_g)
+
+      this%fuel_frac(this%ifds:this%ifde, this%jfds:this%jfde) = 1.0
+      this%fire_area(this%ifds:this%ifde, this%jfds:this%jfde) = 0.0
+
       this%emis_smoke = 0.0
 
       this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
