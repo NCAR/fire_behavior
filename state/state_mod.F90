@@ -242,7 +242,7 @@
       integer :: ids0, ide0, jds0, jde0
 
 
-        ! Domain dimensions
+        ! Set dimensions
       ids0 = geogrid%ifds
       ide0 = geogrid%ifde
       jds0 = geogrid%jfds
@@ -271,7 +271,18 @@
       this%kfts = config_flags%kds
       this%kfte = config_flags%kde
 
-      call this%Set_time_stamps (config_flags)
+      call this%Init_tiles (config_flags)
+
+      this%nx = this%ifde
+      this%ny = this%jfde
+      this%dt = config_flags%dt
+
+        ! Init memory
+      call this%Allocate_vars (this%ifms, this%ifme, this%jfms, this%jfme)
+
+        ! Set projection
+      proj = geogrid%Get_atm_proj ()
+      call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
 
       this%cen_lat = geogrid%cen_lat
       this%cen_lon = geogrid%cen_lon
@@ -279,12 +290,7 @@
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
 
-      this%nx = this%ifde
-      this%ny = this%jfde
-      this%dt = config_flags%dt
-
-      call this%Allocate_vars (this%ifms, this%ifme, this%jfms, this%jfme)
-
+        ! Init vars
       call this%Set_vars_to_default (config_flags)
 
       this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
@@ -300,12 +306,10 @@
         end if
       end if
 
-      proj = geogrid%Get_atm_proj ()
-      call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
-
-      call this%Init_tiles (config_flags)
-
       if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
+
+        ! Set clock
+      call this%Set_time_stamps (config_flags)
 
       if (DEBUG_LOCAL) call this%Print()
 
@@ -426,6 +430,7 @@
       type (namelist_t), intent (in) :: config_flags
 
       integer :: num_tiles
+
 
       num_tiles = config_flags%num_tiles
       call Calc_tiles_dims (this%ifps, this%ifpe, this%jfps, this%jfpe, num_tiles, &
