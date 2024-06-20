@@ -237,6 +237,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in) :: geogrid
 
+      type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
       integer :: ids0, ide0, jds0, jde0
 
@@ -299,7 +300,8 @@
         end if
       end if
 
-      call this%Init_latlons (geogrid)
+      proj = geogrid%Get_atm_proj ()
+      call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
 
       call this%Init_tiles (config_flags)
 
@@ -356,33 +358,39 @@
 
     end subroutine Init_ignition_lines
 
-    subroutine Init_latlons (this, geogrid)
+    subroutine Init_latlons (this, proj, srx, sry)
 
       implicit none
 
       class (state_fire_t), intent (in out) :: this
-      type (geogrid_t), intent(in) :: geogrid
+      type (proj_lc_t), intent(in) :: proj
+      integer, optional :: srx, sry
 
       real, parameter :: OFFSET = 0.5
-      type (proj_lc_t) :: proj
-      integer :: i, j
+      integer :: i, j, sr_x, sr_y
       real :: i_atm, j_atm, offset_corners_x, offset_corners_y
 
+
+      if (present (srx) .and. present (sry)) then
+        sr_x = srx
+        sr_y = sry
+      else
+        sr_x = 1
+        sr_y = 1
+      end if
 
       allocate (this%lons(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lats(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lons_c(this%nx + 1, this%ny + 1))
       allocate (this%lats_c(this%nx + 1, this%ny + 1))
 
-      proj = geogrid%Get_atm_proj ()
-
-      offset_corners_x = (1.0 / real (geogrid%sr_x)) / 2.0
-      offset_corners_y = (1.0 / real (geogrid%sr_y)) / 2.0
+      offset_corners_x = (1.0 / real (sr_x)) / 2.0
+      offset_corners_y = (1.0 / real (sr_y)) / 2.0
 
       do j = 1, this%ny
         do i = 1, this%nx
-          i_atm = (i - OFFSET) / geogrid%sr_x + OFFSET
-          j_atm = (j - OFFSET) / geogrid%sr_y + OFFSET
+          i_atm = (i - OFFSET) / sr_x + OFFSET
+          j_atm = (j - OFFSET) / sr_y + OFFSET
           call proj%Calc_latlon (i = i_atm, j = j_atm, lat = this%lats(i, j), lon = this%lons(i, j))
           call proj%Calc_latlon (i = i_atm - offset_corners_x, j = j_atm - offset_corners_y, &
               lat = this%lats_c(i, j), lon = this%lons_c(i, j))
@@ -390,21 +398,21 @@
       end do
 
       do j = 1, this%ny
-        i_atm = (this%nx - OFFSET) / geogrid%sr_x + OFFSET
-        j_atm = (j - OFFSET) / geogrid%sr_y + OFFSET
+        i_atm = (this%nx - OFFSET) / sr_x + OFFSET
+        j_atm = (j - OFFSET) / sr_y + OFFSET
         call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm - offset_corners_y, &
             lat = this%lats_c(this%nx + 1, j), lon = this%lons_c(this%nx + 1, j))
       end do
 
       do i = 1, this%nx
-        i_atm = (i - OFFSET) / geogrid%sr_x + OFFSET
-        j_atm = (this%ny - OFFSET) / geogrid%sr_y + OFFSET
+        i_atm = (i - OFFSET) / sr_x + OFFSET
+        j_atm = (this%ny - OFFSET) / sr_y + OFFSET
         call proj%Calc_latlon (i = i_atm - offset_corners_x, j = j_atm + offset_corners_y, &
             lat = this%lats_c(i, this%ny + 1), lon = this%lons_c(i, this%ny + 1))
       end do
 
-      i_atm = (this%nx - OFFSET) / geogrid%sr_x + OFFSET
-      j_atm = (this%ny - OFFSET) / geogrid%sr_y + OFFSET
+      i_atm = (this%nx - OFFSET) / sr_x + OFFSET
+      j_atm = (this%ny - OFFSET) / sr_y + OFFSET
       call proj%Calc_latlon (i = i_atm + offset_corners_x, j = j_atm + offset_corners_y, &
           lat = this%lats_c(this%nx + 1, this%ny + 1), lon = this%lons_c(this%nx + 1, this%ny + 1))
 
