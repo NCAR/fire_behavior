@@ -229,49 +229,72 @@
 
     end subroutine Handle_wrfdata_update
 
-    subroutine Init_domain (this, config_flags, geogrid)
+    subroutine Init_domain (this, config_flags, geogrid, &
+                            ifds, ifde, ifms, ifme, ifps, ifpe, &
+                            jfds, jfde, jfms, jfme, jfps, jfpe, &
+                            kfds, kfde, kfms, kfme, kfps, kfpe, &
+                            kfts, kfte, i_start, i_end, j_start, j_end, num_tiles)
 
       implicit none
 
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
-      type (geogrid_t), intent (in) :: geogrid
+      type (geogrid_t), intent (in), optional :: geogrid
+      integer, intent (in), optional :: ifds, ifde, ifms, ifme, ifps, ifpe, &
+                                        jfds, jfde, jfms, jfme, jfps, jfpe, &
+                                        kfds, kfde, kfms, kfme, kfps, kfpe, &
+                                        kfts, kfte, num_tiles
+      real, dimension(:), allocatable, intent (in), optional :: i_start, i_end, j_start, j_end
 
+      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
-      integer :: ids0, ide0, jds0, jde0
+      integer :: ids0, ide0, jds0, jde0, init_mode
 
+
+      init_mode = INIT_MODE_NONE
+      if (present (geogrid)) init_mode = INIT_MODE_GEOGRID
+      if (init_mode == INIT_MODE_NONE) &
+          call Stop_simulation ('Not enough information to initialize domain')
 
         ! Set dimensions
-      ids0 = geogrid%ifds
-      ide0 = geogrid%ifde
-      jds0 = geogrid%jfds
-      jde0 = geogrid%jfde
+      Set_dims: select case (init_mode)
+        case (INIT_MODE_GEOGRID)
+          ids0 = geogrid%ifds
+          ide0 = geogrid%ifde
+          jds0 = geogrid%jfds
+          jde0 = geogrid%jfde
 
-      this%ifds = ids0
-      this%ifde = ide0
-      this%ifms = ids0 - N_POINTS_IN_HALO
-      this%ifme = ide0 + N_POINTS_IN_HALO
-      this%ifps = ids0
-      this%ifpe = ide0
+          this%ifds = ids0
+          this%ifde = ide0
+          this%ifms = ids0 - N_POINTS_IN_HALO
+          this%ifme = ide0 + N_POINTS_IN_HALO
+          this%ifps = ids0
+          this%ifpe = ide0
 
-      this%jfds = jds0
-      this%jfde = jde0
-      this%jfms = jds0 - N_POINTS_IN_HALO
-      this%jfme = jde0 + N_POINTS_IN_HALO
-      this%jfps = jds0
-      this%jfpe = jde0
+          this%jfds = jds0
+          this%jfde = jde0
+          this%jfms = jds0 - N_POINTS_IN_HALO
+          this%jfme = jde0 + N_POINTS_IN_HALO
+          this%jfps = jds0
+          this%jfpe = jde0
 
-      this%kfds = config_flags%kds
-      this%kfde = config_flags%kde
-      this%kfms = config_flags%kds
-      this%kfme = config_flags%kde
-      this%kfps = config_flags%kds
-      this%kfpe = config_flags%kde
-      this%kfts = config_flags%kds
-      this%kfte = config_flags%kde
+          this%kfds = config_flags%kds
+          this%kfde = config_flags%kde
+          this%kfms = config_flags%kds
+          this%kfme = config_flags%kde
+          this%kfps = config_flags%kds
+          this%kfpe = config_flags%kde
+          this%kfts = config_flags%kds
+          this%kfte = config_flags%kde
 
-      call this%Init_tiles (config_flags)
+          call this%Init_tiles (config_flags)
+
+        case default
+
+          call Stop_simulation ('Not ready to complete fire state initialization 1')
+
+      end select Set_dims
 
       this%nx = this%ifde
       this%ny = this%jfde
@@ -281,30 +304,44 @@
       call this%Allocate_vars (this%ifms, this%ifme, this%jfms, this%jfme)
 
         ! Set projection
-      proj = geogrid%Get_atm_proj ()
-      call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
+      Set_proj: select case (init_mode)
+        case (INIT_MODE_GEOGRID)
+          proj = geogrid%Get_atm_proj ()
+          call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
 
-      this%cen_lat = geogrid%cen_lat
-      this%cen_lon = geogrid%cen_lon
+          this%cen_lat = geogrid%cen_lat
+          this%cen_lon = geogrid%cen_lon
 
-      this%dx = geogrid%dx / geogrid%sr_x
-      this%dy = geogrid%dy / geogrid%sr_y
+          this%dx = geogrid%dx / geogrid%sr_x
+          this%dy = geogrid%dy / geogrid%sr_y
+
+        case default
+          call Stop_simulation ('Not ready to complete fire state initialization 2')
+
+      end select Set_proj
 
         ! Init vars
       call this%Set_vars_to_default (config_flags)
 
-      this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
-      this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
-      this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
-      this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
+      Set_topo_fuels: select case (init_mode)
+        case (INIT_MODE_GEOGRID)
+          this%zsf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%elevations
+          this%dzdxf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dxs
+          this%dzdyf(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%dz_dys
+          this%nfuel_cat(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%fuel_cats
 
-      if (config_flags%fire_is_real_perim) then
-        if (allocated (geogrid%lfn_init)) then
-          this%lfn_hist(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%lfn_init
-        else
-          Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
-        end if
-      end if
+          if (config_flags%fire_is_real_perim) then
+            if (allocated (geogrid%lfn_init)) then
+              this%lfn_hist(this%ifds:this%ifde, this%jfds:this%jfde) = geogrid%lfn_init
+            else
+              Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
+            end if
+          end if
+
+        case default
+          call Stop_simulation ('Not ready to complete fire state initialization 3')
+
+      end select Set_topo_fuels
 
       if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
 
