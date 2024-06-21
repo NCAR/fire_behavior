@@ -90,22 +90,35 @@
 
     end subroutine Init_fire_state
 
-    subroutine Init_fire_state_within_wrf (state, config_flags)
+    subroutine Init_fire_state_within_wrf (state, config_flags, &
+        ifds, ifde, ifms, ifme, ifps, ifpe, &
+        jfds, jfde, jfms, jfme, jfps, jfpe, &
+        kfds, kfde, kfms, kfme, kfps, kfpe, &
+        kfts, kfte, ide, jde, i_start, i_end, j_start, j_end, dx, dy, sr_x, sr_y, &
+        map_proj, cen_lat, cen_lon, truelat1, truelat2, stand_lon, &
+        nfuel_cat, zsf, dzdxf, dzdyf)
 
       implicit none
 
-      type (state_fire_t), intent (in out), optional :: state
-      type (namelist_t), intent (in), optional :: config_flags
+      type (state_fire_t), intent (in out) :: state
+      type (namelist_t), intent (in) :: config_flags
+      integer, intent (in) :: ifds, ifde, ifms, ifme, ifps, ifpe, &
+                              jfds, jfde, jfms, jfme, jfps, jfpe, &
+                              kfds, kfde, kfms, kfme, kfps, kfpe, &
+                              kfts, kfte, map_proj, sr_x, sr_y, ide, jde
+      integer, dimension(:), intent (in) :: i_start, i_end, j_start, j_end
+      real :: dx, dy, cen_lat, cen_lon, truelat1, truelat2, stand_lon
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, zsf, dzdxf, dzdyf
 
-      logical :: is_state_present, is_nml_present
 
-
-      is_state_present = present (state)
-      is_nml_present = present (config_flags)
-
-      print *, 'Initializing the CFBM model within WRF'
-      print *, 'Is state present? ', is_state_present
-      print *, 'Is nml present? ', is_nml_present
+      call state%Initialization (config_flags, &
+          ifds = ifds, ifde = ifde, ifms = ifms, ifme = ifme, ifps = ifps, ifpe = ifpe, &
+          jfds = jfds, jfde = jfde, jfms = jfms, jfme = jfme, jfps = jfps, jfpe = jfpe, &
+          kfds = kfds, kfde = kfde, kfms = kfms, kfme = kfme, kfps = kfps, kfpe = kfpe, &
+          kfts = kfts, kfte = kfte, ide = ide, jde = jde, i_start = i_start, i_end = i_end, j_start = j_start, &
+          j_end = j_end, cen_lat = cen_lat, cen_lon = cen_lon, truelat1 = truelat1, &
+          truelat2 = truelat2, stand_lon = stand_lon, dx = dx, dy = dy, sr_x = sr_x, sr_y = sr_y, &
+          nfuel_cat = nfuel_cat, zsf = zsf, dzdxf = dzdxf, dzdyf = dzdyf)
 
     end subroutine Init_fire_state_within_wrf
 

@@ -233,7 +233,10 @@
                             ifds, ifde, ifms, ifme, ifps, ifpe, &
                             jfds, jfde, jfms, jfme, jfps, jfpe, &
                             kfds, kfde, kfms, kfme, kfps, kfpe, &
-                            kfts, kfte, i_start, i_end, j_start, j_end, num_tiles)
+                            kfts, kfte, ide, jde, i_start, i_end, j_start, j_end, &
+                            cen_lat, cen_lon, truelat1, truelat2, stand_lon, &
+                            dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf)
+
 
       implicit none
 
@@ -243,10 +246,13 @@
       integer, intent (in), optional :: ifds, ifde, ifms, ifme, ifps, ifpe, &
                                         jfds, jfde, jfms, jfme, jfps, jfpe, &
                                         kfds, kfde, kfms, kfme, kfps, kfpe, &
-                                        kfts, kfte, num_tiles
-      real, dimension(:), allocatable, intent (in), optional :: i_start, i_end, j_start, j_end
+                                        kfts, kfte, sr_x, sr_y, ide, jde
+      real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
+      integer, dimension(:), intent (in), optional :: i_start, i_end, j_start, j_end
+      real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
 
-      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1
+
+      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
       integer :: ids0, ide0, jds0, jde0, init_mode
@@ -254,6 +260,16 @@
 
       init_mode = INIT_MODE_NONE
       if (present (geogrid)) init_mode = INIT_MODE_GEOGRID
+      if (present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. present (ifps) .and. present (ifpe) .and. &
+          present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
+          present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
+          present (kfts) .and. present (kfte) .and. present (ide) .and. present (jde) .and. &
+          present (i_start) .and. present (i_end) .and. present (j_start) .and. present (j_end) .and. &
+          present (cen_lat) .and. present (cen_lon) .and. present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. &
+          present (dx) .and. present (dy) .and. present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. &
+          present (dzdxf) .and. present (dzdyf)) &
+          init_mode = INIT_MODE_WRF
+
       if (init_mode == INIT_MODE_NONE) &
           call Stop_simulation ('Not enough information to initialize domain')
 
@@ -290,6 +306,35 @@
 
           call this%Init_tiles (config_flags)
 
+        case (INIT_MODE_WRF)
+          this%ifds = ifds
+          this%ifde = ifde
+          this%ifms = ifms
+          this%ifme = ifme
+          this%ifps = ifps
+          this%ifpe = ifpe
+
+          this%jfds = jfds
+          this%jfde = jfde
+          this%jfms = jfms
+          this%jfme = jfme
+          this%jfps = jfps
+          this%jfpe = jfpe
+
+          this%kfds = kfds
+          this%kfde = kfde
+          this%kfms = kfms
+          this%kfme = kfme
+          this%kfps = kfps
+          this%kfpe = kfpe
+          this%kfts = kfts
+          this%kfte = kfte
+
+          this%i_start = i_start
+          this%j_start = j_start
+          this%i_end = i_end
+          this%j_end = j_end
+
         case default
 
           call Stop_simulation ('Not ready to complete fire state initialization 1')
@@ -315,6 +360,17 @@
           this%dx = geogrid%dx / geogrid%sr_x
           this%dy = geogrid%dy / geogrid%sr_y
 
+        case (INIT_MODE_WRF)
+          proj = proj_lc_t (cen_lat = cen_lat , cen_lon = cen_lon, dx = dx, dy = dy, &
+            standard_lon = stand_lon, true_lat_1 = truelat1, true_lat_2 = truelat2, nx = ide - 1, ny = jde - 1)
+          call this%Init_latlons (proj, srx = sr_x, sry = sr_y)
+
+          this%cen_lat = cen_lat
+          this%cen_lon = cen_lon
+
+          this%dx = dx / sr_x
+          this%dy = dy / sr_y
+
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 2')
 
@@ -337,6 +393,15 @@
               Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
             end if
           end if
+
+        case (INIT_MODE_WRF)
+          this%zsf(this%ifms:this%ifme, this%jfms:this%jfme) = zsf
+          this%dzdxf(this%ifms:this%ifme, this%jfms:this%jfme) = dzdxf
+          this%dzdyf(this%ifms:this%ifme, this%jfms:this%jfme) = dzdyf
+          this%nfuel_cat(this%ifms:this%ifme, this%jfms:this%jfme) = nfuel_cat
+          if (config_flags%fire_is_real_perim) &
+              !this%lfn_hist(this%ifms:this%ifme, this%jfms:this%jfme) = lfn_hist
+              call Stop_simulation ('Not ready to initialize from fire perimeter inside WRF')
 
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 3')
