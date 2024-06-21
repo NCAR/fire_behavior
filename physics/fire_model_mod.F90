@@ -5,6 +5,7 @@
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t
+    use stderrout_mod, only : Print_message
 
     private
 
@@ -43,7 +44,10 @@
 
       integer :: ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       real :: tbound, time_start
+      logical, parameter :: DEBUG_LOCAL = .false.
 
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Advance_fire_model...')
 
       ifds = grid%ifds
       ifde = grid%ifde
@@ -62,36 +66,48 @@
 
       time_start = grid%itimestep * grid%dt
 
+      if (DEBUG_LOCAL) call Print_message ('calling Prop_level_set...')
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, time_start, grid%dt, grid%dx, grid%dy, &
           config_flags%fire_upwinding, config_flags%fire_viscosity, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, &
           config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
           grid%lfn_out, grid%tign_g, grid%ros, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf, grid%ros_param)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Stop_if_close_to_bdy...')
       call Stop_if_close_to_bdy (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, grid%lfn_out)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Update_ignition_times...')
       call Update_ignition_times (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, jfds, ifde, jfde, &
           time_start, grid%dt, grid%lfn, grid%lfn_out, grid%tign_g)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Calc_flame_length...')
       call Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
            grid%ros, grid%ros_param%iboros, grid%flame_length, grid%ros_front, grid%fire_area)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set...')
       if (config_flags%fire_lsm_reinit) call Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
           ifds, ifde, jfds, jfde, time_start, grid%dt, grid%dx, grid%dy, config_flags%fire_upwinding_reinit, &
           config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, grid%lfn, grid%lfn_2, grid%lfn_s0, &
            grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Copy_lfnout_to_lfn...')
       call Copy_lfnout_to_lfn (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, grid%lfn_out, grid%lfn)
-
+ 
+      if (DEBUG_LOCAL) call Print_message ('calling Ignite_prescribed_fires...')
       call Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Calc_fuel_left...')
       call Calc_fuel_left (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
           grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, grid%fuel_frac, grid%fire_area, &
           grid%fuel_frac_burnt_dt)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Calc_fire_fluxes...')
       call Calc_fire_fluxes (grid%dt, grid, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
           ifts, ifte, jfts, jfte, grid%fuel_load_g, grid%fuel_frac_burnt_dt, grid%fgrnhfx, grid%fgrnqfx)
 
+      if (DEBUG_LOCAL) call Print_message ('calling Calc_smoke_emissions...')
       call Calc_smoke_emissions (grid, config_flags, ifts, ifte, jfts, jfte)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Advance_fire_model...')
 
     end subroutine Advance_fire_model
 

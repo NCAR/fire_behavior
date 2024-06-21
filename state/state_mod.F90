@@ -233,7 +233,7 @@
                             ifds, ifde, ifms, ifme, ifps, ifpe, &
                             jfds, jfde, jfms, jfme, jfps, jfpe, &
                             kfds, kfde, kfms, kfme, kfps, kfpe, &
-                            kfts, kfte, ide, jde, i_start, i_end, j_start, j_end, &
+                            kfts, kfte, ide, jde, &
                             cen_lat, cen_lon, truelat1, truelat2, stand_lon, &
                             dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf)
 
@@ -248,9 +248,7 @@
                                         kfds, kfde, kfms, kfme, kfps, kfpe, &
                                         kfts, kfte, sr_x, sr_y, ide, jde
       real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
-      integer, dimension(:), intent (in), optional :: i_start, i_end, j_start, j_end
       real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
-
 
       integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2
       type (proj_lc_t) :: proj
@@ -264,7 +262,6 @@
           present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
           present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
           present (kfts) .and. present (kfte) .and. present (ide) .and. present (jde) .and. &
-          present (i_start) .and. present (i_end) .and. present (j_start) .and. present (j_end) .and. &
           present (cen_lat) .and. present (cen_lon) .and. present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. &
           present (dx) .and. present (dy) .and. present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. &
           present (dzdxf) .and. present (dzdyf)) &
@@ -304,8 +301,6 @@
           this%kfts = config_flags%kds
           this%kfte = config_flags%kde
 
-          call this%Init_tiles (config_flags)
-
         case (INIT_MODE_WRF)
           this%ifds = ifds
           this%ifde = ifde
@@ -330,16 +325,13 @@
           this%kfts = kfts
           this%kfte = kfte
 
-          this%i_start = i_start
-          this%j_start = j_start
-          this%i_end = i_end
-          this%j_end = j_end
-
         case default
 
           call Stop_simulation ('Not ready to complete fire state initialization 1')
 
       end select Set_dims
+
+      call this%Init_tiles (config_flags)
 
       this%nx = this%ifde
       this%ny = this%jfde

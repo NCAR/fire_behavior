@@ -14,7 +14,7 @@
   ! https://doi.org/10.1002/2017MS001108
 
     use ros_wrffire_mod, only: ros_wrffire_t
-    use stderrout_mod, only: Stop_simulation
+    use stderrout_mod, only: Stop_simulation, Print_message
     use state_mod, only: state_fire_t
     use ignition_line_mod, only : ignition_line_t
     use ros_mod, only : ros_t
@@ -290,7 +290,10 @@
       real :: tbound2, tbound3
       integer :: i, j
       character (len = :), allocatable :: msg
+      logical, parameter :: DEBUG_LOCAL = .false.
 
+
+      if (DEBUG_LOCAL) call Print_message ('Entering sub Prop_level_set...')
 
         ! Runge-Kutta step 1
       do j = jfts, jfte
@@ -299,6 +302,7 @@
         end do
       end do
 
+      if (DEBUG_LOCAL) call Print_message ('call Calc_tend_ls 1...')
       call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
@@ -311,6 +315,8 @@
       end do
 
         ! Runge-Kutta step 2
+      if (DEBUG_LOCAL) call Print_message ('call Calc_tend_ls 2...')
+
      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
@@ -323,6 +329,8 @@
       end do
 
         ! Runge-Kutta step 3
+      if (DEBUG_LOCAL) call Print_message ('call Calc_tend_ls 3...')
+
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
@@ -344,6 +352,8 @@
         !$omp end critical
       end if
     
+      if (DEBUG_LOCAL) call Print_message ('leaving sub Prop_level_set...')
+
     end subroutine Prop_level_set
 
     subroutine Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
@@ -613,15 +623,20 @@
          threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
       character (len = :), allocatable :: msg
+      logical, parameter :: DEBUG_LOCAL = .false.
 
+
+      if (DEBUG_LOCAL) call Print_message ('Entering subroutine Calc_tend_ls')
 
       threshold_hll = -fire_lsm_band_ngp * dx
       threshold_hlu = fire_lsm_band_ngp * dx
       threshold_av = fire_viscosity_ngp * dx
 
+      if (DEBUG_LOCAL) call Print_message ('calling Extrapol_var_at_bdys')
       call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ids, ide, jds, jde, &
           its, ite, jts, jte, lfn)
 
+      if (DEBUG_LOCAL) call Print_message ('starting ij loops')
       tbound = 0.0
       do j = jts, jte
         do i = its, ite
@@ -782,6 +797,8 @@
 
         ! final CFL bound
       tbound = 1.0 / (tbound + TOL)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving subroutine Calc_tend_ls')
 
     end subroutine Calc_tend_ls
 

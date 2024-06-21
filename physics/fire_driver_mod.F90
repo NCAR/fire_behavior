@@ -94,7 +94,10 @@
 
       integer, parameter :: PRINT_LEVEL = 1
       integer :: ij
+      logical, parameter :: DEBUG_LOCAL = .false.
 
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Advance_fire_components...') 
 
       if (config_flags%fmoist_run) call grid%fmc_param%Advance_fmc_model (config_flags%fmoist_freq, config_flags%fmoist_dt, &
           grid%itimestep, grid%dt, grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
@@ -109,6 +112,8 @@
       end do
 
       if (config_flags%fire_print_msg >= PRINT_LEVEL) call Print_summary (config_flags, grid)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Advance_fire_components...') 
 
     end subroutine Advance_fire_components
 

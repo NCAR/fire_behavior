@@ -9,28 +9,9 @@
 
     private
 
-    public :: Advance_state, Advance_state_to_be_removed
+    public :: Advance_state
 
   contains
-
-    subroutine Advance_state_to_be_removed (state, config_flags)
-
-      implicit none
-
-      type (state_fire_t), intent (in), optional :: state
-      type (namelist_t), intent (in), optional :: config_flags
-
-      logical :: is_state_present, is_nml_present
-
-
-      is_state_present = present (state)
-      is_nml_present = present (config_flags)
-
-      print *, 'Advancing CFBM model within WRF'
-      print *, 'Is state present? ', is_state_present
-      print *, 'Is nml present? ', is_nml_present
-
-    end subroutine Advance_state_to_be_removed
 
     subroutine Advance_state (grid, config_flags)
 
@@ -39,7 +20,7 @@
       type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .false.
+      logical, parameter :: DEBUG_LOCAL = .true.
 
 
       if (DEBUG_LOCAL) call Print_message ('  Entering Advance_state... ')
