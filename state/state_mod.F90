@@ -72,6 +72,7 @@
       class (ros_t), allocatable :: ros_param
       type (ignition_line_t) :: ignition_lines
       class (fmc_t), allocatable :: fmc_param
+      type (proj_lc_t) :: proj
 
         ! New vars defined on fire grid for NUOPC coupling
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
@@ -367,6 +368,7 @@
           call Stop_simulation ('Not ready to complete fire state initialization 2')
 
       end select Set_proj
+      this%proj = proj
 
         ! Init vars
       call this%Set_vars_to_default (config_flags)

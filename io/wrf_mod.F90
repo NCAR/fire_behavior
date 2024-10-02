@@ -6,12 +6,13 @@
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
     use proj_lc_mod, only : proj_lc_t
     use stderrout_mod, only : Print_message
+    use interp_mod, only : Interp_profile
 
     implicit none
 
     private
 
-    public :: wrf_t, G, RERADIUS
+    public :: wrf_t, G, RERADIUS, Interp_wrf2dvar_to_cfbm, Interp_wrfwinds_to_cfbm
 
     real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
     real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
@@ -642,6 +643,69 @@
       end do
 
     end subroutine Interp_var2grid_nearest
+
+    subroutine Interp_wrf2dvar_to_cfbm (wrfatm2dvar, ims, ime, jms, jme, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, &
+        lats_in, lons_in, proj, vals_out)
+
+      implicit none
+
+      integer, intent (in) :: ims, ime, jms, jme, &
+                              ifms, ifme, jfms, jfme, &
+                              ifps, ifpe, jfps, jfpe
+      real, dimension(ims:ime, jms:jme), intent (in) :: wrfatm2dvar
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lats_in, lons_in
+      type (proj_lc_t), intent (in) :: proj
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: vals_out
+
+      integer :: i, j, i_wrf, j_wrf
+      real :: i_real, j_real
+
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          call proj%Calc_ij (lats_in(i, j), lons_in(i, j), i_real, j_real)
+          i_wrf = min (max (ims, nint (i_real)), ime)
+          j_wrf = min (max (jms, nint (j_real)), jme)
+          vals_out(i, j) = wrfatm2dvar(i_wrf, j_wrf)
+        end do
+      end do
+
+    end subroutine Interp_wrf2dvar_to_cfbm
+
+    subroutine Interp_wrfwinds_to_cfbm (u_phy, v_phy, z_at_w, ims, ime, kms, kme, jms, jme, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, &
+        kfds, kfde, lats_in, lons_in, proj, z0f, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, u_out, v_out)
+
+      implicit none
+
+      integer, intent (in) :: ims, ime, kms, kme, jms, jme, &
+                              ifms, ifme, jfms, jfme, &
+                              ifps, ifpe, jfps, jfpe, &
+                              kfds, kfde
+      logical, intent (in) :: fire_lsm_zcoupling
+      real, dimension(ims:ime, kms:kme, jms:jme), intent (in) :: u_phy, v_phy, z_at_w
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lats_in, lons_in, z0f
+      type (proj_lc_t), intent (in) :: proj
+      real, intent (in) :: fire_wind_height, fire_lsm_zcoupling_ref
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: u_out, v_out
+
+      integer :: i, j, i_wrf, j_wrf
+      real :: i_real, j_real, uout, vout
+
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          call proj%Calc_ij (lats_in(i, j), lons_in(i, j), i_real, j_real)
+          i_wrf = min (max (ims, nint (i_real)), ime)
+          j_wrf = min (max (jms, nint (j_real)), jme)
+          call Interp_profile (fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, kfds, kfde, &
+              u_phy(i_wrf, :, j_wrf), v_phy(i_wrf, :, j_wrf), z_at_w(i_wrf, :, j_wrf), z0f(i, j), &
+              uout, vout)
+          u_out(i, j) = uout
+          v_out(i, j) = vout
+        end do
+      end do
+
+    end subroutine  Interp_wrfwinds_to_cfbm
 
     subroutine Print_domain (this)
 
