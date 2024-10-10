@@ -269,7 +269,7 @@
     subroutine Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
         ifts, ifte, jfts, jfte, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, &
-        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, uf, vf, dzdxf, dzdyf, ros_model)
+        tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, uf, vf, dzdxf, dzdyf, ros_model, grad)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
 
@@ -280,7 +280,7 @@
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros, grad
       real, intent (in) :: dx, dy, ts, dt
       real, intent (out) :: tbound
       class (ros_t), intent (in) :: ros_model
@@ -302,7 +302,7 @@
       call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
           ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
           fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
+          fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model, grad)
 
       do j = jfts, jfte 
         do i = ifts, ifte 
@@ -314,7 +314,7 @@
      call Calc_tend_ls (ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, &
          ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound2, tend, ros, uf, vf, dzdxf, dzdyf, ros_model, grad)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -326,7 +326,7 @@
      call Calc_tend_ls (ifds,ifde,jfds,jfde, ifts, ifte, jfts, jfte, &
          ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
          fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
-         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
+         fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound3, tend, ros, uf, vf, dzdxf, dzdyf, ros_model, grad)
 
       do j = jfts, jfte
         do i = ifts, ifte
@@ -348,7 +348,7 @@
 
     subroutine Reinit_level_set (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
-        fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
+        fire_lsm_reinit_iter, fire_lsm_reinit_dt, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign)
 
     ! Purpose: Level-set function reinitialization
@@ -365,7 +365,7 @@
 
       integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       integer, intent (in) :: ifds, ifde, jfds, jfde
-      integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp
+      integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp, fire_lsm_reinit_dt
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
@@ -388,7 +388,7 @@
       call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, &
           jfds, jfde, ifts, ifte, jfts, jfte, lfn_s3)
 
-      dt_s = 0.0001 * dx
+      dt_s = fire_lsm_reinit_dt * dx
         ! iterate to solve to steady state reinit PDE
         ! 1 iter each time step is enoguh
       do nts = 1, fire_lsm_reinit_iter
@@ -591,7 +591,7 @@
 
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ifms, ifme, jfms, jfme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
-        fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model)
+        fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, uf, vf, dzdxf, dzdyf, ros_model, grad_lfn)
 
       ! compute the right hand side of the level set equation
 
@@ -602,7 +602,7 @@
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros, grad_lfn
       real, intent (out) :: tbound
       class (ros_t), intent (in) :: ros_model
 
@@ -763,6 +763,7 @@
 
             ! Tendency level set function
           tend(i, j) = -ros(i, j) * grad
+          grad_lfn(i, j) = grad
 
             ! Add to tend effect Artificial viscosity
           if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &

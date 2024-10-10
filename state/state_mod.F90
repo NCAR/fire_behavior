@@ -67,6 +67,7 @@
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
+      real, dimension(:, :), allocatable :: grad
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
@@ -259,6 +260,7 @@
       allocate (this%lfn_s2(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_s3(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%lfn_out(this%ifms:this%ifme, this%jfms:this%jfme))
+      allocate (this%grad(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%fuel_load_g(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%flame_length(this%ifms:this%ifme, this%jfms:this%jfme))
       allocate (this%ros_front(this%ifms:this%ifme, this%jfms:this%jfme))

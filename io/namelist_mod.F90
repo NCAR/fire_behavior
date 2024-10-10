@@ -31,6 +31,7 @@
 
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
+      integer :: fire_lsm_reinit_dt = 0.0001  ! "pseudo timestep for the reinitialization PDE"
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
