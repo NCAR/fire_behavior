@@ -12,7 +12,7 @@
 
     private
 
-    public :: wrf_t, G, RERADIUS, Interp_wrf2dvar_to_cfbm, Interp_wrfwinds_to_cfbm
+    public :: wrf_t, G, RERADIUS, Interp_wrf2dvar_to_cfbm, Interp_wrfwinds_to_cfbm, Provide_atm_feedback
 
     real, parameter :: G = 9.81                   ! acceleration due to gravity [m s-2]
     real, parameter :: RERADIUS = 1.0 / 6370.0e03 ! reciprocal of earth radius (m^-1)
@@ -730,6 +730,78 @@
       write (OUTPUT_UNIT, *) 'kts = ', this%kts, 'kte = ', this%kte
 
     end subroutine Print_domain
+
+    subroutine Provide_atm_feedback (config_flags, &
+            ifms, ifme, jfms, jfme,                &
+            i_start, i_end, j_start, j_end,        &
+            num_tiles,                             &
+            ifps, ifpe, jfps, jfpe,                &
+            ids, ide, kds, kde, jds, jde,          &
+            ims, ime, kms, kme, jms, jme,          &
+            its, ite, kts, kte, jts, jte,          &
+            rho, dz8w,                             &
+            emis_smoke, smoke_tracer, tracer_opt)
+
+      use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+      implicit none
+
+      type (namelist_t), intent (in) :: config_flags
+      integer, intent (in) :: ifms, ifme, jfms, jfme,       &
+                              ifps, ifpe, jfps, jfpe,       &
+                              ids, ide, kds, kde, jds, jde, &
+                              ims, ime, kms, kme, jms, jme, &
+                              its, ite, kts, kte, jts, jte, num_tiles
+
+      integer, dimension(num_tiles), intent(in) :: i_start, i_end, j_start, j_end
+
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: emis_smoke
+      real, dimension(ims:ime, kms:kme, jms:jme), intent (in out), optional :: smoke_tracer
+      real, dimension(ims:ime, kms:kme, jms:jme), intent (in) :: rho, dz8w
+      integer, intent (in) :: tracer_opt
+
+      integer :: i, j, ibase, jbase, i_f, j_f, ioff, joff
+      real :: avgw
+      integer :: isz1, jsz1, isz2, jsz2, ir, jr
+      integer :: ifts, ifte, jfts, jfte, ij
+
+      if (tracer_opt == 3) then
+
+        !$OMP PARALLEL DO   &
+        !$OMP PRIVATE ( ij ,i,j,k,its,ite,jts,jte)
+        DO ij = 1, num_tiles
+          ifts = i_start(ij)
+          ifte = i_end(ij)
+          jfts = j_start(ij)
+          jfte = j_end(ij)
+
+          isz1 = ite - its + 1
+          jsz1 = jte - jts + 1
+          isz2 = ifte - ifts + 1
+          jsz2 = jfte - jfts + 1
+          ir = isz2 / isz1
+          jr = jsz2 / jsz1
+          avgw = 1.0 / (ir * jr)
+
+          do j=max(jds+1,jts),min(jte,jde-2)
+            jbase = jfts + jr * (j - jts)
+            do i=max(ids+1,its),min(ite,ide-2)
+              ibase = ifts + ir * (i - its)
+              do joff=0,jr-1
+                j_f = joff + jbase
+                do ioff=0,ir-1
+                  i_f = ioff + ibase
+                  smoke_tracer(i,kts,j) = smoke_tracer(i,kts,j) + &
+                  (avgw * emis_smoke(i_f,j_f) * 1000/(rho(i,kts,j)*dz8w(i,kts,j)))
+                end do
+              end do
+            end do
+          end do
+        END DO
+        !$OMP END PARALLEL DO
+
+      end if
+
+    end subroutine Provide_atm_feedback
 
     subroutine Update_atm_state (this, datetime_now)
 
