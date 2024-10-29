@@ -29,7 +29,7 @@ author = ' '
 # The short X.Y version
 version = 'develop'
 # The full version, including alpha/beta/rc tags
-release = f'Documentation version {version}'
+release = f'version {version}'
 html_logo = "https://www.archives.ucar.edu/sites/default/files/images/NSF-NCAR_Lockup-UCAR-Dark_102523%20%282%29.png"
 
 numfig = True

@@ -1,7 +1,13 @@
 Community Fire Behavior Module (CFBM) Documentation (|version|)
-============================================================
-
-.. toctree::
-   :maxdepth: 2
+===============================================================
    
-   UsersGuide/index
+.. toctree::
+   :numbered:
+   :maxdepth: 3
+   
+   Introduction
+   Configuration
+   SRW
+   WRFData
+   Idealized
+   Glossary
