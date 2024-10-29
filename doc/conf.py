@@ -42,7 +42,6 @@ nitpick_ignore = [('py:class', 'obj'),('py:class',
 
 # Sphinx extension module names:
 extensions = [
-    'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
@@ -109,8 +108,7 @@ user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
-html_theme_path = ["_themes", ]
+html_theme = 'classic'
 html_logo= "https://www.archives.ucar.edu/sites/default/files/images/NSF-NCAR_Lockup-UCAR-Dark_102523%20%282%29.png"
 
 # Theme options are theme-specific and customize the look and feel of a theme
