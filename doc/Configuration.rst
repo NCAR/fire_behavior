@@ -27,37 +27,37 @@ Example namelists can be found in the various test subdirectories under the ``te
 &time
 ---------------------------------
 
-``start_year``: *integer* (Required)  
+``start_year``: *integer* (Required)
    Start year of the simulation.
 
-``start_month``: *integer* (Required)  
+``start_month``: *integer* (Required)
    Start month of the simulation.
 
-``start_day``: *integer* (Required)  
+``start_day``: *integer* (Required)
    Start day of the simulation.
 
-``start_hour``: *integer* (Required)  
+``start_hour``: *integer* (Required)
    Start hour of the simulation.
 
-``start_minute``: *integer* (Required)  
+``start_minute``: *integer* (Required)
    Start minute of the simulation.
 
-``start_second``: *integer* (Required)  
+``start_second``: *integer* (Required)
    Start second of the simulation.
 
-``end_year``: *integer* (Required)  
+``end_year``: *integer* (Required)
    End year of the simulation.
 
-``end_month``: *integer* (Required)  
+``end_month``: *integer* (Required)
    End month of the simulation.
 
-``end_day``: *integer* (Required)  
+``end_day``: *integer* (Required)
    End day of the simulation.
 
-``end_hour``: *integer* (Required)  
+``end_hour``: *integer* (Required)
    End hour of the simulation.
 
-``end_minute``: *integer* (Required)  
+``end_minute``: *integer* (Required)
    End minute of the simulation.
 
 ``end_second``: *integer* (Required)
@@ -66,7 +66,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``dt``: *real* (Default: ``2.0``)
    Atmospheric time step in seconds.
 
-``interval_output``: *integer* (Required)  
+``interval_output``: *integer* (Required)
    Description needed
 
 ``num_tiles``: *integer* (Default: ``1``)
@@ -99,7 +99,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``fire_atm_feedback``: *real* (Default: ``1.0``)
    Multiplier for heat fluxes from the fire to the atmosphere.
-     Use 0.0 for one-way (atmosphere --> fire) coupling. Use 1.0 for normal two-way coupling. 
+     Use 0.0 for one-way (atmosphere --> fire) coupling. Use 1.0 for normal two-way coupling.
      Intermediate values will vary the amount of forcing provided from the fire to the dynamical core.
 
 ``fire_upwinding``: *integer* (Default: ``9``)
@@ -126,14 +126,14 @@ Example namelists can be found in the various test subdirectories under the ``te
 
    More description needed for these options
 
-``fire_viscosity``: *real* (Default: ``0.4``)  
+``fire_viscosity``: *real* (Default: ``0.4``)
    Artificial viscocity in :term:`level-set method` away from the near-front region.
 
 ``fire_lsm_reinit``: *logical* (Default: ``.true.``)
-   
+
    Flag to activate reinitialization of the :term:`level-set method`
 
-``fire_lsm_reinit_iter``: *integer* (Default: ``1``)  
+``fire_lsm_reinit_iter``: *integer* (Default: ``1``)
    Number of iterations for reinitialization :term:`PDE`
 
 ``fire_upwinding_reinit``: *integer* (Default: ``4``)
@@ -159,22 +159,22 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_viscosity_bg``: *real* (Default: ``0.4``)
    Artificial viscosity in the near-front region
 
-``fire_viscosity_band``: *real* (Default: ``0.5``)  
+``fire_viscosity_band``: *real* (Default: ``0.5``)
    Number of times the hybrid advection band to transition from ``fire_viscosity_bg`` to ``fire_viscosity``
 
-``fire_viscosity_ngp``: *integer* (Default: ``2``)  
+``fire_viscosity_ngp``: *integer* (Default: ``2``)
    Number of grid points around lfn=0 where ``fire_viscosity_bg`` is used
 
-``fmoist_run``: *logical* (Default: ``.false.``)  
+``fmoist_run``: *logical* (Default: ``.false.``)
    Runs moisture model on the atmospheric grid, outputting the result as a variable named ``fmc_gc``
 
-``fmoist_freq``: *integer* (Default: ``0``)  
+``fmoist_freq``: *integer* (Default: ``0``)
    Frequency to run moisture model.
      0: use ``fmoist_dt``
 
      k>0: every "k" timesteps
 
-``fmoist_dt``: *integer* (Default: ``600``)
+``fmoist_dt``: *real* (Default: ``600.0``)
    Units: s
      Time step of moisture model (only used if ``fmoist_freq=0``)
 
@@ -201,7 +201,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fuelmc_c``: *real* (Default: ``1.00``)
    Fuel moisture content of the canopy
 
-``fuel_opt``: *integer* (Default: ``1``)  
+``fuel_opt``: *integer* (Default: ``1``)
    Do not change.
      Fuel model
 
@@ -209,11 +209,11 @@ Example namelists can be found in the various test subdirectories under the ``te
    Do not change.
      Rate of spread option parameterization.
 
-``fmc_opt``: *integer* (Default: ``1``)  
+``fmc_opt``: *integer* (Default: ``1``)
    Do not change.
      :term:`FMC` model
 
-``fire_num_ignitions``: *integer* (Default: ``1``)  
+``fire_num_ignitions``: *integer* (Default: ``1``)
    Number of ignitions for fire initiation. Maximum of 5.
 
 .. note::
@@ -222,7 +222,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_start_lon1``: *real* (Default: ``0.0``)
    Longitude of first ignition start point.
 
-``fire_ignition_start_lat1``: *real* (Default: ``0.0``)  
+``fire_ignition_start_lat1``: *real* (Default: ``0.0``)
    Latitude of first ignition start point.
 
 ``fire_ignition_end_lon1``: *real* (Default: ``0.0``)
@@ -231,16 +231,19 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_end_lat1``: *real* (Default: ``0.0``)
    Latitude of first ignition end point.
 
-``fire_ignition_ros1``: *real* (Default: ``0.01``)  
-   Rate of spread for first ignition (Rothermel parameterization).
+``fire_ignition_ros1``: *real* (Default: ``0.01``)
+   Units: m/s
+     Rate of spread for first ignition (Rothermel parameterization).
 
-``fire_ignition_start_time1``: *integer* (Default: ``0.0``)
-   Start time of first ignition in seconds (counting from the beginning of the simulation)
+``fire_ignition_start_time1``: *real* (Default: ``0.0``)
+   Units: s
+     Start time of first ignition in seconds (counting from the beginning of the simulation)
 
-``fire_ignition_end_time1``: *integer* (Default: ``1``)  
-   End time of first ignition in seconds (counting from the beginning of the simulation)
+``fire_ignition_end_time1``: *real* (Default: ``1``)
+   Units: s
+     End time of first ignition in seconds (counting from the beginning of the simulation)
 
-``fire_ignition_radius1``: *real* (Default: ``1``)
+``fire_ignition_radius1``: *real* (Default: ``0.0``)
    Units: m
      Radius of the ignition area for first ignition.
 
