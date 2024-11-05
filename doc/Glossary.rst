@@ -10,9 +10,6 @@ Glossary
    advection
       According to the American Meteorological Society (AMS) definition, `advection <https://glossary.ametsoc.org/wiki/Advection>`_ is "The process of transport of an atmospheric property solely by the mass motion (velocity field) of the atmosphere." In common parlance, advection is movement of atmospheric substances that are carried around by the wind.
 
-   CAPE
-      Convective Available Potential Energy. 
-
    CCPP
       The `Common Community Physics Package <https://dtcenter.org/community-code/common-community-physics-package-ccpp>`_ is a forecast-model agnostic, vetted collection of code containing atmospheric physical parameterizations and suites of parameterizations for use in Numerical Weather Prediction (NWP) along with a framework that connects the physics to the host forecast model.
 
@@ -42,7 +39,7 @@ Glossary
       A namelist defines a group of variables or arrays. Namelists are an I/O feature for format-free input and output of variables by key-value assignments in Fortran compilers. Fortran variables can be read from and written to plain-text files in a standardised format, usually with a ``.nml`` file ending.
 
    NCAR
-      The `National Center for Atmospheric Research <https://ncar.ucar.edu/>`__. 
+      The National Science Foundation's `National Center for Atmospheric Research <https://ncar.ucar.edu/>`__. 
 
    NCEP
       National Centers for Environmental Prediction (NCEP) is an arm of the National Weather Service

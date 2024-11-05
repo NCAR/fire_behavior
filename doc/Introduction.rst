@@ -4,7 +4,9 @@
 Introduction
 ==============
 
-Under construction
+This is the users guide for the Community Fire Behavior Model (CFBM).
+
+This page is under construction
 
 .. image:: https://media.tenor.com/4fu8LKc2vZ4AAAAi/under-construction-wip.gif
    :height: 400
