@@ -20,10 +20,12 @@
       type (state_fire_t), intent (in out) :: grid
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .false.
+      logical :: DEBUG1, DEBUG2 = .false.
 
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
 
-      if (DEBUG_LOCAL) call Print_message ('  Entering Advance_state... ')
+      if (DEBUG2) call Print_message ('  Entering Advance_state... ')
 
       grid%itimestep = grid%itimestep + 1
 
@@ -31,9 +33,9 @@
 
       grid%datetime_now = grid%datetime_start
       call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
-      call grid%datetime_now%Print_datetime ()
+      if (DEBUG2) call grid%datetime_now%Print_datetime ()
 
-      if (DEBUG_LOCAL) call Print_message ('  Leaving Advance_state... ')
+      if (DEBUG2) call Print_message ('  Leaving Advance_state... ')
 
     end subroutine Advance_state
 

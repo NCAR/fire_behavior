@@ -20,14 +20,17 @@
       type (wrf_t), intent (in out) :: atm_state
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .false.
+      logical :: DEBUG1, DEBUG2 = .false.
+
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
 
 
-      if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_atm_state')
+      if (DEBUG2) call Print_message ('  Entering subroutine Init_atm_state')
 
       atm_state = wrf_t ('wrf.nc', config_flags)
 
-      if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_atm_state')
+      if (DEBUG2) call Print_message ('  Leaving subroutine Init_atm_state')
 
     end subroutine Init_atm_state
 
@@ -40,29 +43,33 @@
       type (wrf_t), intent (in out), optional :: wrf
 
       type (geogrid_t) :: geogrid
-      logical, parameter :: DEBUG_LOCAL = .false.
       integer :: i, j, unit_out, unit_out2
 
+      logical :: DEBUG1, DEBUG2 = .false.
 
-      if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_state')
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
+
+
+      if (DEBUG2) call Print_message ('  Entering subroutine Init_state')
 
         ! Fire state initialization
-      if (DEBUG_LOCAL) call Print_message ('  Reading geogrid file')
+      if (DEBUG1) call Print_message ('  Reading geogrid file')
       geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
 
-      if (DEBUG_LOCAL) call Print_message ('  Initializing state')
+      if (DEBUG1) call Print_message ('  Initializing state')
       call grid%Initialization (config_flags, geogrid)
 
         ! Atmosphere to Fire
       if (present (wrf)) then
-        if (DEBUG_LOCAL) call Print_message ('  Initializing atmospheric state')
+        if (DEBUG1) call Print_message ('  Initializing atmospheric state')
         call grid%Handle_wrfdata_update (wrf, config_flags)
       end if
 
         ! Fire init
       call Init_fire_components (grid, config_flags)
 
-      if (DEBUG_LOCAL) then
+      if (DEBUG2) then
           ! print lat/lons
         open (newunit = unit_out, file = 'latlons_c.dat')
         open (newunit = unit_out2, file = 'latlons.dat')
@@ -86,7 +93,7 @@
         end if
       end if
 
-      if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_state')
+      if (DEBUG2) call Print_message ('  Leaving subroutine Init_state')
 
     end subroutine Init_fire_state
 

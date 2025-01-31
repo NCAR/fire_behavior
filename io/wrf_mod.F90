@@ -407,15 +407,19 @@
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t) :: return_value
 
-      logical, parameter :: DEBUG_LOCAL = .false.
       real, parameter :: DEFAULT_Z0 = 0.1, DEFAULT_ZSF = 0.0, DEFAULT_DZDXF = 0.0, DEFAULT_DZDYF = 0.0, &
           DEFAULT_T2 = 123.4, DEFAULT_Q2 = 0.0, DEFAULT_PSFC = 0.0, DEFAULT_RAIN = 0.0
 
       real (kind = REAL32) :: att_real32
       integer (kind = INT32) :: att_int32
 
+      logical :: DEBUG1, DEBUG2 = .false.
 
-      if (DEBUG_LOCAL) Call Print_message ('Entering wrf_t constructor')
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
+
+
+      if (DEBUG2) Call Print_message ('Entering wrf_t constructor')
 
       return_value%file_name = trim (file_name)
       call Is_netcdf_file_present (trim (file_name))
@@ -472,7 +476,7 @@
       return_value%jts = return_value%jds
       return_value%jte = return_value%jde
 
-      if (DEBUG_LOCAL) call return_value%Print_domain()
+      if (DEBUG1) call return_value%Print_domain()
 
       allocate (return_value%phl_stag(return_value%ims:return_value%ime, &
           return_value%kms:return_value%kme, return_value%jms:return_value%jme))
@@ -507,7 +511,7 @@
       allocate (return_value%va(return_value%ims:return_value%ime, return_value%jms:return_value%jme))
       return_value%va = 0.0
 
-      if (DEBUG_LOCAL) Call Print_message ('Leaving wrf_t constructor')
+      if (DEBUG2) Call Print_message ('Leaving wrf_t constructor')
 
     end function Wrf_t_const
 

@@ -138,14 +138,22 @@
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
 
-      logical, parameter :: DEBUG_LOCAL = .false.
+      logical :: DEBUG1, DEBUG2 = .false.
+  
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
+    
+    
+      if (DEBUG2) call Print_message ('  Entering Handle_output... ')
 
 
       if (this%datetime_now == this%datetime_next_output) then
-        if (DEBUG_LOCAL) call Print_message ('Writing output...')
+        if (DEBUG1) call Print_message ('Writing output...')
         call this%Save_state ()
         call this%datetime_next_output%Add_seconds (config_flags%interval_output)
       end if
+
+      if (DEBUG2) call Print_message ('  Leaving Handle_output... ')
 
     end subroutine Handle_output
 
@@ -157,12 +165,16 @@
       type (namelist_t), intent (in) :: config_flags
       type (wrf_t), intent (in out) :: wrf
 
-      logical, parameter :: DEBUG_LOCAL = .true.
+      logical :: DEBUG1, DEBUG2 = .false.
 
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
+
+      if (DEBUG2) call Print_message ('  Entering Handle_wrfdata_update... ')
 
       If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
-        if (DEBUG_LOCAL) call Print_message ('Updating wrfdata...')
-        if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
+        if (DEBUG1) call Print_message ('Updating wrfdata...')
+        if (DEBUG2) call this%datetime_now%Print_datetime ()
 
         call wrf%Update_atm_state (this%datetime_now)
 
@@ -171,6 +183,8 @@
         call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
 
       end if If_update_atm
+
+      if (DEBUG2) call Print_message ('  Leaving Handle_wrfdata_update... ')
 
     end subroutine Handle_wrfdata_update
 
@@ -182,9 +196,14 @@
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in) :: geogrid
 
-      logical, parameter :: DEBUG_LOCAL = .false.
       integer :: ids0, ide0, jds0, jde0
 
+      logical :: DEBUG1, DEBUG2 = .false.
+
+      if (config_flags%fire_print_msg > 1) DEBUG1 = .true.
+      if (config_flags%fire_print_msg > 2) DEBUG2 = .true.
+
+      if (DEBUG2) call Print_message ('  Entering Init_domain... ')
 
         ! Domain dimensions
       ids0 = geogrid%ifds
@@ -233,7 +252,7 @@
       this%dx = geogrid%dx / geogrid%sr_x
       this%dy = geogrid%dy / geogrid%sr_y
 
-      if (DEBUG_LOCAL) call this%Print()
+      if (DEBUG2) call this%Print()
 
       this%nx = this%ifde
       this%ny = this%jfde
@@ -321,6 +340,8 @@
       call this%Init_tiles (config_flags)
 
       if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
+
+      if (DEBUG2) call Print_message ('  Leaving Handle_wrfdata_update... ')
 
     end subroutine Init_domain
 
