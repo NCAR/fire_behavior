@@ -8,10 +8,10 @@ This schematic figure illustrates the integration of the Community Fire Behavior
 
 The blue box at the top represents the UFS atmosphere component, which provides atmospheric variables (e.g., wind, temperature) to drive the fire model. The orange box represents CFBM that simulates fire spread and calculates heat, moisture, and fire smoke, which feed back into the atmospheric component. The NUOPC cap acts as an interface, facilitating the exchange of data between the UFS atmosphere and the CFBM. The CFBM requires static input in the form of geo_em.d01, which contains refined grids, fire fuels, and detailed topography to accurately simulate fire spread.
 
-.. image:: https://github.com/NCAR/fire_behavior/blob/develop/doc/CFBM-NUOPC.jpeg
-  :width: 400
-  :alt: CFBM-NUOPC coupling schematic
-  :align: center
+.. !.. image:: https://github.com/NCAR/fire_behavior/blob/develop/doc/CFBM-NUOPC.jpeg
+.. !  :width: 400
+.. !  :alt: CFBM-NUOPC coupling schematic
+.. !  :align: center
 
 UFS Short-Range Weather Application (SRW)
 =========================================
