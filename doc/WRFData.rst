@@ -4,7 +4,9 @@
 Running real cases with WRF data
 ================================
 
-The schematic figure illustrates the CFBM operating in offline mode. To run CFBM in the offline mode, users need to provide WRF atmospheric data in the ```wrf.nc``` format and static inputs as ```geo_em.d01.nc```.
+The CFBM can run in offline mode using WRF atmospheric fields as input. To run CFBM in the offline mode, users need to provide WRF atmospheric data, including all available timestamps, in a file named ```wrf.nc```, along with static inpupts in ```geo_em.d01.nc```. The atmospheric data must include wind components (U, V), geopotential heights (PH, PHB), surface variables used with the fuel moisture model (RAINC, RAINNC, T2, Q2, PSFC), and roughness length (ZNT). 
+
+The simulation configuration is set up in the ```namelist.fire``` file, as described in Section 2.2. Users must specify the number of vertical levels (```kde```) and the time interval for incoming atmospheric data (```interval_atm```) to match the data provided in the ```wrf.nc``` file.
 
 Users can obtain the model from the github repository:
 
@@ -18,8 +20,5 @@ If the compilation is successful, the model can be run using ```fire_behavior.ex
 
 An example is provided in ```test/test7/``` directory with the ```namelist.fire```.
 
-.. !image:: https://github.com/NCAR/fire_behavior/blob/develop/doc/CFBM-offline.jpeg
-.. !  :width: 400
-.. !  :alt: CFBM-WRF data schematic
-.. !  :align: center
+If the simulation is successful, the model outputs are written to files named 'fire_output_*', and diagnostic messages are recorded in the 'log' file.
 
