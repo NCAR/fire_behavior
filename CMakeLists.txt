@@ -37,7 +37,11 @@ set(CMAKE_Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/mod")
 install(DIRECTORY ${CMAKE_Fortran_MODULE_DIRECTORY} DESTINATION ${CMAKE_INSTALL_PREFIX})
 
 # third party libraries
-find_package(netCDF-Fortran REQUIRED)
+if(${CMAKE_PROJECT_NAME} STREQUAL "WRF")
+  find_package(netCDF-Fortran REQUIRED)
+else()
+  find_package(NetCDF REQUIRED Fortran)
+endif()
 
 # turn on DM_PARALLEL preprocessor directive
 if(DM_PARALLEL)
@@ -90,8 +94,12 @@ list(APPEND _driver_files driver/advance_mod.F90
 
 # configure fire behavior library
 add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffire_physics} ${_driver_files})
-# target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
-target_link_libraries(firelib PUBLIC netCDF::netcdff )
+if(${CMAKE_PROJECT_NAME} STREQUAL "WRF")
+  target_link_libraries(firelib PUBLIC netCDF::netcdff )
+else()
+  target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
+  target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
+endif()
 if (DM_PARALLEL)
   target_link_libraries( firelib PUBLIC MPI::MPI_Fortran )
 endif()
