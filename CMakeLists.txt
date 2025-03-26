@@ -97,11 +97,11 @@ add_library(firelib STATIC ${_state_files} ${_share_files} ${_io_files} ${_wrffi
 if(${CMAKE_PROJECT_NAME} STREQUAL "WRF")
   target_link_libraries(firelib PUBLIC netCDF::netcdff )
 else()
-  target_link_libraries(firelib PUBLIC NetCDF::NetCDF_Fortran)
+  target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:NetCDF::NetCDF_Fortran>)
   target_include_directories(firelib PUBLIC ${NetCDF_INCLUDE_DIRS})
 endif()
 if (DM_PARALLEL)
-  target_link_libraries( firelib PUBLIC MPI::MPI_Fortran )
+  target_link_libraries(firelib PUBLIC $<BUILD_INTERFACE:MPI::MPI_Fortran>)
 endif()
 set_target_properties( 
                       firelib
