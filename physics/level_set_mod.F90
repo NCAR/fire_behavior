@@ -399,6 +399,8 @@
           jfds, jfde, ifts, ifte, jfts, jfte, lfn_s3)
 
       dt_s = 0.01 * dx
+                  dt_s = 0.0001 * dx
+
         ! iterate to solve to steady state reinit PDE
         ! 1 iter each time step is enoguh
       do nts = 1, fire_lsm_reinit_iter
