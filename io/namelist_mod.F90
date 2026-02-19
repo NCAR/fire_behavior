@@ -319,9 +319,10 @@
         integer, intent(in) :: val
 
         integer :: ierr
+        integer :: sendbuf(1)
 
-
-        call Mpi_bcast(val, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+        sendbuf(1) = val
+        call Mpi_bcast(sendbuf, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
         if (ierr /= MPI_SUCCESS) &
             call Stop_simulation ('Error broadcasting integer value')
@@ -335,9 +336,10 @@
         logical, intent(in) :: val
 
         integer :: ierr
+        logical :: sendbuf(1)
 
-
-        call Mpi_bcast (val, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
+        sendbuf(1) = val
+        call Mpi_bcast (sendbuf, 1, MPI_LOGICAL, 0, MPI_COMM_WORLD, ierr)
 
         if (ierr /= MPI_SUCCESS) &
             call Stop_simulation ('Error broadcasting logical value')
@@ -351,9 +353,10 @@
         real, intent(in) :: val
 
         integer :: ierr
+        real    :: sendbuf(1)
 
-
-        call Mpi_bcast (val, 1, MPI_REAL, 0, MPI_COMM_WORLD, ierr)
+        sendbuf(1) = val
+        call Mpi_bcast (sendbuf, 1, MPI_REAL, 0, MPI_COMM_WORLD, ierr)
 
         if (ierr /= MPI_SUCCESS) &
             call Stop_simulation ('Error broadcasting real value')
@@ -585,7 +588,7 @@
         call Stop_simulation (msg)
       end if
 
-      read (unit_nml, nml = fire)
+      read (unit_nml, nml = fire, iostat = io_stat)
       if (io_stat /= 0) call Stop_simulation ('Problems reading namelist fire block')
 
       close (unit_nml)
