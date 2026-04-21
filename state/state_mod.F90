@@ -173,7 +173,7 @@
       allocate (this%fz0(ifms:ifme, jfms:jfme))
       allocate (this%fuel_time(ifms:ifme, jfms:jfme))
       allocate (this%fire_psfc(ifms:ifme, jfms:jfme))
-      allocate (this%fire_rain(ifms:ifme, jfms:jfme))
+      allocate (this%fire_rain(ifms:ifme, jfms:jfme), source=0.0)
       allocate (this%fire_t2(ifms:ifme, jfms:jfme))
       allocate (this%fire_q2(ifms:ifme, jfms:jfme))
       allocate (this%fire_rh_fire(ifms:ifme, jfms:jfme))
