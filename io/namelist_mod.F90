@@ -38,6 +38,10 @@
       integer :: interval_output = -1         ! Frequency to save the output [s]
       real :: dt = 2.0                        ! Time step of the fire model [s]
 
+        ! Restart controls
+      logical :: restart = .false.            ! Read initial dynamic fire state from fire_restart_<start datetime>.nc
+      integer :: restart_interval = -1        ! Restart output interval [s]; -1 disables restart writes
+
       integer :: num_tiles = 1                ! Number of tiles in each patch
       integer :: tile_strategy = 0            ! Strategy for the tile decomposition: 0) ...
 
@@ -80,10 +84,6 @@
 
       integer :: ideal_opt = 0                ! 0) real world, 1) ideal
       integer :: devel_opt = 0                ! 0) Standard nml options, 1) reads options in the devel nml block
-
-        ! Restart controls
-      logical :: restart = .false.            ! Read initial dynamic fire state from fire_restart_<start datetime>.nc
-      integer :: restart_interval = -1        ! Restart output interval [s]; -1 disables restart writes
 
         ! Objects
       integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson 13 
@@ -467,10 +467,10 @@
 
       integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
-          fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq, restart_interval
+          fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef
-      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, restart
+      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim
 
         ! ignitions
       integer :: fire_num_ignitions
@@ -490,7 +490,7 @@
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, restart, restart_interval, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -542,8 +542,6 @@
 
       ideal_opt = this%ideal_opt
       devel_opt = this%devel_opt
-      restart = this%restart
-      restart_interval = this%restart_interval
 
       fuel_opt = this%fuel_opt
       ros_opt = this%ros_opt
@@ -640,8 +638,6 @@
 
       this%ideal_opt = ideal_opt
       this%devel_opt = devel_opt
-      this%restart = restart
-      this%restart_interval = restart_interval
 
       this%fuel_opt = fuel_opt
       this%ros_opt = ros_opt
@@ -778,15 +774,16 @@
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output, &
-          num_tiles, tile_strategy
+          restart_interval, num_tiles, tile_strategy
       real :: dt
+      logical :: restart
 
       character (len = :), allocatable :: msg
       integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
-          num_tiles
+          restart, restart_interval, num_tiles
 
 
         ! Set default values
@@ -804,6 +801,8 @@
       end_second = this%end_second
       dt = this%dt
       interval_output = this%interval_output
+      restart = this%restart
+      restart_interval = this%restart_interval
 
       num_tiles = this%num_tiles
       tile_strategy = this%tile_strategy
@@ -835,6 +834,8 @@
       this%end_second = end_second
       this%dt = dt
       this%interval_output = interval_output
+      this%restart = restart
+      this%restart_interval = restart_interval
 
       this%num_tiles = num_tiles
       this%tile_strategy = tile_strategy
