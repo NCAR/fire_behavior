@@ -81,6 +81,10 @@
       integer :: ideal_opt = 0                ! 0) real world, 1) ideal
       integer :: devel_opt = 0                ! 0) Standard nml options, 1) reads options in the devel nml block
 
+        ! Restart controls
+      logical :: restart = .false.            ! Read initial dynamic fire state from fire_restart_<start datetime>.nc
+      integer :: restart_interval = -1        ! Restart output interval [s]; -1 disables restart writes
+
         ! Objects
       integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson 13 
       integer :: ros_opt = ROS_WRFFIRE        !  0) WRF-Fire ROS
@@ -215,6 +219,8 @@
 
       call Broadcast_integer (this%ideal_opt)
       call Broadcast_integer (this%devel_opt)
+      call Broadcast_logical (this%restart)
+      call Broadcast_integer (this%restart_interval)
       call Broadcast_integer (this%fuel_opt)
       call Broadcast_integer (this%ros_opt)
       call Broadcast_integer (this%emis_opt)
@@ -383,6 +389,9 @@
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
 
+      if (this%restart_interval /= -1 .and. this%restart_interval <= 0) &
+          call Stop_simulation ('restart_interval must be positive or -1')
+
     end subroutine Check_nml
 
     subroutine Init_atm_block (this, file_name)
@@ -458,10 +467,10 @@
 
       integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
-          fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
+          fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq, restart_interval
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef
-      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim
+      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, restart
 
         ! ignitions
       integer :: fire_num_ignitions
@@ -481,7 +490,7 @@
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, restart, restart_interval, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -533,6 +542,8 @@
 
       ideal_opt = this%ideal_opt
       devel_opt = this%devel_opt
+      restart = this%restart
+      restart_interval = this%restart_interval
 
       fuel_opt = this%fuel_opt
       ros_opt = this%ros_opt
@@ -629,6 +640,8 @@
 
       this%ideal_opt = ideal_opt
       this%devel_opt = devel_opt
+      this%restart = restart
+      this%restart_interval = restart_interval
 
       this%fuel_opt = fuel_opt
       this%ros_opt = ros_opt
