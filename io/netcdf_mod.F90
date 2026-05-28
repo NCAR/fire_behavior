@@ -8,8 +8,13 @@
     private
 
     character (len = 2), parameter :: NAME_DIM_X = 'nx', NAME_DIM_Y = 'ny'
-    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, &
+    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_att, &
        Is_netcdf_file_present, Is_netcdf_var_present, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
+
+    interface Add_netcdf_att
+      module procedure Add_netcdf_att_int32
+      module procedure Add_netcdf_att_real32
+    end interface Add_netcdf_att
 
     interface Add_netcdf_var
       module procedure Add_netcdf_var_real32_2d
@@ -34,6 +39,84 @@
     end interface Get_netcdf_att
 
   contains
+
+    subroutine Add_netcdf_att_int32 (file_name, var_name, att_name, att_value)
+
+      use netcdf
+
+      use, intrinsic :: iso_fortran_env, only :  INT32
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, var_name, att_name
+      integer (kind = INT32), intent(in) :: att_value
+
+      integer :: status, ncid, varid
+
+
+      status = nf90_open (trim(file_name), NF90_WRITE, ncid)
+      call Check_status (status)
+
+      status = nf90_redef (ncid)
+      call Check_status (status)
+
+      if (var_name == 'global') then
+        status = nf90_put_att (ncid, NF90_GLOBAL, att_name, att_value)
+        call Check_status (status)
+      else
+        status = nf90_inq_varid (ncid, var_name, varid)
+        call Check_status (status)
+
+        status = nf90_put_att (ncid, varid, att_name, att_value)
+        call Check_status (status)
+      end if
+
+      status = nf90_enddef (ncid)
+      call Check_status (status)
+
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Add_netcdf_att_int32
+
+    subroutine Add_netcdf_att_real32 (file_name, var_name, att_name, att_value)
+
+      use netcdf
+
+      use, intrinsic :: iso_fortran_env, only :  REAL32
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, var_name, att_name
+      real (kind = REAL32), intent(in) :: att_value
+
+      integer :: status, ncid, varid
+
+
+      status = nf90_open (trim(file_name), NF90_WRITE, ncid)
+      call Check_status (status)
+
+      status = nf90_redef (ncid)
+      call Check_status (status)
+
+      if (var_name == 'global') then
+        status = nf90_put_att (ncid, NF90_GLOBAL, att_name, att_value)
+        call Check_status (status)
+      else
+        status = nf90_inq_varid (ncid, var_name, varid)
+        call Check_status (status)
+
+        status = nf90_put_att (ncid, varid, att_name, att_value)
+        call Check_status (status)
+      end if
+
+      status = nf90_enddef (ncid)
+      call Check_status (status)
+
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Add_netcdf_att_real32
 
     subroutine Add_netcdf_dim (file_name, name_dim, val_dim)
 
