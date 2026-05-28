@@ -10,13 +10,15 @@
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, Get_netcdf_att, &
+        Get_netcdf_dim, Get_netcdf_var, Is_netcdf_file_present, NAME_DIM_X, NAME_DIM_Y
     use proj_lc_mod, only : proj_lc_t
     use ros_mod, only : ros_t
     use stderrout_mod, only : Stop_simulation, Print_message
     use tiles_mod, only : Calc_tiles_dims
     use wrfdata_mod, only : wrfdata_t, G, RERADIUS
     use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Print_cart_info, topology_dim_order
+    use, intrinsic :: iso_fortran_env, only : INT32, REAL32
 
     implicit none
 
@@ -129,10 +131,12 @@
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Print_tiles => Print_tiles
+      procedure, public :: Read_restart => Read_restart
       procedure, public :: Save_state => Save_state
       procedure, public :: Set_vars_to_default => Set_vars_to_default
       procedure, public :: Set_mpi_comm_cfbm => Set_mpi_comm_cfbm
       procedure, public :: Set_time_stamps => Set_time_stamps
+      procedure, public :: Write_restart => Write_restart
     end type state_fire_t
 
   contains
@@ -894,6 +898,324 @@
 
     end subroutine Print_tiles
 
+    subroutine Read_restart (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+      type (datetime_t) :: datetime_restart, datetime_check
+      character (len = :), allocatable :: file_restart
+      integer (kind = INT32) :: att_int, restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second, &
+          start_year, start_month, start_day, start_hour, start_minute, start_second
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Read_restart...')
+
+#ifdef DM_PARALLEL
+      call Stop_simulation ('Read_restart is implemented for serial idealized runs only')
+#endif
+
+      if (config_flags%ideal_opt /= 1) call Stop_simulation ('Read_restart is implemented for idealized runs only')
+
+      datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+      file_restart = 'fire_restart_'//datetime_restart%datetime//'.nc'
+
+      call Is_netcdf_file_present (file_restart)
+
+      call Validate_restart_integer (file_restart, 'restart_year', config_flags%start_year)
+      call Validate_restart_integer (file_restart, 'restart_month', config_flags%start_month)
+      call Validate_restart_integer (file_restart, 'restart_day', config_flags%start_day)
+      call Validate_restart_integer (file_restart, 'restart_hour', config_flags%start_hour)
+      call Validate_restart_integer (file_restart, 'restart_minute', config_flags%start_minute)
+      call Validate_restart_integer (file_restart, 'restart_second', config_flags%start_second)
+
+      call Validate_restart_integer (file_restart, 'nx', this%nx)
+      call Validate_restart_integer (file_restart, 'ny', this%ny)
+      call Validate_restart_real (file_restart, 'dt', this%dt)
+      call Validate_restart_real (file_restart, 'dx', this%dx)
+      call Validate_restart_real (file_restart, 'dy', this%dy)
+      call Validate_restart_real (file_restart, 'cen_lat', this%cen_lat)
+      call Validate_restart_real (file_restart, 'cen_lon', this%cen_lon)
+      call Validate_restart_real (file_restart, 'stand_lon', config_flags%stand_lon)
+      call Validate_restart_real (file_restart, 'true_lat_1', config_flags%true_lat_1)
+      call Validate_restart_real (file_restart, 'true_lat_2', config_flags%true_lat_2)
+      call Validate_restart_integer (file_restart, 'ideal_opt', config_flags%ideal_opt)
+      call Validate_restart_integer (file_restart, 'fuel_opt', config_flags%fuel_opt)
+      call Validate_restart_integer (file_restart, 'ros_opt', config_flags%ros_opt)
+      call Validate_restart_integer (file_restart, 'fmc_opt', config_flags%fmc_opt)
+      call Validate_restart_integer (file_restart, 'emis_opt', config_flags%emis_opt)
+      call Validate_restart_integer (file_restart, 'fire_upwinding', config_flags%fire_upwinding)
+      call Validate_restart_integer (file_restart, 'fire_upwinding_reinit', config_flags%fire_upwinding_reinit)
+      call Validate_restart_integer (file_restart, 'fire_lsm_reinit_iter', config_flags%fire_lsm_reinit_iter)
+      call Validate_restart_real (file_restart, 'fire_viscosity', config_flags%fire_viscosity)
+      call Validate_restart_real (file_restart, 'fire_viscosity_bg', config_flags%fire_viscosity_bg)
+      call Validate_restart_real (file_restart, 'fire_viscosity_band', config_flags%fire_viscosity_band)
+      call Validate_restart_real (file_restart, 'reinit_pseudot_coef', config_flags%reinit_pseudot_coef)
+
+      call Get_netcdf_att (file_restart, 'global', 'start_year', start_year)
+      call Get_netcdf_att (file_restart, 'global', 'start_month', start_month)
+      call Get_netcdf_att (file_restart, 'global', 'start_day', start_day)
+      call Get_netcdf_att (file_restart, 'global', 'start_hour', start_hour)
+      call Get_netcdf_att (file_restart, 'global', 'start_minute', start_minute)
+      call Get_netcdf_att (file_restart, 'global', 'start_second', start_second)
+
+      call Get_netcdf_att (file_restart, 'global', 'restart_year', restart_year)
+      call Get_netcdf_att (file_restart, 'global', 'restart_month', restart_month)
+      call Get_netcdf_att (file_restart, 'global', 'restart_day', restart_day)
+      call Get_netcdf_att (file_restart, 'global', 'restart_hour', restart_hour)
+      call Get_netcdf_att (file_restart, 'global', 'restart_minute', restart_minute)
+      call Get_netcdf_att (file_restart, 'global', 'restart_second', restart_second)
+
+      call Get_netcdf_att (file_restart, 'global', 'itimestep', att_int)
+      this%itimestep = att_int
+
+      this%datetime_start = datetime_t (start_year, start_month, start_day, start_hour, start_minute, start_second)
+      this%datetime_now = datetime_t (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
+
+      datetime_check = this%datetime_start
+      call datetime_check%Add_seconds (this%itimestep * this%dt)
+      if (datetime_check /= this%datetime_now) call Stop_simulation ('Restart clock is inconsistent with itimestep and dt')
+
+      call Set_next_datetime_after_restart (this%datetime_next_output, config_flags%interval_output)
+      call Set_next_datetime_after_restart (this%datetime_next_atm_update, config_flags%interval_atm)
+
+      call Read_restart_field (file_restart, 'lfn', this%lfn)
+      call Read_restart_field (file_restart, 'lfn_hist', this%lfn_hist)
+      call Read_restart_field (file_restart, 'lfn_0', this%lfn_0)
+      call Read_restart_field (file_restart, 'lfn_1', this%lfn_1)
+      call Read_restart_field (file_restart, 'lfn_2', this%lfn_2)
+      call Read_restart_field (file_restart, 'lfn_s0', this%lfn_s0)
+      call Read_restart_field (file_restart, 'lfn_s1', this%lfn_s1)
+      call Read_restart_field (file_restart, 'lfn_s2', this%lfn_s2)
+      call Read_restart_field (file_restart, 'lfn_s3', this%lfn_s3)
+      call Read_restart_field (file_restart, 'lfn_out', this%lfn_out)
+      call Read_restart_field (file_restart, 'tign_g', this%tign_g)
+      call Read_restart_field (file_restart, 'fuel_frac', this%fuel_frac)
+      call Read_restart_field (file_restart, 'fire_area', this%fire_area)
+      call Read_restart_field (file_restart, 'fuel_frac_burnt_dt', this%fuel_frac_burnt_dt)
+      call Read_restart_field (file_restart, 'fgrnhfx', this%fgrnhfx)
+      call Read_restart_field (file_restart, 'fgrnqfx', this%fgrnqfx)
+      call Read_restart_field (file_restart, 'fcanhfx', this%fcanhfx)
+      call Read_restart_field (file_restart, 'fcanqfx', this%fcanqfx)
+      call Read_restart_field (file_restart, 'flame_length', this%flame_length)
+      call Read_restart_field (file_restart, 'ros', this%ros)
+      call Read_restart_field (file_restart, 'ros_front', this%ros_front)
+      call Read_restart_field (file_restart, 'emis_smoke', this%emis_smoke)
+      call Read_restart_field (file_restart, 'fmc_g', this%fmc_g)
+      call Read_restart_field (file_restart, 'fuel_load_g', this%fuel_load_g)
+      call Read_restart_field (file_restart, 'fuel_time', this%fuel_time)
+      call Read_restart_field (file_restart, 'zsf', this%zsf)
+      call Read_restart_field (file_restart, 'dzdxf', this%dzdxf)
+      call Read_restart_field (file_restart, 'dzdyf', this%dzdyf)
+      call Read_restart_field (file_restart, 'nfuel_cat', this%nfuel_cat)
+      call Read_restart_field (file_restart, 'uf', this%uf)
+      call Read_restart_field (file_restart, 'vf', this%vf)
+      call Read_restart_field (file_restart, 'fz0', this%fz0)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Read_restart...')
+
+    contains
+
+      subroutine Read_restart_field (file_name, var_name, var)
+
+        implicit none
+
+        character (len = *), intent (in) :: file_name, var_name
+        real, dimension(this%ifms:this%ifme, this%jfms:this%jfme), intent (in out) :: var
+
+        real (kind = REAL32), dimension(:, :), allocatable :: var_restart
+        character (len = :), allocatable :: msg
+
+
+        call Get_netcdf_var (file_name, var_name, var_restart)
+        if (size (var_restart, 1) /= this%nx .or. size (var_restart, 2) /= this%ny) then
+          msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+          call Stop_simulation (msg)
+        end if
+        var(this%ifps:this%ifpe, this%jfps:this%jfpe) = var_restart(1:this%nx, 1:this%ny)
+
+      end subroutine Read_restart_field
+
+      subroutine Set_next_datetime_after_restart (datetime_next, interval_seconds)
+
+        implicit none
+
+        type (datetime_t), intent (in out) :: datetime_next
+        integer, intent (in) :: interval_seconds
+
+        datetime_next = this%datetime_now
+        if (interval_seconds > 0) then
+          datetime_next = this%datetime_start
+          do while (datetime_next <= this%datetime_now)
+            call datetime_next%Add_seconds (interval_seconds)
+          end do
+        end if
+
+      end subroutine Set_next_datetime_after_restart
+
+    end subroutine Read_restart
+
+    subroutine Validate_restart_integer (file_name, att_name, expected_value)
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name, att_name
+      integer, intent (in) :: expected_value
+
+      integer (kind = INT32) :: att_value
+      character (len = :), allocatable :: msg
+
+
+      call Get_netcdf_att (file_name, 'global', att_name, att_value)
+      if (att_value /= expected_value) then
+        msg = 'Restart metadata mismatch: '//trim (att_name)
+        call Stop_simulation (msg)
+      end if
+
+    end subroutine Validate_restart_integer
+
+    subroutine Validate_restart_real (file_name, att_name, expected_value)
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name, att_name
+      real, intent (in) :: expected_value
+
+      real (kind = REAL32) :: att_value, tolerance
+      character (len = :), allocatable :: msg
+
+
+      call Get_netcdf_att (file_name, 'global', att_name, att_value)
+      tolerance = max (1.0e-6_REAL32, abs (real (expected_value, kind = REAL32)) * 1.0e-6_REAL32)
+      if (abs (att_value - real (expected_value, kind = REAL32)) > tolerance) then
+        msg = 'Restart metadata mismatch: '//trim (att_name)
+        call Stop_simulation (msg)
+      end if
+
+    end subroutine Validate_restart_real
+
+    subroutine Write_restart (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      type (namelist_t), intent (in) :: config_flags
+
+      character (len = :), allocatable :: file_restart
+      integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
+          restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Write_restart...')
+
+#ifdef DM_PARALLEL
+      call Stop_simulation ('Write_restart is implemented for serial idealized runs only')
+#endif
+
+      if (config_flags%ideal_opt /= 1) call Stop_simulation ('Write_restart is implemented for idealized runs only')
+
+      file_restart = 'fire_restart_'//this%datetime_now%datetime//'.nc'
+
+      call this%datetime_start%Get_datetime_as_ints (start_year, start_month, start_day, start_hour, start_minute, start_second)
+      call this%datetime_now%Get_datetime_as_ints (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
+
+      call Create_netcdf_file (file_name = file_restart)
+      call Add_netcdf_dim (file_restart, NAME_DIM_X, this%nx)
+      call Add_netcdf_dim (file_restart, NAME_DIM_Y, this%ny)
+
+      call Add_netcdf_att (file_restart, 'global', 'start_year', int (start_year, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'start_month', int (start_month, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'start_day', int (start_day, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'start_hour', int (start_hour, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'start_minute', int (start_minute, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'start_second', int (start_second, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_year', int (restart_year, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_month', int (restart_month, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_day', int (restart_day, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_hour', int (restart_hour, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_minute', int (restart_minute, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'restart_second', int (restart_second, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'itimestep', int (this%itimestep, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'nx', int (this%nx, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'ny', int (this%ny, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'dt', real (this%dt, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'dx', real (this%dx, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'dy', real (this%dy, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'cen_lat', real (this%cen_lat, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'cen_lon', real (this%cen_lon, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'stand_lon', real (config_flags%stand_lon, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'true_lat_1', real (config_flags%true_lat_1, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (config_flags%true_lat_2, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fmc_opt', int (config_flags%fmc_opt, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'emis_opt', int (config_flags%emis_opt, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_upwinding', int (config_flags%fire_upwinding, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_upwinding_reinit', int (config_flags%fire_upwinding_reinit, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_lsm_reinit_iter', int (config_flags%fire_lsm_reinit_iter, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity', real (config_flags%fire_viscosity, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_bg', real (config_flags%fire_viscosity_bg, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_band', real (config_flags%fire_viscosity_band, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'reinit_pseudot_coef', real (config_flags%reinit_pseudot_coef, kind = REAL32))
+
+      call Add_restart_field ('lfn', this%lfn)
+      call Add_restart_field ('lfn_hist', this%lfn_hist)
+      call Add_restart_field ('lfn_0', this%lfn_0)
+      call Add_restart_field ('lfn_1', this%lfn_1)
+      call Add_restart_field ('lfn_2', this%lfn_2)
+      call Add_restart_field ('lfn_s0', this%lfn_s0)
+      call Add_restart_field ('lfn_s1', this%lfn_s1)
+      call Add_restart_field ('lfn_s2', this%lfn_s2)
+      call Add_restart_field ('lfn_s3', this%lfn_s3)
+      call Add_restart_field ('lfn_out', this%lfn_out)
+      call Add_restart_field ('tign_g', this%tign_g)
+      call Add_restart_field ('fuel_frac', this%fuel_frac)
+      call Add_restart_field ('fire_area', this%fire_area)
+      call Add_restart_field ('fuel_frac_burnt_dt', this%fuel_frac_burnt_dt)
+      call Add_restart_field ('fgrnhfx', this%fgrnhfx)
+      call Add_restart_field ('fgrnqfx', this%fgrnqfx)
+      call Add_restart_field ('fcanhfx', this%fcanhfx)
+      call Add_restart_field ('fcanqfx', this%fcanqfx)
+      call Add_restart_field ('flame_length', this%flame_length)
+      call Add_restart_field ('ros', this%ros)
+      call Add_restart_field ('ros_front', this%ros_front)
+      call Add_restart_field ('emis_smoke', this%emis_smoke)
+      call Add_restart_field ('fmc_g', this%fmc_g)
+      call Add_restart_field ('fuel_load_g', this%fuel_load_g)
+      call Add_restart_field ('fuel_time', this%fuel_time)
+      call Add_restart_field ('zsf', this%zsf)
+      call Add_restart_field ('dzdxf', this%dzdxf)
+      call Add_restart_field ('dzdyf', this%dzdyf)
+      call Add_restart_field ('nfuel_cat', this%nfuel_cat)
+      call Add_restart_field ('uf', this%uf)
+      call Add_restart_field ('vf', this%vf)
+      call Add_restart_field ('fz0', this%fz0)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Write_restart...')
+
+    contains
+
+      subroutine Add_restart_field (var_name, var)
+
+        implicit none
+
+        character (len = *), intent (in) :: var_name
+        real, dimension(this%ifms:this%ifme, this%jfms:this%jfme), intent (in) :: var
+
+
+        call Add_netcdf_var_mpi (file_restart, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+            var_name, var(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+      end subroutine Add_restart_field
+
+    end subroutine Write_restart
+
     subroutine Save_state (this)
 
       implicit none
@@ -1060,4 +1382,3 @@
     end subroutine Set_vars_to_default
 
   end module state_mod
-
