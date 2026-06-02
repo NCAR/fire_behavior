@@ -1,0 +1,75 @@
+ &time
+! Integration interval for the fire propagation experiment.
+  start_year = 2020
+  start_month = 1
+  start_day = 1
+  start_hour = 0
+  start_minute = 0
+  start_second = 0
+  end_year = 2020
+  end_month = 1
+  end_day = 1
+  end_hour = 0
+  end_minute = 1
+  end_second = 0
+  dt = 0.2
+  interval_output = 10
+ /
+
+
+ &atm
+ interval_atm = 1
+ kde = 45
+ /
+
+ &fire
+! Ignition controls
+ fire_num_ignitions = 1,
+ fire_ignition_ros1 =   1.00,
+ fire_ignition_start_lat1 = 40.3685,
+ fire_ignition_start_lon1 = -4.42535,
+ fire_ignition_end_lat1 = 40.3596,
+ fire_ignition_end_lon1 = -4.42535,
+ fire_ignition_radius1 = 25.0,
+ fire_ignition_start_time1 = 0.0,
+ fire_ignition_end_time1 = 0.0,
+
+! Spread controls
+ fire_upwinding = 7,
+ fire_upwinding_reinit = 4
+ fire_lsm_reinit = .true.
+ fire_lsm_reinit_iter = 2
+ reinit_pseudot_coef = 0.01
+ fire_viscosity = 0.4
+ fire_viscosity_bg = 0.4
+ fire_viscosity_ngp = 2
+ fire_viscosity_band = 0.5
+ fast_dist_reinit_opt = 0
+ fast_dist_reinit_freq = 600
+ fire_print_msg = 1,
+ ideal_opt = 1,
+ devel_opt = 1,
+/
+
+ &ideal
+ dx = 25.0
+ dy = 25.0
+ nx = 200
+ ny = 200
+ zonal_wind = 5
+ meridional_wind = 0.0
+ fuel_cat = 1
+ dz_dx = 0.0
+ dz_dy = 0.0
+ elevation = 0.0
+ cen_lat = 40.3636
+ cen_lon = -4.40823
+ stand_lon = -4.4035
+ true_lat_1 = 40.3636
+ true_lat_2 = 40.3636
+/
+
+&devel
+ output_level = 1
+ check_isolated_neg_lfn = 0
+/

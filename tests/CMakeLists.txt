@@ -11,6 +11,18 @@ add_test(NAME test8
          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_test(NAME test9
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test9.s
+         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+if(NOT DM_PARALLEL)
+  add_test(NAME test9_restart
+           COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test9_restart.s
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  )
+endif()
+
 if(NUOPC)
   add_test(NAME test7esmf
            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test7esmf.s

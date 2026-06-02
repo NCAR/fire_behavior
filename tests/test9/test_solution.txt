@@ -1,0 +1,2403 @@
+    MPI TASKS in x and y =     1     1
+ CFBM Patch: IPS      1 IPE    200 JPS      1 JPE    200
+  CFBM TILE   1  IS      1  IE    200  JS      1  JE    200
+ Time       0.200 s Average wind           0.500E+01 m/s
+ Time       0.200 s Maximum wind           0.500E+01 m/s
+ Time       0.200 s Fire area              0.000E+00 m^2
+ Time       0.200 s Heat output            0.000E+00 W
+ Time       0.200 s Max heat flux          0.000E+00 W/m^2
+ Time       0.200 s Latent heat output     0.000E+00 W
+ Time       0.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:00  0.200000003    
+ Time       0.400 s Average wind           0.500E+01 m/s
+ Time       0.400 s Maximum wind           0.500E+01 m/s
+ Time       0.400 s Fire area              0.000E+00 m^2
+ Time       0.400 s Heat output            0.000E+00 W
+ Time       0.400 s Max heat flux          0.000E+00 W/m^2
+ Time       0.400 s Latent heat output     0.000E+00 W
+ Time       0.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:00  0.400000006    
+ Time       0.600 s Average wind           0.500E+01 m/s
+ Time       0.600 s Maximum wind           0.500E+01 m/s
+ Time       0.600 s Fire area              0.000E+00 m^2
+ Time       0.600 s Heat output            0.000E+00 W
+ Time       0.600 s Max heat flux          0.000E+00 W/m^2
+ Time       0.600 s Latent heat output     0.000E+00 W
+ Time       0.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:00  0.600000024    
+ Time       0.800 s Average wind           0.500E+01 m/s
+ Time       0.800 s Maximum wind           0.500E+01 m/s
+ Time       0.800 s Fire area              0.000E+00 m^2
+ Time       0.800 s Heat output            0.000E+00 W
+ Time       0.800 s Max heat flux          0.000E+00 W/m^2
+ Time       0.800 s Latent heat output     0.000E+00 W
+ Time       0.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:00  0.800000012    
+ Time       1.000 s Average wind           0.500E+01 m/s
+ Time       1.000 s Maximum wind           0.500E+01 m/s
+ Time       1.000 s Fire area              0.000E+00 m^2
+ Time       1.000 s Heat output            0.000E+00 W
+ Time       1.000 s Max heat flux          0.000E+00 W/m^2
+ Time       1.000 s Latent heat output     0.000E+00 W
+ Time       1.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:01   0.00000000    
+ Time       1.200 s Average wind           0.500E+01 m/s
+ Time       1.200 s Maximum wind           0.500E+01 m/s
+ Time       1.200 s Fire area              0.000E+00 m^2
+ Time       1.200 s Heat output            0.000E+00 W
+ Time       1.200 s Max heat flux          0.000E+00 W/m^2
+ Time       1.200 s Latent heat output     0.000E+00 W
+ Time       1.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:01  0.200000048    
+ Time       1.400 s Average wind           0.500E+01 m/s
+ Time       1.400 s Maximum wind           0.500E+01 m/s
+ Time       1.400 s Fire area              0.000E+00 m^2
+ Time       1.400 s Heat output            0.000E+00 W
+ Time       1.400 s Max heat flux          0.000E+00 W/m^2
+ Time       1.400 s Latent heat output     0.000E+00 W
+ Time       1.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:01  0.399999976    
+ Time       1.600 s Average wind           0.500E+01 m/s
+ Time       1.600 s Maximum wind           0.500E+01 m/s
+ Time       1.600 s Fire area              0.000E+00 m^2
+ Time       1.600 s Heat output            0.000E+00 W
+ Time       1.600 s Max heat flux          0.000E+00 W/m^2
+ Time       1.600 s Latent heat output     0.000E+00 W
+ Time       1.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:01  0.600000024    
+ Time       1.800 s Average wind           0.500E+01 m/s
+ Time       1.800 s Maximum wind           0.500E+01 m/s
+ Time       1.800 s Fire area              0.000E+00 m^2
+ Time       1.800 s Heat output            0.000E+00 W
+ Time       1.800 s Max heat flux          0.000E+00 W/m^2
+ Time       1.800 s Latent heat output     0.000E+00 W
+ Time       1.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:01  0.800000072    
+ Time       2.000 s Average wind           0.500E+01 m/s
+ Time       2.000 s Maximum wind           0.500E+01 m/s
+ Time       2.000 s Fire area              0.000E+00 m^2
+ Time       2.000 s Heat output            0.000E+00 W
+ Time       2.000 s Max heat flux          0.000E+00 W/m^2
+ Time       2.000 s Latent heat output     0.000E+00 W
+ Time       2.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:02   0.00000000    
+ Time       2.200 s Average wind           0.500E+01 m/s
+ Time       2.200 s Maximum wind           0.500E+01 m/s
+ Time       2.200 s Fire area              0.000E+00 m^2
+ Time       2.200 s Heat output            0.000E+00 W
+ Time       2.200 s Max heat flux          0.000E+00 W/m^2
+ Time       2.200 s Latent heat output     0.000E+00 W
+ Time       2.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:02  0.200000048    
+ Time       2.400 s Average wind           0.500E+01 m/s
+ Time       2.400 s Maximum wind           0.500E+01 m/s
+ Time       2.400 s Fire area              0.000E+00 m^2
+ Time       2.400 s Heat output            0.000E+00 W
+ Time       2.400 s Max heat flux          0.000E+00 W/m^2
+ Time       2.400 s Latent heat output     0.000E+00 W
+ Time       2.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:02  0.400000095    
+ Time       2.600 s Average wind           0.500E+01 m/s
+ Time       2.600 s Maximum wind           0.500E+01 m/s
+ Time       2.600 s Fire area              0.000E+00 m^2
+ Time       2.600 s Heat output            0.000E+00 W
+ Time       2.600 s Max heat flux          0.000E+00 W/m^2
+ Time       2.600 s Latent heat output     0.000E+00 W
+ Time       2.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:02  0.600000143    
+ Time       2.800 s Average wind           0.500E+01 m/s
+ Time       2.800 s Maximum wind           0.500E+01 m/s
+ Time       2.800 s Fire area              0.000E+00 m^2
+ Time       2.800 s Heat output            0.000E+00 W
+ Time       2.800 s Max heat flux          0.000E+00 W/m^2
+ Time       2.800 s Latent heat output     0.000E+00 W
+ Time       2.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:02  0.799999952    
+ Time       3.000 s Average wind           0.500E+01 m/s
+ Time       3.000 s Maximum wind           0.500E+01 m/s
+ Time       3.000 s Fire area              0.000E+00 m^2
+ Time       3.000 s Heat output            0.000E+00 W
+ Time       3.000 s Max heat flux          0.000E+00 W/m^2
+ Time       3.000 s Latent heat output     0.000E+00 W
+ Time       3.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:03   0.00000000    
+ Time       3.200 s Average wind           0.500E+01 m/s
+ Time       3.200 s Maximum wind           0.500E+01 m/s
+ Time       3.200 s Fire area              0.000E+00 m^2
+ Time       3.200 s Heat output            0.000E+00 W
+ Time       3.200 s Max heat flux          0.000E+00 W/m^2
+ Time       3.200 s Latent heat output     0.000E+00 W
+ Time       3.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:03  0.200000048    
+ Time       3.400 s Average wind           0.500E+01 m/s
+ Time       3.400 s Maximum wind           0.500E+01 m/s
+ Time       3.400 s Fire area              0.000E+00 m^2
+ Time       3.400 s Heat output            0.000E+00 W
+ Time       3.400 s Max heat flux          0.000E+00 W/m^2
+ Time       3.400 s Latent heat output     0.000E+00 W
+ Time       3.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:03  0.400000095    
+ Time       3.600 s Average wind           0.500E+01 m/s
+ Time       3.600 s Maximum wind           0.500E+01 m/s
+ Time       3.600 s Fire area              0.000E+00 m^2
+ Time       3.600 s Heat output            0.000E+00 W
+ Time       3.600 s Max heat flux          0.000E+00 W/m^2
+ Time       3.600 s Latent heat output     0.000E+00 W
+ Time       3.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:03  0.600000143    
+ Time       3.800 s Average wind           0.500E+01 m/s
+ Time       3.800 s Maximum wind           0.500E+01 m/s
+ Time       3.800 s Fire area              0.000E+00 m^2
+ Time       3.800 s Heat output            0.000E+00 W
+ Time       3.800 s Max heat flux          0.000E+00 W/m^2
+ Time       3.800 s Latent heat output     0.000E+00 W
+ Time       3.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:03  0.799999952    
+ Time       4.000 s Average wind           0.500E+01 m/s
+ Time       4.000 s Maximum wind           0.500E+01 m/s
+ Time       4.000 s Fire area              0.000E+00 m^2
+ Time       4.000 s Heat output            0.000E+00 W
+ Time       4.000 s Max heat flux          0.000E+00 W/m^2
+ Time       4.000 s Latent heat output     0.000E+00 W
+ Time       4.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:04   0.00000000    
+ Time       4.200 s Average wind           0.500E+01 m/s
+ Time       4.200 s Maximum wind           0.500E+01 m/s
+ Time       4.200 s Fire area              0.000E+00 m^2
+ Time       4.200 s Heat output            0.000E+00 W
+ Time       4.200 s Max heat flux          0.000E+00 W/m^2
+ Time       4.200 s Latent heat output     0.000E+00 W
+ Time       4.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:04  0.200000286    
+ Time       4.400 s Average wind           0.500E+01 m/s
+ Time       4.400 s Maximum wind           0.500E+01 m/s
+ Time       4.400 s Fire area              0.000E+00 m^2
+ Time       4.400 s Heat output            0.000E+00 W
+ Time       4.400 s Max heat flux          0.000E+00 W/m^2
+ Time       4.400 s Latent heat output     0.000E+00 W
+ Time       4.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:04  0.400000095    
+ Time       4.600 s Average wind           0.500E+01 m/s
+ Time       4.600 s Maximum wind           0.500E+01 m/s
+ Time       4.600 s Fire area              0.000E+00 m^2
+ Time       4.600 s Heat output            0.000E+00 W
+ Time       4.600 s Max heat flux          0.000E+00 W/m^2
+ Time       4.600 s Latent heat output     0.000E+00 W
+ Time       4.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:04  0.599999905    
+ Time       4.800 s Average wind           0.500E+01 m/s
+ Time       4.800 s Maximum wind           0.500E+01 m/s
+ Time       4.800 s Fire area              0.000E+00 m^2
+ Time       4.800 s Heat output            0.000E+00 W
+ Time       4.800 s Max heat flux          0.000E+00 W/m^2
+ Time       4.800 s Latent heat output     0.000E+00 W
+ Time       4.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:04  0.800000191    
+ Time       5.000 s Average wind           0.500E+01 m/s
+ Time       5.000 s Maximum wind           0.500E+01 m/s
+ Time       5.000 s Fire area              0.000E+00 m^2
+ Time       5.000 s Heat output            0.000E+00 W
+ Time       5.000 s Max heat flux          0.000E+00 W/m^2
+ Time       5.000 s Latent heat output     0.000E+00 W
+ Time       5.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:05   0.00000000    
+ Time       5.200 s Average wind           0.500E+01 m/s
+ Time       5.200 s Maximum wind           0.500E+01 m/s
+ Time       5.200 s Fire area              0.000E+00 m^2
+ Time       5.200 s Heat output            0.000E+00 W
+ Time       5.200 s Max heat flux          0.000E+00 W/m^2
+ Time       5.200 s Latent heat output     0.000E+00 W
+ Time       5.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:05  0.200000286    
+ Time       5.400 s Average wind           0.500E+01 m/s
+ Time       5.400 s Maximum wind           0.500E+01 m/s
+ Time       5.400 s Fire area              0.000E+00 m^2
+ Time       5.400 s Heat output            0.000E+00 W
+ Time       5.400 s Max heat flux          0.000E+00 W/m^2
+ Time       5.400 s Latent heat output     0.000E+00 W
+ Time       5.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:05  0.400000095    
+ Time       5.600 s Average wind           0.500E+01 m/s
+ Time       5.600 s Maximum wind           0.500E+01 m/s
+ Time       5.600 s Fire area              0.000E+00 m^2
+ Time       5.600 s Heat output            0.000E+00 W
+ Time       5.600 s Max heat flux          0.000E+00 W/m^2
+ Time       5.600 s Latent heat output     0.000E+00 W
+ Time       5.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:05  0.599999905    
+ Time       5.800 s Average wind           0.500E+01 m/s
+ Time       5.800 s Maximum wind           0.500E+01 m/s
+ Time       5.800 s Fire area              0.000E+00 m^2
+ Time       5.800 s Heat output            0.000E+00 W
+ Time       5.800 s Max heat flux          0.000E+00 W/m^2
+ Time       5.800 s Latent heat output     0.000E+00 W
+ Time       5.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:05  0.800000191    
+ Time       6.000 s Average wind           0.500E+01 m/s
+ Time       6.000 s Maximum wind           0.500E+01 m/s
+ Time       6.000 s Fire area              0.000E+00 m^2
+ Time       6.000 s Heat output            0.000E+00 W
+ Time       6.000 s Max heat flux          0.000E+00 W/m^2
+ Time       6.000 s Latent heat output     0.000E+00 W
+ Time       6.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:06   0.00000000    
+ Time       6.200 s Average wind           0.500E+01 m/s
+ Time       6.200 s Maximum wind           0.500E+01 m/s
+ Time       6.200 s Fire area              0.000E+00 m^2
+ Time       6.200 s Heat output            0.000E+00 W
+ Time       6.200 s Max heat flux          0.000E+00 W/m^2
+ Time       6.200 s Latent heat output     0.000E+00 W
+ Time       6.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:06  0.200000286    
+ Time       6.400 s Average wind           0.500E+01 m/s
+ Time       6.400 s Maximum wind           0.500E+01 m/s
+ Time       6.400 s Fire area              0.000E+00 m^2
+ Time       6.400 s Heat output            0.000E+00 W
+ Time       6.400 s Max heat flux          0.000E+00 W/m^2
+ Time       6.400 s Latent heat output     0.000E+00 W
+ Time       6.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:06  0.400000095    
+ Time       6.600 s Average wind           0.500E+01 m/s
+ Time       6.600 s Maximum wind           0.500E+01 m/s
+ Time       6.600 s Fire area              0.000E+00 m^2
+ Time       6.600 s Heat output            0.000E+00 W
+ Time       6.600 s Max heat flux          0.000E+00 W/m^2
+ Time       6.600 s Latent heat output     0.000E+00 W
+ Time       6.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:06  0.599999905    
+ Time       6.800 s Average wind           0.500E+01 m/s
+ Time       6.800 s Maximum wind           0.500E+01 m/s
+ Time       6.800 s Fire area              0.000E+00 m^2
+ Time       6.800 s Heat output            0.000E+00 W
+ Time       6.800 s Max heat flux          0.000E+00 W/m^2
+ Time       6.800 s Latent heat output     0.000E+00 W
+ Time       6.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:06  0.800000191    
+ Time       7.000 s Average wind           0.500E+01 m/s
+ Time       7.000 s Maximum wind           0.500E+01 m/s
+ Time       7.000 s Fire area              0.000E+00 m^2
+ Time       7.000 s Heat output            0.000E+00 W
+ Time       7.000 s Max heat flux          0.000E+00 W/m^2
+ Time       7.000 s Latent heat output     0.000E+00 W
+ Time       7.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:07   0.00000000    
+ Time       7.200 s Average wind           0.500E+01 m/s
+ Time       7.200 s Maximum wind           0.500E+01 m/s
+ Time       7.200 s Fire area              0.000E+00 m^2
+ Time       7.200 s Heat output            0.000E+00 W
+ Time       7.200 s Max heat flux          0.000E+00 W/m^2
+ Time       7.200 s Latent heat output     0.000E+00 W
+ Time       7.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:07  0.200000286    
+ Time       7.400 s Average wind           0.500E+01 m/s
+ Time       7.400 s Maximum wind           0.500E+01 m/s
+ Time       7.400 s Fire area              0.000E+00 m^2
+ Time       7.400 s Heat output            0.000E+00 W
+ Time       7.400 s Max heat flux          0.000E+00 W/m^2
+ Time       7.400 s Latent heat output     0.000E+00 W
+ Time       7.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:07  0.400000095    
+ Time       7.600 s Average wind           0.500E+01 m/s
+ Time       7.600 s Maximum wind           0.500E+01 m/s
+ Time       7.600 s Fire area              0.000E+00 m^2
+ Time       7.600 s Heat output            0.000E+00 W
+ Time       7.600 s Max heat flux          0.000E+00 W/m^2
+ Time       7.600 s Latent heat output     0.000E+00 W
+ Time       7.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:07  0.599999905    
+ Time       7.800 s Average wind           0.500E+01 m/s
+ Time       7.800 s Maximum wind           0.500E+01 m/s
+ Time       7.800 s Fire area              0.000E+00 m^2
+ Time       7.800 s Heat output            0.000E+00 W
+ Time       7.800 s Max heat flux          0.000E+00 W/m^2
+ Time       7.800 s Latent heat output     0.000E+00 W
+ Time       7.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:07  0.800000191    
+ Time       8.000 s Average wind           0.500E+01 m/s
+ Time       8.000 s Maximum wind           0.500E+01 m/s
+ Time       8.000 s Fire area              0.000E+00 m^2
+ Time       8.000 s Heat output            0.000E+00 W
+ Time       8.000 s Max heat flux          0.000E+00 W/m^2
+ Time       8.000 s Latent heat output     0.000E+00 W
+ Time       8.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:08   0.00000000    
+ Time       8.200 s Average wind           0.500E+01 m/s
+ Time       8.200 s Maximum wind           0.500E+01 m/s
+ Time       8.200 s Fire area              0.000E+00 m^2
+ Time       8.200 s Heat output            0.000E+00 W
+ Time       8.200 s Max heat flux          0.000E+00 W/m^2
+ Time       8.200 s Latent heat output     0.000E+00 W
+ Time       8.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:08  0.199999809    
+ Time       8.400 s Average wind           0.500E+01 m/s
+ Time       8.400 s Maximum wind           0.500E+01 m/s
+ Time       8.400 s Fire area              0.000E+00 m^2
+ Time       8.400 s Heat output            0.000E+00 W
+ Time       8.400 s Max heat flux          0.000E+00 W/m^2
+ Time       8.400 s Latent heat output     0.000E+00 W
+ Time       8.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:08  0.400000572    
+ Time       8.600 s Average wind           0.500E+01 m/s
+ Time       8.600 s Maximum wind           0.500E+01 m/s
+ Time       8.600 s Fire area              0.000E+00 m^2
+ Time       8.600 s Heat output            0.000E+00 W
+ Time       8.600 s Max heat flux          0.000E+00 W/m^2
+ Time       8.600 s Latent heat output     0.000E+00 W
+ Time       8.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:08  0.600000381    
+ Time       8.800 s Average wind           0.500E+01 m/s
+ Time       8.800 s Maximum wind           0.500E+01 m/s
+ Time       8.800 s Fire area              0.000E+00 m^2
+ Time       8.800 s Heat output            0.000E+00 W
+ Time       8.800 s Max heat flux          0.000E+00 W/m^2
+ Time       8.800 s Latent heat output     0.000E+00 W
+ Time       8.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:08  0.800000191    
+ Time       9.000 s Average wind           0.500E+01 m/s
+ Time       9.000 s Maximum wind           0.500E+01 m/s
+ Time       9.000 s Fire area              0.000E+00 m^2
+ Time       9.000 s Heat output            0.000E+00 W
+ Time       9.000 s Max heat flux          0.000E+00 W/m^2
+ Time       9.000 s Latent heat output     0.000E+00 W
+ Time       9.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:09   0.00000000    
+ Time       9.200 s Average wind           0.500E+01 m/s
+ Time       9.200 s Maximum wind           0.500E+01 m/s
+ Time       9.200 s Fire area              0.000E+00 m^2
+ Time       9.200 s Heat output            0.000E+00 W
+ Time       9.200 s Max heat flux          0.000E+00 W/m^2
+ Time       9.200 s Latent heat output     0.000E+00 W
+ Time       9.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:09  0.199999809    
+ Time       9.400 s Average wind           0.500E+01 m/s
+ Time       9.400 s Maximum wind           0.500E+01 m/s
+ Time       9.400 s Fire area              0.000E+00 m^2
+ Time       9.400 s Heat output            0.000E+00 W
+ Time       9.400 s Max heat flux          0.000E+00 W/m^2
+ Time       9.400 s Latent heat output     0.000E+00 W
+ Time       9.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:09  0.400000572    
+ Time       9.600 s Average wind           0.500E+01 m/s
+ Time       9.600 s Maximum wind           0.500E+01 m/s
+ Time       9.600 s Fire area              0.000E+00 m^2
+ Time       9.600 s Heat output            0.000E+00 W
+ Time       9.600 s Max heat flux          0.000E+00 W/m^2
+ Time       9.600 s Latent heat output     0.000E+00 W
+ Time       9.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:09  0.600000381    
+ Time       9.800 s Average wind           0.500E+01 m/s
+ Time       9.800 s Maximum wind           0.500E+01 m/s
+ Time       9.800 s Fire area              0.000E+00 m^2
+ Time       9.800 s Heat output            0.000E+00 W
+ Time       9.800 s Max heat flux          0.000E+00 W/m^2
+ Time       9.800 s Latent heat output     0.000E+00 W
+ Time       9.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:09  0.800000191    
+ Time      10.000 s Average wind           0.500E+01 m/s
+ Time      10.000 s Maximum wind           0.500E+01 m/s
+ Time      10.000 s Fire area              0.000E+00 m^2
+ Time      10.000 s Heat output            0.000E+00 W
+ Time      10.000 s Max heat flux          0.000E+00 W/m^2
+ Time      10.000 s Latent heat output     0.000E+00 W
+ Time      10.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:10   0.00000000    
+ Time      10.200 s Average wind           0.500E+01 m/s
+ Time      10.200 s Maximum wind           0.500E+01 m/s
+ Time      10.200 s Fire area              0.000E+00 m^2
+ Time      10.200 s Heat output            0.000E+00 W
+ Time      10.200 s Max heat flux          0.000E+00 W/m^2
+ Time      10.200 s Latent heat output     0.000E+00 W
+ Time      10.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:10  0.199999809    
+ Time      10.400 s Average wind           0.500E+01 m/s
+ Time      10.400 s Maximum wind           0.500E+01 m/s
+ Time      10.400 s Fire area              0.000E+00 m^2
+ Time      10.400 s Heat output            0.000E+00 W
+ Time      10.400 s Max heat flux          0.000E+00 W/m^2
+ Time      10.400 s Latent heat output     0.000E+00 W
+ Time      10.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:10  0.400000572    
+ Time      10.600 s Average wind           0.500E+01 m/s
+ Time      10.600 s Maximum wind           0.500E+01 m/s
+ Time      10.600 s Fire area              0.000E+00 m^2
+ Time      10.600 s Heat output            0.000E+00 W
+ Time      10.600 s Max heat flux          0.000E+00 W/m^2
+ Time      10.600 s Latent heat output     0.000E+00 W
+ Time      10.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:10  0.600000381    
+ Time      10.800 s Average wind           0.500E+01 m/s
+ Time      10.800 s Maximum wind           0.500E+01 m/s
+ Time      10.800 s Fire area              0.000E+00 m^2
+ Time      10.800 s Heat output            0.000E+00 W
+ Time      10.800 s Max heat flux          0.000E+00 W/m^2
+ Time      10.800 s Latent heat output     0.000E+00 W
+ Time      10.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:10  0.800000191    
+ Time      11.000 s Average wind           0.500E+01 m/s
+ Time      11.000 s Maximum wind           0.500E+01 m/s
+ Time      11.000 s Fire area              0.000E+00 m^2
+ Time      11.000 s Heat output            0.000E+00 W
+ Time      11.000 s Max heat flux          0.000E+00 W/m^2
+ Time      11.000 s Latent heat output     0.000E+00 W
+ Time      11.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:11   0.00000000    
+ Time      11.200 s Average wind           0.500E+01 m/s
+ Time      11.200 s Maximum wind           0.500E+01 m/s
+ Time      11.200 s Fire area              0.000E+00 m^2
+ Time      11.200 s Heat output            0.000E+00 W
+ Time      11.200 s Max heat flux          0.000E+00 W/m^2
+ Time      11.200 s Latent heat output     0.000E+00 W
+ Time      11.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:11  0.199999809    
+ Time      11.400 s Average wind           0.500E+01 m/s
+ Time      11.400 s Maximum wind           0.500E+01 m/s
+ Time      11.400 s Fire area              0.000E+00 m^2
+ Time      11.400 s Heat output            0.000E+00 W
+ Time      11.400 s Max heat flux          0.000E+00 W/m^2
+ Time      11.400 s Latent heat output     0.000E+00 W
+ Time      11.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:11  0.400000572    
+ Time      11.600 s Average wind           0.500E+01 m/s
+ Time      11.600 s Maximum wind           0.500E+01 m/s
+ Time      11.600 s Fire area              0.000E+00 m^2
+ Time      11.600 s Heat output            0.000E+00 W
+ Time      11.600 s Max heat flux          0.000E+00 W/m^2
+ Time      11.600 s Latent heat output     0.000E+00 W
+ Time      11.600 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:11  0.600000381    
+ Time      11.800 s Average wind           0.500E+01 m/s
+ Time      11.800 s Maximum wind           0.500E+01 m/s
+ Time      11.800 s Fire area              0.000E+00 m^2
+ Time      11.800 s Heat output            0.000E+00 W
+ Time      11.800 s Max heat flux          0.000E+00 W/m^2
+ Time      11.800 s Latent heat output     0.000E+00 W
+ Time      11.800 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:11  0.800000191    
+ Time      12.000 s Average wind           0.500E+01 m/s
+ Time      12.000 s Maximum wind           0.500E+01 m/s
+ Time      12.000 s Fire area              0.000E+00 m^2
+ Time      12.000 s Heat output            0.000E+00 W
+ Time      12.000 s Max heat flux          0.000E+00 W/m^2
+ Time      12.000 s Latent heat output     0.000E+00 W
+ Time      12.000 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:12   0.00000000    
+ Time      12.200 s Average wind           0.500E+01 m/s
+ Time      12.200 s Maximum wind           0.500E+01 m/s
+ Time      12.200 s Fire area              0.000E+00 m^2
+ Time      12.200 s Heat output            0.000E+00 W
+ Time      12.200 s Max heat flux          0.000E+00 W/m^2
+ Time      12.200 s Latent heat output     0.000E+00 W
+ Time      12.200 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:12  0.199999809    
+ Time      12.400 s Average wind           0.500E+01 m/s
+ Time      12.400 s Maximum wind           0.500E+01 m/s
+ Time      12.400 s Fire area              0.000E+00 m^2
+ Time      12.400 s Heat output            0.000E+00 W
+ Time      12.400 s Max heat flux          0.000E+00 W/m^2
+ Time      12.400 s Latent heat output     0.000E+00 W
+ Time      12.400 s Max latent heat flux   0.000E+00 W/m^2
+ 2020-01-01_00:00:12  0.400000572    
+ Time      12.600 s Average wind           0.500E+01 m/s
+ Time      12.600 s Maximum wind           0.500E+01 m/s
+ Time      12.600 s Fire area              0.773E+04 m^2
+ Time      12.600 s Heat output            0.119E+10 W
+ Time      12.600 s Max heat flux          0.490E+05 W/m^2
+ Time      12.600 s Latent heat output     0.109E+09 W
+ Time      12.600 s Max latent heat flux   0.450E+04 W/m^2
+ 2020-01-01_00:00:12  0.600000381    
+ Time      12.800 s Average wind           0.500E+01 m/s
+ Time      12.800 s Maximum wind           0.500E+01 m/s
+ Time      12.800 s Fire area              0.156E+05 m^2
+ Time      12.800 s Heat output            0.513E+10 W
+ Time      12.800 s Max heat flux          0.193E+06 W/m^2
+ Time      12.800 s Latent heat output     0.471E+09 W
+ Time      12.800 s Max latent heat flux   0.177E+05 W/m^2
+ 2020-01-01_00:00:12  0.800000191    
+ Time      13.000 s Average wind           0.500E+01 m/s
+ Time      13.000 s Maximum wind           0.500E+01 m/s
+ Time      13.000 s Fire area              0.234E+05 m^2
+ Time      13.000 s Heat output            0.510E+10 W
+ Time      13.000 s Max heat flux          0.126E+06 W/m^2
+ Time      13.000 s Latent heat output     0.468E+09 W
+ Time      13.000 s Max latent heat flux   0.116E+05 W/m^2
+ 2020-01-01_00:00:13   0.00000000    
+ Time      13.200 s Average wind           0.500E+01 m/s
+ Time      13.200 s Maximum wind           0.500E+01 m/s
+ Time      13.200 s Fire area              0.258E+05 m^2
+ Time      13.200 s Heat output            0.743E+10 W
+ Time      13.200 s Max heat flux          0.156E+06 W/m^2
+ Time      13.200 s Latent heat output     0.682E+09 W
+ Time      13.200 s Max latent heat flux   0.143E+05 W/m^2
+ 2020-01-01_00:00:13  0.199999809    
+ Time      13.400 s Average wind           0.500E+01 m/s
+ Time      13.400 s Maximum wind           0.500E+01 m/s
+ Time      13.400 s Fire area              0.263E+05 m^2
+ Time      13.400 s Heat output            0.792E+10 W
+ Time      13.400 s Max heat flux          0.166E+06 W/m^2
+ Time      13.400 s Latent heat output     0.727E+09 W
+ Time      13.400 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:13  0.400000572    
+ Time      13.600 s Average wind           0.500E+01 m/s
+ Time      13.600 s Maximum wind           0.500E+01 m/s
+ Time      13.600 s Fire area              0.268E+05 m^2
+ Time      13.600 s Heat output            0.790E+10 W
+ Time      13.600 s Max heat flux          0.166E+06 W/m^2
+ Time      13.600 s Latent heat output     0.725E+09 W
+ Time      13.600 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:13  0.600000381    
+ Time      13.800 s Average wind           0.500E+01 m/s
+ Time      13.800 s Maximum wind           0.500E+01 m/s
+ Time      13.800 s Fire area              0.274E+05 m^2
+ Time      13.800 s Heat output            0.789E+10 W
+ Time      13.800 s Max heat flux          0.166E+06 W/m^2
+ Time      13.800 s Latent heat output     0.724E+09 W
+ Time      13.800 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:13  0.800000191    
+ Time      14.000 s Average wind           0.500E+01 m/s
+ Time      14.000 s Maximum wind           0.500E+01 m/s
+ Time      14.000 s Fire area              0.279E+05 m^2
+ Time      14.000 s Heat output            0.788E+10 W
+ Time      14.000 s Max heat flux          0.166E+06 W/m^2
+ Time      14.000 s Latent heat output     0.723E+09 W
+ Time      14.000 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:14   0.00000000    
+ Time      14.200 s Average wind           0.500E+01 m/s
+ Time      14.200 s Maximum wind           0.500E+01 m/s
+ Time      14.200 s Fire area              0.284E+05 m^2
+ Time      14.200 s Heat output            0.787E+10 W
+ Time      14.200 s Max heat flux          0.166E+06 W/m^2
+ Time      14.200 s Latent heat output     0.722E+09 W
+ Time      14.200 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:14  0.199999809    
+ Time      14.400 s Average wind           0.500E+01 m/s
+ Time      14.400 s Maximum wind           0.500E+01 m/s
+ Time      14.400 s Fire area              0.290E+05 m^2
+ Time      14.400 s Heat output            0.787E+10 W
+ Time      14.400 s Max heat flux          0.166E+06 W/m^2
+ Time      14.400 s Latent heat output     0.722E+09 W
+ Time      14.400 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:14  0.400000572    
+ Time      14.600 s Average wind           0.500E+01 m/s
+ Time      14.600 s Maximum wind           0.500E+01 m/s
+ Time      14.600 s Fire area              0.295E+05 m^2
+ Time      14.600 s Heat output            0.786E+10 W
+ Time      14.600 s Max heat flux          0.167E+06 W/m^2
+ Time      14.600 s Latent heat output     0.721E+09 W
+ Time      14.600 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:14  0.600000381    
+ Time      14.800 s Average wind           0.500E+01 m/s
+ Time      14.800 s Maximum wind           0.500E+01 m/s
+ Time      14.800 s Fire area              0.301E+05 m^2
+ Time      14.800 s Heat output            0.786E+10 W
+ Time      14.800 s Max heat flux          0.167E+06 W/m^2
+ Time      14.800 s Latent heat output     0.721E+09 W
+ Time      14.800 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:14  0.800000191    
+ Time      15.000 s Average wind           0.500E+01 m/s
+ Time      15.000 s Maximum wind           0.500E+01 m/s
+ Time      15.000 s Fire area              0.306E+05 m^2
+ Time      15.000 s Heat output            0.786E+10 W
+ Time      15.000 s Max heat flux          0.167E+06 W/m^2
+ Time      15.000 s Latent heat output     0.721E+09 W
+ Time      15.000 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:15   0.00000000    
+ Time      15.200 s Average wind           0.500E+01 m/s
+ Time      15.200 s Maximum wind           0.500E+01 m/s
+ Time      15.200 s Fire area              0.312E+05 m^2
+ Time      15.200 s Heat output            0.786E+10 W
+ Time      15.200 s Max heat flux          0.168E+06 W/m^2
+ Time      15.200 s Latent heat output     0.721E+09 W
+ Time      15.200 s Max latent heat flux   0.154E+05 W/m^2
+ 2020-01-01_00:00:15  0.199999809    
+ Time      15.400 s Average wind           0.500E+01 m/s
+ Time      15.400 s Maximum wind           0.500E+01 m/s
+ Time      15.400 s Fire area              0.317E+05 m^2
+ Time      15.400 s Heat output            0.786E+10 W
+ Time      15.400 s Max heat flux          0.168E+06 W/m^2
+ Time      15.400 s Latent heat output     0.721E+09 W
+ Time      15.400 s Max latent heat flux   0.154E+05 W/m^2
+ 2020-01-01_00:00:15  0.400000572    
+ Time      15.600 s Average wind           0.500E+01 m/s
+ Time      15.600 s Maximum wind           0.500E+01 m/s
+ Time      15.600 s Fire area              0.323E+05 m^2
+ Time      15.600 s Heat output            0.786E+10 W
+ Time      15.600 s Max heat flux          0.168E+06 W/m^2
+ Time      15.600 s Latent heat output     0.721E+09 W
+ Time      15.600 s Max latent heat flux   0.155E+05 W/m^2
+ 2020-01-01_00:00:15  0.600000381    
+ Time      15.800 s Average wind           0.500E+01 m/s
+ Time      15.800 s Maximum wind           0.500E+01 m/s
+ Time      15.800 s Fire area              0.328E+05 m^2
+ Time      15.800 s Heat output            0.786E+10 W
+ Time      15.800 s Max heat flux          0.169E+06 W/m^2
+ Time      15.800 s Latent heat output     0.722E+09 W
+ Time      15.800 s Max latent heat flux   0.155E+05 W/m^2
+ 2020-01-01_00:00:15  0.800000191    
+ Time      16.000 s Average wind           0.500E+01 m/s
+ Time      16.000 s Maximum wind           0.500E+01 m/s
+ Time      16.000 s Fire area              0.334E+05 m^2
+ Time      16.000 s Heat output            0.787E+10 W
+ Time      16.000 s Max heat flux          0.169E+06 W/m^2
+ Time      16.000 s Latent heat output     0.722E+09 W
+ Time      16.000 s Max latent heat flux   0.156E+05 W/m^2
+ 2020-01-01_00:00:16   0.00000000    
+ Time      16.200 s Average wind           0.500E+01 m/s
+ Time      16.200 s Maximum wind           0.500E+01 m/s
+ Time      16.200 s Fire area              0.339E+05 m^2
+ Time      16.200 s Heat output            0.788E+10 W
+ Time      16.200 s Max heat flux          0.170E+06 W/m^2
+ Time      16.200 s Latent heat output     0.723E+09 W
+ Time      16.200 s Max latent heat flux   0.156E+05 W/m^2
+ 2020-01-01_00:00:16  0.200000763    
+ Time      16.400 s Average wind           0.500E+01 m/s
+ Time      16.400 s Maximum wind           0.500E+01 m/s
+ Time      16.400 s Fire area              0.345E+05 m^2
+ Time      16.400 s Heat output            0.788E+10 W
+ Time      16.400 s Max heat flux          0.171E+06 W/m^2
+ Time      16.400 s Latent heat output     0.724E+09 W
+ Time      16.400 s Max latent heat flux   0.157E+05 W/m^2
+ 2020-01-01_00:00:16  0.399999619    
+ Time      16.600 s Average wind           0.500E+01 m/s
+ Time      16.600 s Maximum wind           0.500E+01 m/s
+ Time      16.600 s Fire area              0.350E+05 m^2
+ Time      16.600 s Heat output            0.789E+10 W
+ Time      16.600 s Max heat flux          0.171E+06 W/m^2
+ Time      16.600 s Latent heat output     0.725E+09 W
+ Time      16.600 s Max latent heat flux   0.157E+05 W/m^2
+ 2020-01-01_00:00:16  0.600000381    
+ Time      16.800 s Average wind           0.500E+01 m/s
+ Time      16.800 s Maximum wind           0.500E+01 m/s
+ Time      16.800 s Fire area              0.356E+05 m^2
+ Time      16.800 s Heat output            0.791E+10 W
+ Time      16.800 s Max heat flux          0.172E+06 W/m^2
+ Time      16.800 s Latent heat output     0.726E+09 W
+ Time      16.800 s Max latent heat flux   0.158E+05 W/m^2
+ 2020-01-01_00:00:16  0.800001144    
+ Time      17.000 s Average wind           0.500E+01 m/s
+ Time      17.000 s Maximum wind           0.500E+01 m/s
+ Time      17.000 s Fire area              0.362E+05 m^2
+ Time      17.000 s Heat output            0.805E+10 W
+ Time      17.000 s Max heat flux          0.372E+06 W/m^2
+ Time      17.000 s Latent heat output     0.739E+09 W
+ Time      17.000 s Max latent heat flux   0.341E+05 W/m^2
+ 2020-01-01_00:00:17   0.00000000    
+ Time      17.200 s Average wind           0.500E+01 m/s
+ Time      17.200 s Maximum wind           0.500E+01 m/s
+ Time      17.200 s Fire area              0.367E+05 m^2
+ Time      17.200 s Heat output            0.813E+10 W
+ Time      17.200 s Max heat flux          0.306E+06 W/m^2
+ Time      17.200 s Latent heat output     0.746E+09 W
+ Time      17.200 s Max latent heat flux   0.281E+05 W/m^2
+ 2020-01-01_00:00:17  0.200000763    
+ Time      17.400 s Average wind           0.500E+01 m/s
+ Time      17.400 s Maximum wind           0.500E+01 m/s
+ Time      17.400 s Fire area              0.373E+05 m^2
+ Time      17.400 s Heat output            0.821E+10 W
+ Time      17.400 s Max heat flux          0.398E+06 W/m^2
+ Time      17.400 s Latent heat output     0.754E+09 W
+ Time      17.400 s Max latent heat flux   0.365E+05 W/m^2
+ 2020-01-01_00:00:17  0.399999619    
+ Time      17.600 s Average wind           0.500E+01 m/s
+ Time      17.600 s Maximum wind           0.500E+01 m/s
+ Time      17.600 s Fire area              0.379E+05 m^2
+ Time      17.600 s Heat output            0.796E+10 W
+ Time      17.600 s Max heat flux          0.175E+06 W/m^2
+ Time      17.600 s Latent heat output     0.731E+09 W
+ Time      17.600 s Max latent heat flux   0.160E+05 W/m^2
+ 2020-01-01_00:00:17  0.600000381    
+ Time      17.800 s Average wind           0.500E+01 m/s
+ Time      17.800 s Maximum wind           0.500E+01 m/s
+ Time      17.800 s Fire area              0.385E+05 m^2
+ Time      17.800 s Heat output            0.819E+10 W
+ Time      17.800 s Max heat flux          0.313E+06 W/m^2
+ Time      17.800 s Latent heat output     0.752E+09 W
+ Time      17.800 s Max latent heat flux   0.287E+05 W/m^2
+ 2020-01-01_00:00:17  0.800001144    
+ Time      18.000 s Average wind           0.500E+01 m/s
+ Time      18.000 s Maximum wind           0.500E+01 m/s
+ Time      18.000 s Fire area              0.390E+05 m^2
+ Time      18.000 s Heat output            0.812E+10 W
+ Time      18.000 s Max heat flux          0.337E+06 W/m^2
+ Time      18.000 s Latent heat output     0.746E+09 W
+ Time      18.000 s Max latent heat flux   0.309E+05 W/m^2
+ 2020-01-01_00:00:18   0.00000000    
+ Time      18.200 s Average wind           0.500E+01 m/s
+ Time      18.200 s Maximum wind           0.500E+01 m/s
+ Time      18.200 s Fire area              0.396E+05 m^2
+ Time      18.200 s Heat output            0.801E+10 W
+ Time      18.200 s Max heat flux          0.177E+06 W/m^2
+ Time      18.200 s Latent heat output     0.735E+09 W
+ Time      18.200 s Max latent heat flux   0.162E+05 W/m^2
+ 2020-01-01_00:00:18  0.200000763    
+ Time      18.400 s Average wind           0.500E+01 m/s
+ Time      18.400 s Maximum wind           0.500E+01 m/s
+ Time      18.400 s Fire area              0.402E+05 m^2
+ Time      18.400 s Heat output            0.802E+10 W
+ Time      18.400 s Max heat flux          0.178E+06 W/m^2
+ Time      18.400 s Latent heat output     0.736E+09 W
+ Time      18.400 s Max latent heat flux   0.163E+05 W/m^2
+ 2020-01-01_00:00:18  0.399999619    
+ Time      18.600 s Average wind           0.500E+01 m/s
+ Time      18.600 s Maximum wind           0.500E+01 m/s
+ Time      18.600 s Fire area              0.408E+05 m^2
+ Time      18.600 s Heat output            0.804E+10 W
+ Time      18.600 s Max heat flux          0.179E+06 W/m^2
+ Time      18.600 s Latent heat output     0.738E+09 W
+ Time      18.600 s Max latent heat flux   0.164E+05 W/m^2
+ 2020-01-01_00:00:18  0.600000381    
+ Time      18.800 s Average wind           0.500E+01 m/s
+ Time      18.800 s Maximum wind           0.500E+01 m/s
+ Time      18.800 s Fire area              0.414E+05 m^2
+ Time      18.800 s Heat output            0.806E+10 W
+ Time      18.800 s Max heat flux          0.180E+06 W/m^2
+ Time      18.800 s Latent heat output     0.740E+09 W
+ Time      18.800 s Max latent heat flux   0.165E+05 W/m^2
+ 2020-01-01_00:00:18  0.800001144    
+ Time      19.000 s Average wind           0.500E+01 m/s
+ Time      19.000 s Maximum wind           0.500E+01 m/s
+ Time      19.000 s Fire area              0.420E+05 m^2
+ Time      19.000 s Heat output            0.808E+10 W
+ Time      19.000 s Max heat flux          0.181E+06 W/m^2
+ Time      19.000 s Latent heat output     0.742E+09 W
+ Time      19.000 s Max latent heat flux   0.166E+05 W/m^2
+ 2020-01-01_00:00:19   0.00000000    
+ Time      19.200 s Average wind           0.500E+01 m/s
+ Time      19.200 s Maximum wind           0.500E+01 m/s
+ Time      19.200 s Fire area              0.426E+05 m^2
+ Time      19.200 s Heat output            0.810E+10 W
+ Time      19.200 s Max heat flux          0.182E+06 W/m^2
+ Time      19.200 s Latent heat output     0.743E+09 W
+ Time      19.200 s Max latent heat flux   0.167E+05 W/m^2
+ 2020-01-01_00:00:19  0.200000763    
+ Time      19.400 s Average wind           0.500E+01 m/s
+ Time      19.400 s Maximum wind           0.500E+01 m/s
+ Time      19.400 s Fire area              0.431E+05 m^2
+ Time      19.400 s Heat output            0.812E+10 W
+ Time      19.400 s Max heat flux          0.182E+06 W/m^2
+ Time      19.400 s Latent heat output     0.745E+09 W
+ Time      19.400 s Max latent heat flux   0.167E+05 W/m^2
+ 2020-01-01_00:00:19  0.399999619    
+ Time      19.600 s Average wind           0.500E+01 m/s
+ Time      19.600 s Maximum wind           0.500E+01 m/s
+ Time      19.600 s Fire area              0.437E+05 m^2
+ Time      19.600 s Heat output            0.814E+10 W
+ Time      19.600 s Max heat flux          0.183E+06 W/m^2
+ Time      19.600 s Latent heat output     0.748E+09 W
+ Time      19.600 s Max latent heat flux   0.168E+05 W/m^2
+ 2020-01-01_00:00:19  0.600000381    
+ Time      19.800 s Average wind           0.500E+01 m/s
+ Time      19.800 s Maximum wind           0.500E+01 m/s
+ Time      19.800 s Fire area              0.443E+05 m^2
+ Time      19.800 s Heat output            0.817E+10 W
+ Time      19.800 s Max heat flux          0.184E+06 W/m^2
+ Time      19.800 s Latent heat output     0.750E+09 W
+ Time      19.800 s Max latent heat flux   0.169E+05 W/m^2
+ 2020-01-01_00:00:19  0.800001144    
+ Time      20.000 s Average wind           0.500E+01 m/s
+ Time      20.000 s Maximum wind           0.500E+01 m/s
+ Time      20.000 s Fire area              0.449E+05 m^2
+ Time      20.000 s Heat output            0.819E+10 W
+ Time      20.000 s Max heat flux          0.186E+06 W/m^2
+ Time      20.000 s Latent heat output     0.752E+09 W
+ Time      20.000 s Max latent heat flux   0.170E+05 W/m^2
+ 2020-01-01_00:00:20   0.00000000    
+ Time      20.200 s Average wind           0.500E+01 m/s
+ Time      20.200 s Maximum wind           0.500E+01 m/s
+ Time      20.200 s Fire area              0.455E+05 m^2
+ Time      20.200 s Heat output            0.276E+11 W
+ Time      20.200 s Max heat flux          0.105E+07 W/m^2
+ Time      20.200 s Latent heat output     0.253E+10 W
+ Time      20.200 s Max latent heat flux   0.963E+05 W/m^2
+ 2020-01-01_00:00:20  0.200000763    
+ Time      20.400 s Average wind           0.500E+01 m/s
+ Time      20.400 s Maximum wind           0.500E+01 m/s
+ Time      20.400 s Fire area              0.461E+05 m^2
+ Time      20.400 s Heat output            0.880E+10 W
+ Time      20.400 s Max heat flux          0.820E+06 W/m^2
+ Time      20.400 s Latent heat output     0.808E+09 W
+ Time      20.400 s Max latent heat flux   0.753E+05 W/m^2
+ 2020-01-01_00:00:20  0.399999619    
+ Time      20.600 s Average wind           0.500E+01 m/s
+ Time      20.600 s Maximum wind           0.500E+01 m/s
+ Time      20.600 s Fire area              0.467E+05 m^2
+ Time      20.600 s Heat output            0.797E+10 W
+ Time      20.600 s Max heat flux          0.390E+06 W/m^2
+ Time      20.600 s Latent heat output     0.731E+09 W
+ Time      20.600 s Max latent heat flux   0.358E+05 W/m^2
+ 2020-01-01_00:00:20  0.600000381    
+ Time      20.800 s Average wind           0.500E+01 m/s
+ Time      20.800 s Maximum wind           0.500E+01 m/s
+ Time      20.800 s Fire area              0.474E+05 m^2
+ Time      20.800 s Heat output            0.794E+10 W
+ Time      20.800 s Max heat flux          0.380E+06 W/m^2
+ Time      20.800 s Latent heat output     0.729E+09 W
+ Time      20.800 s Max latent heat flux   0.349E+05 W/m^2
+ 2020-01-01_00:00:20  0.800001144    
+ Time      21.000 s Average wind           0.500E+01 m/s
+ Time      21.000 s Maximum wind           0.500E+01 m/s
+ Time      21.000 s Fire area              0.480E+05 m^2
+ Time      21.000 s Heat output            0.818E+10 W
+ Time      21.000 s Max heat flux          0.555E+06 W/m^2
+ Time      21.000 s Latent heat output     0.751E+09 W
+ Time      21.000 s Max latent heat flux   0.509E+05 W/m^2
+ 2020-01-01_00:00:21   0.00000000    
+ Time      21.200 s Average wind           0.500E+01 m/s
+ Time      21.200 s Maximum wind           0.500E+01 m/s
+ Time      21.200 s Fire area              0.486E+05 m^2
+ Time      21.200 s Heat output            0.764E+10 W
+ Time      21.200 s Max heat flux          0.139E+06 W/m^2
+ Time      21.200 s Latent heat output     0.702E+09 W
+ Time      21.200 s Max latent heat flux   0.128E+05 W/m^2
+ 2020-01-01_00:00:21  0.200000763    
+ Time      21.400 s Average wind           0.500E+01 m/s
+ Time      21.400 s Maximum wind           0.500E+01 m/s
+ Time      21.400 s Fire area              0.492E+05 m^2
+ Time      21.400 s Heat output            0.765E+10 W
+ Time      21.400 s Max heat flux          0.139E+06 W/m^2
+ Time      21.400 s Latent heat output     0.702E+09 W
+ Time      21.400 s Max latent heat flux   0.128E+05 W/m^2
+ 2020-01-01_00:00:21  0.399999619    
+ Time      21.600 s Average wind           0.500E+01 m/s
+ Time      21.600 s Maximum wind           0.500E+01 m/s
+ Time      21.600 s Fire area              0.498E+05 m^2
+ Time      21.600 s Heat output            0.765E+10 W
+ Time      21.600 s Max heat flux          0.139E+06 W/m^2
+ Time      21.600 s Latent heat output     0.702E+09 W
+ Time      21.600 s Max latent heat flux   0.127E+05 W/m^2
+ 2020-01-01_00:00:21  0.600000381    
+ Time      21.800 s Average wind           0.500E+01 m/s
+ Time      21.800 s Maximum wind           0.500E+01 m/s
+ Time      21.800 s Fire area              0.504E+05 m^2
+ Time      21.800 s Heat output            0.766E+10 W
+ Time      21.800 s Max heat flux          0.139E+06 W/m^2
+ Time      21.800 s Latent heat output     0.703E+09 W
+ Time      21.800 s Max latent heat flux   0.127E+05 W/m^2
+ 2020-01-01_00:00:21  0.800001144    
+ Time      22.000 s Average wind           0.500E+01 m/s
+ Time      22.000 s Maximum wind           0.500E+01 m/s
+ Time      22.000 s Fire area              0.510E+05 m^2
+ Time      22.000 s Heat output            0.766E+10 W
+ Time      22.000 s Max heat flux          0.141E+06 W/m^2
+ Time      22.000 s Latent heat output     0.703E+09 W
+ Time      22.000 s Max latent heat flux   0.130E+05 W/m^2
+ 2020-01-01_00:00:22   0.00000000    
+ Time      22.200 s Average wind           0.500E+01 m/s
+ Time      22.200 s Maximum wind           0.500E+01 m/s
+ Time      22.200 s Fire area              0.517E+05 m^2
+ Time      22.200 s Heat output            0.766E+10 W
+ Time      22.200 s Max heat flux          0.141E+06 W/m^2
+ Time      22.200 s Latent heat output     0.703E+09 W
+ Time      22.200 s Max latent heat flux   0.130E+05 W/m^2
+ 2020-01-01_00:00:22  0.200000763    
+ Time      22.400 s Average wind           0.500E+01 m/s
+ Time      22.400 s Maximum wind           0.500E+01 m/s
+ Time      22.400 s Fire area              0.523E+05 m^2
+ Time      22.400 s Heat output            0.767E+10 W
+ Time      22.400 s Max heat flux          0.141E+06 W/m^2
+ Time      22.400 s Latent heat output     0.704E+09 W
+ Time      22.400 s Max latent heat flux   0.130E+05 W/m^2
+ 2020-01-01_00:00:22  0.399999619    
+ Time      22.600 s Average wind           0.500E+01 m/s
+ Time      22.600 s Maximum wind           0.500E+01 m/s
+ Time      22.600 s Fire area              0.529E+05 m^2
+ Time      22.600 s Heat output            0.769E+10 W
+ Time      22.600 s Max heat flux          0.141E+06 W/m^2
+ Time      22.600 s Latent heat output     0.706E+09 W
+ Time      22.600 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:22  0.600000381    
+ Time      22.800 s Average wind           0.500E+01 m/s
+ Time      22.800 s Maximum wind           0.500E+01 m/s
+ Time      22.800 s Fire area              0.535E+05 m^2
+ Time      22.800 s Heat output            0.769E+10 W
+ Time      22.800 s Max heat flux          0.141E+06 W/m^2
+ Time      22.800 s Latent heat output     0.706E+09 W
+ Time      22.800 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:22  0.800001144    
+ Time      23.000 s Average wind           0.500E+01 m/s
+ Time      23.000 s Maximum wind           0.500E+01 m/s
+ Time      23.000 s Fire area              0.542E+05 m^2
+ Time      23.000 s Heat output            0.771E+10 W
+ Time      23.000 s Max heat flux          0.141E+06 W/m^2
+ Time      23.000 s Latent heat output     0.708E+09 W
+ Time      23.000 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:23   0.00000000    
+ Time      23.200 s Average wind           0.500E+01 m/s
+ Time      23.200 s Maximum wind           0.500E+01 m/s
+ Time      23.200 s Fire area              0.548E+05 m^2
+ Time      23.200 s Heat output            0.772E+10 W
+ Time      23.200 s Max heat flux          0.141E+06 W/m^2
+ Time      23.200 s Latent heat output     0.708E+09 W
+ Time      23.200 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:23  0.200000763    
+ Time      23.400 s Average wind           0.500E+01 m/s
+ Time      23.400 s Maximum wind           0.500E+01 m/s
+ Time      23.400 s Fire area              0.554E+05 m^2
+ Time      23.400 s Heat output            0.772E+10 W
+ Time      23.400 s Max heat flux          0.141E+06 W/m^2
+ Time      23.400 s Latent heat output     0.709E+09 W
+ Time      23.400 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:23  0.399999619    
+ Time      23.600 s Average wind           0.500E+01 m/s
+ Time      23.600 s Maximum wind           0.500E+01 m/s
+ Time      23.600 s Fire area              0.561E+05 m^2
+ Time      23.600 s Heat output            0.773E+10 W
+ Time      23.600 s Max heat flux          0.141E+06 W/m^2
+ Time      23.600 s Latent heat output     0.710E+09 W
+ Time      23.600 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:23  0.600000381    
+ Time      23.800 s Average wind           0.500E+01 m/s
+ Time      23.800 s Maximum wind           0.500E+01 m/s
+ Time      23.800 s Fire area              0.567E+05 m^2
+ Time      23.800 s Heat output            0.774E+10 W
+ Time      23.800 s Max heat flux          0.141E+06 W/m^2
+ Time      23.800 s Latent heat output     0.711E+09 W
+ Time      23.800 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:23  0.800001144    
+ Time      24.000 s Average wind           0.500E+01 m/s
+ Time      24.000 s Maximum wind           0.500E+01 m/s
+ Time      24.000 s Fire area              0.573E+05 m^2
+ Time      24.000 s Heat output            0.775E+10 W
+ Time      24.000 s Max heat flux          0.141E+06 W/m^2
+ Time      24.000 s Latent heat output     0.712E+09 W
+ Time      24.000 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:24   0.00000000    
+ Time      24.200 s Average wind           0.500E+01 m/s
+ Time      24.200 s Maximum wind           0.500E+01 m/s
+ Time      24.200 s Fire area              0.580E+05 m^2
+ Time      24.200 s Heat output            0.777E+10 W
+ Time      24.200 s Max heat flux          0.141E+06 W/m^2
+ Time      24.200 s Latent heat output     0.713E+09 W
+ Time      24.200 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:24  0.200000763    
+ Time      24.400 s Average wind           0.500E+01 m/s
+ Time      24.400 s Maximum wind           0.500E+01 m/s
+ Time      24.400 s Fire area              0.586E+05 m^2
+ Time      24.400 s Heat output            0.778E+10 W
+ Time      24.400 s Max heat flux          0.140E+06 W/m^2
+ Time      24.400 s Latent heat output     0.714E+09 W
+ Time      24.400 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:24  0.399999619    
+ Time      24.600 s Average wind           0.500E+01 m/s
+ Time      24.600 s Maximum wind           0.500E+01 m/s
+ Time      24.600 s Fire area              0.593E+05 m^2
+ Time      24.600 s Heat output            0.780E+10 W
+ Time      24.600 s Max heat flux          0.140E+06 W/m^2
+ Time      24.600 s Latent heat output     0.716E+09 W
+ Time      24.600 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:24  0.600000381    
+ Time      24.800 s Average wind           0.500E+01 m/s
+ Time      24.800 s Maximum wind           0.500E+01 m/s
+ Time      24.800 s Fire area              0.599E+05 m^2
+ Time      24.800 s Heat output            0.318E+11 W
+ Time      24.800 s Max heat flux          0.109E+07 W/m^2
+ Time      24.800 s Latent heat output     0.292E+10 W
+ Time      24.800 s Max latent heat flux   0.998E+05 W/m^2
+ 2020-01-01_00:00:24  0.800001144    
+ Time      25.000 s Average wind           0.500E+01 m/s
+ Time      25.000 s Maximum wind           0.500E+01 m/s
+ Time      25.000 s Fire area              0.604E+05 m^2
+ Time      25.000 s Heat output            0.685E+10 W
+ Time      25.000 s Max heat flux          0.294E+06 W/m^2
+ Time      25.000 s Latent heat output     0.629E+09 W
+ Time      25.000 s Max latent heat flux   0.270E+05 W/m^2
+ 2020-01-01_00:00:25   0.00000000    
+ Time      25.200 s Average wind           0.500E+01 m/s
+ Time      25.200 s Maximum wind           0.500E+01 m/s
+ Time      25.200 s Fire area              0.609E+05 m^2
+ Time      25.200 s Heat output            0.656E+10 W
+ Time      25.200 s Max heat flux          0.976E+05 W/m^2
+ Time      25.200 s Latent heat output     0.602E+09 W
+ Time      25.200 s Max latent heat flux   0.895E+04 W/m^2
+ 2020-01-01_00:00:25  0.200000763    
+ Time      25.400 s Average wind           0.500E+01 m/s
+ Time      25.400 s Maximum wind           0.500E+01 m/s
+ Time      25.400 s Fire area              0.614E+05 m^2
+ Time      25.400 s Heat output            0.654E+10 W
+ Time      25.400 s Max heat flux          0.969E+05 W/m^2
+ Time      25.400 s Latent heat output     0.600E+09 W
+ Time      25.400 s Max latent heat flux   0.890E+04 W/m^2
+ 2020-01-01_00:00:25  0.399999619    
+ Time      25.600 s Average wind           0.500E+01 m/s
+ Time      25.600 s Maximum wind           0.500E+01 m/s
+ Time      25.600 s Fire area              0.619E+05 m^2
+ Time      25.600 s Heat output            0.681E+10 W
+ Time      25.600 s Max heat flux          0.283E+06 W/m^2
+ Time      25.600 s Latent heat output     0.625E+09 W
+ Time      25.600 s Max latent heat flux   0.260E+05 W/m^2
+ 2020-01-01_00:00:25  0.600000381    
+ Time      25.800 s Average wind           0.500E+01 m/s
+ Time      25.800 s Maximum wind           0.500E+01 m/s
+ Time      25.800 s Fire area              0.624E+05 m^2
+ Time      25.800 s Heat output            0.652E+10 W
+ Time      25.800 s Max heat flux          0.101E+06 W/m^2
+ Time      25.800 s Latent heat output     0.598E+09 W
+ Time      25.800 s Max latent heat flux   0.925E+04 W/m^2
+ 2020-01-01_00:00:25  0.800001144    
+ Time      26.000 s Average wind           0.500E+01 m/s
+ Time      26.000 s Maximum wind           0.500E+01 m/s
+ Time      26.000 s Fire area              0.629E+05 m^2
+ Time      26.000 s Heat output            0.651E+10 W
+ Time      26.000 s Max heat flux          0.103E+06 W/m^2
+ Time      26.000 s Latent heat output     0.598E+09 W
+ Time      26.000 s Max latent heat flux   0.948E+04 W/m^2
+ 2020-01-01_00:00:26   0.00000000    
+ Time      26.200 s Average wind           0.500E+01 m/s
+ Time      26.200 s Maximum wind           0.500E+01 m/s
+ Time      26.200 s Fire area              0.634E+05 m^2
+ Time      26.200 s Heat output            0.651E+10 W
+ Time      26.200 s Max heat flux          0.106E+06 W/m^2
+ Time      26.200 s Latent heat output     0.597E+09 W
+ Time      26.200 s Max latent heat flux   0.972E+04 W/m^2
+ 2020-01-01_00:00:26  0.200000763    
+ Time      26.400 s Average wind           0.500E+01 m/s
+ Time      26.400 s Maximum wind           0.500E+01 m/s
+ Time      26.400 s Fire area              0.639E+05 m^2
+ Time      26.400 s Heat output            0.650E+10 W
+ Time      26.400 s Max heat flux          0.109E+06 W/m^2
+ Time      26.400 s Latent heat output     0.597E+09 W
+ Time      26.400 s Max latent heat flux   0.996E+04 W/m^2
+ 2020-01-01_00:00:26  0.399999619    
+ Time      26.600 s Average wind           0.500E+01 m/s
+ Time      26.600 s Maximum wind           0.500E+01 m/s
+ Time      26.600 s Fire area              0.643E+05 m^2
+ Time      26.600 s Heat output            0.659E+10 W
+ Time      26.600 s Max heat flux          0.110E+06 W/m^2
+ Time      26.600 s Latent heat output     0.605E+09 W
+ Time      26.600 s Max latent heat flux   0.101E+05 W/m^2
+ 2020-01-01_00:00:26  0.600000381    
+ Time      26.800 s Average wind           0.500E+01 m/s
+ Time      26.800 s Maximum wind           0.500E+01 m/s
+ Time      26.800 s Fire area              0.647E+05 m^2
+ Time      26.800 s Heat output            0.661E+10 W
+ Time      26.800 s Max heat flux          0.108E+06 W/m^2
+ Time      26.800 s Latent heat output     0.607E+09 W
+ Time      26.800 s Max latent heat flux   0.994E+04 W/m^2
+ 2020-01-01_00:00:26  0.800001144    
+ Time      27.000 s Average wind           0.500E+01 m/s
+ Time      27.000 s Maximum wind           0.500E+01 m/s
+ Time      27.000 s Fire area              0.651E+05 m^2
+ Time      27.000 s Heat output            0.660E+10 W
+ Time      27.000 s Max heat flux          0.110E+06 W/m^2
+ Time      27.000 s Latent heat output     0.606E+09 W
+ Time      27.000 s Max latent heat flux   0.101E+05 W/m^2
+ 2020-01-01_00:00:27   0.00000000    
+ Time      27.200 s Average wind           0.500E+01 m/s
+ Time      27.200 s Maximum wind           0.500E+01 m/s
+ Time      27.200 s Fire area              0.655E+05 m^2
+ Time      27.200 s Heat output            0.657E+10 W
+ Time      27.200 s Max heat flux          0.112E+06 W/m^2
+ Time      27.200 s Latent heat output     0.603E+09 W
+ Time      27.200 s Max latent heat flux   0.103E+05 W/m^2
+ 2020-01-01_00:00:27  0.200000763    
+ Time      27.400 s Average wind           0.500E+01 m/s
+ Time      27.400 s Maximum wind           0.500E+01 m/s
+ Time      27.400 s Fire area              0.659E+05 m^2
+ Time      27.400 s Heat output            0.654E+10 W
+ Time      27.400 s Max heat flux          0.114E+06 W/m^2
+ Time      27.400 s Latent heat output     0.601E+09 W
+ Time      27.400 s Max latent heat flux   0.104E+05 W/m^2
+ 2020-01-01_00:00:27  0.399999619    
+ Time      27.600 s Average wind           0.500E+01 m/s
+ Time      27.600 s Maximum wind           0.500E+01 m/s
+ Time      27.600 s Fire area              0.664E+05 m^2
+ Time      27.600 s Heat output            0.657E+10 W
+ Time      27.600 s Max heat flux          0.136E+06 W/m^2
+ Time      27.600 s Latent heat output     0.603E+09 W
+ Time      27.600 s Max latent heat flux   0.125E+05 W/m^2
+ 2020-01-01_00:00:27  0.600000381    
+ Time      27.800 s Average wind           0.500E+01 m/s
+ Time      27.800 s Maximum wind           0.500E+01 m/s
+ Time      27.800 s Fire area              0.668E+05 m^2
+ Time      27.800 s Heat output            0.646E+10 W
+ Time      27.800 s Max heat flux          0.117E+06 W/m^2
+ Time      27.800 s Latent heat output     0.593E+09 W
+ Time      27.800 s Max latent heat flux   0.108E+05 W/m^2
+ 2020-01-01_00:00:27  0.800001144    
+ Time      28.000 s Average wind           0.500E+01 m/s
+ Time      28.000 s Maximum wind           0.500E+01 m/s
+ Time      28.000 s Fire area              0.672E+05 m^2
+ Time      28.000 s Heat output            0.644E+10 W
+ Time      28.000 s Max heat flux          0.119E+06 W/m^2
+ Time      28.000 s Latent heat output     0.591E+09 W
+ Time      28.000 s Max latent heat flux   0.109E+05 W/m^2
+ 2020-01-01_00:00:28   0.00000000    
+ Time      28.200 s Average wind           0.500E+01 m/s
+ Time      28.200 s Maximum wind           0.500E+01 m/s
+ Time      28.200 s Fire area              0.676E+05 m^2
+ Time      28.200 s Heat output            0.642E+10 W
+ Time      28.200 s Max heat flux          0.121E+06 W/m^2
+ Time      28.200 s Latent heat output     0.589E+09 W
+ Time      28.200 s Max latent heat flux   0.111E+05 W/m^2
+ 2020-01-01_00:00:28  0.200000763    
+ Time      28.400 s Average wind           0.500E+01 m/s
+ Time      28.400 s Maximum wind           0.500E+01 m/s
+ Time      28.400 s Fire area              0.680E+05 m^2
+ Time      28.400 s Heat output            0.641E+10 W
+ Time      28.400 s Max heat flux          0.123E+06 W/m^2
+ Time      28.400 s Latent heat output     0.588E+09 W
+ Time      28.400 s Max latent heat flux   0.113E+05 W/m^2
+ 2020-01-01_00:00:28  0.399999619    
+ Time      28.600 s Average wind           0.500E+01 m/s
+ Time      28.600 s Maximum wind           0.500E+01 m/s
+ Time      28.600 s Fire area              0.684E+05 m^2
+ Time      28.600 s Heat output            0.642E+10 W
+ Time      28.600 s Max heat flux          0.124E+06 W/m^2
+ Time      28.600 s Latent heat output     0.589E+09 W
+ Time      28.600 s Max latent heat flux   0.114E+05 W/m^2
+ 2020-01-01_00:00:28  0.600000381    
+ Time      28.800 s Average wind           0.500E+01 m/s
+ Time      28.800 s Maximum wind           0.500E+01 m/s
+ Time      28.800 s Fire area              0.688E+05 m^2
+ Time      28.800 s Heat output            0.641E+10 W
+ Time      28.800 s Max heat flux          0.126E+06 W/m^2
+ Time      28.800 s Latent heat output     0.588E+09 W
+ Time      28.800 s Max latent heat flux   0.116E+05 W/m^2
+ 2020-01-01_00:00:28  0.800001144    
+ Time      29.000 s Average wind           0.500E+01 m/s
+ Time      29.000 s Maximum wind           0.500E+01 m/s
+ Time      29.000 s Fire area              0.692E+05 m^2
+ Time      29.000 s Heat output            0.639E+10 W
+ Time      29.000 s Max heat flux          0.128E+06 W/m^2
+ Time      29.000 s Latent heat output     0.587E+09 W
+ Time      29.000 s Max latent heat flux   0.118E+05 W/m^2
+ 2020-01-01_00:00:29   0.00000000    
+ Time      29.200 s Average wind           0.500E+01 m/s
+ Time      29.200 s Maximum wind           0.500E+01 m/s
+ Time      29.200 s Fire area              0.696E+05 m^2
+ Time      29.200 s Heat output            0.638E+10 W
+ Time      29.200 s Max heat flux          0.130E+06 W/m^2
+ Time      29.200 s Latent heat output     0.585E+09 W
+ Time      29.200 s Max latent heat flux   0.119E+05 W/m^2
+ 2020-01-01_00:00:29  0.200000763    
+ Time      29.400 s Average wind           0.500E+01 m/s
+ Time      29.400 s Maximum wind           0.500E+01 m/s
+ Time      29.400 s Fire area              0.700E+05 m^2
+ Time      29.400 s Heat output            0.636E+10 W
+ Time      29.400 s Max heat flux          0.132E+06 W/m^2
+ Time      29.400 s Latent heat output     0.584E+09 W
+ Time      29.400 s Max latent heat flux   0.121E+05 W/m^2
+ 2020-01-01_00:00:29  0.399999619    
+ Time      29.600 s Average wind           0.500E+01 m/s
+ Time      29.600 s Maximum wind           0.500E+01 m/s
+ Time      29.600 s Fire area              0.704E+05 m^2
+ Time      29.600 s Heat output            0.635E+10 W
+ Time      29.600 s Max heat flux          0.134E+06 W/m^2
+ Time      29.600 s Latent heat output     0.583E+09 W
+ Time      29.600 s Max latent heat flux   0.123E+05 W/m^2
+ 2020-01-01_00:00:29  0.600000381    
+ Time      29.800 s Average wind           0.500E+01 m/s
+ Time      29.800 s Maximum wind           0.500E+01 m/s
+ Time      29.800 s Fire area              0.708E+05 m^2
+ Time      29.800 s Heat output            0.634E+10 W
+ Time      29.800 s Max heat flux          0.135E+06 W/m^2
+ Time      29.800 s Latent heat output     0.582E+09 W
+ Time      29.800 s Max latent heat flux   0.124E+05 W/m^2
+ 2020-01-01_00:00:29  0.800001144    
+ Time      30.000 s Average wind           0.500E+01 m/s
+ Time      30.000 s Maximum wind           0.500E+01 m/s
+ Time      30.000 s Fire area              0.713E+05 m^2
+ Time      30.000 s Heat output            0.633E+10 W
+ Time      30.000 s Max heat flux          0.137E+06 W/m^2
+ Time      30.000 s Latent heat output     0.581E+09 W
+ Time      30.000 s Max latent heat flux   0.126E+05 W/m^2
+ 2020-01-01_00:00:30   0.00000000    
+ Time      30.200 s Average wind           0.500E+01 m/s
+ Time      30.200 s Maximum wind           0.500E+01 m/s
+ Time      30.200 s Fire area              0.717E+05 m^2
+ Time      30.200 s Heat output            0.632E+10 W
+ Time      30.200 s Max heat flux          0.139E+06 W/m^2
+ Time      30.200 s Latent heat output     0.580E+09 W
+ Time      30.200 s Max latent heat flux   0.128E+05 W/m^2
+ 2020-01-01_00:00:30  0.200000763    
+ Time      30.400 s Average wind           0.500E+01 m/s
+ Time      30.400 s Maximum wind           0.500E+01 m/s
+ Time      30.400 s Fire area              0.721E+05 m^2
+ Time      30.400 s Heat output            0.631E+10 W
+ Time      30.400 s Max heat flux          0.141E+06 W/m^2
+ Time      30.400 s Latent heat output     0.579E+09 W
+ Time      30.400 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:30  0.399999619    
+ Time      30.600 s Average wind           0.500E+01 m/s
+ Time      30.600 s Maximum wind           0.500E+01 m/s
+ Time      30.600 s Fire area              0.725E+05 m^2
+ Time      30.600 s Heat output            0.630E+10 W
+ Time      30.600 s Max heat flux          0.143E+06 W/m^2
+ Time      30.600 s Latent heat output     0.579E+09 W
+ Time      30.600 s Max latent heat flux   0.131E+05 W/m^2
+ 2020-01-01_00:00:30  0.600000381    
+ Time      30.800 s Average wind           0.500E+01 m/s
+ Time      30.800 s Maximum wind           0.500E+01 m/s
+ Time      30.800 s Fire area              0.729E+05 m^2
+ Time      30.800 s Heat output            0.630E+10 W
+ Time      30.800 s Max heat flux          0.144E+06 W/m^2
+ Time      30.800 s Latent heat output     0.578E+09 W
+ Time      30.800 s Max latent heat flux   0.133E+05 W/m^2
+ 2020-01-01_00:00:30  0.800001144    
+ Time      31.000 s Average wind           0.500E+01 m/s
+ Time      31.000 s Maximum wind           0.500E+01 m/s
+ Time      31.000 s Fire area              0.733E+05 m^2
+ Time      31.000 s Heat output            0.629E+10 W
+ Time      31.000 s Max heat flux          0.146E+06 W/m^2
+ Time      31.000 s Latent heat output     0.578E+09 W
+ Time      31.000 s Max latent heat flux   0.134E+05 W/m^2
+ 2020-01-01_00:00:31   0.00000000    
+ Time      31.200 s Average wind           0.500E+01 m/s
+ Time      31.200 s Maximum wind           0.500E+01 m/s
+ Time      31.200 s Fire area              0.738E+05 m^2
+ Time      31.200 s Heat output            0.656E+10 W
+ Time      31.200 s Max heat flux          0.353E+06 W/m^2
+ Time      31.200 s Latent heat output     0.602E+09 W
+ Time      31.200 s Max latent heat flux   0.324E+05 W/m^2
+ 2020-01-01_00:00:31  0.200000763    
+ Time      31.400 s Average wind           0.500E+01 m/s
+ Time      31.400 s Maximum wind           0.500E+01 m/s
+ Time      31.400 s Fire area              0.742E+05 m^2
+ Time      31.400 s Heat output            0.629E+10 W
+ Time      31.400 s Max heat flux          0.150E+06 W/m^2
+ Time      31.400 s Latent heat output     0.578E+09 W
+ Time      31.400 s Max latent heat flux   0.138E+05 W/m^2
+ 2020-01-01_00:00:31  0.399999619    
+ Time      31.600 s Average wind           0.500E+01 m/s
+ Time      31.600 s Maximum wind           0.500E+01 m/s
+ Time      31.600 s Fire area              0.746E+05 m^2
+ Time      31.600 s Heat output            0.629E+10 W
+ Time      31.600 s Max heat flux          0.152E+06 W/m^2
+ Time      31.600 s Latent heat output     0.577E+09 W
+ Time      31.600 s Max latent heat flux   0.139E+05 W/m^2
+ 2020-01-01_00:00:31  0.600000381    
+ Time      31.800 s Average wind           0.500E+01 m/s
+ Time      31.800 s Maximum wind           0.500E+01 m/s
+ Time      31.800 s Fire area              0.750E+05 m^2
+ Time      31.800 s Heat output            0.629E+10 W
+ Time      31.800 s Max heat flux          0.153E+06 W/m^2
+ Time      31.800 s Latent heat output     0.577E+09 W
+ Time      31.800 s Max latent heat flux   0.141E+05 W/m^2
+ 2020-01-01_00:00:31  0.800001144    
+ Time      32.000 s Average wind           0.500E+01 m/s
+ Time      32.000 s Maximum wind           0.500E+01 m/s
+ Time      32.000 s Fire area              0.754E+05 m^2
+ Time      32.000 s Heat output            0.629E+10 W
+ Time      32.000 s Max heat flux          0.155E+06 W/m^2
+ Time      32.000 s Latent heat output     0.577E+09 W
+ Time      32.000 s Max latent heat flux   0.143E+05 W/m^2
+ 2020-01-01_00:00:32   0.00000000    
+ Time      32.200 s Average wind           0.500E+01 m/s
+ Time      32.200 s Maximum wind           0.500E+01 m/s
+ Time      32.200 s Fire area              0.759E+05 m^2
+ Time      32.200 s Heat output            0.629E+10 W
+ Time      32.200 s Max heat flux          0.157E+06 W/m^2
+ Time      32.200 s Latent heat output     0.578E+09 W
+ Time      32.200 s Max latent heat flux   0.144E+05 W/m^2
+ 2020-01-01_00:00:32  0.200000763    
+ Time      32.400 s Average wind           0.500E+01 m/s
+ Time      32.400 s Maximum wind           0.500E+01 m/s
+ Time      32.400 s Fire area              0.763E+05 m^2
+ Time      32.400 s Heat output            0.630E+10 W
+ Time      32.400 s Max heat flux          0.159E+06 W/m^2
+ Time      32.400 s Latent heat output     0.578E+09 W
+ Time      32.400 s Max latent heat flux   0.146E+05 W/m^2
+ 2020-01-01_00:00:32  0.400001526    
+ Time      32.600 s Average wind           0.500E+01 m/s
+ Time      32.600 s Maximum wind           0.500E+01 m/s
+ Time      32.600 s Fire area              0.767E+05 m^2
+ Time      32.600 s Heat output            0.630E+10 W
+ Time      32.600 s Max heat flux          0.161E+06 W/m^2
+ Time      32.600 s Latent heat output     0.578E+09 W
+ Time      32.600 s Max latent heat flux   0.147E+05 W/m^2
+ 2020-01-01_00:00:32  0.600002289    
+ Time      32.800 s Average wind           0.500E+01 m/s
+ Time      32.800 s Maximum wind           0.500E+01 m/s
+ Time      32.800 s Fire area              0.771E+05 m^2
+ Time      32.800 s Heat output            0.644E+10 W
+ Time      32.800 s Max heat flux          0.264E+06 W/m^2
+ Time      32.800 s Latent heat output     0.591E+09 W
+ Time      32.800 s Max latent heat flux   0.242E+05 W/m^2
+ 2020-01-01_00:00:32  0.799999237    
+ Time      33.000 s Average wind           0.500E+01 m/s
+ Time      33.000 s Maximum wind           0.500E+01 m/s
+ Time      33.000 s Fire area              0.776E+05 m^2
+ Time      33.000 s Heat output            0.659E+10 W
+ Time      33.000 s Max heat flux          0.328E+06 W/m^2
+ Time      33.000 s Latent heat output     0.605E+09 W
+ Time      33.000 s Max latent heat flux   0.301E+05 W/m^2
+ 2020-01-01_00:00:33   0.00000000    
+ Time      33.200 s Average wind           0.500E+01 m/s
+ Time      33.200 s Maximum wind           0.500E+01 m/s
+ Time      33.200 s Fire area              0.780E+05 m^2
+ Time      33.200 s Heat output            0.632E+10 W
+ Time      33.200 s Max heat flux          0.166E+06 W/m^2
+ Time      33.200 s Latent heat output     0.580E+09 W
+ Time      33.200 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:33  0.200000763    
+ Time      33.400 s Average wind           0.500E+01 m/s
+ Time      33.400 s Maximum wind           0.500E+01 m/s
+ Time      33.400 s Fire area              0.784E+05 m^2
+ Time      33.400 s Heat output            0.648E+10 W
+ Time      33.400 s Max heat flux          0.281E+06 W/m^2
+ Time      33.400 s Latent heat output     0.594E+09 W
+ Time      33.400 s Max latent heat flux   0.258E+05 W/m^2
+ 2020-01-01_00:00:33  0.400001526    
+ Time      33.600 s Average wind           0.500E+01 m/s
+ Time      33.600 s Maximum wind           0.500E+01 m/s
+ Time      33.600 s Fire area              0.789E+05 m^2
+ Time      33.600 s Heat output            0.247E+11 W
+ Time      33.600 s Max heat flux          0.978E+06 W/m^2
+ Time      33.600 s Latent heat output     0.226E+10 W
+ Time      33.600 s Max latent heat flux   0.898E+05 W/m^2
+ 2020-01-01_00:00:33  0.600002289    
+ Time      33.800 s Average wind           0.500E+01 m/s
+ Time      33.800 s Maximum wind           0.500E+01 m/s
+ Time      33.800 s Fire area              0.793E+05 m^2
+ Time      33.800 s Heat output            0.584E+10 W
+ Time      33.800 s Max heat flux          0.160E+06 W/m^2
+ Time      33.800 s Latent heat output     0.536E+09 W
+ Time      33.800 s Max latent heat flux   0.147E+05 W/m^2
+ 2020-01-01_00:00:33  0.799999237    
+ Time      34.000 s Average wind           0.500E+01 m/s
+ Time      34.000 s Maximum wind           0.500E+01 m/s
+ Time      34.000 s Fire area              0.797E+05 m^2
+ Time      34.000 s Heat output            0.632E+10 W
+ Time      34.000 s Max heat flux          0.372E+06 W/m^2
+ Time      34.000 s Latent heat output     0.580E+09 W
+ Time      34.000 s Max latent heat flux   0.342E+05 W/m^2
+ 2020-01-01_00:00:34   0.00000000    
+ Time      34.200 s Average wind           0.500E+01 m/s
+ Time      34.200 s Maximum wind           0.500E+01 m/s
+ Time      34.200 s Fire area              0.802E+05 m^2
+ Time      34.200 s Heat output            0.627E+10 W
+ Time      34.200 s Max heat flux          0.551E+06 W/m^2
+ Time      34.200 s Latent heat output     0.576E+09 W
+ Time      34.200 s Max latent heat flux   0.506E+05 W/m^2
+ 2020-01-01_00:00:34  0.200000763    
+ Time      34.400 s Average wind           0.500E+01 m/s
+ Time      34.400 s Maximum wind           0.500E+01 m/s
+ Time      34.400 s Fire area              0.806E+05 m^2
+ Time      34.400 s Heat output            0.571E+10 W
+ Time      34.400 s Max heat flux          0.128E+06 W/m^2
+ Time      34.400 s Latent heat output     0.524E+09 W
+ Time      34.400 s Max latent heat flux   0.117E+05 W/m^2
+ 2020-01-01_00:00:34  0.400001526    
+ Time      34.600 s Average wind           0.500E+01 m/s
+ Time      34.600 s Maximum wind           0.500E+01 m/s
+ Time      34.600 s Fire area              0.810E+05 m^2
+ Time      34.600 s Heat output            0.568E+10 W
+ Time      34.600 s Max heat flux          0.129E+06 W/m^2
+ Time      34.600 s Latent heat output     0.521E+09 W
+ Time      34.600 s Max latent heat flux   0.118E+05 W/m^2
+ 2020-01-01_00:00:34  0.600002289    
+ Time      34.800 s Average wind           0.500E+01 m/s
+ Time      34.800 s Maximum wind           0.500E+01 m/s
+ Time      34.800 s Fire area              0.815E+05 m^2
+ Time      34.800 s Heat output            0.565E+10 W
+ Time      34.800 s Max heat flux          0.130E+06 W/m^2
+ Time      34.800 s Latent heat output     0.519E+09 W
+ Time      34.800 s Max latent heat flux   0.120E+05 W/m^2
+ 2020-01-01_00:00:34  0.799999237    
+ Time      35.000 s Average wind           0.500E+01 m/s
+ Time      35.000 s Maximum wind           0.500E+01 m/s
+ Time      35.000 s Fire area              0.819E+05 m^2
+ Time      35.000 s Heat output            0.562E+10 W
+ Time      35.000 s Max heat flux          0.132E+06 W/m^2
+ Time      35.000 s Latent heat output     0.516E+09 W
+ Time      35.000 s Max latent heat flux   0.121E+05 W/m^2
+ 2020-01-01_00:00:35   0.00000000    
+ Time      35.200 s Average wind           0.500E+01 m/s
+ Time      35.200 s Maximum wind           0.500E+01 m/s
+ Time      35.200 s Fire area              0.824E+05 m^2
+ Time      35.200 s Heat output            0.587E+10 W
+ Time      35.200 s Max heat flux          0.350E+06 W/m^2
+ Time      35.200 s Latent heat output     0.539E+09 W
+ Time      35.200 s Max latent heat flux   0.321E+05 W/m^2
+ 2020-01-01_00:00:35  0.200000763    
+ Time      35.400 s Average wind           0.500E+01 m/s
+ Time      35.400 s Maximum wind           0.500E+01 m/s
+ Time      35.400 s Fire area              0.828E+05 m^2
+ Time      35.400 s Heat output            0.584E+10 W
+ Time      35.400 s Max heat flux          0.346E+06 W/m^2
+ Time      35.400 s Latent heat output     0.536E+09 W
+ Time      35.400 s Max latent heat flux   0.317E+05 W/m^2
+ 2020-01-01_00:00:35  0.400001526    
+ Time      35.600 s Average wind           0.500E+01 m/s
+ Time      35.600 s Maximum wind           0.500E+01 m/s
+ Time      35.600 s Fire area              0.832E+05 m^2
+ Time      35.600 s Heat output            0.554E+10 W
+ Time      35.600 s Max heat flux          0.125E+06 W/m^2
+ Time      35.600 s Latent heat output     0.508E+09 W
+ Time      35.600 s Max latent heat flux   0.115E+05 W/m^2
+ 2020-01-01_00:00:35  0.600002289    
+ Time      35.800 s Average wind           0.500E+01 m/s
+ Time      35.800 s Maximum wind           0.500E+01 m/s
+ Time      35.800 s Fire area              0.837E+05 m^2
+ Time      35.800 s Heat output            0.552E+10 W
+ Time      35.800 s Max heat flux          0.125E+06 W/m^2
+ Time      35.800 s Latent heat output     0.506E+09 W
+ Time      35.800 s Max latent heat flux   0.115E+05 W/m^2
+ 2020-01-01_00:00:35  0.799999237    
+ Time      36.000 s Average wind           0.500E+01 m/s
+ Time      36.000 s Maximum wind           0.500E+01 m/s
+ Time      36.000 s Fire area              0.841E+05 m^2
+ Time      36.000 s Heat output            0.550E+10 W
+ Time      36.000 s Max heat flux          0.124E+06 W/m^2
+ Time      36.000 s Latent heat output     0.504E+09 W
+ Time      36.000 s Max latent heat flux   0.114E+05 W/m^2
+ 2020-01-01_00:00:36   0.00000000    
+ Time      36.200 s Average wind           0.500E+01 m/s
+ Time      36.200 s Maximum wind           0.500E+01 m/s
+ Time      36.200 s Fire area              0.846E+05 m^2
+ Time      36.200 s Heat output            0.548E+10 W
+ Time      36.200 s Max heat flux          0.124E+06 W/m^2
+ Time      36.200 s Latent heat output     0.502E+09 W
+ Time      36.200 s Max latent heat flux   0.114E+05 W/m^2
+ 2020-01-01_00:00:36  0.200000763    
+ Time      36.400 s Average wind           0.500E+01 m/s
+ Time      36.400 s Maximum wind           0.500E+01 m/s
+ Time      36.400 s Fire area              0.850E+05 m^2
+ Time      36.400 s Heat output            0.546E+10 W
+ Time      36.400 s Max heat flux          0.123E+06 W/m^2
+ Time      36.400 s Latent heat output     0.501E+09 W
+ Time      36.400 s Max latent heat flux   0.113E+05 W/m^2
+ 2020-01-01_00:00:36  0.400001526    
+ Time      36.600 s Average wind           0.500E+01 m/s
+ Time      36.600 s Maximum wind           0.500E+01 m/s
+ Time      36.600 s Fire area              0.855E+05 m^2
+ Time      36.600 s Heat output            0.571E+10 W
+ Time      36.600 s Max heat flux          0.514E+06 W/m^2
+ Time      36.600 s Latent heat output     0.524E+09 W
+ Time      36.600 s Max latent heat flux   0.472E+05 W/m^2
+ 2020-01-01_00:00:36  0.600002289    
+ Time      36.800 s Average wind           0.500E+01 m/s
+ Time      36.800 s Maximum wind           0.500E+01 m/s
+ Time      36.800 s Fire area              0.859E+05 m^2
+ Time      36.800 s Heat output            0.569E+10 W
+ Time      36.800 s Max heat flux          0.514E+06 W/m^2
+ Time      36.800 s Latent heat output     0.523E+09 W
+ Time      36.800 s Max latent heat flux   0.471E+05 W/m^2
+ 2020-01-01_00:00:36  0.799999237    
+ Time      37.000 s Average wind           0.500E+01 m/s
+ Time      37.000 s Maximum wind           0.500E+01 m/s
+ Time      37.000 s Fire area              0.864E+05 m^2
+ Time      37.000 s Heat output            0.541E+10 W
+ Time      37.000 s Max heat flux          0.106E+06 W/m^2
+ Time      37.000 s Latent heat output     0.497E+09 W
+ Time      37.000 s Max latent heat flux   0.971E+04 W/m^2
+ 2020-01-01_00:00:37   0.00000000    
+ Time      37.200 s Average wind           0.500E+01 m/s
+ Time      37.200 s Maximum wind           0.500E+01 m/s
+ Time      37.200 s Fire area              0.868E+05 m^2
+ Time      37.200 s Heat output            0.540E+10 W
+ Time      37.200 s Max heat flux          0.104E+06 W/m^2
+ Time      37.200 s Latent heat output     0.495E+09 W
+ Time      37.200 s Max latent heat flux   0.955E+04 W/m^2
+ 2020-01-01_00:00:37  0.200000763    
+ Time      37.400 s Average wind           0.500E+01 m/s
+ Time      37.400 s Maximum wind           0.500E+01 m/s
+ Time      37.400 s Fire area              0.873E+05 m^2
+ Time      37.400 s Heat output            0.539E+10 W
+ Time      37.400 s Max heat flux          0.102E+06 W/m^2
+ Time      37.400 s Latent heat output     0.494E+09 W
+ Time      37.400 s Max latent heat flux   0.939E+04 W/m^2
+ 2020-01-01_00:00:37  0.400001526    
+ Time      37.600 s Average wind           0.500E+01 m/s
+ Time      37.600 s Maximum wind           0.500E+01 m/s
+ Time      37.600 s Fire area              0.877E+05 m^2
+ Time      37.600 s Heat output            0.538E+10 W
+ Time      37.600 s Max heat flux          0.101E+06 W/m^2
+ Time      37.600 s Latent heat output     0.493E+09 W
+ Time      37.600 s Max latent heat flux   0.923E+04 W/m^2
+ 2020-01-01_00:00:37  0.600002289    
+ Time      37.800 s Average wind           0.500E+01 m/s
+ Time      37.800 s Maximum wind           0.500E+01 m/s
+ Time      37.800 s Fire area              0.882E+05 m^2
+ Time      37.800 s Heat output            0.537E+10 W
+ Time      37.800 s Max heat flux          0.988E+05 W/m^2
+ Time      37.800 s Latent heat output     0.492E+09 W
+ Time      37.800 s Max latent heat flux   0.907E+04 W/m^2
+ 2020-01-01_00:00:37  0.799999237    
+ Time      38.000 s Average wind           0.500E+01 m/s
+ Time      38.000 s Maximum wind           0.500E+01 m/s
+ Time      38.000 s Fire area              0.887E+05 m^2
+ Time      38.000 s Heat output            0.536E+10 W
+ Time      38.000 s Max heat flux          0.971E+05 W/m^2
+ Time      38.000 s Latent heat output     0.492E+09 W
+ Time      38.000 s Max latent heat flux   0.892E+04 W/m^2
+ 2020-01-01_00:00:38   0.00000000    
+ Time      38.200 s Average wind           0.500E+01 m/s
+ Time      38.200 s Maximum wind           0.500E+01 m/s
+ Time      38.200 s Fire area              0.891E+05 m^2
+ Time      38.200 s Heat output            0.535E+10 W
+ Time      38.200 s Max heat flux          0.955E+05 W/m^2
+ Time      38.200 s Latent heat output     0.491E+09 W
+ Time      38.200 s Max latent heat flux   0.877E+04 W/m^2
+ 2020-01-01_00:00:38  0.200000763    
+ Time      38.400 s Average wind           0.500E+01 m/s
+ Time      38.400 s Maximum wind           0.500E+01 m/s
+ Time      38.400 s Fire area              0.896E+05 m^2
+ Time      38.400 s Heat output            0.534E+10 W
+ Time      38.400 s Max heat flux          0.939E+05 W/m^2
+ Time      38.400 s Latent heat output     0.490E+09 W
+ Time      38.400 s Max latent heat flux   0.862E+04 W/m^2
+ 2020-01-01_00:00:38  0.400001526    
+ Time      38.600 s Average wind           0.500E+01 m/s
+ Time      38.600 s Maximum wind           0.500E+01 m/s
+ Time      38.600 s Fire area              0.901E+05 m^2
+ Time      38.600 s Heat output            0.534E+10 W
+ Time      38.600 s Max heat flux          0.929E+05 W/m^2
+ Time      38.600 s Latent heat output     0.490E+09 W
+ Time      38.600 s Max latent heat flux   0.853E+04 W/m^2
+ 2020-01-01_00:00:38  0.600002289    
+ Time      38.800 s Average wind           0.500E+01 m/s
+ Time      38.800 s Maximum wind           0.500E+01 m/s
+ Time      38.800 s Fire area              0.905E+05 m^2
+ Time      38.800 s Heat output            0.535E+10 W
+ Time      38.800 s Max heat flux          0.951E+05 W/m^2
+ Time      38.800 s Latent heat output     0.491E+09 W
+ Time      38.800 s Max latent heat flux   0.872E+04 W/m^2
+ 2020-01-01_00:00:38  0.799999237    
+ Time      39.000 s Average wind           0.500E+01 m/s
+ Time      39.000 s Maximum wind           0.500E+01 m/s
+ Time      39.000 s Fire area              0.910E+05 m^2
+ Time      39.000 s Heat output            0.536E+10 W
+ Time      39.000 s Max heat flux          0.972E+05 W/m^2
+ Time      39.000 s Latent heat output     0.492E+09 W
+ Time      39.000 s Max latent heat flux   0.892E+04 W/m^2
+ 2020-01-01_00:00:39   0.00000000    
+ Time      39.200 s Average wind           0.500E+01 m/s
+ Time      39.200 s Maximum wind           0.500E+01 m/s
+ Time      39.200 s Fire area              0.915E+05 m^2
+ Time      39.200 s Heat output            0.536E+10 W
+ Time      39.200 s Max heat flux          0.993E+05 W/m^2
+ Time      39.200 s Latent heat output     0.492E+09 W
+ Time      39.200 s Max latent heat flux   0.912E+04 W/m^2
+ 2020-01-01_00:00:39  0.200000763    
+ Time      39.400 s Average wind           0.500E+01 m/s
+ Time      39.400 s Maximum wind           0.500E+01 m/s
+ Time      39.400 s Fire area              0.919E+05 m^2
+ Time      39.400 s Heat output            0.536E+10 W
+ Time      39.400 s Max heat flux          0.101E+06 W/m^2
+ Time      39.400 s Latent heat output     0.492E+09 W
+ Time      39.400 s Max latent heat flux   0.932E+04 W/m^2
+ 2020-01-01_00:00:39  0.400001526    
+ Time      39.600 s Average wind           0.500E+01 m/s
+ Time      39.600 s Maximum wind           0.500E+01 m/s
+ Time      39.600 s Fire area              0.924E+05 m^2
+ Time      39.600 s Heat output            0.537E+10 W
+ Time      39.600 s Max heat flux          0.104E+06 W/m^2
+ Time      39.600 s Latent heat output     0.493E+09 W
+ Time      39.600 s Max latent heat flux   0.953E+04 W/m^2
+ 2020-01-01_00:00:39  0.600002289    
+ Time      39.800 s Average wind           0.500E+01 m/s
+ Time      39.800 s Maximum wind           0.500E+01 m/s
+ Time      39.800 s Fire area              0.928E+05 m^2
+ Time      39.800 s Heat output            0.572E+10 W
+ Time      39.800 s Max heat flux          0.110E+06 W/m^2
+ Time      39.800 s Latent heat output     0.525E+09 W
+ Time      39.800 s Max latent heat flux   0.101E+05 W/m^2
+ 2020-01-01_00:00:39  0.799999237    
+ Time      40.000 s Average wind           0.500E+01 m/s
+ Time      40.000 s Maximum wind           0.500E+01 m/s
+ Time      40.000 s Fire area              0.933E+05 m^2
+ Time      40.000 s Heat output            0.574E+10 W
+ Time      40.000 s Max heat flux          0.113E+06 W/m^2
+ Time      40.000 s Latent heat output     0.527E+09 W
+ Time      40.000 s Max latent heat flux   0.103E+05 W/m^2
+ 2020-01-01_00:00:40   0.00000000    
+ Time      40.200 s Average wind           0.500E+01 m/s
+ Time      40.200 s Maximum wind           0.500E+01 m/s
+ Time      40.200 s Fire area              0.937E+05 m^2
+ Time      40.200 s Heat output            0.577E+10 W
+ Time      40.200 s Max heat flux          0.126E+06 W/m^2
+ Time      40.200 s Latent heat output     0.529E+09 W
+ Time      40.200 s Max latent heat flux   0.115E+05 W/m^2
+ 2020-01-01_00:00:40  0.200000763    
+ Time      40.400 s Average wind           0.500E+01 m/s
+ Time      40.400 s Maximum wind           0.500E+01 m/s
+ Time      40.400 s Fire area              0.941E+05 m^2
+ Time      40.400 s Heat output            0.573E+10 W
+ Time      40.400 s Max heat flux          0.117E+06 W/m^2
+ Time      40.400 s Latent heat output     0.525E+09 W
+ Time      40.400 s Max latent heat flux   0.108E+05 W/m^2
+ 2020-01-01_00:00:40  0.400001526    
+ Time      40.600 s Average wind           0.500E+01 m/s
+ Time      40.600 s Maximum wind           0.500E+01 m/s
+ Time      40.600 s Fire area              0.945E+05 m^2
+ Time      40.600 s Heat output            0.573E+10 W
+ Time      40.600 s Max heat flux          0.120E+06 W/m^2
+ Time      40.600 s Latent heat output     0.526E+09 W
+ Time      40.600 s Max latent heat flux   0.110E+05 W/m^2
+ 2020-01-01_00:00:40  0.600002289    
+ Time      40.800 s Average wind           0.500E+01 m/s
+ Time      40.800 s Maximum wind           0.500E+01 m/s
+ Time      40.800 s Fire area              0.950E+05 m^2
+ Time      40.800 s Heat output            0.577E+10 W
+ Time      40.800 s Max heat flux          0.122E+06 W/m^2
+ Time      40.800 s Latent heat output     0.530E+09 W
+ Time      40.800 s Max latent heat flux   0.112E+05 W/m^2
+ 2020-01-01_00:00:40  0.799999237    
+ Time      41.000 s Average wind           0.500E+01 m/s
+ Time      41.000 s Maximum wind           0.500E+01 m/s
+ Time      41.000 s Fire area              0.954E+05 m^2
+ Time      41.000 s Heat output            0.577E+10 W
+ Time      41.000 s Max heat flux          0.124E+06 W/m^2
+ Time      41.000 s Latent heat output     0.530E+09 W
+ Time      41.000 s Max latent heat flux   0.114E+05 W/m^2
+ 2020-01-01_00:00:41   0.00000000    
+ Time      41.200 s Average wind           0.500E+01 m/s
+ Time      41.200 s Maximum wind           0.500E+01 m/s
+ Time      41.200 s Fire area              0.958E+05 m^2
+ Time      41.200 s Heat output            0.604E+10 W
+ Time      41.200 s Max heat flux          0.265E+06 W/m^2
+ Time      41.200 s Latent heat output     0.555E+09 W
+ Time      41.200 s Max latent heat flux   0.243E+05 W/m^2
+ 2020-01-01_00:00:41  0.200000763    
+ Time      41.400 s Average wind           0.500E+01 m/s
+ Time      41.400 s Maximum wind           0.500E+01 m/s
+ Time      41.400 s Fire area              0.962E+05 m^2
+ Time      41.400 s Heat output            0.577E+10 W
+ Time      41.400 s Max heat flux          0.128E+06 W/m^2
+ Time      41.400 s Latent heat output     0.530E+09 W
+ Time      41.400 s Max latent heat flux   0.118E+05 W/m^2
+ 2020-01-01_00:00:41  0.400001526    
+ Time      41.600 s Average wind           0.500E+01 m/s
+ Time      41.600 s Maximum wind           0.500E+01 m/s
+ Time      41.600 s Fire area              0.967E+05 m^2
+ Time      41.600 s Heat output            0.577E+10 W
+ Time      41.600 s Max heat flux          0.131E+06 W/m^2
+ Time      41.600 s Latent heat output     0.530E+09 W
+ Time      41.600 s Max latent heat flux   0.120E+05 W/m^2
+ 2020-01-01_00:00:41  0.600002289    
+ Time      41.800 s Average wind           0.500E+01 m/s
+ Time      41.800 s Maximum wind           0.500E+01 m/s
+ Time      41.800 s Fire area              0.971E+05 m^2
+ Time      41.800 s Heat output            0.604E+10 W
+ Time      41.800 s Max heat flux          0.246E+06 W/m^2
+ Time      41.800 s Latent heat output     0.554E+09 W
+ Time      41.800 s Max latent heat flux   0.226E+05 W/m^2
+ 2020-01-01_00:00:41  0.799999237    
+ Time      42.000 s Average wind           0.500E+01 m/s
+ Time      42.000 s Maximum wind           0.500E+01 m/s
+ Time      42.000 s Fire area              0.975E+05 m^2
+ Time      42.000 s Heat output            0.583E+10 W
+ Time      42.000 s Max heat flux          0.163E+06 W/m^2
+ Time      42.000 s Latent heat output     0.535E+09 W
+ Time      42.000 s Max latent heat flux   0.150E+05 W/m^2
+ 2020-01-01_00:00:42   0.00000000    
+ Time      42.200 s Average wind           0.500E+01 m/s
+ Time      42.200 s Maximum wind           0.500E+01 m/s
+ Time      42.200 s Fire area              0.979E+05 m^2
+ Time      42.200 s Heat output            0.583E+10 W
+ Time      42.200 s Max heat flux          0.167E+06 W/m^2
+ Time      42.200 s Latent heat output     0.535E+09 W
+ Time      42.200 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:42  0.200000763    
+ Time      42.400 s Average wind           0.500E+01 m/s
+ Time      42.400 s Maximum wind           0.500E+01 m/s
+ Time      42.400 s Fire area              0.984E+05 m^2
+ Time      42.400 s Heat output            0.576E+10 W
+ Time      42.400 s Max heat flux          0.139E+06 W/m^2
+ Time      42.400 s Latent heat output     0.529E+09 W
+ Time      42.400 s Max latent heat flux   0.128E+05 W/m^2
+ 2020-01-01_00:00:42  0.400001526    
+ Time      42.600 s Average wind           0.500E+01 m/s
+ Time      42.600 s Maximum wind           0.500E+01 m/s
+ Time      42.600 s Fire area              0.988E+05 m^2
+ Time      42.600 s Heat output            0.576E+10 W
+ Time      42.600 s Max heat flux          0.141E+06 W/m^2
+ Time      42.600 s Latent heat output     0.529E+09 W
+ Time      42.600 s Max latent heat flux   0.130E+05 W/m^2
+ 2020-01-01_00:00:42  0.600002289    
+ Time      42.800 s Average wind           0.500E+01 m/s
+ Time      42.800 s Maximum wind           0.500E+01 m/s
+ Time      42.800 s Fire area              0.992E+05 m^2
+ Time      42.800 s Heat output            0.576E+10 W
+ Time      42.800 s Max heat flux          0.143E+06 W/m^2
+ Time      42.800 s Latent heat output     0.529E+09 W
+ Time      42.800 s Max latent heat flux   0.132E+05 W/m^2
+ 2020-01-01_00:00:42  0.799999237    
+ Time      43.000 s Average wind           0.500E+01 m/s
+ Time      43.000 s Maximum wind           0.500E+01 m/s
+ Time      43.000 s Fire area              0.996E+05 m^2
+ Time      43.000 s Heat output            0.577E+10 W
+ Time      43.000 s Max heat flux          0.145E+06 W/m^2
+ Time      43.000 s Latent heat output     0.529E+09 W
+ Time      43.000 s Max latent heat flux   0.133E+05 W/m^2
+ 2020-01-01_00:00:43   0.00000000    
+ Time      43.200 s Average wind           0.500E+01 m/s
+ Time      43.200 s Maximum wind           0.500E+01 m/s
+ Time      43.200 s Fire area              0.100E+06 m^2
+ Time      43.200 s Heat output            0.577E+10 W
+ Time      43.200 s Max heat flux          0.147E+06 W/m^2
+ Time      43.200 s Latent heat output     0.530E+09 W
+ Time      43.200 s Max latent heat flux   0.135E+05 W/m^2
+ 2020-01-01_00:00:43  0.200000763    
+ Time      43.400 s Average wind           0.500E+01 m/s
+ Time      43.400 s Maximum wind           0.500E+01 m/s
+ Time      43.400 s Fire area              0.100E+06 m^2
+ Time      43.400 s Heat output            0.577E+10 W
+ Time      43.400 s Max heat flux          0.149E+06 W/m^2
+ Time      43.400 s Latent heat output     0.530E+09 W
+ Time      43.400 s Max latent heat flux   0.137E+05 W/m^2
+ 2020-01-01_00:00:43  0.400001526    
+ Time      43.600 s Average wind           0.500E+01 m/s
+ Time      43.600 s Maximum wind           0.500E+01 m/s
+ Time      43.600 s Fire area              0.101E+06 m^2
+ Time      43.600 s Heat output            0.579E+10 W
+ Time      43.600 s Max heat flux          0.151E+06 W/m^2
+ Time      43.600 s Latent heat output     0.531E+09 W
+ Time      43.600 s Max latent heat flux   0.139E+05 W/m^2
+ 2020-01-01_00:00:43  0.600002289    
+ Time      43.800 s Average wind           0.500E+01 m/s
+ Time      43.800 s Maximum wind           0.500E+01 m/s
+ Time      43.800 s Fire area              0.101E+06 m^2
+ Time      43.800 s Heat output            0.581E+10 W
+ Time      43.800 s Max heat flux          0.153E+06 W/m^2
+ Time      43.800 s Latent heat output     0.533E+09 W
+ Time      43.800 s Max latent heat flux   0.141E+05 W/m^2
+ 2020-01-01_00:00:43  0.799999237    
+ Time      44.000 s Average wind           0.500E+01 m/s
+ Time      44.000 s Maximum wind           0.500E+01 m/s
+ Time      44.000 s Fire area              0.102E+06 m^2
+ Time      44.000 s Heat output            0.584E+10 W
+ Time      44.000 s Max heat flux          0.155E+06 W/m^2
+ Time      44.000 s Latent heat output     0.536E+09 W
+ Time      44.000 s Max latent heat flux   0.143E+05 W/m^2
+ 2020-01-01_00:00:44   0.00000000    
+ Time      44.200 s Average wind           0.500E+01 m/s
+ Time      44.200 s Maximum wind           0.500E+01 m/s
+ Time      44.200 s Fire area              0.102E+06 m^2
+ Time      44.200 s Heat output            0.585E+10 W
+ Time      44.200 s Max heat flux          0.157E+06 W/m^2
+ Time      44.200 s Latent heat output     0.537E+09 W
+ Time      44.200 s Max latent heat flux   0.144E+05 W/m^2
+ 2020-01-01_00:00:44  0.200000763    
+ Time      44.400 s Average wind           0.500E+01 m/s
+ Time      44.400 s Maximum wind           0.500E+01 m/s
+ Time      44.400 s Fire area              0.103E+06 m^2
+ Time      44.400 s Heat output            0.586E+10 W
+ Time      44.400 s Max heat flux          0.159E+06 W/m^2
+ Time      44.400 s Latent heat output     0.538E+09 W
+ Time      44.400 s Max latent heat flux   0.146E+05 W/m^2
+ 2020-01-01_00:00:44  0.400001526    
+ Time      44.600 s Average wind           0.500E+01 m/s
+ Time      44.600 s Maximum wind           0.500E+01 m/s
+ Time      44.600 s Fire area              0.103E+06 m^2
+ Time      44.600 s Heat output            0.587E+10 W
+ Time      44.600 s Max heat flux          0.161E+06 W/m^2
+ Time      44.600 s Latent heat output     0.538E+09 W
+ Time      44.600 s Max latent heat flux   0.148E+05 W/m^2
+ 2020-01-01_00:00:44  0.600002289    
+ Time      44.800 s Average wind           0.500E+01 m/s
+ Time      44.800 s Maximum wind           0.500E+01 m/s
+ Time      44.800 s Fire area              0.103E+06 m^2
+ Time      44.800 s Heat output            0.587E+10 W
+ Time      44.800 s Max heat flux          0.163E+06 W/m^2
+ Time      44.800 s Latent heat output     0.539E+09 W
+ Time      44.800 s Max latent heat flux   0.150E+05 W/m^2
+ 2020-01-01_00:00:44  0.799999237    
+ Time      45.000 s Average wind           0.500E+01 m/s
+ Time      45.000 s Maximum wind           0.500E+01 m/s
+ Time      45.000 s Fire area              0.104E+06 m^2
+ Time      45.000 s Heat output            0.588E+10 W
+ Time      45.000 s Max heat flux          0.165E+06 W/m^2
+ Time      45.000 s Latent heat output     0.540E+09 W
+ Time      45.000 s Max latent heat flux   0.151E+05 W/m^2
+ 2020-01-01_00:00:45   0.00000000    
+ Time      45.200 s Average wind           0.500E+01 m/s
+ Time      45.200 s Maximum wind           0.500E+01 m/s
+ Time      45.200 s Fire area              0.104E+06 m^2
+ Time      45.200 s Heat output            0.589E+10 W
+ Time      45.200 s Max heat flux          0.167E+06 W/m^2
+ Time      45.200 s Latent heat output     0.540E+09 W
+ Time      45.200 s Max latent heat flux   0.153E+05 W/m^2
+ 2020-01-01_00:00:45  0.200000763    
+ Time      45.400 s Average wind           0.500E+01 m/s
+ Time      45.400 s Maximum wind           0.500E+01 m/s
+ Time      45.400 s Fire area              0.105E+06 m^2
+ Time      45.400 s Heat output            0.589E+10 W
+ Time      45.400 s Max heat flux          0.169E+06 W/m^2
+ Time      45.400 s Latent heat output     0.541E+09 W
+ Time      45.400 s Max latent heat flux   0.155E+05 W/m^2
+ 2020-01-01_00:00:45  0.400001526    
+ Time      45.600 s Average wind           0.500E+01 m/s
+ Time      45.600 s Maximum wind           0.500E+01 m/s
+ Time      45.600 s Fire area              0.105E+06 m^2
+ Time      45.600 s Heat output            0.590E+10 W
+ Time      45.600 s Max heat flux          0.171E+06 W/m^2
+ Time      45.600 s Latent heat output     0.542E+09 W
+ Time      45.600 s Max latent heat flux   0.157E+05 W/m^2
+ 2020-01-01_00:00:45  0.600002289    
+ Time      45.800 s Average wind           0.500E+01 m/s
+ Time      45.800 s Maximum wind           0.500E+01 m/s
+ Time      45.800 s Fire area              0.106E+06 m^2
+ Time      45.800 s Heat output            0.591E+10 W
+ Time      45.800 s Max heat flux          0.172E+06 W/m^2
+ Time      45.800 s Latent heat output     0.542E+09 W
+ Time      45.800 s Max latent heat flux   0.158E+05 W/m^2
+ 2020-01-01_00:00:45  0.799999237    
+ Time      46.000 s Average wind           0.500E+01 m/s
+ Time      46.000 s Maximum wind           0.500E+01 m/s
+ Time      46.000 s Fire area              0.106E+06 m^2
+ Time      46.000 s Heat output            0.216E+11 W
+ Time      46.000 s Max heat flux          0.969E+06 W/m^2
+ Time      46.000 s Latent heat output     0.199E+10 W
+ Time      46.000 s Max latent heat flux   0.889E+05 W/m^2
+ 2020-01-01_00:00:46   0.00000000    
+ Time      46.200 s Average wind           0.500E+01 m/s
+ Time      46.200 s Maximum wind           0.500E+01 m/s
+ Time      46.200 s Fire area              0.106E+06 m^2
+ Time      46.200 s Heat output            0.703E+10 W
+ Time      46.200 s Max heat flux          0.942E+06 W/m^2
+ Time      46.200 s Latent heat output     0.645E+09 W
+ Time      46.200 s Max latent heat flux   0.865E+05 W/m^2
+ 2020-01-01_00:00:46  0.200000763    
+ Time      46.400 s Average wind           0.500E+01 m/s
+ Time      46.400 s Maximum wind           0.500E+01 m/s
+ Time      46.400 s Fire area              0.107E+06 m^2
+ Time      46.400 s Heat output            0.597E+10 W
+ Time      46.400 s Max heat flux          0.549E+06 W/m^2
+ Time      46.400 s Latent heat output     0.548E+09 W
+ Time      46.400 s Max latent heat flux   0.504E+05 W/m^2
+ 2020-01-01_00:00:46  0.400001526    
+ Time      46.600 s Average wind           0.500E+01 m/s
+ Time      46.600 s Maximum wind           0.500E+01 m/s
+ Time      46.600 s Fire area              0.107E+06 m^2
+ Time      46.600 s Heat output            0.543E+10 W
+ Time      46.600 s Max heat flux          0.160E+06 W/m^2
+ Time      46.600 s Latent heat output     0.498E+09 W
+ Time      46.600 s Max latent heat flux   0.147E+05 W/m^2
+ 2020-01-01_00:00:46  0.600002289    
+ Time      46.800 s Average wind           0.500E+01 m/s
+ Time      46.800 s Maximum wind           0.500E+01 m/s
+ Time      46.800 s Fire area              0.108E+06 m^2
+ Time      46.800 s Heat output            0.540E+10 W
+ Time      46.800 s Max heat flux          0.162E+06 W/m^2
+ Time      46.800 s Latent heat output     0.495E+09 W
+ Time      46.800 s Max latent heat flux   0.148E+05 W/m^2
+ 2020-01-01_00:00:46  0.799999237    
+ Time      47.000 s Average wind           0.500E+01 m/s
+ Time      47.000 s Maximum wind           0.500E+01 m/s
+ Time      47.000 s Fire area              0.108E+06 m^2
+ Time      47.000 s Heat output            0.587E+10 W
+ Time      47.000 s Max heat flux          0.364E+06 W/m^2
+ Time      47.000 s Latent heat output     0.539E+09 W
+ Time      47.000 s Max latent heat flux   0.334E+05 W/m^2
+ 2020-01-01_00:00:47   0.00000000    
+ Time      47.200 s Average wind           0.500E+01 m/s
+ Time      47.200 s Maximum wind           0.500E+01 m/s
+ Time      47.200 s Fire area              0.109E+06 m^2
+ Time      47.200 s Heat output            0.533E+10 W
+ Time      47.200 s Max heat flux          0.153E+06 W/m^2
+ Time      47.200 s Latent heat output     0.489E+09 W
+ Time      47.200 s Max latent heat flux   0.141E+05 W/m^2
+ 2020-01-01_00:00:47  0.200000763    
+ Time      47.400 s Average wind           0.500E+01 m/s
+ Time      47.400 s Maximum wind           0.500E+01 m/s
+ Time      47.400 s Fire area              0.109E+06 m^2
+ Time      47.400 s Heat output            0.555E+10 W
+ Time      47.400 s Max heat flux          0.538E+06 W/m^2
+ Time      47.400 s Latent heat output     0.510E+09 W
+ Time      47.400 s Max latent heat flux   0.494E+05 W/m^2
+ 2020-01-01_00:00:47  0.400001526    
+ Time      47.600 s Average wind           0.500E+01 m/s
+ Time      47.600 s Maximum wind           0.500E+01 m/s
+ Time      47.600 s Fire area              0.109E+06 m^2
+ Time      47.600 s Heat output            0.552E+10 W
+ Time      47.600 s Max heat flux          0.526E+06 W/m^2
+ Time      47.600 s Latent heat output     0.507E+09 W
+ Time      47.600 s Max latent heat flux   0.482E+05 W/m^2
+ 2020-01-01_00:00:47  0.600002289    
+ Time      47.800 s Average wind           0.500E+01 m/s
+ Time      47.800 s Maximum wind           0.500E+01 m/s
+ Time      47.800 s Fire area              0.110E+06 m^2
+ Time      47.800 s Heat output            0.552E+10 W
+ Time      47.800 s Max heat flux          0.347E+06 W/m^2
+ Time      47.800 s Latent heat output     0.507E+09 W
+ Time      47.800 s Max latent heat flux   0.319E+05 W/m^2
+ 2020-01-01_00:00:47  0.799999237    
+ Time      48.000 s Average wind           0.500E+01 m/s
+ Time      48.000 s Maximum wind           0.500E+01 m/s
+ Time      48.000 s Fire area              0.110E+06 m^2
+ Time      48.000 s Heat output            0.523E+10 W
+ Time      48.000 s Max heat flux          0.130E+06 W/m^2
+ Time      48.000 s Latent heat output     0.480E+09 W
+ Time      48.000 s Max latent heat flux   0.119E+05 W/m^2
+ 2020-01-01_00:00:48   0.00000000    
+ Time      48.200 s Average wind           0.500E+01 m/s
+ Time      48.200 s Maximum wind           0.500E+01 m/s
+ Time      48.200 s Fire area              0.111E+06 m^2
+ Time      48.200 s Heat output            0.536E+10 W
+ Time      48.200 s Max heat flux          0.294E+06 W/m^2
+ Time      48.200 s Latent heat output     0.492E+09 W
+ Time      48.200 s Max latent heat flux   0.270E+05 W/m^2
+ 2020-01-01_00:00:48  0.200000763    
+ Time      48.400 s Average wind           0.500E+01 m/s
+ Time      48.400 s Maximum wind           0.500E+01 m/s
+ Time      48.400 s Fire area              0.111E+06 m^2
+ Time      48.400 s Heat output            0.519E+10 W
+ Time      48.400 s Max heat flux          0.130E+06 W/m^2
+ Time      48.400 s Latent heat output     0.476E+09 W
+ Time      48.400 s Max latent heat flux   0.119E+05 W/m^2
+ 2020-01-01_00:00:48  0.400001526    
+ Time      48.600 s Average wind           0.500E+01 m/s
+ Time      48.600 s Maximum wind           0.500E+01 m/s
+ Time      48.600 s Fire area              0.112E+06 m^2
+ Time      48.600 s Heat output            0.516E+10 W
+ Time      48.600 s Max heat flux          0.131E+06 W/m^2
+ Time      48.600 s Latent heat output     0.474E+09 W
+ Time      48.600 s Max latent heat flux   0.121E+05 W/m^2
+ 2020-01-01_00:00:48  0.600002289    
+ Time      48.800 s Average wind           0.500E+01 m/s
+ Time      48.800 s Maximum wind           0.500E+01 m/s
+ Time      48.800 s Fire area              0.112E+06 m^2
+ Time      48.800 s Heat output            0.558E+10 W
+ Time      48.800 s Max heat flux          0.312E+06 W/m^2
+ Time      48.800 s Latent heat output     0.512E+09 W
+ Time      48.800 s Max latent heat flux   0.286E+05 W/m^2
+ 2020-01-01_00:00:48  0.799999237    
+ Time      49.000 s Average wind           0.500E+01 m/s
+ Time      49.000 s Maximum wind           0.500E+01 m/s
+ Time      49.000 s Fire area              0.112E+06 m^2
+ Time      49.000 s Heat output            0.539E+10 W
+ Time      49.000 s Max heat flux          0.334E+06 W/m^2
+ Time      49.000 s Latent heat output     0.495E+09 W
+ Time      49.000 s Max latent heat flux   0.306E+05 W/m^2
+ 2020-01-01_00:00:49   0.00000000    
+ Time      49.200 s Average wind           0.500E+01 m/s
+ Time      49.200 s Maximum wind           0.500E+01 m/s
+ Time      49.200 s Fire area              0.113E+06 m^2
+ Time      49.200 s Heat output            0.538E+10 W
+ Time      49.200 s Max heat flux          0.331E+06 W/m^2
+ Time      49.200 s Latent heat output     0.493E+09 W
+ Time      49.200 s Max latent heat flux   0.304E+05 W/m^2
+ 2020-01-01_00:00:49  0.200000763    
+ Time      49.400 s Average wind           0.500E+01 m/s
+ Time      49.400 s Maximum wind           0.500E+01 m/s
+ Time      49.400 s Fire area              0.113E+06 m^2
+ Time      49.400 s Heat output            0.509E+10 W
+ Time      49.400 s Max heat flux          0.130E+06 W/m^2
+ Time      49.400 s Latent heat output     0.468E+09 W
+ Time      49.400 s Max latent heat flux   0.119E+05 W/m^2
+ 2020-01-01_00:00:49  0.400001526    
+ Time      49.600 s Average wind           0.500E+01 m/s
+ Time      49.600 s Maximum wind           0.500E+01 m/s
+ Time      49.600 s Fire area              0.114E+06 m^2
+ Time      49.600 s Heat output            0.535E+10 W
+ Time      49.600 s Max heat flux          0.320E+06 W/m^2
+ Time      49.600 s Latent heat output     0.491E+09 W
+ Time      49.600 s Max latent heat flux   0.294E+05 W/m^2
+ 2020-01-01_00:00:49  0.600002289    
+ Time      49.800 s Average wind           0.500E+01 m/s
+ Time      49.800 s Maximum wind           0.500E+01 m/s
+ Time      49.800 s Fire area              0.114E+06 m^2
+ Time      49.800 s Heat output            0.506E+10 W
+ Time      49.800 s Max heat flux          0.129E+06 W/m^2
+ Time      49.800 s Latent heat output     0.465E+09 W
+ Time      49.800 s Max latent heat flux   0.118E+05 W/m^2
+ 2020-01-01_00:00:49  0.799999237    
+ Time      50.000 s Average wind           0.500E+01 m/s
+ Time      50.000 s Maximum wind           0.500E+01 m/s
+ Time      50.000 s Fire area              0.115E+06 m^2
+ Time      50.000 s Heat output            0.505E+10 W
+ Time      50.000 s Max heat flux          0.128E+06 W/m^2
+ Time      50.000 s Latent heat output     0.463E+09 W
+ Time      50.000 s Max latent heat flux   0.118E+05 W/m^2
+ 2020-01-01_00:00:50   0.00000000    
+ Time      50.200 s Average wind           0.500E+01 m/s
+ Time      50.200 s Maximum wind           0.500E+01 m/s
+ Time      50.200 s Fire area              0.115E+06 m^2
+ Time      50.200 s Heat output            0.504E+10 W
+ Time      50.200 s Max heat flux          0.128E+06 W/m^2
+ Time      50.200 s Latent heat output     0.462E+09 W
+ Time      50.200 s Max latent heat flux   0.117E+05 W/m^2
+ 2020-01-01_00:00:50  0.200000763    
+ Time      50.400 s Average wind           0.500E+01 m/s
+ Time      50.400 s Maximum wind           0.500E+01 m/s
+ Time      50.400 s Fire area              0.115E+06 m^2
+ Time      50.400 s Heat output            0.502E+10 W
+ Time      50.400 s Max heat flux          0.127E+06 W/m^2
+ Time      50.400 s Latent heat output     0.461E+09 W
+ Time      50.400 s Max latent heat flux   0.117E+05 W/m^2
+ 2020-01-01_00:00:50  0.400001526    
+ Time      50.600 s Average wind           0.500E+01 m/s
+ Time      50.600 s Maximum wind           0.500E+01 m/s
+ Time      50.600 s Fire area              0.116E+06 m^2
+ Time      50.600 s Heat output            0.501E+10 W
+ Time      50.600 s Max heat flux          0.127E+06 W/m^2
+ Time      50.600 s Latent heat output     0.460E+09 W
+ Time      50.600 s Max latent heat flux   0.116E+05 W/m^2
+ 2020-01-01_00:00:50  0.600002289    
+ Time      50.800 s Average wind           0.500E+01 m/s
+ Time      50.800 s Maximum wind           0.500E+01 m/s
+ Time      50.800 s Fire area              0.116E+06 m^2
+ Time      50.800 s Heat output            0.500E+10 W
+ Time      50.800 s Max heat flux          0.127E+06 W/m^2
+ Time      50.800 s Latent heat output     0.459E+09 W
+ Time      50.800 s Max latent heat flux   0.116E+05 W/m^2
+ 2020-01-01_00:00:50  0.799999237    
+ Time      51.000 s Average wind           0.500E+01 m/s
+ Time      51.000 s Maximum wind           0.500E+01 m/s
+ Time      51.000 s Fire area              0.117E+06 m^2
+ Time      51.000 s Heat output            0.525E+10 W
+ Time      51.000 s Max heat flux          0.483E+06 W/m^2
+ Time      51.000 s Latent heat output     0.482E+09 W
+ Time      51.000 s Max latent heat flux   0.444E+05 W/m^2
+ 2020-01-01_00:00:51   0.00000000    
+ Time      51.200 s Average wind           0.500E+01 m/s
+ Time      51.200 s Maximum wind           0.500E+01 m/s
+ Time      51.200 s Fire area              0.117E+06 m^2
+ Time      51.200 s Heat output            0.498E+10 W
+ Time      51.200 s Max heat flux          0.125E+06 W/m^2
+ Time      51.200 s Latent heat output     0.458E+09 W
+ Time      51.200 s Max latent heat flux   0.115E+05 W/m^2
+ 2020-01-01_00:00:51  0.200000763    
+ Time      51.400 s Average wind           0.500E+01 m/s
+ Time      51.400 s Maximum wind           0.500E+01 m/s
+ Time      51.400 s Fire area              0.118E+06 m^2
+ Time      51.400 s Heat output            0.523E+10 W
+ Time      51.400 s Max heat flux          0.477E+06 W/m^2
+ Time      51.400 s Latent heat output     0.480E+09 W
+ Time      51.400 s Max latent heat flux   0.437E+05 W/m^2
+ 2020-01-01_00:00:51  0.400001526    
+ Time      51.600 s Average wind           0.500E+01 m/s
+ Time      51.600 s Maximum wind           0.500E+01 m/s
+ Time      51.600 s Fire area              0.118E+06 m^2
+ Time      51.600 s Heat output            0.497E+10 W
+ Time      51.600 s Max heat flux          0.111E+06 W/m^2
+ Time      51.600 s Latent heat output     0.456E+09 W
+ Time      51.600 s Max latent heat flux   0.102E+05 W/m^2
+ 2020-01-01_00:00:51  0.600002289    
+ Time      51.800 s Average wind           0.500E+01 m/s
+ Time      51.800 s Maximum wind           0.500E+01 m/s
+ Time      51.800 s Fire area              0.118E+06 m^2
+ Time      51.800 s Heat output            0.496E+10 W
+ Time      51.800 s Max heat flux          0.109E+06 W/m^2
+ Time      51.800 s Latent heat output     0.456E+09 W
+ Time      51.800 s Max latent heat flux   0.100E+05 W/m^2
+ 2020-01-01_00:00:51  0.799999237    
+ Time      52.000 s Average wind           0.500E+01 m/s
+ Time      52.000 s Maximum wind           0.500E+01 m/s
+ Time      52.000 s Fire area              0.119E+06 m^2
+ Time      52.000 s Heat output            0.496E+10 W
+ Time      52.000 s Max heat flux          0.107E+06 W/m^2
+ Time      52.000 s Latent heat output     0.455E+09 W
+ Time      52.000 s Max latent heat flux   0.987E+04 W/m^2
+ 2020-01-01_00:00:52   0.00000000    
+ Time      52.200 s Average wind           0.500E+01 m/s
+ Time      52.200 s Maximum wind           0.500E+01 m/s
+ Time      52.200 s Fire area              0.119E+06 m^2
+ Time      52.200 s Heat output            0.539E+10 W
+ Time      52.200 s Max heat flux          0.111E+06 W/m^2
+ Time      52.200 s Latent heat output     0.495E+09 W
+ Time      52.200 s Max latent heat flux   0.102E+05 W/m^2
+ 2020-01-01_00:00:52  0.200000763    
+ Time      52.400 s Average wind           0.500E+01 m/s
+ Time      52.400 s Maximum wind           0.500E+01 m/s
+ Time      52.400 s Fire area              0.120E+06 m^2
+ Time      52.400 s Heat output            0.550E+10 W
+ Time      52.400 s Max heat flux          0.117E+06 W/m^2
+ Time      52.400 s Latent heat output     0.505E+09 W
+ Time      52.400 s Max latent heat flux   0.107E+05 W/m^2
+ 2020-01-01_00:00:52  0.400001526    
+ Time      52.600 s Average wind           0.500E+01 m/s
+ Time      52.600 s Maximum wind           0.500E+01 m/s
+ Time      52.600 s Fire area              0.120E+06 m^2
+ Time      52.600 s Heat output            0.549E+10 W
+ Time      52.600 s Max heat flux          0.118E+06 W/m^2
+ Time      52.600 s Latent heat output     0.504E+09 W
+ Time      52.600 s Max latent heat flux   0.108E+05 W/m^2
+ 2020-01-01_00:00:52  0.600002289    
+ Time      52.800 s Average wind           0.500E+01 m/s
+ Time      52.800 s Maximum wind           0.500E+01 m/s
+ Time      52.800 s Fire area              0.121E+06 m^2
+ Time      52.800 s Heat output            0.553E+10 W
+ Time      52.800 s Max heat flux          0.120E+06 W/m^2
+ Time      52.800 s Latent heat output     0.507E+09 W
+ Time      52.800 s Max latent heat flux   0.110E+05 W/m^2
+ 2020-01-01_00:00:52  0.799999237    
+ Time      53.000 s Average wind           0.500E+01 m/s
+ Time      53.000 s Maximum wind           0.500E+01 m/s
+ Time      53.000 s Fire area              0.121E+06 m^2
+ Time      53.000 s Heat output            0.553E+10 W
+ Time      53.000 s Max heat flux          0.122E+06 W/m^2
+ Time      53.000 s Latent heat output     0.507E+09 W
+ Time      53.000 s Max latent heat flux   0.112E+05 W/m^2
+ 2020-01-01_00:00:53   0.00000000    
+ Time      53.200 s Average wind           0.500E+01 m/s
+ Time      53.200 s Maximum wind           0.500E+01 m/s
+ Time      53.200 s Fire area              0.121E+06 m^2
+ Time      53.200 s Heat output            0.555E+10 W
+ Time      53.200 s Max heat flux          0.134E+06 W/m^2
+ Time      53.200 s Latent heat output     0.509E+09 W
+ Time      53.200 s Max latent heat flux   0.123E+05 W/m^2
+ 2020-01-01_00:00:53  0.200000763    
+ Time      53.400 s Average wind           0.500E+01 m/s
+ Time      53.400 s Maximum wind           0.500E+01 m/s
+ Time      53.400 s Fire area              0.122E+06 m^2
+ Time      53.400 s Heat output            0.553E+10 W
+ Time      53.400 s Max heat flux          0.132E+06 W/m^2
+ Time      53.400 s Latent heat output     0.508E+09 W
+ Time      53.400 s Max latent heat flux   0.121E+05 W/m^2
+ 2020-01-01_00:00:53  0.400001526    
+ Time      53.600 s Average wind           0.500E+01 m/s
+ Time      53.600 s Maximum wind           0.500E+01 m/s
+ Time      53.600 s Fire area              0.122E+06 m^2
+ Time      53.600 s Heat output            0.551E+10 W
+ Time      53.600 s Max heat flux          0.130E+06 W/m^2
+ Time      53.600 s Latent heat output     0.506E+09 W
+ Time      53.600 s Max latent heat flux   0.119E+05 W/m^2
+ 2020-01-01_00:00:53  0.600002289    
+ Time      53.800 s Average wind           0.500E+01 m/s
+ Time      53.800 s Maximum wind           0.500E+01 m/s
+ Time      53.800 s Fire area              0.123E+06 m^2
+ Time      53.800 s Heat output            0.551E+10 W
+ Time      53.800 s Max heat flux          0.132E+06 W/m^2
+ Time      53.800 s Latent heat output     0.506E+09 W
+ Time      53.800 s Max latent heat flux   0.121E+05 W/m^2
+ 2020-01-01_00:00:53  0.799999237    
+ Time      54.000 s Average wind           0.500E+01 m/s
+ Time      54.000 s Maximum wind           0.500E+01 m/s
+ Time      54.000 s Fire area              0.123E+06 m^2
+ Time      54.000 s Heat output            0.556E+10 W
+ Time      54.000 s Max heat flux          0.134E+06 W/m^2
+ Time      54.000 s Latent heat output     0.510E+09 W
+ Time      54.000 s Max latent heat flux   0.123E+05 W/m^2
+ 2020-01-01_00:00:54   0.00000000    
+ Time      54.200 s Average wind           0.500E+01 m/s
+ Time      54.200 s Maximum wind           0.500E+01 m/s
+ Time      54.200 s Fire area              0.124E+06 m^2
+ Time      54.200 s Heat output            0.582E+10 W
+ Time      54.200 s Max heat flux          0.195E+06 W/m^2
+ Time      54.200 s Latent heat output     0.534E+09 W
+ Time      54.200 s Max latent heat flux   0.179E+05 W/m^2
+ 2020-01-01_00:00:54  0.200000763    
+ Time      54.400 s Average wind           0.500E+01 m/s
+ Time      54.400 s Maximum wind           0.500E+01 m/s
+ Time      54.400 s Fire area              0.124E+06 m^2
+ Time      54.400 s Heat output            0.558E+10 W
+ Time      54.400 s Max heat flux          0.139E+06 W/m^2
+ Time      54.400 s Latent heat output     0.513E+09 W
+ Time      54.400 s Max latent heat flux   0.127E+05 W/m^2
+ 2020-01-01_00:00:54  0.400001526    
+ Time      54.600 s Average wind           0.500E+01 m/s
+ Time      54.600 s Maximum wind           0.500E+01 m/s
+ Time      54.600 s Fire area              0.124E+06 m^2
+ Time      54.600 s Heat output            0.560E+10 W
+ Time      54.600 s Max heat flux          0.141E+06 W/m^2
+ Time      54.600 s Latent heat output     0.514E+09 W
+ Time      54.600 s Max latent heat flux   0.129E+05 W/m^2
+ 2020-01-01_00:00:54  0.600002289    
+ Time      54.800 s Average wind           0.500E+01 m/s
+ Time      54.800 s Maximum wind           0.500E+01 m/s
+ Time      54.800 s Fire area              0.125E+06 m^2
+ Time      54.800 s Heat output            0.562E+10 W
+ Time      54.800 s Max heat flux          0.143E+06 W/m^2
+ Time      54.800 s Latent heat output     0.516E+09 W
+ Time      54.800 s Max latent heat flux   0.132E+05 W/m^2
+ 2020-01-01_00:00:54  0.799999237    
+ Time      55.000 s Average wind           0.500E+01 m/s
+ Time      55.000 s Maximum wind           0.500E+01 m/s
+ Time      55.000 s Fire area              0.125E+06 m^2
+ Time      55.000 s Heat output            0.563E+10 W
+ Time      55.000 s Max heat flux          0.145E+06 W/m^2
+ Time      55.000 s Latent heat output     0.517E+09 W
+ Time      55.000 s Max latent heat flux   0.134E+05 W/m^2
+ 2020-01-01_00:00:55   0.00000000    
+ Time      55.200 s Average wind           0.500E+01 m/s
+ Time      55.200 s Maximum wind           0.500E+01 m/s
+ Time      55.200 s Fire area              0.126E+06 m^2
+ Time      55.200 s Heat output            0.564E+10 W
+ Time      55.200 s Max heat flux          0.148E+06 W/m^2
+ Time      55.200 s Latent heat output     0.517E+09 W
+ Time      55.200 s Max latent heat flux   0.135E+05 W/m^2
+ 2020-01-01_00:00:55  0.200000763    
+ Time      55.400 s Average wind           0.500E+01 m/s
+ Time      55.400 s Maximum wind           0.500E+01 m/s
+ Time      55.400 s Fire area              0.126E+06 m^2
+ Time      55.400 s Heat output            0.565E+10 W
+ Time      55.400 s Max heat flux          0.150E+06 W/m^2
+ Time      55.400 s Latent heat output     0.518E+09 W
+ Time      55.400 s Max latent heat flux   0.137E+05 W/m^2
+ 2020-01-01_00:00:55  0.400001526    
+ Time      55.600 s Average wind           0.500E+01 m/s
+ Time      55.600 s Maximum wind           0.500E+01 m/s
+ Time      55.600 s Fire area              0.127E+06 m^2
+ Time      55.600 s Heat output            0.566E+10 W
+ Time      55.600 s Max heat flux          0.152E+06 W/m^2
+ Time      55.600 s Latent heat output     0.519E+09 W
+ Time      55.600 s Max latent heat flux   0.139E+05 W/m^2
+ 2020-01-01_00:00:55  0.600002289    
+ Time      55.800 s Average wind           0.500E+01 m/s
+ Time      55.800 s Maximum wind           0.500E+01 m/s
+ Time      55.800 s Fire area              0.127E+06 m^2
+ Time      55.800 s Heat output            0.598E+10 W
+ Time      55.800 s Max heat flux          0.245E+06 W/m^2
+ Time      55.800 s Latent heat output     0.549E+09 W
+ Time      55.800 s Max latent heat flux   0.224E+05 W/m^2
+ 2020-01-01_00:00:55  0.799999237    
+ Time      56.000 s Average wind           0.500E+01 m/s
+ Time      56.000 s Maximum wind           0.500E+01 m/s
+ Time      56.000 s Fire area              0.127E+06 m^2
+ Time      56.000 s Heat output            0.574E+10 W
+ Time      56.000 s Max heat flux          0.189E+06 W/m^2
+ Time      56.000 s Latent heat output     0.527E+09 W
+ Time      56.000 s Max latent heat flux   0.173E+05 W/m^2
+ 2020-01-01_00:00:56   0.00000000    
+ Time      56.200 s Average wind           0.500E+01 m/s
+ Time      56.200 s Maximum wind           0.500E+01 m/s
+ Time      56.200 s Fire area              0.128E+06 m^2
+ Time      56.200 s Heat output            0.570E+10 W
+ Time      56.200 s Max heat flux          0.158E+06 W/m^2
+ Time      56.200 s Latent heat output     0.523E+09 W
+ Time      56.200 s Max latent heat flux   0.145E+05 W/m^2
+ 2020-01-01_00:00:56  0.200000763    
+ Time      56.400 s Average wind           0.500E+01 m/s
+ Time      56.400 s Maximum wind           0.500E+01 m/s
+ Time      56.400 s Fire area              0.128E+06 m^2
+ Time      56.400 s Heat output            0.571E+10 W
+ Time      56.400 s Max heat flux          0.160E+06 W/m^2
+ Time      56.400 s Latent heat output     0.524E+09 W
+ Time      56.400 s Max latent heat flux   0.147E+05 W/m^2
+ 2020-01-01_00:00:56  0.400001526    
+ Time      56.600 s Average wind           0.500E+01 m/s
+ Time      56.600 s Maximum wind           0.500E+01 m/s
+ Time      56.600 s Fire area              0.129E+06 m^2
+ Time      56.600 s Heat output            0.597E+10 W
+ Time      56.600 s Max heat flux          0.232E+06 W/m^2
+ Time      56.600 s Latent heat output     0.548E+09 W
+ Time      56.600 s Max latent heat flux   0.213E+05 W/m^2
+ 2020-01-01_00:00:56  0.600002289    
+ Time      56.800 s Average wind           0.500E+01 m/s
+ Time      56.800 s Maximum wind           0.500E+01 m/s
+ Time      56.800 s Fire area              0.129E+06 m^2
+ Time      56.800 s Heat output            0.573E+10 W
+ Time      56.800 s Max heat flux          0.164E+06 W/m^2
+ Time      56.800 s Latent heat output     0.526E+09 W
+ Time      56.800 s Max latent heat flux   0.150E+05 W/m^2
+ 2020-01-01_00:00:56  0.799999237    
+ Time      57.000 s Average wind           0.500E+01 m/s
+ Time      57.000 s Maximum wind           0.500E+01 m/s
+ Time      57.000 s Fire area              0.129E+06 m^2
+ Time      57.000 s Heat output            0.574E+10 W
+ Time      57.000 s Max heat flux          0.166E+06 W/m^2
+ Time      57.000 s Latent heat output     0.527E+09 W
+ Time      57.000 s Max latent heat flux   0.152E+05 W/m^2
+ 2020-01-01_00:00:57   0.00000000    
+ Time      57.200 s Average wind           0.500E+01 m/s
+ Time      57.200 s Maximum wind           0.500E+01 m/s
+ Time      57.200 s Fire area              0.130E+06 m^2
+ Time      57.200 s Heat output            0.575E+10 W
+ Time      57.200 s Max heat flux          0.168E+06 W/m^2
+ Time      57.200 s Latent heat output     0.528E+09 W
+ Time      57.200 s Max latent heat flux   0.154E+05 W/m^2
+ 2020-01-01_00:00:57  0.200000763    
+ Time      57.400 s Average wind           0.500E+01 m/s
+ Time      57.400 s Maximum wind           0.500E+01 m/s
+ Time      57.400 s Fire area              0.130E+06 m^2
+ Time      57.400 s Heat output            0.576E+10 W
+ Time      57.400 s Max heat flux          0.169E+06 W/m^2
+ Time      57.400 s Latent heat output     0.529E+09 W
+ Time      57.400 s Max latent heat flux   0.156E+05 W/m^2
+ 2020-01-01_00:00:57  0.400001526    
+ Time      57.600 s Average wind           0.500E+01 m/s
+ Time      57.600 s Maximum wind           0.500E+01 m/s
+ Time      57.600 s Fire area              0.131E+06 m^2
+ Time      57.600 s Heat output            0.577E+10 W
+ Time      57.600 s Max heat flux          0.171E+06 W/m^2
+ Time      57.600 s Latent heat output     0.530E+09 W
+ Time      57.600 s Max latent heat flux   0.157E+05 W/m^2
+ 2020-01-01_00:00:57  0.600002289    
+ Time      57.800 s Average wind           0.500E+01 m/s
+ Time      57.800 s Maximum wind           0.500E+01 m/s
+ Time      57.800 s Fire area              0.131E+06 m^2
+ Time      57.800 s Heat output            0.580E+10 W
+ Time      57.800 s Max heat flux          0.173E+06 W/m^2
+ Time      57.800 s Latent heat output     0.532E+09 W
+ Time      57.800 s Max latent heat flux   0.159E+05 W/m^2
+ 2020-01-01_00:00:57  0.799999237    
+ Time      58.000 s Average wind           0.500E+01 m/s
+ Time      58.000 s Maximum wind           0.500E+01 m/s
+ Time      58.000 s Fire area              0.132E+06 m^2
+ Time      58.000 s Heat output            0.582E+10 W
+ Time      58.000 s Max heat flux          0.175E+06 W/m^2
+ Time      58.000 s Latent heat output     0.534E+09 W
+ Time      58.000 s Max latent heat flux   0.161E+05 W/m^2
+ 2020-01-01_00:00:58   0.00000000    
+ Time      58.200 s Average wind           0.500E+01 m/s
+ Time      58.200 s Maximum wind           0.500E+01 m/s
+ Time      58.200 s Fire area              0.132E+06 m^2
+ Time      58.200 s Heat output            0.208E+11 W
+ Time      58.200 s Max heat flux          0.956E+06 W/m^2
+ Time      58.200 s Latent heat output     0.191E+10 W
+ Time      58.200 s Max latent heat flux   0.878E+05 W/m^2
+ 2020-01-01_00:00:58  0.200000763    
+ Time      58.400 s Average wind           0.500E+01 m/s
+ Time      58.400 s Maximum wind           0.500E+01 m/s
+ Time      58.400 s Fire area              0.132E+06 m^2
+ Time      58.400 s Heat output            0.698E+10 W
+ Time      58.400 s Max heat flux          0.760E+06 W/m^2
+ Time      58.400 s Latent heat output     0.640E+09 W
+ Time      58.400 s Max latent heat flux   0.698E+05 W/m^2
+ 2020-01-01_00:00:58  0.400001526    
+ Time      58.600 s Average wind           0.500E+01 m/s
+ Time      58.600 s Maximum wind           0.500E+01 m/s
+ Time      58.600 s Fire area              0.133E+06 m^2
+ Time      58.600 s Heat output            0.571E+10 W
+ Time      58.600 s Max heat flux          0.375E+06 W/m^2
+ Time      58.600 s Latent heat output     0.524E+09 W
+ Time      58.600 s Max latent heat flux   0.344E+05 W/m^2
+ 2020-01-01_00:00:58  0.600002289    
+ Time      58.800 s Average wind           0.500E+01 m/s
+ Time      58.800 s Maximum wind           0.500E+01 m/s
+ Time      58.800 s Fire area              0.133E+06 m^2
+ Time      58.800 s Heat output            0.567E+10 W
+ Time      58.800 s Max heat flux          0.367E+06 W/m^2
+ Time      58.800 s Latent heat output     0.520E+09 W
+ Time      58.800 s Max latent heat flux   0.337E+05 W/m^2
+ 2020-01-01_00:00:58  0.799999237    
+ Time      59.000 s Average wind           0.500E+01 m/s
+ Time      59.000 s Maximum wind           0.500E+01 m/s
+ Time      59.000 s Fire area              0.134E+06 m^2
+ Time      59.000 s Heat output            0.588E+10 W
+ Time      59.000 s Max heat flux          0.535E+06 W/m^2
+ Time      59.000 s Latent heat output     0.539E+09 W
+ Time      59.000 s Max latent heat flux   0.491E+05 W/m^2
+ 2020-01-01_00:00:59   0.00000000    
+ Time      59.200 s Average wind           0.500E+01 m/s
+ Time      59.200 s Maximum wind           0.500E+01 m/s
+ Time      59.200 s Fire area              0.134E+06 m^2
+ Time      59.200 s Heat output            0.535E+10 W
+ Time      59.200 s Max heat flux          0.158E+06 W/m^2
+ Time      59.200 s Latent heat output     0.491E+09 W
+ Time      59.200 s Max latent heat flux   0.145E+05 W/m^2
+ 2020-01-01_00:00:59  0.200000763    
+ Time      59.400 s Average wind           0.500E+01 m/s
+ Time      59.400 s Maximum wind           0.500E+01 m/s
+ Time      59.400 s Fire area              0.135E+06 m^2
+ Time      59.400 s Heat output            0.532E+10 W
+ Time      59.400 s Max heat flux          0.160E+06 W/m^2
+ Time      59.400 s Latent heat output     0.488E+09 W
+ Time      59.400 s Max latent heat flux   0.147E+05 W/m^2
+ 2020-01-01_00:00:59  0.400001526    
+ Time      59.600 s Average wind           0.500E+01 m/s
+ Time      59.600 s Maximum wind           0.500E+01 m/s
+ Time      59.600 s Fire area              0.135E+06 m^2
+ Time      59.600 s Heat output            0.555E+10 W
+ Time      59.600 s Max heat flux          0.363E+06 W/m^2
+ Time      59.600 s Latent heat output     0.509E+09 W
+ Time      59.600 s Max latent heat flux   0.333E+05 W/m^2
+ 2020-01-01_00:00:59  0.600002289    
+ Time      59.800 s Average wind           0.500E+01 m/s
+ Time      59.800 s Maximum wind           0.500E+01 m/s
+ Time      59.800 s Fire area              0.135E+06 m^2
+ Time      59.800 s Heat output            0.552E+10 W
+ Time      59.800 s Max heat flux          0.359E+06 W/m^2
+ Time      59.800 s Latent heat output     0.506E+09 W
+ Time      59.800 s Max latent heat flux   0.329E+05 W/m^2
+ 2020-01-01_00:00:59  0.799999237    
+ Time      60.000 s Average wind           0.500E+01 m/s
+ Time      60.000 s Maximum wind           0.500E+01 m/s
+ Time      60.000 s Fire area              0.136E+06 m^2
+ Time      60.000 s Heat output            0.524E+10 W
+ Time      60.000 s Max heat flux          0.154E+06 W/m^2
+ Time      60.000 s Latent heat output     0.481E+09 W
+ Time      60.000 s Max latent heat flux   0.142E+05 W/m^2
+ 2020-01-01_00:01:00   0.00000000    
