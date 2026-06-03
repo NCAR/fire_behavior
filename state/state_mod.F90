@@ -1102,6 +1102,19 @@
       call Read_restart_field (file_restart, 'vf', this%vf)
       call Read_restart_field (file_restart, 'fz0', this%fz0)
 
+      if (config_flags%ideal_opt == 0) then
+        call Read_restart_field (file_restart, 'fire_t2', this%fire_t2)
+        call Read_restart_field (file_restart, 'fire_q2', this%fire_q2)
+        call Read_restart_field (file_restart, 'fire_psfc', this%fire_psfc)
+        call Read_restart_field (file_restart, 'fire_rain', this%fire_rain)
+        if (config_flags%fmoist_run) then
+          call Read_restart_field (file_restart, 'fire_t2_old', this%fire_t2_old)
+          call Read_restart_field (file_restart, 'fire_q2_old', this%fire_q2_old)
+          call Read_restart_field (file_restart, 'fire_psfc_old', this%fire_psfc_old)
+          call Read_restart_field (file_restart, 'fire_rain_old', this%fire_rain_old)
+        end if
+      end if
+
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
         do ij = 1, this%num_tiles
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
@@ -1318,6 +1331,19 @@
       call Add_restart_field ('uf', this%uf)
       call Add_restart_field ('vf', this%vf)
       call Add_restart_field ('fz0', this%fz0)
+
+      if (config_flags%ideal_opt == 0) then
+        call Add_restart_field ('fire_t2', this%fire_t2)
+        call Add_restart_field ('fire_q2', this%fire_q2)
+        call Add_restart_field ('fire_psfc', this%fire_psfc)
+        call Add_restart_field ('fire_rain', this%fire_rain)
+        if (config_flags%fmoist_run) then
+          call Add_restart_field ('fire_t2_old', this%fire_t2_old)
+          call Add_restart_field ('fire_q2_old', this%fire_q2_old)
+          call Add_restart_field ('fire_psfc_old', this%fire_psfc_old)
+          call Add_restart_field ('fire_rain_old', this%fire_rain_old)
+        end if
+      end if
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Write_restart...')
 
