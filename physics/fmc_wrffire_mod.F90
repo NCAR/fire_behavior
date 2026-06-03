@@ -15,8 +15,6 @@
 
     use stderrout_mod, only : Stop_simulation
     use ros_mod, only : ros_t
-    use state_mod, only: state_fire_t
-    use namelist_mod, only : namelist_t
     use fmc_mod, only : fmc_t
     use fuel_mod, only : fuel_t
 
