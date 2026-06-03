@@ -6,6 +6,7 @@
     use constants_mod, only : PI
     use datetime_mod, only : datetime_t
     use fmc_mod, only : fmc_t
+    use fmc_wrffire_mod, only : fmc_wrffire_t
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
@@ -27,6 +28,10 @@
     public :: state_fire_t, N_POINTS_IN_HALO
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
+    character (len = *), parameter :: NAME_DIM_MOISTURE_CLASS = 'moisture_class'
+    character (len = *), parameter :: NAME_VAR_FMC_GC = 'fmc_gc'
+    character (len = *), parameter :: NAME_ATT_FMOIST_LASTTIME = 'fmc_fmoist_lasttime'
+    character (len = *), parameter :: NAME_ATT_FMOIST_NEXTTIME = 'fmc_fmoist_nexttime'
     logical, dimension(2), parameter :: PERIODS = [ .false., .false. ]
     logical, parameter :: REORDER = .true. ! Allow MPI recording tasks for performance
 
@@ -1114,6 +1119,7 @@
           call Read_restart_field (file_restart, 'fire_rain_old', this%fire_rain_old)
         end if
       end if
+      if (config_flags%fmoist_run) call Read_restart_fmc (file_restart)
 
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
         do ij = 1, this%num_tiles
@@ -1145,6 +1151,42 @@
         var(this%ifps:this%ifpe, this%jfps:this%jfpe) = var_restart(1:this%nx, 1:this%ny)
 
       end subroutine Read_restart_field
+
+      subroutine Read_restart_fmc (file_name)
+
+        implicit none
+
+        character (len = *), intent (in) :: file_name
+
+        real (kind = REAL32), dimension(:, :, :), allocatable :: fmc_gc_restart
+        real (kind = REAL32) :: att_real32
+        integer :: n_moisture_classes
+
+
+        if (.not. allocated (this%fmc_param)) call Stop_simulation ('FMC restart read requires allocated fmc_param')
+
+        select type (fmc_param => this%fmc_param)
+          type is (fmc_wrffire_t)
+            if (.not. allocated (fmc_param%fmc_gc)) call Stop_simulation ('FMC restart read requires allocated fmc_gc')
+
+            n_moisture_classes = size (fmc_param%fmc_gc, 2)
+            call Get_netcdf_var (file_name, NAME_VAR_FMC_GC, fmc_gc_restart)
+            if (size (fmc_gc_restart, 1) /= this%nx .or. size (fmc_gc_restart, 2) /= n_moisture_classes .or. &
+                size (fmc_gc_restart, 3) /= this%ny) &
+                call Stop_simulation ('Restart variable has unexpected dimensions: '//NAME_VAR_FMC_GC)
+            fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe) = &
+                fmc_gc_restart(1:this%nx, 1:n_moisture_classes, 1:this%ny)
+
+            call Get_netcdf_att (file_name, 'global', NAME_ATT_FMOIST_LASTTIME, att_real32)
+            fmc_param%fmoist_lasttime = att_real32
+            call Get_netcdf_att (file_name, 'global', NAME_ATT_FMOIST_NEXTTIME, att_real32)
+            fmc_param%fmoist_nexttime = att_real32
+
+          class default
+            call Stop_simulation ('Restart read is not implemented for selected FMC component')
+        end select
+
+      end subroutine Read_restart_fmc
 
       subroutine Set_next_datetime_after_restart (datetime_next, interval_seconds)
 
@@ -1344,6 +1386,7 @@
           call Add_restart_field ('fire_rain_old', this%fire_rain_old)
         end if
       end if
+      if (config_flags%fmoist_run) call Write_restart_fmc ()
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Write_restart...')
 
@@ -1361,6 +1404,40 @@
             var_name, var(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
       end subroutine Add_restart_field
+
+      subroutine Write_restart_fmc ()
+
+        implicit none
+
+        character (len = 32), dimension(3) :: dim_names_fmc_gc
+        integer :: n_moisture_classes
+
+
+        if (.not. allocated (this%fmc_param)) call Stop_simulation ('FMC restart write requires allocated fmc_param')
+
+        select type (fmc_param => this%fmc_param)
+          type is (fmc_wrffire_t)
+            if (.not. allocated (fmc_param%fmc_gc)) call Stop_simulation ('FMC restart write requires allocated fmc_gc')
+
+            n_moisture_classes = size (fmc_param%fmc_gc, 2)
+            call Add_netcdf_dim (file_restart, NAME_DIM_MOISTURE_CLASS, n_moisture_classes)
+
+            dim_names_fmc_gc(1) = NAME_DIM_X
+            dim_names_fmc_gc(2) = NAME_DIM_MOISTURE_CLASS
+            dim_names_fmc_gc(3) = NAME_DIM_Y
+            call Add_netcdf_var (file_restart, dim_names_fmc_gc, NAME_VAR_FMC_GC, &
+                fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
+
+            call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_LASTTIME, &
+                real (fmc_param%fmoist_lasttime, kind = REAL32))
+            call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_NEXTTIME, &
+                real (fmc_param%fmoist_nexttime, kind = REAL32))
+
+          class default
+            call Stop_simulation ('Restart write is not implemented for selected FMC component')
+        end select
+
+      end subroutine Write_restart_fmc
 
     end subroutine Write_restart
 
