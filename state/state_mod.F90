@@ -306,7 +306,7 @@
                             kfds, kfde, kfms, kfme, kfps, kfpe, &
                             kfts, kfte, ide, jde, &
                             cen_lat, cen_lon, truelat1, truelat2, stand_lon, &
-                            dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf)
+                            dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf, restart_file)
 
 
       implicit none
@@ -314,6 +314,7 @@
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in out), optional :: geogrid
+      character (len = *), intent (in), optional :: restart_file
       integer, intent (in), optional :: ifds, ifde, ifms, ifme, ifps, ifpe, &
                                         jfds, jfde, jfms, jfme, jfps, jfpe, &
                                         kfds, kfde, kfms, kfme, kfps, kfpe, &
@@ -321,10 +322,14 @@
       real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
 
-      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
+      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3, INIT_MODE_RESTART = 4
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
       integer :: ids0, ide0, jds0, jde0, i, j, init_mode, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
+      integer :: restart_map_proj, restart_sr_x, restart_sr_y
+      integer (kind = INT32) :: att_int32
+      real (kind = REAL32) :: att_real32
+      real :: restart_stand_lon, restart_true_lat_1, restart_true_lat_2
       integer, dimension(2) :: coords
       character (len = 300) :: msg
 
@@ -334,6 +339,7 @@
       init_mode = INIT_MODE_NONE
       if (config_flags%ideal_opt == 1) init_mode = INIT_MODE_IDEAL
       if (present (geogrid)) init_mode = INIT_MODE_GEOGRID
+      if (present (restart_file)) init_mode = INIT_MODE_RESTART
       if (present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. present (ifps) .and. present (ifpe) .and. &
           present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
           present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
@@ -349,7 +355,7 @@
         ! Set dimensions
       if (DEBUG_LOCAL) call Print_message ('  Setting dimensions...')
       Set_dims: select case (init_mode)
-        case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL)
+        case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL, INIT_MODE_RESTART)
 
           if (init_mode == INIT_MODE_GEOGRID) then
 
@@ -444,6 +450,19 @@
             jps = jds0
             jpe = jde0
 #endif
+          else if (init_mode == INIT_MODE_RESTART) then
+
+            call Get_netcdf_att (trim (restart_file), 'global', 'nx', att_int32)
+            ids0 = 1
+            ide0 = att_int32
+            call Get_netcdf_att (trim (restart_file), 'global', 'ny', att_int32)
+            jds0 = 1
+            jde0 = att_int32
+
+            ips = ids0
+            ipe = ide0
+            jps = jds0
+            jpe = jde0
           end if 
 
           this%ifds = ids0
@@ -567,6 +586,45 @@
 
           call this%Init_latlons (proj)
 
+        case (INIT_MODE_RESTART)
+          call Get_netcdf_att (trim (restart_file), 'global', 'dx', att_real32)
+          this%dx = att_real32
+          call Get_netcdf_att (trim (restart_file), 'global', 'dy', att_real32)
+          this%dy = att_real32
+
+          call Get_netcdf_att (trim (restart_file), 'global', 'map_proj', att_int32)
+          restart_map_proj = att_int32
+          if (restart_map_proj /= 1) call Stop_simulation ('Restart map projection is not supported')
+
+          call Get_netcdf_att (trim (restart_file), 'global', 'sr_x', att_int32)
+          restart_sr_x = att_int32
+          call Get_netcdf_att (trim (restart_file), 'global', 'sr_y', att_int32)
+          restart_sr_y = att_int32
+          if (restart_sr_x <= 0 .or. restart_sr_y <= 0) call Stop_simulation ('Restart subgrid ratios must be positive')
+          if (mod (this%nx, restart_sr_x) /= 0 .or. mod (this%ny, restart_sr_y) /= 0) &
+              call Stop_simulation ('Restart subgrid ratios do not divide fire-grid dimensions')
+          if (this%nx / restart_sr_x <= 1 .or. this%ny / restart_sr_y <= 1) &
+              call Stop_simulation ('Restart subgrid ratios imply invalid atmospheric dimensions')
+
+          call Get_netcdf_att (trim (restart_file), 'global', 'cen_lat', att_real32)
+          this%cen_lat = att_real32
+          call Get_netcdf_att (trim (restart_file), 'global', 'cen_lon', att_real32)
+          this%cen_lon = att_real32
+
+          call Get_netcdf_att (trim (restart_file), 'global', 'stand_lon', att_real32)
+          restart_stand_lon = att_real32
+          call Get_netcdf_att (trim (restart_file), 'global', 'true_lat_1', att_real32)
+          restart_true_lat_1 = att_real32
+          call Get_netcdf_att (trim (restart_file), 'global', 'true_lat_2', att_real32)
+          restart_true_lat_2 = att_real32
+
+          proj = proj_lc_t (cen_lat = this%cen_lat , cen_lon = this%cen_lon, dx = this%dx * restart_sr_x, &
+              dy = this%dy * restart_sr_y, &
+              standard_lon = restart_stand_lon, true_lat_1 = restart_true_lat_1, &
+              true_lat_2 = restart_true_lat_2, nx = this%nx / restart_sr_x - 1, ny = this%ny / restart_sr_y - 1)
+
+          call this%Init_latlons (proj, srx = restart_sr_x, sry = restart_sr_y)
+
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 2')
 
@@ -617,12 +675,24 @@
           if (config_flags%fire_is_real_perim) &
               call Stop_simulation ('Not ready to initialize from fire perimeter in idealized mode')
 
+        case (INIT_MODE_RESTART)
+          call Read_restart_field_2d (trim (restart_file), 'zsf', this%nx, this%ny, &
+              this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%zsf)
+          call Read_restart_field_2d (trim (restart_file), 'dzdxf', this%nx, this%ny, &
+              this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%dzdxf)
+          call Read_restart_field_2d (trim (restart_file), 'dzdyf', this%nx, this%ny, &
+              this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%dzdyf)
+          call Read_restart_field_2d (trim (restart_file), 'nfuel_cat', this%nx, this%ny, &
+              this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%nfuel_cat)
+          call Read_restart_field_2d (trim (restart_file), 'fz0', this%nx, this%ny, &
+              this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%fz0)
+
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 3')
 
       end select Set_topo_fuels
 
-      if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
+      if (config_flags%fuel_opt == FUEL_ANDERSON .and. init_mode /= INIT_MODE_RESTART) call this%Convert_sb_to_ander ()
 
         ! Set clock
       if (DEBUG_LOCAL) call Print_message ('  Setting clock...')
@@ -909,16 +979,18 @@
       character (len = :), allocatable :: file_restart
       integer (kind = INT32) :: att_int, restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second, &
           start_year, start_month, start_day, start_hour, start_minute, start_second
+      integer :: ij, expected_sr_x, expected_sr_y
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Read_restart...')
 
 #ifdef DM_PARALLEL
-      call Stop_simulation ('Read_restart is implemented for serial idealized runs only')
+      call Stop_simulation ('Read_restart is implemented for serial standalone runs only')
 #endif
 
-      if (config_flags%ideal_opt /= 1) call Stop_simulation ('Read_restart is implemented for idealized runs only')
+      if (config_flags%ideal_opt /= 0 .and. config_flags%ideal_opt /= 1) &
+          call Stop_simulation ('Read_restart is implemented for standalone idealized and real runs only')
 
       datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
           config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
@@ -940,9 +1012,11 @@
       call Validate_restart_real (file_restart, 'dy', this%dy)
       call Validate_restart_real (file_restart, 'cen_lat', this%cen_lat)
       call Validate_restart_real (file_restart, 'cen_lon', this%cen_lon)
-      call Validate_restart_real (file_restart, 'stand_lon', config_flags%stand_lon)
-      call Validate_restart_real (file_restart, 'true_lat_1', config_flags%true_lat_1)
-      call Validate_restart_real (file_restart, 'true_lat_2', config_flags%true_lat_2)
+      expected_sr_x = nint (this%proj%dx / this%dx)
+      expected_sr_y = nint (this%proj%dy / this%dy)
+      call Validate_restart_integer (file_restart, 'map_proj', 1)
+      call Validate_restart_integer (file_restart, 'sr_x', expected_sr_x)
+      call Validate_restart_integer (file_restart, 'sr_y', expected_sr_y)
       call Validate_restart_integer (file_restart, 'ideal_opt', config_flags%ideal_opt)
       call Validate_restart_integer (file_restart, 'fuel_opt', config_flags%fuel_opt)
       call Validate_restart_integer (file_restart, 'ros_opt', config_flags%ros_opt)
@@ -955,6 +1029,18 @@
       call Validate_restart_real (file_restart, 'fire_viscosity_bg', config_flags%fire_viscosity_bg)
       call Validate_restart_real (file_restart, 'fire_viscosity_band', config_flags%fire_viscosity_band)
       call Validate_restart_real (file_restart, 'reinit_pseudot_coef', config_flags%reinit_pseudot_coef)
+
+      select case (config_flags%ideal_opt)
+        case (0)
+          call Validate_restart_real (file_restart, 'stand_lon', this%proj%standard_lon)
+          call Validate_restart_real (file_restart, 'true_lat_1', this%proj%true_lat_1)
+          call Validate_restart_real (file_restart, 'true_lat_2', this%proj%true_lat_2)
+
+        case (1)
+          call Validate_restart_real (file_restart, 'stand_lon', config_flags%stand_lon)
+          call Validate_restart_real (file_restart, 'true_lat_1', config_flags%true_lat_1)
+          call Validate_restart_real (file_restart, 'true_lat_2', config_flags%true_lat_2)
+      end select
 
       call Get_netcdf_att (file_restart, 'global', 'start_year', start_year)
       call Get_netcdf_att (file_restart, 'global', 'start_month', start_month)
@@ -1016,6 +1102,13 @@
       call Read_restart_field (file_restart, 'vf', this%vf)
       call Read_restart_field (file_restart, 'fz0', this%fz0)
 
+      if (allocated (this%ros_param) .and. allocated (this%fuels)) then
+        do ij = 1, this%num_tiles
+          call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
+              this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
+        end do
+      end if
+
       if (DEBUG_LOCAL) call Print_message ('Leaving Read_restart...')
 
     contains
@@ -1058,6 +1151,27 @@
       end subroutine Set_next_datetime_after_restart
 
     end subroutine Read_restart
+
+    subroutine Read_restart_field_2d (file_name, var_name, nx, ny, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, var)
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name, var_name
+      integer, intent (in) :: nx, ny, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: var
+
+      real (kind = REAL32), dimension(:, :), allocatable :: var_restart
+      character (len = :), allocatable :: msg
+
+
+      call Get_netcdf_var (file_name, var_name, var_restart)
+      if (size (var_restart, 1) /= nx .or. size (var_restart, 2) /= ny) then
+        msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+        call Stop_simulation (msg)
+      end if
+      var(ifps:ifpe, jfps:jfpe) = var_restart(1:nx, 1:ny)
+
+    end subroutine Read_restart_field_2d
 
     subroutine Validate_restart_integer (file_name, att_name, expected_value)
 
@@ -1108,21 +1222,26 @@
       character (len = :), allocatable :: file_restart
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second
+      integer :: restart_sr_x, restart_sr_y
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Write_restart...')
 
 #ifdef DM_PARALLEL
-      call Stop_simulation ('Write_restart is implemented for serial idealized runs only')
+      call Stop_simulation ('Write_restart is implemented for serial standalone runs only')
 #endif
 
-      if (config_flags%ideal_opt /= 1) call Stop_simulation ('Write_restart is implemented for idealized runs only')
+      if (config_flags%ideal_opt /= 0 .and. config_flags%ideal_opt /= 1) &
+          call Stop_simulation ('Write_restart is implemented for standalone idealized and real runs only')
 
       file_restart = 'fire_restart_'//this%datetime_now%datetime//'.nc'
 
       call this%datetime_start%Get_datetime_as_ints (start_year, start_month, start_day, start_hour, start_minute, start_second)
       call this%datetime_now%Get_datetime_as_ints (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
+      restart_sr_x = nint (this%proj%dx / this%dx)
+      restart_sr_y = nint (this%proj%dy / this%dy)
+      if (restart_sr_x <= 0 .or. restart_sr_y <= 0) call Stop_simulation ('Restart subgrid ratios must be positive')
 
       call Create_netcdf_file (file_name = file_restart)
       call Add_netcdf_dim (file_restart, NAME_DIM_X, this%nx)
@@ -1148,9 +1267,12 @@
       call Add_netcdf_att (file_restart, 'global', 'dy', real (this%dy, kind = REAL32))
       call Add_netcdf_att (file_restart, 'global', 'cen_lat', real (this%cen_lat, kind = REAL32))
       call Add_netcdf_att (file_restart, 'global', 'cen_lon', real (this%cen_lon, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'stand_lon', real (config_flags%stand_lon, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'true_lat_1', real (config_flags%true_lat_1, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (config_flags%true_lat_2, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'map_proj', int (1, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'sr_x', int (restart_sr_x, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'sr_y', int (restart_sr_y, kind = INT32))
+      call Add_netcdf_att (file_restart, 'global', 'stand_lon', real (this%proj%standard_lon, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'true_lat_1', real (this%proj%true_lat_1, kind = REAL32))
+      call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (this%proj%true_lat_2, kind = REAL32))
       call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
       call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
       call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))

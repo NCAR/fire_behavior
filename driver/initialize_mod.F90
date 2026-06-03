@@ -5,6 +5,7 @@
     use geogrid_mod, only : geogrid_t
     use wrfdata_mod, only : wrfdata_t
     use fire_driver_mod, only : Init_fire_components
+    use datetime_mod, only : datetime_t
     use stderrout_mod, only: Print_message, Stop_simulation
 #ifdef DM_PARALLEL
     use mpi_mod, only : Convert_mpi_comm_to_f08
@@ -47,6 +48,8 @@
       type (wrfdata_t), intent (in out), optional :: wrf
 
       type (geogrid_t) :: geogrid
+      type (datetime_t) :: datetime_restart
+      character (len = :), allocatable :: file_restart
       logical, parameter :: DEBUG_LOCAL = .false.
       integer :: i, j, unit_out, unit_out2
 
@@ -61,46 +64,56 @@
       if (DEBUG_LOCAL) call Print_message ('  Initialization...')
       if (config_flags%ideal_opt == 0) then
           ! Real world
-        if (DEBUG_LOCAL) call Print_message ('    Reading geogrid file')
-#ifdef DM_PARALLEL
-        if (grid%is_cfbm_comm_set) then
-          call Convert_mpi_comm_to_f08 (grid%cfbm_comm, cfbm_comm_f08)
-          call Mpi_comm_rank (cfbm_comm_f08, rank, ierr)
+        if (config_flags%restart) then
+          datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+              config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+          file_restart = 'fire_restart_'//datetime_restart%datetime//'.nc'
+
+          if (DEBUG_LOCAL) call Print_message ('    Initializing fire state from restart metadata')
+          call grid%Initialization (config_flags, restart_file = file_restart)
+
         else
-          call Stop_simulation ('The MPI communicator cfbm_comm has not been set')
-        end if
+          if (DEBUG_LOCAL) call Print_message ('    Reading geogrid file')
+#ifdef DM_PARALLEL
+          if (grid%is_cfbm_comm_set) then
+            call Convert_mpi_comm_to_f08 (grid%cfbm_comm, cfbm_comm_f08)
+            call Mpi_comm_rank (cfbm_comm_f08, rank, ierr)
+          else
+            call Stop_simulation ('The MPI communicator cfbm_comm has not been set')
+          end if
 #else
-        rank = 0
+          rank = 0
 #endif
 
-        if (rank == 0) geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
+          if (rank == 0) geogrid = geogrid_t (file_name = 'geo_em.d01.nc')
 
 #ifdef DM_PARALLEL
-        call MPI_Bcast (geogrid%cen_lon, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%cen_lat, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%dx, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%dy, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%true_lat_1, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%true_lat_2, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast (geogrid%stand_lon, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%cen_lon, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%cen_lat, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%dx, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%dy, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%true_lat_1, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%true_lat_2, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast (geogrid%stand_lon, 1, MPI_REAL, 0, cfbm_comm_f08, ierr)
 
-        call MPI_Bcast(geogrid%map_proj, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%sr_x, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%sr_y, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%map_proj, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%sr_x, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%sr_y, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
 
-        call MPI_Bcast(geogrid%ifds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%ifde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%jfds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%jfde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%ifds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%ifde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%jfds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%jfde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
 
-        call MPI_Bcast(geogrid%ids, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%ide, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%jds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
-        call MPI_Bcast(geogrid%jde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%ids, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%ide, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%jds, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
+          call MPI_Bcast(geogrid%jde, 1, MPI_INTEGER, 0, cfbm_comm_f08, ierr)
 #endif
 
-        if (DEBUG_LOCAL) call Print_message ('    Initializing fire state')
-        call grid%Initialization (config_flags, geogrid)
+          if (DEBUG_LOCAL) call Print_message ('    Initializing fire state')
+          call grid%Initialization (config_flags, geogrid)
+        end if
 
       else
           ! Ideal
@@ -110,7 +123,7 @@
 
       call Init_fire_components (grid, config_flags)
 
-      if (present (wrf)) then
+      if (present (wrf) .and. .not. config_flags%restart) then
         if (DEBUG_LOCAL) call Print_message ('    Initializing atmospheric state')
         call grid%Handle_wrfdata_update (wrf, config_flags)
       end if
