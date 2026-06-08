@@ -1,6 +1,6 @@
   module initialize_mod
 
-    use state_mod, only : state_fire_t
+    use state_mod, only : state_fire_t, Build_restart_file_name
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use wrfdata_mod, only : wrfdata_t
@@ -67,7 +67,7 @@
         if (config_flags%restart) then
           datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
               config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
-          file_restart = 'fire_restart_'//datetime_restart%datetime//'.nc'
+          file_restart = Build_restart_file_name (datetime_restart%datetime)
 
           if (DEBUG_LOCAL) call Print_message ('    Initializing fire state from restart metadata')
           call grid%Initialization (config_flags, restart_file = file_restart)
@@ -197,6 +197,8 @@
           nfuel_cat = nfuel_cat, zsf = zsf, dzdxf = dzdxf, dzdyf = dzdyf)
 
       call Init_fire_components (state, config_flags)
+
+      if (config_flags%restart) call state%Read_restart (config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_fire_state_within_wrf...')
 

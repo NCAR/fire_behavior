@@ -25,7 +25,7 @@
 
     private
 
-    public :: state_fire_t, N_POINTS_IN_HALO
+    public :: state_fire_t, N_POINTS_IN_HALO, Build_restart_file_name
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
     character (len = *), parameter :: NAME_DIM_MOISTURE_CLASS = 'moisture_class'
@@ -973,6 +973,19 @@
 
     end subroutine Print_tiles
 
+    function Build_restart_file_name (restart_datetime) result (file_restart)
+
+      implicit none
+
+      character (len = *), intent (in) :: restart_datetime
+
+      character (len = :), allocatable :: file_restart
+
+
+      file_restart = 'fire_restart_'//trim (restart_datetime)//'.nc'
+
+    end function Build_restart_file_name
+
     subroutine Read_restart (this, config_flags)
 
       implicit none
@@ -999,7 +1012,7 @@
 
       datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
           config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
-      file_restart = 'fire_restart_'//datetime_restart%datetime//'.nc'
+      file_restart = Build_restart_file_name (datetime_restart%datetime)
 
       call Is_netcdf_file_present (file_restart)
 
@@ -1290,7 +1303,7 @@
       if (config_flags%ideal_opt /= 0 .and. config_flags%ideal_opt /= 1) &
           call Stop_simulation ('Write_restart is implemented for standalone idealized and real runs only')
 
-      file_restart = 'fire_restart_'//this%datetime_now%datetime//'.nc'
+      file_restart = Build_restart_file_name (this%datetime_now%datetime)
 
       call this%datetime_start%Get_datetime_as_ints (start_year, start_month, start_day, start_hour, start_minute, start_second)
       call this%datetime_now%Get_datetime_as_ints (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
