@@ -1,7 +1,7 @@
   module netcdf_mod
 
     use stderrout_mod, only : Stop_simulation, Print_message
-    use mpi_mod, only : Distribute_var2d, Gather_var2d
+    use mpi_mod, only : Gather_var2d
 
     implicit none
 
@@ -267,8 +267,7 @@
         end if
       end if
 
-      call Distribute_var2d (var2d_restart, ifps, ifpe, jfps, jfpe, cfbm_comm)
-      var2d_local(ifps:ifpe, jfps:jfpe) = var2d_restart
+      call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_restart, var2d_local)
 #else
       call Get_netcdf_var (file_name, var_name, var2d_restart)
       if (size (var2d_restart, 1) /= nx .or. size (var2d_restart, 2) /= ny) then
@@ -283,6 +282,81 @@
       if (DEBUG_LOCAL) call Print_message ('Leaving Get_netcdf_var_real32_2d_mpi...')
 
     end subroutine Get_netcdf_var_real32_2d_mpi
+
+    subroutine Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_global, var2d_local)
+
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+      implicit none
+
+      integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
+      real, dimension(:, :), allocatable, intent (in out) :: var2d_global
+      real, dimension(ifps:ifpe, jfps:jfpe), intent (out) :: var2d_local
+
+      integer :: i, ierr, j, kbuf, nprocs, nx_local, ny_local, r, rank
+      integer, dimension(:), allocatable :: all_ifps, all_ifpe, all_jfps, all_jfpe, displs, sendcounts
+      real, dimension(:), allocatable :: sendbuf
+
+
+#ifdef DM_PARALLEL
+      call Mpi_comm_rank (cfbm_comm, rank, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
+      call Mpi_comm_size (cfbm_comm, nprocs, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems getting the number of MPI tasks')
+
+      nx_local = ifpe - ifps + 1
+      ny_local = jfpe - jfps + 1
+
+      if (rank == 0) then
+        allocate (all_ifps(nprocs), all_ifpe(nprocs), all_jfps(nprocs), all_jfpe(nprocs))
+      else
+        allocate (all_ifps(1), all_ifpe(1), all_jfps(1), all_jfpe(1))
+      end if
+
+      call MPI_Gather (ifps, 1, MPI_INTEGER, all_ifps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Gather for restart ifps')
+      call MPI_Gather (ifpe, 1, MPI_INTEGER, all_ifpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Gather for restart ifpe')
+      call MPI_Gather (jfps, 1, MPI_INTEGER, all_jfps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Gather for restart jfps')
+      call MPI_Gather (jfpe, 1, MPI_INTEGER, all_jfpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Gather for restart jfpe')
+
+      if (rank == 0) then
+        allocate (sendcounts(nprocs), displs(nprocs))
+        do r = 1, nprocs
+          sendcounts(r) = (all_ifpe(r) - all_ifps(r) + 1) * (all_jfpe(r) - all_jfps(r) + 1)
+        end do
+
+        displs(1) = 0
+        do r = 2, nprocs
+          displs(r) = displs(r - 1) + sendcounts(r - 1)
+        end do
+
+        allocate (sendbuf(sum (sendcounts)))
+        kbuf = 0
+        do r = 1, nprocs
+          do j = all_jfps(r), all_jfpe(r)
+            do i = all_ifps(r), all_ifpe(r)
+              kbuf = kbuf + 1
+              sendbuf(kbuf) = var2d_global(i, j)
+            end do
+          end do
+        end do
+      else
+        allocate (sendcounts(1), displs(1), sendbuf(1))
+      end if
+
+      call MPI_Scatterv (sendbuf, sendcounts, displs, MPI_REAL, var2d_local, nx_local * ny_local, MPI_REAL, 0, cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Scatterv for restart variable')
+
+      deallocate (all_ifps, all_ifpe, all_jfps, all_jfpe, sendcounts, displs, sendbuf)
+#else
+      var2d_local(1:nx, 1:ny) = var2d_global(1:nx, 1:ny)
+#endif
+
+    end subroutine Distribute_global_var2d
 
     subroutine Add_netcdf_var_real32_3d (file_name, name_dims, varname, var)
 
@@ -407,8 +481,7 @@
           allocate (var2d_restart(nx, ny))
           var2d_restart(1:nx, 1:ny) = var3d_restart(1:nx, k, 1:ny)
         end if
-        call Distribute_var2d (var2d_restart, ifps, ifpe, jfps, jfpe, cfbm_comm)
-        var3d_local(ifps:ifpe, k, jfps:jfpe) = var2d_restart
+        call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_restart, var3d_local(ifps:ifpe, k, jfps:jfpe))
         if (allocated (var2d_restart)) deallocate (var2d_restart)
       end do
 #else

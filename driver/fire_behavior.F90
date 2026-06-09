@@ -58,11 +58,6 @@
 
 #ifdef DM_PARALLEL
     call config_flags%Broadcast_nml (mpi_comm_cfbm)
-
-    if (config_flags%restart .or. config_flags%restart_interval > 0) then
-      call Stop_simulation ('CFBM restart is currently supported only for serial standalone runs. Rebuild with --mpi-off and run ' // &
-          'fire_behavior.exe manually; MPI/ESMX restart is deferred.')
-    end if
 #endif
 
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Initialization fire state...'
