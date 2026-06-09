@@ -11,8 +11,8 @@
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, Get_netcdf_att, &
-        Get_netcdf_dim, Get_netcdf_var, Is_netcdf_file_present, NAME_DIM_X, NAME_DIM_Y
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, Get_netcdf_att, &
+        Get_netcdf_dim, Get_netcdf_var, Get_netcdf_var_mpi, Is_netcdf_file_present, NAME_DIM_X, NAME_DIM_Y
     use proj_lc_mod, only : proj_lc_t
     use ros_mod, only : ros_t
     use stderrout_mod, only : Stop_simulation, Print_message
@@ -28,6 +28,7 @@
     public :: state_fire_t, N_POINTS_IN_HALO, Build_restart_file_name
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
+    integer, parameter :: RESTART_IO_ROOT = 0
     character (len = *), parameter :: NAME_DIM_MOISTURE_CLASS = 'moisture_class'
     character (len = *), parameter :: NAME_VAR_FMC_GC = 'fmc_gc'
     character (len = *), parameter :: NAME_ATT_FMOIST_LASTTIME = 'fmc_fmoist_lasttime'
@@ -986,6 +987,155 @@
 
     end function Build_restart_file_name
 
+    subroutine Require_restart_mpi_comm (this)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+
+
+#ifdef DM_PARALLEL
+      if (.not. this%is_cfbm_comm_set) call Stop_simulation ('The MPI CFBM communicator has not been set')
+#endif
+
+    end subroutine Require_restart_mpi_comm
+
+    function Is_restart_io_root (this) result (am_root)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      logical :: am_root
+
+      integer :: rank, ierr
+
+
+#ifdef DM_PARALLEL
+      call Require_restart_mpi_comm (this)
+      call Mpi_comm_rank (this%cfbm_comm, rank, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
+      am_root = rank == RESTART_IO_ROOT
+#else
+      am_root = .true.
+#endif
+
+    end function Is_restart_io_root
+
+    subroutine Restart_io_barrier (this)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+
+      integer :: ierr
+
+
+#ifdef DM_PARALLEL
+      call Require_restart_mpi_comm (this)
+      call MPI_Barrier (this%cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Barrier ')
+#endif
+
+    end subroutine Restart_io_barrier
+
+    subroutine Broadcast_restart_integer (this, value)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      integer, intent (in out) :: value
+
+      integer :: ierr
+
+
+#ifdef DM_PARALLEL
+      call Require_restart_mpi_comm (this)
+      call MPI_Bcast (value, 1, MPI_INTEGER, RESTART_IO_ROOT, this%cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Bcast for restart integer metadata')
+#endif
+
+    end subroutine Broadcast_restart_integer
+
+    subroutine Broadcast_restart_real (this, value)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      real, intent (in out) :: value
+
+      integer :: packed_value
+
+
+#ifdef DM_PARALLEL
+      packed_value = 0
+      if (Is_restart_io_root (this)) packed_value = transfer (value, packed_value)
+      call Broadcast_restart_integer (this, packed_value)
+      value = transfer (packed_value, value)
+#endif
+
+    end subroutine Broadcast_restart_real
+
+    subroutine Broadcast_restart_logical (this, value)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      logical, intent (in out) :: value
+
+      integer :: flag
+
+
+#ifdef DM_PARALLEL
+      flag = 0
+      if (Is_restart_io_root (this)) then
+        if (value) then
+          flag = 1
+        else
+          flag = 0
+        end if
+      end if
+      call Broadcast_restart_integer (this, flag)
+      value = flag /= 0
+#endif
+
+    end subroutine Broadcast_restart_logical
+
+    subroutine Broadcast_restart_failure (this, is_valid, failure_code, failure_msg)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      logical, intent (in out) :: is_valid
+      integer, intent (in out) :: failure_code
+      character (len = *), intent (in out) :: failure_msg
+
+      integer :: ierr, n, msg_len
+      integer, dimension(:), allocatable :: msg_codes
+
+
+      call Broadcast_restart_logical (this, is_valid)
+      call Broadcast_restart_integer (this, failure_code)
+#ifdef DM_PARALLEL
+      call Require_restart_mpi_comm (this)
+      msg_len = len (failure_msg)
+      allocate (msg_codes(msg_len))
+      if (Is_restart_io_root (this)) then
+        do n = 1, msg_len
+          msg_codes(n) = iachar (failure_msg(n:n))
+        end do
+      end if
+      call MPI_Bcast (msg_codes(1), msg_len, MPI_INTEGER, RESTART_IO_ROOT, this%cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Bcast for restart failure metadata')
+      if (.not. Is_restart_io_root (this)) then
+        do n = 1, msg_len
+          failure_msg(n:n) = achar (msg_codes(n))
+        end do
+      end if
+      deallocate (msg_codes)
+#endif
+
+    end subroutine Broadcast_restart_failure
+
     subroutine Read_restart (this, config_flags)
 
       implicit none
@@ -1152,16 +1302,9 @@
         character (len = *), intent (in) :: file_name, var_name
         real, dimension(this%ifms:this%ifme, this%jfms:this%jfme), intent (in out) :: var
 
-        real (kind = REAL32), dimension(:, :), allocatable :: var_restart
-        character (len = :), allocatable :: msg
 
-
-        call Get_netcdf_var (file_name, var_name, var_restart)
-        if (size (var_restart, 1) /= this%nx .or. size (var_restart, 2) /= this%ny) then
-          msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
-          call Stop_simulation (msg)
-        end if
-        var(this%ifps:this%ifpe, this%jfps:this%jfpe) = var_restart(1:this%nx, 1:this%ny)
+        call Get_netcdf_var_mpi (file_name, this%cfbm_comm, this%nx, this%ny, &
+            this%ifps, this%ifpe, this%jfps, this%jfpe, var_name, var(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
       end subroutine Read_restart_field
 
@@ -1171,7 +1314,6 @@
 
         character (len = *), intent (in) :: file_name
 
-        real (kind = REAL32), dimension(:, :, :), allocatable :: fmc_gc_restart
         real (kind = REAL32) :: att_real32
         integer :: n_moisture_classes
 
@@ -1183,12 +1325,9 @@
             if (.not. allocated (fmc_param%fmc_gc)) call Stop_simulation ('FMC restart read requires allocated fmc_gc')
 
             n_moisture_classes = size (fmc_param%fmc_gc, 2)
-            call Get_netcdf_var (file_name, NAME_VAR_FMC_GC, fmc_gc_restart)
-            if (size (fmc_gc_restart, 1) /= this%nx .or. size (fmc_gc_restart, 2) /= n_moisture_classes .or. &
-                size (fmc_gc_restart, 3) /= this%ny) &
-                call Stop_simulation ('Restart variable has unexpected dimensions: '//NAME_VAR_FMC_GC)
-            fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe) = &
-                fmc_gc_restart(1:this%nx, 1:n_moisture_classes, 1:this%ny)
+            call Get_netcdf_var_mpi (file_name, this%cfbm_comm, this%nx, this%ny, n_moisture_classes, &
+                this%ifps, this%ifpe, this%jfps, this%jfpe, NAME_VAR_FMC_GC, &
+                fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
 
             call Get_netcdf_att (file_name, 'global', NAME_ATT_FMOIST_LASTTIME, att_real32)
             fmc_param%fmoist_lasttime = att_real32
@@ -1290,14 +1429,19 @@
       character (len = :), allocatable :: file_restart
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second
-      integer :: restart_sr_x, restart_sr_y
+      integer :: restart_sr_x, restart_sr_y, rank, ierr
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Write_restart...')
 
 #ifdef DM_PARALLEL
+      if (.not. this%is_cfbm_comm_set) call Stop_simulation ('The MPI CFBM communicator has not been set')
+      call Mpi_comm_rank (this%cfbm_comm, rank, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
       call Stop_simulation ('Write_restart is implemented for serial standalone runs only')
+#else
+      rank = 0
 #endif
 
       if (config_flags%ideal_opt /= 0 .and. config_flags%ideal_opt /= 1) &
@@ -1311,48 +1455,52 @@
       restart_sr_y = nint (this%proj%dy / this%dy)
       if (restart_sr_x <= 0 .or. restart_sr_y <= 0) call Stop_simulation ('Restart subgrid ratios must be positive')
 
-      call Create_netcdf_file (file_name = file_restart)
-      call Add_netcdf_dim (file_restart, NAME_DIM_X, this%nx)
-      call Add_netcdf_dim (file_restart, NAME_DIM_Y, this%ny)
+      if (rank == 0) then
+        call Create_netcdf_file (file_name = file_restart)
+        call Add_netcdf_dim (file_restart, NAME_DIM_X, this%nx)
+        call Add_netcdf_dim (file_restart, NAME_DIM_Y, this%ny)
 
-      call Add_netcdf_att (file_restart, 'global', 'start_year', int (start_year, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'start_month', int (start_month, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'start_day', int (start_day, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'start_hour', int (start_hour, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'start_minute', int (start_minute, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'start_second', int (start_second, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_year', int (restart_year, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_month', int (restart_month, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_day', int (restart_day, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_hour', int (restart_hour, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_minute', int (restart_minute, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'restart_second', int (restart_second, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'itimestep', int (this%itimestep, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'nx', int (this%nx, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'ny', int (this%ny, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'dt', real (this%dt, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'dx', real (this%dx, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'dy', real (this%dy, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'cen_lat', real (this%cen_lat, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'cen_lon', real (this%cen_lon, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'map_proj', int (1, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'sr_x', int (restart_sr_x, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'sr_y', int (restart_sr_y, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'stand_lon', real (this%proj%standard_lon, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'true_lat_1', real (this%proj%true_lat_1, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (this%proj%true_lat_2, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fmc_opt', int (config_flags%fmc_opt, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'emis_opt', int (config_flags%emis_opt, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_upwinding', int (config_flags%fire_upwinding, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_upwinding_reinit', int (config_flags%fire_upwinding_reinit, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_lsm_reinit_iter', int (config_flags%fire_lsm_reinit_iter, kind = INT32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity', real (config_flags%fire_viscosity, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_bg', real (config_flags%fire_viscosity_bg, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_band', real (config_flags%fire_viscosity_band, kind = REAL32))
-      call Add_netcdf_att (file_restart, 'global', 'reinit_pseudot_coef', real (config_flags%reinit_pseudot_coef, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'start_year', int (start_year, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'start_month', int (start_month, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'start_day', int (start_day, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'start_hour', int (start_hour, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'start_minute', int (start_minute, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'start_second', int (start_second, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_year', int (restart_year, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_month', int (restart_month, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_day', int (restart_day, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_hour', int (restart_hour, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_minute', int (restart_minute, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'restart_second', int (restart_second, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'itimestep', int (this%itimestep, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'nx', int (this%nx, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'ny', int (this%ny, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'dt', real (this%dt, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'dx', real (this%dx, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'dy', real (this%dy, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'cen_lat', real (this%cen_lat, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'cen_lon', real (this%cen_lon, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'map_proj', int (1, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'sr_x', int (restart_sr_x, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'sr_y', int (restart_sr_y, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'stand_lon', real (this%proj%standard_lon, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'true_lat_1', real (this%proj%true_lat_1, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (this%proj%true_lat_2, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fmc_opt', int (config_flags%fmc_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'emis_opt', int (config_flags%emis_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_upwinding', int (config_flags%fire_upwinding, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_upwinding_reinit', int (config_flags%fire_upwinding_reinit, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_lsm_reinit_iter', int (config_flags%fire_lsm_reinit_iter, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_viscosity', real (config_flags%fire_viscosity, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_bg', real (config_flags%fire_viscosity_bg, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_viscosity_band', real (config_flags%fire_viscosity_band, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'reinit_pseudot_coef', real (config_flags%reinit_pseudot_coef, kind = REAL32))
+      end if
+
+      call Restart_io_barrier (this)
 
       call Add_restart_field ('lfn', this%lfn)
       call Add_restart_field ('lfn_hist', this%lfn_hist)
@@ -1401,6 +1549,8 @@
       end if
       if (config_flags%fmoist_run) call Write_restart_fmc ()
 
+      call Restart_io_barrier (this)
+
       if (DEBUG_LOCAL) call Print_message ('Leaving Write_restart...')
 
     contains
@@ -1433,18 +1583,22 @@
             if (.not. allocated (fmc_param%fmc_gc)) call Stop_simulation ('FMC restart write requires allocated fmc_gc')
 
             n_moisture_classes = size (fmc_param%fmc_gc, 2)
-            call Add_netcdf_dim (file_restart, NAME_DIM_MOISTURE_CLASS, n_moisture_classes)
+            if (rank == 0) call Add_netcdf_dim (file_restart, NAME_DIM_MOISTURE_CLASS, n_moisture_classes)
+            call Restart_io_barrier (this)
 
             dim_names_fmc_gc(1) = NAME_DIM_X
             dim_names_fmc_gc(2) = NAME_DIM_MOISTURE_CLASS
             dim_names_fmc_gc(3) = NAME_DIM_Y
-            call Add_netcdf_var (file_restart, dim_names_fmc_gc, NAME_VAR_FMC_GC, &
+            call Add_netcdf_var_mpi (file_restart, dim_names_fmc_gc, this%cfbm_comm, this%nx, this%ny, n_moisture_classes, &
+                this%ifps, this%ifpe, this%jfps, this%jfpe, NAME_VAR_FMC_GC, &
                 fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
 
-            call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_LASTTIME, &
-                real (fmc_param%fmoist_lasttime, kind = REAL32))
-            call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_NEXTTIME, &
-                real (fmc_param%fmoist_nexttime, kind = REAL32))
+            if (rank == 0) then
+              call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_LASTTIME, &
+                  real (fmc_param%fmoist_lasttime, kind = REAL32))
+              call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_NEXTTIME, &
+                  real (fmc_param%fmoist_nexttime, kind = REAL32))
+            end if
 
           class default
             call Stop_simulation ('Restart write is not implemented for selected FMC component')
