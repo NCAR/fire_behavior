@@ -16,6 +16,11 @@ add_test(NAME test9
          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+add_test(NAME test_sb40
+         COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test_sb40.s
+         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 if(NOT DM_PARALLEL)
   add_test(NAME test9_restart
            COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test9_restart.s
