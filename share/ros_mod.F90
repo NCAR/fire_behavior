@@ -19,18 +19,20 @@
     end type ros_t
 
     abstract interface
-      subroutine Init (this, ifms, ifme, jfms, jfme)
+      subroutine Init (this, ifms, ifme, jfms, jfme, fuelmc_g_live)
         import :: ros_t
         class (ros_t), intent (in out) :: this
         integer, intent (in) :: ifms, ifme, jfms, jfme
+        real, intent (in) :: fuelmc_g_live
       end subroutine Init
 
-      subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, nfuel_cat, fmc_g)
+      subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, fuel_index, fmc_g)
         import :: ros_t, fuel_t
         class (ros_t), intent (in out) :: this
         integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
         class (fuel_t), intent (in) :: fuels
-        real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+        integer, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_index
+        real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fmc_g
       end subroutine Set_params
 
       pure function Calc_ros (this, ifms, ifme, jfms, jfme, i, j, nvx, nvy, uf, vf, dzdxf, dzdyf) result (return_value)

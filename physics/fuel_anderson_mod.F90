@@ -25,7 +25,8 @@
     !  FUEL MODEL 14: no fuel
     ! =============================================================================
 
-    use fuel_mod, only : fuel_t
+    use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
+    use fuel_mod, only : fuel_t, Crosswalk_from_scottburgan_to_anderson, UNKNOWN_FUEL_CAT
 
     implicit none
 
@@ -52,6 +53,7 @@
       real, dimension(N_FUEL_CAT_ANDERSON + 1) :: fcbr, fci
     contains
        procedure, public :: Initialization => Init_anderson_fuel_model
+       procedure, public :: Resolve_fuel_index => Resolve_fuel_index_anderson
     end type fuel_anderson_t
 
   contains
@@ -90,6 +92,16 @@
       allocate (this%fgi_1000h(N_FUEL_CAT_ANDERSON + 1))
       this%fgi_1000h = 0.0
       this%fgi_live = [ 0.00, 0.50, 0.000, 5.01, 2.00, 0.00, 0.37, 0.00, 0.00, 2.00, 0.00, 0.0, 0.00, 0.0 ]
+      allocate (this%fgi_lh(N_FUEL_CAT_ANDERSON + 1))
+      allocate (this%fgi_live_woody(N_FUEL_CAT_ANDERSON + 1))
+      allocate (this%savr_live(N_FUEL_CAT_ANDERSON + 1))
+      allocate (this%fuelmce_live(N_FUEL_CAT_ANDERSON + 1))
+      allocate (this%fuelheat(N_FUEL_CAT_ANDERSON + 1))
+      this%fgi_lh = 0.0
+      this%fgi_live_woody = 0.0
+      this%savr_live = 0.0
+      this%fuelmce_live = 0.0
+      this%fuelheat = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
 
       this%fuel_name(1)  = '1: Short grass (1 ft)'
       this%fuel_name(2)  = '2: Timber (grass and understory)'
@@ -122,5 +134,31 @@
 
     end subroutine Init_anderson_fuel_model
 
-  end module fuel_anderson_mod
+    pure function Resolve_fuel_index_anderson (this, external_code) result (idx)
 
+      implicit none
+
+      class (fuel_anderson_t), intent (in) :: this
+      integer, intent (in) :: external_code
+
+      integer :: idx
+
+
+      select case (external_code)
+        case (1:14)
+          idx = external_code
+
+        case (101:204)
+          ! Accepting Scott and Burgan external codes in Anderson mode is a
+          ! degraded compatibility crosswalk, not native SB40 physics. Native
+          ! SB40 runs must use fuel_opt = 2 so SB codes index SB rows directly.
+          idx = Crosswalk_from_scottburgan_to_anderson (external_code)
+
+        case default
+          idx = UNKNOWN_FUEL_CAT
+      end select
+      if (idx > this%no_fuel_cat) idx = UNKNOWN_FUEL_CAT
+
+    end function Resolve_fuel_index_anderson
+
+  end module fuel_anderson_mod

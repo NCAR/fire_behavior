@@ -973,8 +973,10 @@ module fire_behavior_nuopc
       case (VINTERP_WINDS_FROM_10M_WINDS)
         do j = grid%jfps, grid%jfpe
           do i = grid%ifps, grid%ifpe
-            grid%uf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * ptr_u10(i,j) 
-            grid%vf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * ptr_v10(i,j)
+            ! Coupled WAF indexing must use fuel_index, never int(nfuel_cat),
+            ! because WRF can pass external SB40 codes 101..204 in nfuel_cat.
+            grid%uf(i,j) = grid%fuels%waf(grid%fuel_index(i,j)) * ptr_u10(i,j)
+            grid%vf(i,j) = grid%fuels%waf(grid%fuel_index(i,j)) * ptr_v10(i,j)
           end do
         end do
       case default
@@ -1152,4 +1154,3 @@ module fire_behavior_nuopc
   end subroutine Check_fire_grid_cells
 
 end module
-

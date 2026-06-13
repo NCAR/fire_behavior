@@ -7,7 +7,7 @@
     use datetime_mod, only : datetime_t
     use fmc_mod, only : fmc_t
     use fmc_wrffire_mod, only : fmc_wrffire_t
-    use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    use fuel_mod, only : fuel_t, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
@@ -19,7 +19,7 @@
     use tiles_mod, only : Calc_tiles_dims
     use wrfdata_mod, only : wrfdata_t, G, RERADIUS
     use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Do_halo_exchange_with_corners, &
-        Print_cart_info, topology_dim_order
+        Print_cart_info, Sum_across_mpi_tasks, topology_dim_order
     use, intrinsic :: iso_fortran_env, only : INT32, REAL32
 
     implicit none
@@ -79,7 +79,13 @@
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
+        ! nfuel_cat is external classification metadata from ideal input,
+        ! geogrid, WRF coupling, or restart files. fuel_index is the validated
+        ! internal physics-table row. They must not be conflated because
+        ! WRF-Fire-style mutation of category fields makes outputs and restarts
+        ! scientifically ambiguous.
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
+      integer, dimension(:, :), allocatable :: fuel_index ! resolved internal fuel row
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
       real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function
@@ -105,6 +111,7 @@
       integer, dimension(:), allocatable :: i_start, i_end, j_start, j_end
 
       real :: unit_fxlong, unit_fxlat
+      real :: fuelmc_g_live
       integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
@@ -139,6 +146,7 @@
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Print_tiles => Print_tiles
       procedure, public :: Read_restart => Read_restart
+      procedure, public :: Resolve_fuel_indices => Resolve_fuel_indices
       procedure, public :: Save_state => Save_state
       procedure, public :: Set_vars_to_default => Set_vars_to_default
       procedure, public :: Set_mpi_comm_cfbm => Set_mpi_comm_cfbm
@@ -199,6 +207,7 @@
       allocate (this%emis_smoke(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_index(ifms:ifme, jfms:jfme))
 
     end subroutine Allocate_vars
 
@@ -222,7 +231,7 @@
 
         do j = jfts, jfte
           do i = ifts, ifte
-            waf = this%fuels%waf(int (this%nfuel_cat(i, j)))
+            waf = this%fuels%waf(this%fuel_index(i, j))
             this%uf(i, j) = waf * this%uf(i, j)
             this%vf(i, j) = waf * this%vf(i, j)
           end do
@@ -241,6 +250,9 @@
       integer :: i, j, ij, ifts, ifte, jfts, jfte
 
 
+      ! Explicit legacy compatibility helper only. Normal CFBM initialization
+      ! preserves nfuel_cat as external metadata and resolves fuel_index instead
+      ! of mutating category fields.
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
       do ij = 1, this%num_tiles
@@ -258,6 +270,62 @@
       !$OMP END PARALLEL DO
 
     end subroutine Convert_scottburgan_to_anderson
+
+    subroutine Resolve_fuel_indices (this)
+
+      implicit none
+
+      class (state_fire_t), intent(in out) :: this
+
+      integer, parameter :: MAX_SAMPLES = 8
+      integer :: i, j, idx, local_unknown_count, sample_count
+      integer, dimension(MAX_SAMPLES) :: sample_i, sample_j, sample_code
+      real :: local_unknown_real, global_unknown_real
+      character (len = 512) :: msg
+
+
+      if (.not. allocated (this%fuels)) call Stop_simulation ('Resolve_fuel_indices requires initialized fuels')
+      if (.not. allocated (this%fuel_index)) call Stop_simulation ('Resolve_fuel_indices requires allocated fuel_index')
+
+      local_unknown_count = 0
+      sample_count = 0
+
+      ! Resolve and validate before any table access. This avoids the legacy
+      ! WRF-Fire pattern of indexing lookup tables with raw categories before
+      ! bounds checking. Unknown future, urban, or custom classifications must
+      ! abort because they require explicit scientific mapping; silent no-fuel
+      ! fallback would hide land-cover errors.
+      do j = this%jfps, this%jfpe
+        do i = this%ifps, this%ifpe
+          idx = this%fuels%Resolve_fuel_index (int (this%nfuel_cat(i, j)))
+          this%fuel_index(i, j) = idx
+          if (idx <= 0) then
+            local_unknown_count = local_unknown_count + 1
+            if (sample_count < MAX_SAMPLES) then
+              sample_count = sample_count + 1
+              sample_i(sample_count) = i
+              sample_j(sample_count) = j
+              sample_code(sample_count) = int (this%nfuel_cat(i, j))
+            end if
+          end if
+        end do
+      end do
+
+      local_unknown_real = real (local_unknown_count)
+      call Sum_across_mpi_tasks (local_unknown_real, this%cart_comm, global_unknown_real)
+
+      if (global_unknown_real > 0.0) then
+        write (msg, '(a, i0, a, i0)') 'Unknown fuel categories: local_count=', local_unknown_count, &
+            ' global_count=', nint (global_unknown_real)
+        call Print_message (trim (msg))
+        do i = 1, sample_count
+          write (msg, '(a, i0, a, i0, a, i0)') '  sample fuel code ', sample_code(i), ' at i=', sample_i(i), ' j=', sample_j(i)
+          call Print_message (trim (msg))
+        end do
+        call Stop_simulation ('Unknown nfuel_cat values require explicit calibrated fuel or nonburnable mapping')
+      end if
+
+    end subroutine Resolve_fuel_indices
 
     subroutine Handle_output (this, config_flags)
 
@@ -587,6 +655,7 @@
       this%nx = this%ifde
       this%ny = this%jfde
       this%dt = config_flags%dt
+      this%fuelmc_g_live = config_flags%fuelmc_g_live
 
         ! Init memory
       if (DEBUG_LOCAL) call Print_message ('  Allocating memory...')
@@ -763,8 +832,6 @@
 
       end select Set_topo_fuels
 
-      if (config_flags%fuel_opt == FUEL_ANDERSON .and. init_mode /= INIT_MODE_RESTART) call this%Convert_sb_to_ander ()
-
         ! Set clock
       if (DEBUG_LOCAL) call Print_message ('  Setting clock...')
       call this%Set_time_stamps (config_flags)
@@ -796,8 +863,12 @@
         jfte = this%j_end(ij)
         do j = jfts, jfte
           do i = ifts, ifte
-            k = int (this%nfuel_cat(i, j))
-            this%fuel_load_g(i, j) = this%fuels%fgi(k)
+            k = this%fuel_index(i, j)
+            if (this%fuels%fgi_lh(k) == 0.0) then
+              this%fuel_load_g(i, j) = this%fuels%fgi(k)
+            else
+              this%fuel_load_g(i, j) = this%fuels%Effective_dead_load(k, this%fuelmc_g_live)
+            end if
             if (k == this%fuels%no_fuel_cat) then
                 ! Just what was there before
               this%fuel_time(i, j) = 7.0 / 0.85
@@ -1372,9 +1443,13 @@
       call Exchange_restart_halos ()
 
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
+        ! Restart files preserve external, interpretable nfuel_cat values. The
+        ! internal fuel_index is re-derived after every restart read so stale
+        ! table rows from a previous executable or fuel option cannot drive ROS.
+        call this%Resolve_fuel_indices ()
         do ij = 1, this%num_tiles
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
-              this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
+              this%j_start(ij), this%j_end(ij), this%fuels, this%fuel_index, this%fmc_g)
         end do
       end if
 

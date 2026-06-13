@@ -205,7 +205,8 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``fuel_opt``: *integer* (Default: ``1``)
    Fuel type model.
-     1:  Anderson fuel model (only option currently implemented)
+     1: Anderson compatibility mode. ``nfuel_cat`` values are external classifications; Scott and Burgan external codes are resolved through a degraded Anderson crosswalk.
+     2: Native Scott and Burgan SB40 mode. Ideal ``fuel_cat``, geogrid ``NFUEL_CAT``, WRF-coupled ``nfuel_cat``, and restart ``nfuel_cat`` values are interpreted as external Scott and Burgan codes.
 
 ``ros_opt``: *integer* (Default: ``0``)
    Rate of Spread (ROS) parameterization option.
@@ -248,5 +249,4 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
-
 

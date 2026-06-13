@@ -6,8 +6,9 @@
     use namelist_mod, only : namelist_t
     use stderrout_mod, only : Print_message, Stop_simulation
 
-    use fuel_mod, only : FUEL_ANDERSON
+    use fuel_mod, only : FUEL_ANDERSON, FUEL_SCOTT_BURGAN
     use fuel_anderson_mod, only : fuel_anderson_t
+    use fuel_scott_burgan_mod, only : fuel_scott_burgan_t
 
     use ros_mod, only : ROS_WRFFIRE
     use ros_wrffire_mod, only : ros_wrffire_t
@@ -47,10 +48,14 @@
         case (FUEL_ANDERSON)
           allocate (fuel_anderson_t::grid%fuels)
 
+        case (FUEL_SCOTT_BURGAN)
+          allocate (fuel_scott_burgan_t::grid%fuels)
+
         case default
           call Stop_simulation ('The selected fuel_opt does not exist')
       end select
       call grid%fuels%Initialization (config_flags%fuelmc_c)
+      call grid%Resolve_fuel_indices ()
       call grid%Init_fuel_vars ()
 
         ! FMC model
@@ -72,7 +77,7 @@
         case default
           call Stop_simulation ('The selected ros_opt does not exist')
       end select
-      call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme)
+      call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme, config_flags%fuelmc_g_live)
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij)
@@ -86,7 +91,7 @@
             grid%tign_g)
 
         call grid%ros_param%Set_params (grid%ifms, grid%ifme, grid%jfms, grid%jfme, grid%i_start(ij), grid%i_end(ij), &
-            grid%j_start(ij), grid%j_end(ij), grid%fuels, grid%nfuel_cat, grid%fmc_g)
+            grid%j_start(ij), grid%j_end(ij), grid%fuels, grid%fuel_index, grid%fmc_g)
       end do
       !$OMP END PARALLEL DO
 
@@ -111,7 +116,7 @@
           grid%i_start, grid%i_end, grid%j_start, &
           grid%j_end, grid%num_tiles, grid%fire_rain, grid%fire_t2, grid%fire_q2, grid%fire_psfc, &
           grid%fire_rain_old, grid%fire_t2_old, grid%fire_q2_old, grid%fire_psfc_old, grid%fire_rh_fire, config_flags%fuelmc_g, &
-          grid%fmc_g, grid%nfuel_cat, grid%fuels, grid%ros_param)
+          grid%fmc_g, grid%fuel_index, grid%fuels, grid%ros_param)
 
       call Advance_fire_model (config_flags, grid)
 

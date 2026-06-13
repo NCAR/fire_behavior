@@ -1,9 +1,9 @@
   module ros_wrffire_mod
 
-    use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use fuel_mod, only : fuel_t
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
+    use stderrout_mod, only : Stop_simulation
     use state_mod, only : state_fire_t
 
     implicit none
@@ -15,11 +15,10 @@
     logical, parameter :: FIRE_GROWS_ONLY = .true.
     integer, parameter :: SLOPE_FACTOR = 1.0
 
-      ! fuelheat: fuel particle low heat content [btu/lb]
-    real, parameter :: FUELHEAT = CMBCNST * CONVERT_J_PER_KG_TO_BTU_PER_POUND
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type, extends(ros_t) :: ros_wrffire_t
+      real :: fuelmc_g_live
       real, dimension(:, :), allocatable :: bbb, ischap, betafl, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
@@ -93,13 +92,16 @@
 
     end function Calc_ros_wrffire
 
-    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme)
+    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme, fuelmc_g_live)
 
       implicit none
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme
+      real, intent (in) :: fuelmc_g_live
 
+
+      this%fuelmc_g_live = fuelmc_g_live
 
       allocate (this%iboros(ifms:ifme, jfms:jfme))
  
@@ -112,14 +114,15 @@
     end subroutine Init_ros_wrffire
 
     subroutine Set_ros_parameters_wrffire (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        fuels, nfuel_cat, fmc_g)
+        fuels, fuel_index, fmc_g)
 
       implicit none
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       class (fuel_t), intent (in) :: fuels
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+      integer, dimension (ifms:ifme, jfms:jfme), intent (in) :: fuel_index
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: fmc_g
 
 
       real ::  fuelload, fueldepth, rtemp1, rtemp2, qig, epsilon, rhob, wn, betaop, e, c, &
@@ -130,7 +133,15 @@
 
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
-          k = int (nfuel_cat(i, j))
+          ! ROS setup must use validated fuel_index, never raw nfuel_cat, so
+          ! external SB40 codes such as 101..204 cannot index past fuel tables.
+          ! This check protects future interface changes but does not replace
+          ! resolver validation.
+          k = fuel_index(i, j)
+          if (k <= 0 .or. k > fuels%n_fuel_cat + 1) then
+            write (msg, '(a, i0, a, i0, a, i0)') 'Invalid fuel_index ', k, ' at i=', i, ' j=', j
+            call Stop_simulation (trim (msg))
+          end if
           if(k == fuels%no_fuel_cat) then
             this%ischap(i, j) = 0.0
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
@@ -145,7 +156,11 @@
               ! No need to recalculate if FMC does not change
             bmst = fmc_g(i, j) / (1.0 + fmc_g(i, j))
               !  fuelload without moisture
-            fuelloadm = (1.0 - bmst) * fuels%fgi(k)
+            if (fuels%fgi_lh(k) == 0.0) then
+              fuelloadm = (1.0 - bmst) * fuels%fgi(k)
+            else
+              fuelloadm = (1.0 - bmst) * fuels%Effective_dead_load(k, this%fuelmc_g_live)
+            end if
             fuelload = fuelloadm * (0.3048) ** 2 * 2.205 ! to lb/ft^2
             fueldepth = fuels%fueldepthm(k) / 0.3048 ! to ft
               ! packing ratio
@@ -182,7 +197,7 @@
               ! mineral damping coef
             etas = 0.174 * fuels%se(k) ** (-0.19)
               !rxn intensity,btu/ft^2 min
-            ir = gamma * wn * FUELHEAT * etam * etas
+            ir = gamma * wn * fuels%fuelheat(k) * etam * etas
             ! irm = ir * 1055./( 0.3048**2 * 60.) * 1.e-6     !for mw/m^2
             this%iboros(i, j) = ir * 1055.0 / ( 0.3048 ** 2 * 60.0) * 1.e-3 * (60.0 * 384.0 / fuels%savr(k)) ! I_R x t_r (kJ m^-2)
               ! propagating flux ratio

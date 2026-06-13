@@ -4,10 +4,10 @@
 
     private
 
-    public :: fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    public :: fuel_t, FUEL_ANDERSON, FUEL_SCOTT_BURGAN, UNKNOWN_FUEL_CAT, Crosswalk_from_scottburgan_to_anderson
 
     ! In SB: explicit nonburnables map to no-fuel, unknown codes remain 0 and abort
-    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 0
+    integer, parameter :: FUEL_ANDERSON = 1, FUEL_SCOTT_BURGAN = 2, UNKNOWN_FUEL_CAT = 0
 
     type, abstract :: fuel_t
        integer :: n_fuel_cat, no_fuel_cat
@@ -37,11 +37,19 @@
       real, dimension(:), allocatable :: fuelmce
         ! fuel loading 1-h, 10-h, 100-h, 1000-h, and live  [ton/acre]
       real, dimension(:), allocatable :: fgi_1h, fgi_10h, fgi_100h, fgi_1000h, fgi_live
+        ! live herbaceous load [kg m-2] used by Tier A SB40 curing
+      real, dimension(:), allocatable :: fgi_lh
+        ! reserved Tier B live-fuel fields; Tier A retains the WRF-Fire aggregate ROS formulation
+      real, dimension(:), allocatable :: fgi_live_woody, savr_live, fuelmce_live
+        ! fuel particle low heat content [BTU lb-1]
+      real, dimension(:), allocatable :: fuelheat
         ! wind adjustment factor
       real, dimension(:), allocatable :: waf
     contains
       procedure (Initialization), deferred :: Initialization
       procedure, public :: Calc_wind_adjustment_factor => Calc_wind_adjustment_factor
+      procedure, public :: Effective_dead_load => Effective_dead_load
+      procedure, public :: Resolve_fuel_index => Resolve_fuel_index_default
     end type fuel_t
 
     abstract interface
@@ -128,6 +136,49 @@
 
     end function Crosswalk_from_scottburgan_to_anderson
 
+    pure function Effective_dead_load (this, k, mc_lh) result (load)
+
+      implicit none
+
+      class (fuel_t), intent (in) :: this
+      integer, intent (in) :: k
+      real, intent (in) :: mc_lh
+
+      real :: load
+
+
+      ! Scott and Burgan dynamic herbaceous curing transfers live herbaceous
+      ! load to the dead-equivalent pool below 120% live FMC, with complete
+      ! transfer at 30%. Tier A applies that cured fraction to the aggregate
+      ! WRF-Fire ROS load only; untransferred herbaceous fuel, live woody fuel,
+      ! and dynamic live moisture of extinction require Tier B two-component
+      ! Rothermel treatment.
+      if (this%fgi_lh(k) == 0.0) then
+        load = this%fgi(k)
+      else if (mc_lh >= 1.20) then
+        load = this%fgi(k)
+      else if (mc_lh <= 0.30) then
+        load = this%fgi(k) + this%fgi_lh(k)
+      else
+        load = this%fgi(k) + (1.0 - (mc_lh - 0.30) / 0.90) * this%fgi_lh(k)
+      end if
+
+    end function Effective_dead_load
+
+    pure function Resolve_fuel_index_default (this, external_code) result (idx)
+
+      implicit none
+
+      class (fuel_t), intent (in) :: this
+      integer, intent (in) :: external_code
+
+      integer :: idx
+
+
+      idx = UNKNOWN_FUEL_CAT
+
+    end function Resolve_fuel_index_default
+
     subroutine Calc_wind_adjustment_factor (this)
 
       implicit none
@@ -140,10 +191,13 @@
       real :: HF ! extent of the flame above the vegetation
 
 
-      allocate (this%waf(this%n_fuel_cat))
+      ! The validated physics index can be the no-fuel row. Allocate through
+      ! n_fuel_cat + 1 so Apply_wafs and the NUOPC wind path remain branch-free
+      ! and have a valid WAF entry for no-fuel cells in both Anderson and SB40.
+      allocate (this%waf(this%n_fuel_cat + 1))
       wh = 10.0 ! input wind height in meter
 
-      do i = 1,this%n_fuel_cat
+      do i = 1,this%n_fuel_cat + 1
         h = this%fueldepthm(i)
         flamelength = 2.0 * h ! assume flamelength is double the fuel bed height
         if (flamelength > h) then
@@ -153,6 +207,7 @@
           this%waf(i) = 0.15
         endif
       end do
+      this%waf(this%no_fuel_cat) = 1.e-7
 
     end subroutine Calc_wind_adjustment_factor
 

@@ -86,7 +86,7 @@
       integer :: devel_opt = 0                ! 0) Standard nml options, 1) reads options in the devel nml block
 
         ! Objects
-      integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson 13 
+      integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson compatibility, 2) native Scott and Burgan SB40
       integer :: ros_opt = ROS_WRFFIRE        !  0) WRF-Fire ROS
       integer :: fmc_opt = FMC_WRFFIRE        ! -1) WRF-Fire FMC
       integer :: emis_opt = EMIS_WRFFIRE      !  0) WRF-Fire emiss, 1) PM2.5 as a function of FMC. Objects to be added

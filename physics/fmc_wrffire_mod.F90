@@ -135,7 +135,7 @@
 
     subroutine Advance_fmc_model (this, fmoist_freq, fmoist_dt, itimestep, dt, ifms, ifme, jfms, jfme, i_start, i_end, j_start, &
             j_end, num_tiles, fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, &
-            fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, nfuel_cat, fuels, ros_param)
+            fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, fuel_index, fuels, ros_param)
 
       implicit none
 
@@ -145,7 +145,7 @@
       integer, intent (in) :: fmoist_freq, itimestep, ifms, ifme, jfms, jfme, num_tiles
       integer, dimension(num_tiles) :: i_start, i_end, j_start, j_end
       real, intent (in) ::  fmoist_dt, dt, fuelmc_g
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+      integer, dimension (ifms:ifme, jfms:jfme), intent (in) :: fuel_index
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, &
           fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
 
@@ -185,7 +185,7 @@
         !$OMP PARALLEL DO   &
         !$OMP PRIVATE (ij)
         do ij = 1, num_tiles
-          call this%Average_moisture_classes (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), nfuel_cat, fmc_g)
+          call this%Average_moisture_classes (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), fuel_index, fmc_g)
         end do
         !$OMP END PARALLEL DO
 
@@ -193,23 +193,24 @@
         !$OMP PRIVATE (ij)
         do ij = 1, num_tiles
           call ros_param%Set_params (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
-              fuels, nfuel_cat, fmc_g)
+              fuels, fuel_index, fmc_g)
         end do
         !$OMP END PARALLEL DO
       end if
 
     end subroutine Advance_fmc_model
 
-    subroutine Average_moisture_classes (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, fmc_g)
+    subroutine Average_moisture_classes (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuel_index, fmc_g)
 
       implicit none
 
       class (fmc_wrffire_t), intent (in) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
-      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+      integer, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_index
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: fmc_g
 
       integer :: i, j, k, n
+      character (len = 128) :: msg
 
 
       do j = jfts, jfte
@@ -221,7 +222,15 @@
       do k = 1, MOISTURE_CLASSES
         do j = jfts, jfte
           do i = ifts, ifte
-            n = nfuel_cat(i, j)
+            ! FMC class averaging must use validated fuel_index, never raw
+            ! nfuel_cat, to prevent out-of-bounds access for external SB40
+            ! codes such as 101..204. This defensive check supplements the
+            ! resolver and catches future interface regressions.
+            n = fuel_index(i, j)
+            if (n <= 0 .or. n > size (this%fmc_gw, 1)) then
+              write (msg, '(a, i0, a, i0, a, i0)') 'Invalid fuel_index ', n, ' at i=', i, ' j=', j
+              call Stop_simulation (trim (msg))
+            end if
             fmc_g(i, j) = fmc_g(i, j) + this%fmc_gw(n, k) * this%fmc_gc(i, k, j)
           end do
         end do
