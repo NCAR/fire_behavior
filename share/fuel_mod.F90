@@ -6,7 +6,7 @@
 
     public :: fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
 
-    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 0
+    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 14
 
     type, abstract :: fuel_t
        integer :: n_fuel_cat, no_fuel_cat
