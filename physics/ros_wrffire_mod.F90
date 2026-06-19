@@ -18,7 +18,7 @@
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type, extends(ros_t) :: ros_wrffire_t
-      real :: fuelmc_g_live
+      real :: fuelmc_g_lh
       real, dimension(:, :), allocatable :: bbb, ischap, betafl, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
@@ -92,16 +92,16 @@
 
     end function Calc_ros_wrffire
 
-    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme, fuelmc_g_live)
+    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme, fuelmc_g_lh)
 
       implicit none
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme
-      real, intent (in) :: fuelmc_g_live
+      real, intent (in) :: fuelmc_g_lh
 
 
-      this%fuelmc_g_live = fuelmc_g_live
+      this%fuelmc_g_lh = fuelmc_g_lh
 
       allocate (this%iboros(ifms:ifme, jfms:jfme))
  
@@ -159,7 +159,7 @@
             if (fuels%fgi_lh(k) == 0.0) then
               fuelloadm = (1.0 - bmst) * fuels%fgi(k)
             else
-              fuelloadm = (1.0 - bmst) * fuels%Effective_dead_load(k, this%fuelmc_g_live)
+              fuelloadm = (1.0 - bmst) * fuels%Effective_dead_load(k, this%fuelmc_g_lh)
             end if
             fuelload = fuelloadm * (0.3048) ** 2 * 2.205 ! to lb/ft^2
             fueldepth = fuels%fueldepthm(k) / 0.3048 ! to ft

@@ -66,7 +66,7 @@
         case default
           call Stop_simulation ('The selected fmc_param does not exist')
       end select
-      if (config_flags%fmoist_run) call grid%fmc_param%Init (grid%fuels, config_flags%fuelmc_g, config_flags%fuelmc_g_live, grid%ifms, &
+      if (config_flags%fmoist_run) call grid%fmc_param%Init (grid%fuels, config_flags%fuelmc_g, config_flags%fuelmc_g_lh, grid%ifms, &
           grid%ifme, grid%jfms, grid%jfme, grid%itimestep, grid%dt)
 
         ! Rate of spread parameterization
@@ -77,7 +77,7 @@
         case default
           call Stop_simulation ('The selected ros_opt does not exist')
       end select
-      call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme, config_flags%fuelmc_g_live)
+      call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme, config_flags%fuelmc_g_lh)
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij)

@@ -197,8 +197,8 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fuelmc_g``: *real* (Default: ``0.08``)
    Fuel moisture content ground (Dead :term:`FMC`)
 
-``fuelmc_g_live``: *real* (Default: ``0.30``)
-   Fuel moisture content ground (Live :term:`FMC`). 30% Completely cured, treat as dead fuel
+``fuelmc_g_lh``: *real* (Default: ``1.20``)
+   Ground live-herbaceous :term:`FMC`. Values greater than or equal to 1.20 keep live herbaceous fuel uncured; values less than or equal to 0.30 treat it as fully cured dead-equivalent fuel.
 
 ``fuelmc_c``: *real* (Default: ``1.00``)
    Fuel moisture content of the canopy
@@ -249,4 +249,3 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
-

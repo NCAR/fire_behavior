@@ -75,7 +75,7 @@
 
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
-      real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
+      real :: fuelmc_g_lh = 1.20             ! Fuel moisture content ground (live herbaceous FMC). 120% uncured, 30% fully cured
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
       logical :: fmoist_run = .false.         ! run moisture model
@@ -214,7 +214,7 @@
       call Broadcast_logical (this%fire_is_real_perim)
       call Broadcast_real (this%frac_fburnt_to_smoke)
       call Broadcast_real (this%fuelmc_g)
-      call Broadcast_real (this%fuelmc_g_live)
+      call Broadcast_real (this%fuelmc_g_lh)
       call Broadcast_real (this%fuelmc_c)
 
       call Broadcast_integer (this%ideal_opt)
@@ -469,7 +469,7 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
-          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef
+          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_lh, fuelmc_c, reinit_pseudot_coef
       logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim
 
         ! ignitions
@@ -489,7 +489,7 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
-          frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
+          frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_lh, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
           wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
             ! Ignitions
           fire_num_ignitions, &
@@ -537,7 +537,7 @@
       fire_is_real_perim = this%fire_is_real_perim
       frac_fburnt_to_smoke = this%frac_fburnt_to_smoke
       fuelmc_g = this%fuelmc_g
-      fuelmc_g_live = this%fuelmc_g_live
+      fuelmc_g_lh = this%fuelmc_g_lh
       fuelmc_c = this%fuelmc_c
 
       ideal_opt = this%ideal_opt
@@ -633,7 +633,7 @@
       this%fire_is_real_perim = fire_is_real_perim
       this%frac_fburnt_to_smoke = frac_fburnt_to_smoke
       this%fuelmc_g = fuelmc_g
-      this%fuelmc_g_live = fuelmc_g_live
+      this%fuelmc_g_lh = fuelmc_g_lh
       this%fuelmc_c = fuelmc_c
 
       this%ideal_opt = ideal_opt

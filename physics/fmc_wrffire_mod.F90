@@ -62,14 +62,14 @@
 
   contains
 
-    subroutine Init_fmc_wrffire (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
+    subroutine Init_fmc_wrffire (this, fuels, fuelmc_g, fuelmc_g_lh, ifms, ifme, jfms, jfme, itimestep, dt)
 
       implicit none
 
       class (fmc_wrffire_t), intent (in out) :: this
       class (fuel_t), intent (in) :: fuels
       integer, intent (in) :: ifms, ifme, jfms, jfme, itimestep
-      real, intent (in) :: fuelmc_g, fuelmc_g_live, dt
+      real, intent (in) :: fuelmc_g, fuelmc_g_lh, dt
 
       real, dimension (:), allocatable :: fgi_t
       real, dimension (:, :), allocatable :: fgi_c
@@ -102,7 +102,7 @@
       this%fmc_gc_initial_value(2) = fuelmc_g
       this%fmc_gc_initial_value(3) = fuelmc_g
       this%fmc_gc_initial_value(4) = fuelmc_g
-      this%fmc_gc_initial_value(5) = fuelmc_g_live
+      this%fmc_gc_initial_value(5) = fuelmc_g_lh
 
         ! Calc averaging weights
       do i = 1, mfuelcats

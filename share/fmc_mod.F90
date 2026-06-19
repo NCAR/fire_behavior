@@ -18,11 +18,11 @@
     end type fmc_t
 
     abstract interface
-      subroutine Init (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
+      subroutine Init (this, fuels, fuelmc_g, fuelmc_g_lh, ifms, ifme, jfms, jfme, itimestep, dt)
         import :: fmc_t, fuel_t
         class (fmc_t), intent (in out) :: this
         class (fuel_t), intent (in) :: fuels
-        real, intent (in) :: fuelmc_g, fuelmc_g_live, dt
+        real, intent (in) :: fuelmc_g, fuelmc_g_lh, dt
         integer, intent (in) :: ifms, ifme, jfms, jfme, itimestep
       end subroutine Init
 

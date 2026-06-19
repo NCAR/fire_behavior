@@ -111,7 +111,7 @@
       integer, dimension(:), allocatable :: i_start, i_end, j_start, j_end
 
       real :: unit_fxlong, unit_fxlat
-      real :: fuelmc_g_live
+      real :: fuelmc_g_lh
       integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
@@ -655,7 +655,7 @@
       this%nx = this%ifde
       this%ny = this%jfde
       this%dt = config_flags%dt
-      this%fuelmc_g_live = config_flags%fuelmc_g_live
+      this%fuelmc_g_lh = config_flags%fuelmc_g_lh
 
         ! Init memory
       if (DEBUG_LOCAL) call Print_message ('  Allocating memory...')
@@ -867,7 +867,7 @@
             if (this%fuels%fgi_lh(k) == 0.0) then
               this%fuel_load_g(i, j) = this%fuels%fgi(k)
             else
-              this%fuel_load_g(i, j) = this%fuels%Effective_dead_load(k, this%fuelmc_g_live)
+              this%fuel_load_g(i, j) = this%fuels%Effective_dead_load(k, this%fuelmc_g_lh)
             end if
             if (k == this%fuels%no_fuel_cat) then
                 ! Just what was there before

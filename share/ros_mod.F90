@@ -19,11 +19,11 @@
     end type ros_t
 
     abstract interface
-      subroutine Init (this, ifms, ifme, jfms, jfme, fuelmc_g_live)
+      subroutine Init (this, ifms, ifme, jfms, jfme, fuelmc_g_lh)
         import :: ros_t
         class (ros_t), intent (in out) :: this
         integer, intent (in) :: ifms, ifme, jfms, jfme
-        real, intent (in) :: fuelmc_g_live
+        real, intent (in) :: fuelmc_g_lh
       end subroutine Init
 
       subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, fuel_index, fmc_g)
