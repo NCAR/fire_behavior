@@ -6,7 +6,8 @@
 
     public :: fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
 
-    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 14
+    ! In SB: explicit nonburnables map to no-fuel, unknown codes remain 0 and abort
+    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 0
 
     type, abstract :: fuel_t
        integer :: n_fuel_cat, no_fuel_cat
