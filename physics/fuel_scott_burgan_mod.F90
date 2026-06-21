@@ -38,7 +38,7 @@
       this%n_fuel_cat = N_FUEL_CAT_SCOTT_BURGAN
       this%no_fuel_cat = NO_FUEL_CAT_SCOTT_BURGAN
 
-      ! SB4 is row 40 by construction, independent of any namelist category
+      ! SB4 is length 40 by construction, independent of any namelist category
       ! count, so external code 204 cannot be lost as in legacy nfuelcats=53
       ! configurations. Row 41 is the explicit no-fuel row required by CFBM.
       this%fueldepthm = [ &

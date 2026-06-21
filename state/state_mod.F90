@@ -79,13 +79,8 @@
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
-        ! nfuel_cat is external classification metadata from ideal input,
-        ! geogrid, WRF coupling, or restart files. fuel_index is the validated
-        ! internal physics-table row. They must not be conflated because
-        ! WRF-Fire-style mutation of category fields makes outputs and restarts
-        ! scientifically ambiguous.
-      real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
-      integer, dimension(:, :), allocatable :: fuel_index ! resolved internal fuel row
+      real, dimension(:, :), allocatable :: nfuel_cat ! "external classification metadata from input, Anderson or SB40 category from Landfire"
+      integer, dimension(:, :), allocatable :: fuel_index ! "resolved internal fuel row"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
       real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function

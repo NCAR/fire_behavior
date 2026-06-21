@@ -83,9 +83,6 @@ list(APPEND _io_files io/namelist_mod.F90
 
 
 # WRF Physics
-# Keep fuel_scott_burgan_mod.F90 registered here and in the WRF parent
-# integration metadata so standalone CFBM and WRF-coupled builds compile the
-# native SB40 table.
 list(APPEND _wrffire_physics physics/level_set_mod.F90
                              physics/fire_driver_mod.F90
 			     physics/fire_model_mod.F90
