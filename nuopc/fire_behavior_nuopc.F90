@@ -19,7 +19,7 @@ module fire_behavior_nuopc
   use constants_mod, only : G, XLV, CP, FVIRT, R_D
   use stderrout_mod, only : Stop_simulation, Print_message
   use coupling_mod, only : Calc_fire_wind
-  use interp_mod, only: VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+  use interp_mod, only: VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS, WIND_HINTERP_WRF_STAGGERED
 
   implicit none
 
@@ -947,6 +947,11 @@ module fire_behavior_nuopc
 
     select case (config_flags%wind_vinterp_opt)
       case (VINTERP_WINDS_FROM_3D_WINDS)
+      ! NUOPC imports colocated 3D wind profiles on the fire grid.
+      ! It does not import native WRF C-grid U/V faces or WRF geopotential
+      ! geometry, so the WRF-staggered horizontal option is not defined here.
+      if (config_flags%wind_hinterp_opt == WIND_HINTERP_WRF_STAGGERED) &
+        call Stop_simulation ('wind_hinterp_opt=3 requires WRF-staggered U/V and is not supported by the NUOPC import path')
 
       iims = grid%ifps
       iime = grid%ifpe

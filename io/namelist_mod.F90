@@ -4,7 +4,8 @@
     use mpi_f08
 #endif
       ! Get access to default options
-    use interp_mod, only : HINTERP_BILINEAR, VINTERP_WINDS_FROM_10M_WINDS
+    use interp_mod, only : HINTERP_BILINEAR, VINTERP_WINDS_FROM_10M_WINDS, WIND_HINTERP_NEAREST, WIND_HINTERP_BILINEAR, &
+        WIND_HINTERP_WRF_STAGGERED
     use fuel_mod, only : FUEL_ANDERSON
     use ros_mod, only : ROS_WRFFIRE
     use fmc_mod, only : FMC_WRFFIRE
@@ -70,6 +71,8 @@
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       integer :: wind_vinterp_opt = VINTERP_WINDS_FROM_10M_WINDS ! "mid-flame height wind interpolation option: 0) Interp to specified height, 1) Use WAFs"
       integer :: hinterp_opt = HINTERP_BILINEAR ! "Horizontal interpolation from atm to fire (offline option): 1) nearest neighbour, 2) bi-linear"
+        ! Horizontal wind interpolation assumes staggered 3D U/V while hinterp_opt assumes scalar mass-center fields
+      integer :: wind_hinterp_opt = WIND_HINTERP_BILINEAR ! "Horizontal wind interpolation option: 1) nearest, 2) bi-linear, 3) WRF-staggered"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
       real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
 
@@ -226,6 +229,7 @@
       call Broadcast_integer (this%emis_opt)
       call Broadcast_integer (this%wind_vinterp_opt)
       call Broadcast_integer (this%hinterp_opt)
+      call Broadcast_integer (this%wind_hinterp_opt)
 
       call Broadcast_integer (this%fire_num_ignitions)
 
@@ -466,7 +470,7 @@
       character (len = *), intent (in) :: file_name
 
       integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
-          fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
+          fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, wind_hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_lh, fuelmc_c, reinit_pseudot_coef
@@ -490,7 +494,7 @@
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_lh, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
+          wind_vinterp_opt, hinterp_opt, wind_hinterp_opt, reinit_pseudot_coef, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -549,6 +553,7 @@
       emis_opt = this%emis_opt
       wind_vinterp_opt = this%wind_vinterp_opt
       hinterp_opt = this%hinterp_opt
+      wind_hinterp_opt = this%wind_hinterp_opt
 
       fire_num_ignitions = this%fire_num_ignitions
 
@@ -645,6 +650,14 @@
       this%emis_opt = emis_opt
       this%wind_vinterp_opt = wind_vinterp_opt
       this%hinterp_opt = hinterp_opt
+      this%wind_hinterp_opt = wind_hinterp_opt
+        ! wind_hinterp_opt=3 uses native WRF C-grid U/V placement. It is a
+        ! 3D wind method and is not meaningful for unstaggered U10/V10.
+      if (this%wind_hinterp_opt /= WIND_HINTERP_NEAREST .and. this%wind_hinterp_opt /= WIND_HINTERP_BILINEAR .and. &
+          this%wind_hinterp_opt /= WIND_HINTERP_WRF_STAGGERED) &
+          call Stop_simulation ('wind_hinterp_opt must be 1, 2, or 3')
+      if (this%wind_vinterp_opt == VINTERP_WINDS_FROM_10M_WINDS .and. this%wind_hinterp_opt == WIND_HINTERP_WRF_STAGGERED) &
+          call Stop_simulation ('wind_hinterp_opt=3 is only valid with wind_vinterp_opt=0 because U10/V10 are unstaggered')
 
       this%fire_num_ignitions = fire_num_ignitions
 

@@ -5,7 +5,7 @@
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
     use proj_lc_mod, only : proj_lc_t
     use stderrout_mod, only : Print_message, Stop_simulation
-    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS, WIND_HINTERP_WRF_STAGGERED
     use coupling_mod, only : Interp_horizontal, Calc_fire_wind
 
     implicit none
@@ -610,9 +610,20 @@
       select case (config_flags%wind_vinterp_opt)
         case (VINTERP_WINDS_FROM_3D_WINDS)
           call this%Get_z0 (datetime_now)
+          call this%Get_phl (datetime_now)
+            ! For WRF-staggered horizontal interpolation, keep the native U/V
+            ! staggering from wrfout. The final interpolation to the fire grid
+            ! is deferred until state_mod has fire-grid lat/lon and fz0.
+          if (config_flags%wind_hinterp_opt == WIND_HINTERP_WRF_STAGGERED) then
+            call this%Get_u3d_stag (datetime_now)
+            call this%Get_v3d_stag (datetime_now)
+            return
+          end if
+
+            ! Generic 3D wind options use destaggered mass-grid winds, then
+            ! calculate fire-height ua/va on the atmospheric grid.
           call this%Get_u3d (datetime_now)
           call this%Get_v3d (datetime_now)
-          call this%Get_phl (datetime_now)
 
             ! Set input (i) and output (o) indices
           iims = this%ids

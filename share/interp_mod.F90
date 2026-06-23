@@ -7,9 +7,14 @@
     private
 
     integer, parameter :: HINTERP_NEAREST = 1, HINTERP_BILINEAR = 2, VINTERP_WINDS_FROM_3D_WINDS = 0, VINTERP_WINDS_FROM_10M_WINDS = 1
+      ! Wind interpolation has its own option space because WRF 3D U and V
+      ! can be C-grid staggered while scalar fields and U10/V10 are not.
+      ! Values 1 and 2 intentionally mirror HINTERP_* for mass-grid winds.
+    integer, parameter :: WIND_HINTERP_NEAREST = 1, WIND_HINTERP_BILINEAR = 2, WIND_HINTERP_WRF_STAGGERED = 3
 
     public :: Interp_profile, Interp_horizontal_nearest, Interp_horizontal_bilinear, HINTERP_NEAREST, HINTERP_BILINEAR, &
-        VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+        VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS, WIND_HINTERP_NEAREST, WIND_HINTERP_BILINEAR, &
+        WIND_HINTERP_WRF_STAGGERED
 
   contains
 

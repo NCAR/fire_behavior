@@ -184,6 +184,30 @@ Example namelists can be found in the various test subdirectories under the ``te
    [Units: m]
    Height of uah,vah wind in fire spread formula
 
+``wind_vinterp_opt``: *integer* (Default: ``1``)
+   Wind source and vertical interpolation option.
+     0: use 3D winds and vertically interpolate to ``fire_wind_height``
+
+     1: use unstaggered ``U10/V10`` and apply fuel wind adjustment factors
+
+``hinterp_opt``: *integer* (Default: ``2``)
+   Generic horizontal interpolation option for scalar or unstaggered atmospheric fields.
+     1: nearest neighbor
+
+     2: bilinear
+
+``wind_hinterp_opt``: *integer* (Default: ``2``)
+   Horizontal interpolation option for wind forcing.
+     1: nearest mass-grid wind interpolation
+
+     2: bilinear mass-grid wind interpolation
+
+     3: WRF C-grid stagger-aware interpolation for 3D ``U/V``
+
+   Option 3 is valid only with ``wind_vinterp_opt = 0`` and requires WRF-native
+   staggered 3D winds. Offline ``wrfout`` forcing can use option 3 when the file
+   provides staggered ``U`` and ``V``, ``PH``, ``PHB``, and ``ZNT``.
+
 ``fire_is_real_perim``: *logical* (Default: ``.false.``)
    Determines if perimeter represents a real fire boundary.
      .true. = observed perimeter

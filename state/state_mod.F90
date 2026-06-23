@@ -18,6 +18,8 @@
     use stderrout_mod, only : Stop_simulation, Print_message
     use tiles_mod, only : Calc_tiles_dims
     use wrfdata_mod, only : wrfdata_t, G, RERADIUS
+    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, WIND_HINTERP_WRF_STAGGERED
+    use wrf_mod, only : Interp_wrfout_staggered_winds_to_cfbm
     use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Do_halo_exchange_with_corners, &
         Print_cart_info, Sum_across_mpi_tasks, topology_dim_order
     use, intrinsic :: iso_fortran_env, only : INT32, REAL32
@@ -1024,13 +1026,31 @@
       if (.not. allocated (this%lats) .or. .not. allocated (this%lons)) &
           call Stop_simulation ('Init lats/lons before calling hinterp atm variables')
 
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'ua', config_flags%hinterp_opt, this%uf)
+        ! Staggered WRF winds need fire-grid geometry during interpolation, so
+        ! this path consumes the native wrfout U/V/PH/ZNT fields directly here.
+        ! Other wind paths arrive as mass-grid ua/va and can use Interp_var2grid.
+      if (config_flags%wind_vinterp_opt == VINTERP_WINDS_FROM_3D_WINDS .and. &
+          config_flags%wind_hinterp_opt == WIND_HINTERP_WRF_STAGGERED) then
+        call Interp_wrfout_staggered_winds_to_cfbm (wrf%u3d, wrf%v3d, wrf%phl, wrf%z0, this%ifms, this%ifme, &
+            this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%lats, this%lons, this%proj, &
+            this%fz0, config_flags%fire_lsm_zcoupling, config_flags%fire_lsm_zcoupling_ref, config_flags%fire_wind_height, &
+            this%uf, this%vf)
+        call wrf%Destroy_u3d ()
+        call wrf%Destroy_v3d ()
+        call wrf%Destroy_phl ()
+        call wrf%Destroy_z0 ()
+      else
+          ! Wind forcing uses wind_hinterp_opt; scalar atmospheric fields below
+          ! continue to use hinterp_opt so wind-specific C-grid options do not
+          ! leak into generic scalar interpolation.
+        call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+            config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+            'ua', config_flags%wind_hinterp_opt, this%uf)
 
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'va', config_flags%hinterp_opt, this%vf)
+        call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+            config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+            'va', config_flags%wind_hinterp_opt, this%vf)
+      end if
 
       if (config_flags%wind_vinterp_opt == 1) then
         call this%Apply_wafs ()
