@@ -1973,6 +1973,12 @@
           this%nfuel_cat(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
       if (this%output_level > 0) then
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'ros', &
+              this%ros(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'ros_front', &
+              this%ros_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_ls', &
               this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
