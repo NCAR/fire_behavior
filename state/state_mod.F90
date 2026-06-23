@@ -11,7 +11,7 @@
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
-    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS, WIND_HINTERP_WRF_STAGGERED
     use namelist_mod, only : namelist_t
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, &
         NAME_DIM_X, NAME_DIM_Y, NF90_FILL_FLOAT
@@ -21,6 +21,7 @@
     use tiles_mod, only : Calc_tiles_dims
     use wrfdata_mod, only : wrfdata_t, G, RERADIUS
     use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Print_cart_info, topology_dim_order
+    use wrf_mod, only : Interp_wrfout_staggered_winds_to_cfbm
 
     implicit none
 
@@ -954,6 +955,7 @@
       type (wrfdata_t), intent(in out) :: wrf
       type (namelist_t), intent (in) :: config_flags
 
+      type (proj_lc_t) :: wrf_proj
       integer :: i, j
 
 
@@ -967,9 +969,25 @@
 
       select case (config_flags%wind_vinterp_opt)
         case (VINTERP_WINDS_FROM_3D_WINDS)
-          call wrf%Interp_winds2grid (this%lats, this%lons, this%fz0, this%ifms, this%ifme, this%jfms, this%jfme, &
-              this%ifps, this%ifpe, this%jfps, this%jfpe, this%num_tiles, &
-              this%i_start, this%i_end, this%j_start, this%j_end, config_flags, this%uf, this%vf)
+          if (config_flags%wind_hinterp_opt == WIND_HINTERP_WRF_STAGGERED) then
+              ! Staggered WRF winds need fire-grid geometry during interpolation, so
+              ! this path consumes the native wrfout U/V/PH fields and fz0 directly here.
+              ! z0 is still needed below and is destroyed at the end of this routine.
+              ! Index the forcing arrays in their own projection, which can differ
+              ! from the projection used to initialize the fire state.
+            wrf_proj = wrf%Get_projection ()
+            call Interp_wrfout_staggered_winds_to_cfbm (wrf%u3d, wrf%v3d, wrf%phl, wrf%z0, this%ifms, this%ifme, &
+                this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%lats, this%lons, wrf_proj, &
+                this%fz0, config_flags%fire_lsm_zcoupling, config_flags%fire_lsm_zcoupling_ref, config_flags%fire_wind_height, &
+                this%uf, this%vf)
+            call wrf%Destroy_u3d ()
+            call wrf%Destroy_v3d ()
+            call wrf%Destroy_phl ()
+          else
+            call wrf%Interp_winds2grid (this%lats, this%lons, this%fz0, this%ifms, this%ifme, this%jfms, this%jfme, &
+                this%ifps, this%ifpe, this%jfps, this%jfpe, this%num_tiles, &
+                this%i_start, this%i_end, this%j_start, this%j_end, config_flags, this%uf, this%vf)
+          end if
 
         case (VINTERP_WINDS_FROM_10M_WINDS)
           ! Map the loaded 10 m winds directly, then apply fuel wind adjustment.
