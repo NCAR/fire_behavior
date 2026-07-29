@@ -42,12 +42,14 @@ CONFIG: dict[str, Any] = {
         "sr_x": 4,
         "sr_y": 4,},
     "projection": {
-        # Keep a low positive Lambert latitude for near-origin ideal cases.
-        # Exactly zero latitude makes the current Lambert cone factor singular.
-        "cen_lat": 1.0,
+        # Use a mid-latitude Lambert reference point for idealized cases.
+        # This keeps the projection well conditioned in the current single-
+        # precision standalone projection path while preserving local-meter
+        # case controls through the configuration below.
+        "cen_lat": 35.0,
         "cen_lon": 0.0,
-        "truelat1": 1.0,
-        "truelat2": 1.0,
+        "truelat1": 35.0,
+        "truelat2": 35.0,
         "stand_lon": 0.0,
         "map_proj": 1,
         "map_proj_char": "Lambert Conformal",},
@@ -404,11 +406,10 @@ def xy_to_latlon(x_m: float, y_m: float) -> tuple[float, float]:
     grid = derived_grid()
     proj = LambertProjection()
     i_atm = x_m / grid["dx"] + 0.5
-    # The standalone output grid shows fire-array rows shifted northward from
-    # the direct lower-left-to-atmospheric-index conversion. Apply the same
-    # offset here so namelist ignition coordinates and geogrid fuel placement
-    # refer to the same visual fire-grid row in fire_output_*.nc.
-    j_atm = y_m / grid["dy"] + 0.5 + (grid["sn_grid"] - 1) / grid["sr_y"]
+    # Mid-latitude Lambert settings are sufficiently well conditioned for this
+    # idealized case, so user-facing local meters map directly to atmospheric
+    # projection indices.
+    j_atm = y_m / grid["dy"] + 0.5
     return proj.calc_latlon(i_atm, j_atm)
 
 
