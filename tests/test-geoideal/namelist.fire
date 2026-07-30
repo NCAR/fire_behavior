@@ -1,0 +1,70 @@
+ &time
+ start_year = 2012
+ start_month = 6
+ start_day = 25
+ start_hour = 18
+ start_minute = 0
+ start_second = 0
+ end_year = 2012
+ end_month = 6
+ end_day = 25
+ end_hour = 18
+ end_minute = 0
+ end_second = 30
+ dt = 0.5
+ interval_output = 10
+ num_tiles = 1,
+ restart = .false.
+/
+
+ &atm
+ interval_atm = 1
+ kde = 45
+ /
+
+ &fire
+ fire_num_ignitions = 1,
+ fire_ignition_ros1 =   12.55,
+ fire_ignition_start_lat1 = 35.00036,
+ fire_ignition_start_lon1 = -0.0071372999,
+ fire_ignition_end_lat1 = 35.000539,
+ fire_ignition_end_lon1 = -0.0071373156,
+ fire_ignition_radius1 = 50,
+ fire_ignition_start_time1 = 0,
+ fire_ignition_end_time1 = 0,
+ fire_print_msg = 1,     
+!
+! Fire propagation          
+ fire_atm_feedback = 0,            
+ fire_viscosity = 0.4,          
+ fire_wind_height = 2.0, 
+ fire_upwinding = 2,               
+ fire_lsm_reinit = .true.
+ fire_lsm_reinit_iter = 1
+ fire_upwinding_reinit = 4
+ reinit_pseudot_coef = 0.01, ! default cfbm: reinit_pseudot_coef = 0.0001 ; wrf-fire: dt_s=0.01*dx
+!
+! Interpolation
+ wind_vinterp_opt = 0        ! use 3D WRF winds and interpolate vertically to fire_wind_height 
+ wind_hinterp_opt = 3        ! use WRF C-grid stagger-aware U/V horizontal interpolation 
+ hinterp_opt = 2             ! keep bilinear interpolation for scalar/unstaggered fields 
+!
+! Fuels
+ fuel_opt = 2,               ! opt=2 for SB; opt=1 for Anderson
+ fuelmc_g = 0.08             ! fuel moisture on ground (dead)
+ fuelmc_g_lh = 1.2,          ! fuel moisture on ground live herbaceous
+ fuelmc_c = 1.00             ! fuel moisture on canopy (canopy model not implemented)
+ fmoist_run = .false.,       ! keep prescribed homogeneous fuel moisture for this idealized propagation case
+ fmoist_freq = 1,            ! Fuel moisture model updated every time step
+ fmoist_dt = 600.0
+ ! fmc_opt = -1
+ emis_opt = 0
+!
+! Other options
+ ideal_opt = 0,              ! keep idealized fields in NetCDF inputs rather than source-code ideal mode
+ devel_opt = 1,
+/
+
+ &devel 
+ output_level = 1, 
+ / 
