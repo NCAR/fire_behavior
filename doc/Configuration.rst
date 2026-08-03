@@ -131,6 +131,9 @@ Example namelists can be found in the various test subdirectories under the ``te
 
      9: Hybrid WENO5/ENO1 (default): Similar to option 8, but uses WENO5 instead of WENO3 in the band surrounding the fire front. This approach reduces computational cost while maintaining accuracy near the front.
 
+     10: Hybrid WENO5/ENO1 with a cosine transition from WENO5 to ENO1
+     across the outer half of the LFN-distance band.
+
 ``fire_viscosity``: *real* (Default: ``0.4``)
    Artificial viscocity in :term:`level-set method` away from the near-front region.
 
@@ -197,7 +200,20 @@ Example namelists can be found in the various test subdirectories under the ``te
    alter legacy coefficient mode.
 
 ``fire_lsm_band_ngp``: *integer* (Default: ``4``)
-   When using ``fire_upwinding_reinit=3,4`` and ``fire_upwinding=8/9``, the number of grid points around lfn=0 that WENO5/3 is used
+   Width in grid points of the numerical LFN-distance band. Propagation
+   options 8 and 9 use WENO3 or WENO5, respectively, where
+   ``abs(lfn) < fire_lsm_band_ngp * dx`` and ENO1 outside. Option 10 uses full
+   WENO5 within that threshold, a cosine WENO5-to-ENO1 blend out to twice the
+   threshold, and ENO1 beyond it. The condition is recalculated from the
+   current LFN at every Runge-Kutta stage. Reinitialization options 3 and 4
+   use the same parameter for their established LFN-distance stencil
+   selection. This numerical control is independent of ``use_active_front``.
+
+``active_front_band_ngp``: *integer* (Default: ``4``)
+   Nonnegative diagnostic-band width in grid points. Values 0 and 1 retain
+   the selected seed; each larger value adds one bounded four-neighbor layer
+   per additional grid point. This option controls only ``band_mask`` and
+   does not affect propagation, artificial viscosity, or reinitialization.
 
 ``fast_dist_reinit_at_startup``: *logical* (Default: ``.false.``)
    For real-perimeter initialization, run one fast-sweeping distance
@@ -332,11 +348,36 @@ Example namelists can be found in the various test subdirectories under the ``te
    * ``ros_front`` is ``ros`` retained only in partially burned cells where
      ``0 < fire_area < 1``; it is zero outside that cell-area representation of
      the fire front.
+   * ``fire_area_change_rate`` is the signed model-timestep change in the
+     dimensionless burned-area fraction [s-1]. The initial output is zero
+     because no model advance has occurred. Area introduced during the first
+     advance by prescribed ignition or real-perimeter initialization is
+     included in the rate.
+   * ``active_front_mask`` identifies burned, burnable interface cells that
+     touch exterior-connected nonnegative-LFN burnable space when
+     ``use_active_front=.true.``. Exterior connectivity is four-neighbor and
+     interface contact is eight-neighbor. The field is zero when the option is
+     false.
+   * ``barrier_contact_front_mask`` identifies burned, burnable interface
+     cells that touch only trapped nonnegative-LFN burnable pockets when
+     ``use_active_front=.true.``. It is zero when that option is false.
+   * ``band_mask`` is the diagnostic support band selected by
+     ``use_active_front`` and expanded according to
+     ``active_front_band_ngp``. In exact mode, the width-0/1 seed contains the
+     burned-side active-front cells and their eight-neighbor exterior
+     nonnegative-LFN burnable cells. Larger widths add four-neighbor layers on
+     both sides, excluding barrier-contact cells from burned-side expansion.
+   * ``ros_lfn_error_front`` is
+     ``-lfn_tend_dbg / grad_norm_ls - ros`` [m s-1] where the gradient norm is
+     numerically resolvable. Its support is the exact pre-reinitialization
+     active-front mask when reinitialization occurs in exact-mask mode, the
+     exact final active-front mask when it does not, or the area-change band
+     in local diagnostic mode.
    * ``grad_norm_ls`` is the propagation-stage level-set gradient norm.
    * ``grad_norm_reinit`` is the reinitialization-stage gradient norm.
-   * ``lfn_tend_dbg`` is the total final-stage level-set tendency [s-1].
-   * ``lfn_adv_dbg`` is the final-stage physical spread contribution [s-1].
-   * ``lfn_visc_dbg`` is the final-stage artificial-viscosity contribution [s-1].
+   * ``lfn_tend_dbg`` is the total final-stage level-set tendency [m s-1].
+   * ``lfn_adv_dbg`` is the final-stage physical spread contribution [m s-1].
+   * ``lfn_visc_dbg`` is the final-stage artificial-viscosity contribution [m s-1].
    * ``lfn_pre_reinit_dbg`` and ``lfn_post_reinit_dbg`` are the level-set
      fields immediately before and after reinitialization, respectively.
    * ``lfn_reinit_delta_dbg`` is the post-minus-pre reinitialization increment.
@@ -354,6 +395,27 @@ Example namelists can be found in the various test subdirectories under the ``te
      ring uses the capped subcell estimate; optional buffer cells use the
      entering ``abs(lfn)``. The field is zero outside ``rs_interface_mask`` and
      when Russo-Smereka construction is disabled.
+
+``use_active_front``: *logical* (Default: ``.false.``)
+   Diagnostic-only selector in the ``devel`` namelist block. It is read when
+   ``devel_opt > 0`` and never selects a propagation or reinitialization
+   stencil.
+
+   When false, ``band_mask`` is seeded exactly where
+   ``abs(fire_area_change_rate) > 0`` and expanded with
+   ``max(0, active_front_band_ngp - 1)`` four-neighbor passes. Every seed is
+   retained, including seeds in fuel category 14, while added cells must have
+   a fuel category other than 14. This path performs no exterior-connectivity
+   calculation or global convergence loop.
+
+   When true, the model diagnoses the exterior-connected active front and
+   barrier-contact interface. A timestep with fast-distance or PDE
+   reinitialization computes the exact masks before and after reinitialization;
+   a timestep without reinitialization computes them once on the final LFN.
+   The saved masks follow the final LFN after prescribed ignition. With
+   ``fire_print_msg > 1``, the model reports the exact connectivity-call count
+   for each physical timestep. The initial output contains zero masks and zero
+   ``ros_lfn_error_front`` because no physical timestep has occurred.
 
 Each PDE reinitialization also logs the number of strict nonzero sign reversals
 between the entering and final level-set fields. If the Russo-Smereka distance

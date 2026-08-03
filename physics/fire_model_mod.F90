@@ -2,7 +2,8 @@
 
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use level_set_mod, only: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, &
-        Stop_if_close_to_bdy, Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn
+        Stop_if_close_to_bdy, Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn, &
+        Compute_active_front_masks, Expand_diagnostic_band
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t, N_POINTS_IN_HALO
@@ -28,7 +29,10 @@
       type (state_fire_t), intent (in out) :: grid
 
       integer :: i, j, ij, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      integer :: exact_active_front_calls
       real :: tbound, time_start
+      logical :: do_fastdist, has_pre_reinit_mask, reinit_scheduled
+      character (len = 128) :: msg
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
@@ -47,6 +51,11 @@
       jfme = grid%jfme
 
       time_start = grid%itimestep * grid%dt
+      do_fastdist = config_flags%fast_dist_reinit_opt > 0 .and. grid%itimestep > 0 .and. &
+          mod (grid%itimestep, config_flags%fast_dist_reinit_freq) == 0
+      reinit_scheduled = do_fastdist .or. config_flags%fire_lsm_reinit
+      exact_active_front_calls = 0
+      has_pre_reinit_mask = .false.
 
       if (DEBUG_LOCAL) call Print_message ('calling Prop_level_set...')
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
@@ -57,6 +66,15 @@
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%grad_norm_ls, grid%grad_norm_residual_sq_sum, &
           grid%grad_norm_residual_sq_sum_band, grid%grad_norm_residual_rms_band, grid%lfn_tend_dbg, grid%lfn_adv_dbg, &
           grid%lfn_visc_dbg)
+
+      if (config_flags%use_active_front .and. reinit_scheduled) then
+        call Compute_active_front_masks (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%active_front_band_ngp, grid%cart_comm, &
+            grid%lfn_out, grid%nfuel_cat, grid%active_front_mask, grid%barrier_contact_front_mask, grid%band_mask)
+        call Update_ros_lfn_error (grid, grid%active_front_mask)
+        exact_active_front_calls = exact_active_front_calls + 1
+        has_pre_reinit_mask = .true.
+      end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Stop_if_close_to_bdy...')
       !$OMP PARALLEL DO   &
@@ -103,7 +121,7 @@
       end do
       !$OMP END PARALLEL DO
 
-      if (config_flags%fast_dist_reinit_opt > 0 .and. grid%itimestep > 0 .and. mod (grid%itimestep, config_flags%fast_dist_reinit_freq) == 0) then
+      if (do_fastdist) then
         if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set_fast_dist...')
         grid%lfn_2 = grid%lfn_out
         call Reinit_level_set_fast_dist (grid%lfn_s0, grid%lfn_out, grid%i_start, grid%i_end, grid%j_start, grid%j_end, &
@@ -186,6 +204,14 @@
       call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, N_POINTS_IN_HALO, grid%cart_comm)
 #endif
 
+      if (config_flags%use_active_front) then
+        call Compute_active_front_masks (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+            grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%active_front_band_ngp, grid%cart_comm, &
+            grid%lfn, grid%nfuel_cat, grid%active_front_mask, grid%barrier_contact_front_mask, grid%band_mask)
+        exact_active_front_calls = exact_active_front_calls + 1
+        if (.not. has_pre_reinit_mask) call Update_ros_lfn_error (grid, grid%active_front_mask)
+      end if
+
       if (DEBUG_LOCAL) call Print_message ('calling Calc_fuel_left...')
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, ifts, ifte, jfts, jfte)
@@ -195,10 +221,23 @@
         jfts = grid%j_start(ij)
         jfte = grid%j_end(ij)
         call Calc_fuel_left (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
-            grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, grid%fuel_frac, grid%fire_area, &
-            grid%fuel_frac_burnt_dt)
+            grid%lfn, grid%tign_g, grid%fuel_time, time_start + grid%dt, grid%dt, grid%fuel_frac, grid%fire_area, &
+            grid%fire_area_change_rate, grid%fuel_frac_burnt_dt)
       end do
       !$OMP END PARALLEL DO
+
+      if (.not. config_flags%use_active_front) then
+        grid%active_front_mask = 0.0
+        grid%barrier_contact_front_mask = 0.0
+        call Expand_diagnostic_band (ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, &
+            config_flags%active_front_band_ngp, grid%cart_comm, grid%fire_area_change_rate, grid%nfuel_cat, grid%band_mask)
+        call Update_ros_lfn_error (grid, grid%band_mask)
+      end if
+
+      if (config_flags%fire_print_msg > 1) then
+        write (msg, '(a, i0)') 'Active-front exact connectivity calls this timestep=', exact_active_front_calls
+        call Print_message (trim (msg))
+      end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Calc_fire_fluxes...')
       !$OMP PARALLEL DO   &
@@ -229,6 +268,29 @@
       if (DEBUG_LOCAL) call Print_message ('Leaving Advance_fire_model...')
 
     end subroutine Advance_fire_model
+
+    subroutine Update_ros_lfn_error (grid, support_mask)
+
+      implicit none
+
+      type (state_fire_t), intent (in out) :: grid
+      real, dimension(grid%ifms:grid%ifme, grid%jfms:grid%jfme), intent (in) :: support_mask
+
+      integer :: i, j
+      real, parameter :: GRAD_NORM_MIN = 100.0 * epsilon (0.0)
+
+
+      grid%ros_lfn_error_front = 0.0
+      do j = grid%jfps, grid%jfpe
+        do i = grid%ifps, grid%ifpe
+          if (support_mask(i, j) > 0.5 .and. abs (grid%grad_norm_ls(i, j)) > GRAD_NORM_MIN) then
+            grid%ros_lfn_error_front(i, j) = &
+                -grid%lfn_tend_dbg(i, j) / grid%grad_norm_ls(i, j) - grid%ros(i, j)
+          end if
+        end do
+      end do
+
+    end subroutine Update_ros_lfn_error
 
     subroutine Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
 

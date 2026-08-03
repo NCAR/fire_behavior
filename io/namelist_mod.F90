@@ -62,10 +62,11 @@
       logical :: reinit_conditional_no_retreat = .false. ! limit the no-retreat clamp to previously burned cells
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
-                                              ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
+                                              ! for fire_upwinding_reinit=3,4 and fire_upwinding=8,9,10 options"
       real :: reinit_pseudot_coef = 0.0001    ! Coefficient for the pseudo time
       real :: reinit_pseudot_rate = -1.0      ! pseudo-time rate [m s-1]; -1 selects legacy coefficient mode
       real :: reinit_pseudot_cfl = 0.5        ! maximum pseudo-time CFL in rate mode
+      integer :: active_front_band_ngp = 4    ! diagnostic band width in grid points
 
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
@@ -171,6 +172,7 @@
         ! Devel block
       integer :: check_isolated_neg_lfn = 0   ! 0) disabled, 1) save and stop, 2) report and continue
       integer :: output_level = 0             ! 0) Standard output, >0) Specialized output
+      logical :: use_active_front = .false.   ! use exact exterior-connected diagnostic masks
     contains
       procedure, public :: Broadcast_nml => Broadcast_nml
       procedure, public :: Check_nml => Check_nml
@@ -213,6 +215,7 @@
       call Broadcast_real (this%reinit_pseudot_coef)
       call Broadcast_real (this%reinit_pseudot_rate)
       call Broadcast_real (this%reinit_pseudot_cfl)
+      call Broadcast_integer (this%active_front_band_ngp)
       call Broadcast_integer (this%fast_dist_reinit_opt)
       call Broadcast_integer (this%fast_dist_reinit_freq)
       call Broadcast_logical (this%fast_dist_reinit_at_startup)
@@ -334,6 +337,7 @@
         ! Devel block
       call Broadcast_integer (this%check_isolated_neg_lfn)
       call Broadcast_integer (this%output_level)
+      call Broadcast_logical (this%use_active_front)
     contains
 
       subroutine Broadcast_integer (val)
@@ -416,6 +420,8 @@
           call Stop_simulation ('reinit_pseudot_cfl must be positive')
       if (this%check_isolated_neg_lfn < 0 .or. this%check_isolated_neg_lfn > 2) &
           call Stop_simulation ('check_isolated_neg_lfn must be 0, 1, or 2')
+      if (this%active_front_band_ngp < 0) &
+          call Stop_simulation ('active_front_band_ngp must be nonnegative')
       if (this%reinit_use_russo_smereka .and. this%fire_upwinding_reinit /= 5 .and. .not. this%allow_RS_any_reinit) &
           call Stop_simulation ('reinit_use_russo_smereka requires fire_upwinding_reinit=5 unless allow_RS_any_reinit=.true.')
 
@@ -461,14 +467,16 @@
       character (len = *), intent (in) :: file_name
 
       integer :: check_isolated_neg_lfn, output_level
+      logical :: use_active_front
       integer :: unit_nml, io_stat
       character (len = :), allocatable :: msg
 
-      namelist /devel/ check_isolated_neg_lfn, output_level
+      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front
 
 
       check_isolated_neg_lfn = this%check_isolated_neg_lfn
       output_level = this%output_level
+      use_active_front = this%use_active_front
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -482,6 +490,7 @@
 
       this%check_isolated_neg_lfn = check_isolated_neg_lfn
       this%output_level = output_level
+      this%use_active_front = use_active_front
 
     end subroutine Init_devel_block
 
@@ -492,7 +501,8 @@
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
-      integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, reinit_rs_buffer_ngp, &
+      integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
+          active_front_band_ngp, reinit_rs_buffer_ngp, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
@@ -524,7 +534,7 @@
           fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, active_front_band_ngp, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -564,6 +574,7 @@
       reinit_pseudot_coef = this%reinit_pseudot_coef
       reinit_pseudot_rate = this%reinit_pseudot_rate
       reinit_pseudot_cfl = this%reinit_pseudot_cfl
+      active_front_band_ngp = this%active_front_band_ngp
       fast_dist_reinit_opt = this%fast_dist_reinit_opt
       fast_dist_reinit_freq = this%fast_dist_reinit_freq
       fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
@@ -670,6 +681,7 @@
       this%reinit_pseudot_coef = reinit_pseudot_coef
       this%reinit_pseudot_rate = reinit_pseudot_rate
       this%reinit_pseudot_cfl = reinit_pseudot_cfl
+      this%active_front_band_ngp = active_front_band_ngp
       this%fast_dist_reinit_opt = fast_dist_reinit_opt
       this%fast_dist_reinit_freq = fast_dist_reinit_freq
       this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup

@@ -30,7 +30,8 @@
     private
 
     public :: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, Stop_if_close_to_bdy, &
-        Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn
+        Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn, Compute_active_front_masks, &
+        Expand_diagnostic_band
 
     integer, parameter :: BDY_ENO1 = 10, FAST_DIST_REINIT_FSM = 1
     integer, parameter :: FAR = 0, TRIAL = 1, KNOWN = 2
@@ -166,8 +167,235 @@
 
     ! ***************************************************************************
 
+    subroutine Compute_active_front_masks (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifps, ifpe, jfps, jfpe, &
+        active_front_band_ngp, cart_comm, lfn_field, nfuel_cat, active_front_mask, barrier_contact_front_mask, band_mask)
+
+      implicit none
+
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, ifps, ifpe, jfps, jfpe
+      integer, intent (in) :: active_front_band_ngp, cart_comm
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lfn_field, nfuel_cat
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: active_front_mask, barrier_contact_front_mask, band_mask
+
+      integer :: di, dj, i, j, shell_width, step
+      real :: global_changed, local_changed, gmax
+      logical :: has_exterior_neighbor, has_positive_neighbor
+      real, dimension(:, :), allocatable :: pos_burnable
+      real, dimension(:, :), allocatable :: exterior_pos_prev, exterior_pos_curr
+      real, dimension(:, :), allocatable :: frontier_prev_pos, frontier_curr_pos, frontier_prev_neg, frontier_curr_neg
+
+
+      shell_width = max (1, active_front_band_ngp)
+
+      allocate (pos_burnable(ifms:ifme, jfms:jfme))
+      allocate (exterior_pos_prev(ifms:ifme, jfms:jfme))
+      allocate (exterior_pos_curr(ifms:ifme, jfms:jfme))
+      allocate (frontier_prev_pos(ifms:ifme, jfms:jfme))
+      allocate (frontier_curr_pos(ifms:ifme, jfms:jfme))
+      allocate (frontier_prev_neg(ifms:ifme, jfms:jfme))
+      allocate (frontier_curr_neg(ifms:ifme, jfms:jfme))
+
+      pos_burnable = 0.0
+      exterior_pos_prev = 0.0
+      exterior_pos_curr = 0.0
+      frontier_prev_pos = 0.0
+      frontier_curr_pos = 0.0
+      frontier_prev_neg = 0.0
+      frontier_curr_neg = 0.0
+      active_front_mask = 0.0
+      barrier_contact_front_mask = 0.0
+      band_mask = 0.0
+
+      ! Form the derived mask on owned cells so global exterior halos remain defined as zero.
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (lfn_field(i, j) >= 0.0 .and. int (nfuel_cat(i, j)) /= 14) pos_burnable(i, j) = 1.0
+        end do
+      end do
+#ifdef DM_PARALLEL
+      call Do_halo_exchange_with_corners (pos_burnable, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+
+      ! Flood-fill burnable nonnegative-LFN cells from the global physical-domain boundary.
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (pos_burnable(i, j) > 0.5 .and. &
+              (i == ifds .or. i == ifde .or. j == jfds .or. j == jfde)) exterior_pos_curr(i, j) = 1.0
+        end do
+      end do
+
+      global_changed = 1.0
+      do while (global_changed > 0.5)
+        exterior_pos_prev = exterior_pos_curr
+#ifdef DM_PARALLEL
+        call Do_halo_exchange (exterior_pos_prev, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+        local_changed = 0.0
+        do j = jfps, jfpe
+          do i = ifps, ifpe
+            if (pos_burnable(i, j) < 0.5 .or. exterior_pos_curr(i, j) > 0.5) cycle
+            if (exterior_pos_prev(i - 1, j) > 0.5 .or. exterior_pos_prev(i + 1, j) > 0.5 .or. &
+                exterior_pos_prev(i, j - 1) > 0.5 .or. exterior_pos_prev(i, j + 1) > 0.5) then
+              exterior_pos_curr(i, j) = 1.0
+              local_changed = 1.0
+            end if
+          end do
+        end do
+#ifdef DM_PARALLEL
+        call Max_across_mpi_tasks (local_changed, cart_comm, gmax)
+        global_changed = gmax
+#else
+        global_changed = local_changed
+#endif
+      end do
+
+#ifdef DM_PARALLEL
+      ! Corner values are needed for the eight-neighbor interface classification.
+      call Do_halo_exchange_with_corners (exterior_pos_curr, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (lfn_field(i, j) >= 0.0 .or. int (nfuel_cat(i, j)) == 14) cycle
+
+          has_positive_neighbor = .false.
+          has_exterior_neighbor = .false.
+          do dj = -1, 1
+            do di = -1, 1
+              if (di == 0 .and. dj == 0) cycle
+              if (pos_burnable(i + di, j + dj) > 0.5) has_positive_neighbor = .true.
+              if (exterior_pos_curr(i + di, j + dj) > 0.5) has_exterior_neighbor = .true.
+            end do
+          end do
+
+          if (has_positive_neighbor) then
+            if (has_exterior_neighbor) then
+              active_front_mask(i, j) = 1.0
+            else
+              barrier_contact_front_mask(i, j) = 1.0
+            end if
+          end if
+        end do
+      end do
+
+#ifdef DM_PARALLEL
+      ! Positive-side seed cells can be owned by a rank adjacent to a burned-side front cell.
+      call Do_halo_exchange_with_corners (active_front_mask, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (active_front_mask(i, j) > 0.5) then
+            band_mask(i, j) = 1.0
+            frontier_curr_neg(i, j) = 1.0
+          else if (pos_burnable(i, j) > 0.5 .and. exterior_pos_curr(i, j) > 0.5) then
+            do dj = -1, 1
+              do di = -1, 1
+                if (di == 0 .and. dj == 0) cycle
+                if (active_front_mask(i + di, j + dj) > 0.5) frontier_curr_pos(i, j) = 1.0
+              end do
+            end do
+            if (frontier_curr_pos(i, j) > 0.5) band_mask(i, j) = 1.0
+          end if
+        end do
+      end do
+
+      do step = 2, shell_width
+        frontier_prev_pos = frontier_curr_pos
+        frontier_curr_pos = 0.0
+#ifdef DM_PARALLEL
+        call Do_halo_exchange (frontier_prev_pos, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+        do j = jfps, jfpe
+          do i = ifps, ifpe
+            if (pos_burnable(i, j) < 0.5 .or. band_mask(i, j) > 0.5) cycle
+            if (frontier_prev_pos(i - 1, j) > 0.5 .or. frontier_prev_pos(i + 1, j) > 0.5 .or. &
+                frontier_prev_pos(i, j - 1) > 0.5 .or. frontier_prev_pos(i, j + 1) > 0.5) then
+              frontier_curr_pos(i, j) = 1.0
+              band_mask(i, j) = 1.0
+            end if
+          end do
+        end do
+
+        frontier_prev_neg = frontier_curr_neg
+        frontier_curr_neg = 0.0
+#ifdef DM_PARALLEL
+        call Do_halo_exchange (frontier_prev_neg, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+        do j = jfps, jfpe
+          do i = ifps, ifpe
+            if (lfn_field(i, j) >= 0.0 .or. int (nfuel_cat(i, j)) == 14 .or. band_mask(i, j) > 0.5 .or. &
+                barrier_contact_front_mask(i, j) > 0.5) cycle
+            if (frontier_prev_neg(i - 1, j) > 0.5 .or. frontier_prev_neg(i + 1, j) > 0.5 .or. &
+                frontier_prev_neg(i, j - 1) > 0.5 .or. frontier_prev_neg(i, j + 1) > 0.5) then
+              frontier_curr_neg(i, j) = 1.0
+              band_mask(i, j) = 1.0
+            end if
+          end do
+        end do
+      end do
+
+      deallocate (pos_burnable, exterior_pos_prev, exterior_pos_curr, frontier_prev_pos, &
+          frontier_curr_pos, frontier_prev_neg, frontier_curr_neg)
+
+    end subroutine Compute_active_front_masks
+
+    ! ***************************************************************************
+
+    subroutine Expand_diagnostic_band (ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, active_front_band_ngp, cart_comm, &
+        fire_area_change_rate, nfuel_cat, band_mask)
+
+      implicit none
+
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, active_front_band_ngp, cart_comm
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fire_area_change_rate, nfuel_cat
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: band_mask
+
+      integer :: i, j, step
+      real, dimension(:, :), allocatable :: frontier_prev, frontier_curr
+
+
+      allocate (frontier_prev(ifms:ifme, jfms:jfme))
+      allocate (frontier_curr(ifms:ifme, jfms:jfme))
+      frontier_prev = 0.0
+      frontier_curr = 0.0
+      band_mask = 0.0
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (abs (fire_area_change_rate(i, j)) > 0.0) then
+            frontier_curr(i, j) = 1.0
+            band_mask(i, j) = 1.0
+          end if
+        end do
+      end do
+
+      do step = 2, max (1, active_front_band_ngp)
+        frontier_prev = frontier_curr
+        frontier_curr = 0.0
+#ifdef DM_PARALLEL
+        call Do_halo_exchange (frontier_prev, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, 1, cart_comm)
+#endif
+        do j = jfps, jfpe
+          do i = ifps, ifpe
+            if (int (nfuel_cat(i, j)) == 14 .or. band_mask(i, j) > 0.5) cycle
+            if (frontier_prev(i - 1, j) > 0.5 .or. frontier_prev(i + 1, j) > 0.5 .or. &
+                frontier_prev(i, j - 1) > 0.5 .or. frontier_prev(i, j + 1) > 0.5) then
+              frontier_curr(i, j) = 1.0
+              band_mask(i, j) = 1.0
+            end if
+          end do
+        end do
+      end do
+
+      deallocate (frontier_prev, frontier_curr)
+
+    end subroutine Expand_diagnostic_band
+
+    ! ***************************************************************************
+
     subroutine Calc_fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
-        lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fuel_frac_burnt_dt)
+        lfn, tign, fuel_time, time_now, dt, fuel_frac, fire_area, fire_area_change_rate, fuel_frac_burnt_dt)
 
       implicit none
 
@@ -176,13 +404,14 @@
 
       integer, intent (in) :: its, ite, jts, jte, ims, ime, jms, jme, ifs, ife, jfs, jfe
       real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
-      real, intent (in) :: time_now
+      real, intent (in) :: time_now, dt
       real, intent (in out), dimension (ims:ime, jms:jme) :: fuel_frac
-      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area, fuel_frac_burnt_dt
+      real, intent (in out), dimension (ims:ime, jms:jme) :: fire_area, fire_area_change_rate
+      real, intent (out), dimension (ims:ime, jms:jme) :: fuel_frac_burnt_dt
 
       real, dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
       integer :: i, j, ir, jr, icl, jcl, isubcl, jsubcl, i2, j2, ii, jj
-      real :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, rx, ry, tignf(2,2)
+      real :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, fire_area_previous, rx, ry, tignf(2,2)
          ! help variables instead of arrays fuel_left_f and fire_area_f 
       real :: lffij, lffi1j, lffij1, lffi1j1, tifij, tifi1j, tifij1, tifi1j1, tx, ty, txx, tyy
          ! variables for calculation instead of lff(i,j) and tif(i,j)is lffij,tifij etc..
@@ -320,7 +549,9 @@
             end do
           end do
           fuel_frac_end(icl, jcl) = helpsum1 / (ir * jr)
+          fire_area_previous = fire_area(icl, jcl)
           fire_area(icl, jcl) = helpsum2 / (ir * jr)
+          fire_area_change_rate(icl, jcl) = (fire_area(icl, jcl) - fire_area_previous) / dt
           fuel_frac_burnt_dt(icl, jcl) = fuel_frac(icl, jcl) - fuel_frac_end(icl, jcl)
           fuel_frac(icl, jcl) = fuel_frac_end(icl, jcl)
         end do 

@@ -59,6 +59,7 @@
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
       real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
       real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
+      real, dimension(:, :), allocatable :: fire_area_change_rate ! change in burned-area fraction per second "s-1"
       real, dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
       real, dimension(:, :), allocatable :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
@@ -86,6 +87,10 @@
       real, dimension(:, :), allocatable :: lfn_laplacian_dbg ! discrete Laplacian of the final level-set field
       real, dimension(:, :), allocatable :: rs_interface_mask ! frozen RS interface ring used for pinning
       real, dimension(:, :), allocatable :: rs_distance_dbg ! frozen subcell RS distance on the pinned ring
+      real, dimension(:, :), allocatable :: active_front_mask ! exact exterior-connected fire-front mask
+      real, dimension(:, :), allocatable :: barrier_contact_front_mask ! burned interface excluded from the active front
+      real, dimension(:, :), allocatable :: band_mask ! diagnostic band around the inferred or exact fire front
+      real, dimension(:, :), allocatable :: ros_lfn_error_front ! kinematic ROS residual within the diagnostic front band
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
@@ -176,6 +181,7 @@
       allocate (this%tign_g(ifms:ifme, jfms:jfme))
       allocate (this%fuel_frac(ifms:ifme, jfms:jfme))
       allocate (this%fire_area(ifms:ifme, jfms:jfme))
+      allocate (this%fire_area_change_rate(ifms:ifme, jfms:jfme))
       allocate (this%fuel_frac_burnt_dt(ifms:ifme, jfms:jfme))
       allocate (this%fgrnhfx(ifms:ifme, jfms:jfme))
       allocate (this%fgrnqfx(ifms:ifme, jfms:jfme))
@@ -211,7 +217,12 @@
       allocate (this%lfn_laplacian_dbg(ifms:ifme, jfms:jfme))
       allocate (this%rs_interface_mask(ifms:ifme, jfms:jfme))
       allocate (this%rs_distance_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%active_front_mask(ifms:ifme, jfms:jfme))
+      allocate (this%barrier_contact_front_mask(ifms:ifme, jfms:jfme))
+      allocate (this%band_mask(ifms:ifme, jfms:jfme))
+      allocate (this%ros_lfn_error_front(ifms:ifme, jfms:jfme))
 
+      this%fire_area_change_rate = 0.0
       this%lfn_tend_dbg = 0.0
       this%lfn_adv_dbg = 0.0
       this%lfn_visc_dbg = 0.0
@@ -223,6 +234,10 @@
       this%lfn_laplacian_dbg = 0.0
       this%rs_interface_mask = 0.0
       this%rs_distance_dbg = 0.0
+      this%active_front_mask = 0.0
+      this%barrier_contact_front_mask = 0.0
+      this%band_mask = 0.0
+      this%ros_lfn_error_front = 0.0
 
     end subroutine Allocate_vars
 
@@ -1022,6 +1037,21 @@
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'ros_front', &
               this%ros_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'fire_area_change_rate', this%fire_area_change_rate(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'active_front_mask', this%active_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'barrier_contact_front_mask', this%barrier_contact_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'band_mask', this%band_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'ros_lfn_error_front', this%ros_lfn_error_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_ls', &
               this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe))
