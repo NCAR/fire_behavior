@@ -354,3 +354,19 @@ Each PDE reinitialization also logs the number of strict nonzero sign reversals
 between the entering and final level-set fields. If the Russo-Smereka distance
 gradient falls below its defensive denominator threshold, each MPI rank also
 reports its local fallback count; those cells use the entering ``abs(lfn)``.
+
+``check_isolated_neg_lfn``: *integer* (Default: ``0``)
+   Developer diagnostic evaluated after level-set propagation and
+   reinitialization, before prescribed ignition is applied. A qualifying
+   component contains 1 through 6 cells with ``lfn < 0``, uses eight-neighbor
+   connectivity, and does not touch the local MPI patch boundary.
+
+     0: disable the connected-component search
+
+     1: save the current state and stop when a component is detected
+
+     2: report the component size and location and continue the simulation
+
+   Enabled modes allocate search work arrays, scan the local physical domain,
+   and perform MPI reductions every model timestep. Report-only mode therefore
+   retains the diagnostic cost even when no component is found.

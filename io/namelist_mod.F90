@@ -169,7 +169,7 @@
       integer :: kde = 1                      ! Number of atm vertical levels
 
         ! Devel block
-      integer :: check_isolated_neg_lfn = 0   ! 0) Nothing, 1) Check for isolated negative values of the level set function
+      integer :: check_isolated_neg_lfn = 0   ! 0) disabled, 1) save and stop, 2) report and continue
       integer :: output_level = 0             ! 0) Standard output, >0) Specialized output
     contains
       procedure, public :: Broadcast_nml => Broadcast_nml
@@ -414,6 +414,8 @@
           call Stop_simulation ('reinit_pseudot_rate requires fire_lsm_reinit_iter >= 1')
       if (this%reinit_pseudot_cfl <= 0.0) &
           call Stop_simulation ('reinit_pseudot_cfl must be positive')
+      if (this%check_isolated_neg_lfn < 0 .or. this%check_isolated_neg_lfn > 2) &
+          call Stop_simulation ('check_isolated_neg_lfn must be 0, 1, or 2')
       if (this%reinit_use_russo_smereka .and. this%fire_upwinding_reinit /= 5 .and. .not. this%allow_RS_any_reinit) &
           call Stop_simulation ('reinit_use_russo_smereka requires fire_upwinding_reinit=5 unless allow_RS_any_reinit=.true.')
 

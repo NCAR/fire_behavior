@@ -422,13 +422,13 @@
 
     end subroutine Copy_lfnout_to_lfn
 
-    subroutine Check_isolated_negative_lfn (grid, threshold, min_size, max_size)
+    subroutine Check_isolated_negative_lfn (grid, threshold, min_size, max_size, mode)
 
       implicit none
 
       type (state_fire_t), intent (in out) :: grid
       real, intent (in), optional :: threshold
-      integer, intent (in), optional :: min_size, max_size
+      integer, intent (in), optional :: min_size, max_size, mode
 
       character (len = 256) :: msg
       integer :: cluster_i, cluster_j, cluster_size, flagged_size
@@ -439,6 +439,7 @@
       integer, dimension(:), allocatable :: queue_i, queue_j
       real :: detection_flag, detection_sum, global_location_i, global_location_j, global_size_value
       real :: location_i, location_j, size_value, threshold_value
+      integer :: mode_value
 
 
       threshold_value = 0.0
@@ -449,6 +450,9 @@
 
       max_size_value = 6
       if (present (max_size)) max_size_value = max_size
+
+      mode_value = 1
+      if (present (mode)) mode_value = mode
 
       if (max_size_value < min_size_value) return
 
@@ -542,13 +546,17 @@
 #endif
 
       if (detection_sum > 0.0) then
-        grid%datetime_now = grid%datetime_start
-        call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
-        call grid%Save_state ()
-
         write (msg, '(a, i6, a, i6, a, i6, a)') 'Isolated negative LFN cluster (size', int (global_size_value), ') near (i=', &
-            int (global_location_i), ', j=', int (global_location_j), '). Simulation stopped after saving state.'
-        call Stop_simulation (trim (msg))
+            int (global_location_i), ', j=', int (global_location_j), ').'
+        if (mode_value == 1) then
+          grid%datetime_now = grid%datetime_start
+          call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
+          call grid%Save_state ()
+          call Stop_simulation (trim (msg))
+        else
+          msg = trim (msg) // ' Report-only mode active; continuing.'
+          call Print_message (trim (msg))
+        end if
       end if
 
     end subroutine Check_isolated_negative_lfn

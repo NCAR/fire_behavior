@@ -165,7 +165,8 @@
       end do
       !$OMP END PARALLEL DO
 
-      if (config_flags%check_isolated_neg_lfn == 1) call Check_isolated_negative_lfn (grid)
+      if (config_flags%check_isolated_neg_lfn > 0) &
+          call Check_isolated_negative_lfn (grid, mode = config_flags%check_isolated_neg_lfn)
  
       if (DEBUG_LOCAL) call Print_message ('calling Ignite_prescribed_fires...')
       !$OMP PARALLEL DO   &
