@@ -428,7 +428,7 @@
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, &
         tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, uf, vf, dzdxf, dzdyf, ros_model, cart_comm, &
         ifps, ifpe, jfps, jfpe, grad_norm_ls, grad_norm_residual_sq_sum, grad_norm_residual_sq_sum_band, &
-        grad_norm_residual_rms_band)
+        grad_norm_residual_rms_band, lfn_tend_dbg, lfn_adv_dbg, lfn_visc_dbg)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
 
@@ -440,7 +440,8 @@
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros, grad_norm_ls
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros, grad_norm_ls, &
+          lfn_tend_dbg, lfn_adv_dbg, lfn_visc_dbg
       real, intent (in) :: dx, dy, ts, dt
       real, intent (out) :: tbound, grad_norm_residual_sq_sum, grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
       class (ros_t), intent (in) :: ros_model
@@ -497,7 +498,8 @@
             ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local, &
+            lfn_adv_dbg, lfn_visc_dbg)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -534,6 +536,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
+      lfn_tend_dbg = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -578,7 +581,8 @@
             ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local, &
+            lfn_adv_dbg, lfn_visc_dbg)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -615,6 +619,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
+      lfn_tend_dbg = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -658,7 +663,8 @@
             ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local, &
+            lfn_adv_dbg, lfn_visc_dbg)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -694,6 +700,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
+      lfn_tend_dbg = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -1088,7 +1095,8 @@
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ifms, ifme, jfms, jfme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
         fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, uf, vf, dzdxf, dzdyf, &
-        ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+        ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local, &
+        adv_term, visc_term)
 
       ! compute the right hand side of the level set equation
 
@@ -1100,7 +1108,7 @@
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros, grad_norm_ls
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros, grad_norm_ls, adv_term, visc_term
       real, intent (out) :: tbound, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local
       class (ros_t), intent (in) :: ros_model
 
@@ -1127,6 +1135,8 @@
 
       if (DEBUG_LOCAL) call Print_message ('starting ij loops')
       tbound = 0.0
+      adv_term = 0.0
+      visc_term = 0.0
       grad_norm_residual_sq_sum_local = 0.0
       grad_norm_residual_sq_sum_band_local = 0.0
       np_band_local = 0
@@ -1320,8 +1330,9 @@
           if (grad > 0.0) tbound = max (tbound, ros(i, j) * (abs (diff2x) / dx + &
               abs (diff2y) / dy) / grad)
 
-            ! Tendency level set function
-          tend(i, j) = -ros(i, j) * grad
+            ! Separate the physical spread and numerical-viscosity contributions.
+          adv_term(i, j) = -ros(i, j) * grad
+          tend(i, j) = adv_term(i, j)
 
             ! Add to tend effect Artificial viscosity
           if (abs (lfn(i,j)) < threshold_av .and. (i > ids + BDY_ENO1 .and. i < ide - BDY_ENO1) .and. &
@@ -1335,7 +1346,9 @@
             fire_viscosity_var = fire_viscosity
           end if
 
-          tend(i, j) = tend(i, j) + fire_viscosity_var * abs (ros(i, j)) * ((diffrx - difflx) + (diffry - diffly))
+          visc_term(i, j) = fire_viscosity_var * abs (ros(i, j)) * &
+              ((diffrx - difflx) + (diffry - diffly))
+          tend(i, j) = tend(i, j) + visc_term(i, j)
         end do
       end do
 
@@ -2284,4 +2297,3 @@
     end subroutine Extrapol_var_at_bdys
 
   end module level_set_mod
-

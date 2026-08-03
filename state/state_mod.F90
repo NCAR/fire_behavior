@@ -75,6 +75,13 @@
       real, dimension(:, :), allocatable :: emis_smoke
       real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function
       real, dimension(:, :), allocatable :: grad_norm_reinit ! Gracient norm of the level set function used to reinitilize the level set function
+      real, dimension(:, :), allocatable :: lfn_tend_dbg ! total level-set tendency at the final Runge-Kutta stage
+      real, dimension(:, :), allocatable :: lfn_adv_dbg ! physical fire-spread contribution to the final-stage tendency
+      real, dimension(:, :), allocatable :: lfn_visc_dbg ! artificial-viscosity contribution to the final-stage tendency
+      real, dimension(:, :), allocatable :: lfn_pre_reinit_dbg ! level-set field before reinitialization
+      real, dimension(:, :), allocatable :: lfn_post_reinit_dbg ! level-set field after reinitialization
+      real, dimension(:, :), allocatable :: lfn_reinit_delta_dbg ! reinitialization increment: post minus pre
+      real, dimension(:, :), allocatable :: lfn_laplacian_dbg ! discrete Laplacian of the final level-set field
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
@@ -189,6 +196,21 @@
       allocate (this%emis_smoke(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_tend_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_adv_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_visc_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_pre_reinit_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_post_reinit_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_reinit_delta_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_laplacian_dbg(ifms:ifme, jfms:jfme))
+
+      this%lfn_tend_dbg = 0.0
+      this%lfn_adv_dbg = 0.0
+      this%lfn_visc_dbg = 0.0
+      this%lfn_pre_reinit_dbg = 0.0
+      this%lfn_post_reinit_dbg = 0.0
+      this%lfn_reinit_delta_dbg = 0.0
+      this%lfn_laplacian_dbg = 0.0
 
     end subroutine Allocate_vars
 
@@ -988,6 +1010,27 @@
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_reinit', &
               this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_tend_dbg', &
+              this%lfn_tend_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_adv_dbg', &
+              this%lfn_adv_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_visc_dbg', &
+              this%lfn_visc_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_pre_reinit_dbg', this%lfn_pre_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_post_reinit_dbg', this%lfn_post_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_reinit_delta_dbg', this%lfn_reinit_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_laplacian_dbg', this%lfn_laplacian_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
       end if
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Save_state...')

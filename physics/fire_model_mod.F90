@@ -27,7 +27,7 @@
       type (namelist_t), intent (in) :: config_flags
       type (state_fire_t), intent (in out) :: grid
 
-      integer :: ij, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      integer :: i, j, ij, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       real :: tbound, time_start
       logical, parameter :: DEBUG_LOCAL = .false.
 
@@ -53,7 +53,8 @@
           config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
           grid%lfn_out, grid%tign_g, grid%ros, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf, grid%ros_param, grid%cart_comm, &
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%grad_norm_ls, grid%grad_norm_residual_sq_sum, &
-          grid%grad_norm_residual_sq_sum_band, grid%grad_norm_residual_rms_band)
+          grid%grad_norm_residual_sq_sum_band, grid%grad_norm_residual_rms_band, grid%lfn_tend_dbg, grid%lfn_adv_dbg, &
+          grid%lfn_visc_dbg)
 
       if (DEBUG_LOCAL) call Print_message ('calling Stop_if_close_to_bdy...')
       !$OMP PARALLEL DO   &
@@ -108,12 +109,15 @@
       end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set...')
+      grid%lfn_pre_reinit_dbg = grid%lfn_out
       if (config_flags%fire_lsm_reinit) call Reinit_level_set (grid%num_tiles, grid%i_start, grid%i_end, grid%j_start, grid%j_end, &
           ifms, ifme, jfms, jfme, &
           ifds, ifde, jfds, jfde, time_start, grid%dt, grid%dx, grid%dy, config_flags%fire_upwinding_reinit, &
           config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, grid%lfn, grid%lfn_2, grid%lfn_s0, &
           grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, grid%cart_comm, &
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%reinit_pseudot_coef, grid%grad_norm_reinit)
+      grid%lfn_post_reinit_dbg = grid%lfn_out
+      grid%lfn_reinit_delta_dbg = grid%lfn_post_reinit_dbg - grid%lfn_pre_reinit_dbg
 
       if (DEBUG_LOCAL) call Print_message ('calling Copy_lfnout_to_lfn...')
       !$OMP PARALLEL DO   &
@@ -131,6 +135,27 @@
 #ifdef DM_PARALLEL
       call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, N_POINTS_IN_HALO, grid%cart_comm)
 #endif
+
+      grid%lfn_laplacian_dbg = 0.0
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
+      do ij = 1, grid%num_tiles
+        ifts = grid%i_start(ij)
+        ifte = grid%i_end(ij)
+        jfts = grid%j_start(ij)
+        jfte = grid%j_end(ij)
+
+        do j = jfts, jfte
+          do i = ifts, ifte
+            if (i > ifds .and. i < ifde .and. j > jfds .and. j < jfde) then
+              grid%lfn_laplacian_dbg(i, j) = &
+                  (grid%lfn(i + 1, j) - 2.0 * grid%lfn(i, j) + grid%lfn(i - 1, j)) / (grid%dx * grid%dx) + &
+                  (grid%lfn(i, j + 1) - 2.0 * grid%lfn(i, j) + grid%lfn(i, j - 1)) / (grid%dy * grid%dy)
+            end if
+          end do
+        end do
+      end do
+      !$OMP END PARALLEL DO
 
       if (config_flags%check_isolated_neg_lfn == 1) call Check_isolated_negative_lfn (grid)
  

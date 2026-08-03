@@ -274,3 +274,18 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
+
+``output_level``: *integer* (Default: ``0``)
+   Developer-facing output selector in the ``devel`` namelist block. Values
+   greater than 0 add specialized level-set fields to NetCDF output:
+
+   * ``grad_norm_ls`` is the propagation-stage level-set gradient norm.
+   * ``grad_norm_reinit`` is the reinitialization-stage gradient norm.
+   * ``lfn_tend_dbg`` is the total final-stage level-set tendency [s-1].
+   * ``lfn_adv_dbg`` is the final-stage physical spread contribution [s-1].
+   * ``lfn_visc_dbg`` is the final-stage artificial-viscosity contribution [s-1].
+   * ``lfn_pre_reinit_dbg`` and ``lfn_post_reinit_dbg`` are the level-set
+     fields immediately before and after reinitialization, respectively.
+   * ``lfn_reinit_delta_dbg`` is the post-minus-pre reinitialization increment.
+   * ``lfn_laplacian_dbg`` is the centered discrete Laplacian of the final
+     level-set field [m-2].
