@@ -523,13 +523,13 @@
 #endif
 
       tbound = tbound_min
-      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
-      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
       if (np_band > 0.0) then
         grad_norm_residual_rms_band = sqrt (grad_norm_residual_sq_sum_band / np_band)
       else
         grad_norm_residual_rms_band = 0.0
       end if
+      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
+      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
 
       if (PRINT_ERRORS) then
         write (msg, '(a, 3f12.6)') 'grad_norm_residual_sq_sum rk1, band, rms_band = ', grad_norm_residual_sq_sum, &
@@ -606,13 +606,13 @@
 #endif
 
       tbound2 = tbound_min
-      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
-      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
       if (np_band > 0.0) then
         grad_norm_residual_rms_band = sqrt (grad_norm_residual_sq_sum_band / np_band)
       else
         grad_norm_residual_rms_band = 0.0
       end if
+      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
+      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
 
       if (PRINT_ERRORS) then
         write (msg, '(a, 3f12.6)') 'grad_norm_residual_sq_sum rk2, band, rms_band = ', grad_norm_residual_sq_sum, &
@@ -688,13 +688,13 @@
 #endif
 
       tbound3 = tbound_min
-      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
-      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
       if (np_band > 0.0) then
         grad_norm_residual_rms_band = sqrt (grad_norm_residual_sq_sum_band / np_band)
       else
         grad_norm_residual_rms_band = 0.0
       end if
+      grad_norm_residual_sq_sum = sqrt (grad_norm_residual_sq_sum * dx * dy)
+      grad_norm_residual_sq_sum_band = sqrt (grad_norm_residual_sq_sum_band * dx * dy)
       if (PRINT_ERRORS) then
         write (msg, '(a, 3f12.6)') 'grad_norm_residual_sq_sum rk3, band, rms_band = ', grad_norm_residual_sq_sum, &
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
