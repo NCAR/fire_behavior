@@ -33,6 +33,8 @@
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Advance_fire_model...')
+      grid%lfn_fastdist_delta_dbg = 0.0
+      grid%lfn_retreat_delta_dbg = 0.0
 
       ifds = grid%ifds
       ifde = grid%ifde
@@ -103,9 +105,11 @@
 
       if (config_flags%fast_dist_reinit_opt > 0 .and. grid%itimestep > 0 .and. mod (grid%itimestep, config_flags%fast_dist_reinit_freq) == 0) then
         if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set_fast_dist...')
+        grid%lfn_2 = grid%lfn_out
         call Reinit_level_set_fast_dist (grid%lfn_s0, grid%lfn_out, grid%i_start, grid%i_end, grid%j_start, grid%j_end, &
              ifms, ifme, jfms, jfme, grid%num_tiles, config_flags%fast_dist_reinit_opt, grid%dx, grid%dy, &
              grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%ifds, grid%ifde, grid%jfds, grid%jfde, grid%cart_comm)
+        grid%lfn_fastdist_delta_dbg = grid%lfn_out - grid%lfn_2
       end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set...')
@@ -117,7 +121,8 @@
           grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, grid%cart_comm, &
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%reinit_pseudot_coef, grid%grad_norm_reinit, &
           config_flags%reinit_godunov_sign_branch, config_flags%reinit_use_russo_smereka, &
-          config_flags%reinit_rs_buffer_ngp, grid%rs_interface_mask, grid%rs_distance_dbg)
+          config_flags%reinit_rs_buffer_ngp, grid%rs_interface_mask, grid%rs_distance_dbg, &
+          config_flags%reinit_conditional_no_retreat, grid%lfn_retreat_delta_dbg)
       grid%lfn_post_reinit_dbg = grid%lfn_out
       grid%lfn_reinit_delta_dbg = grid%lfn_post_reinit_dbg - grid%lfn_pre_reinit_dbg
 

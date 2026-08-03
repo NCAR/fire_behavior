@@ -175,6 +175,13 @@ Example namelists can be found in the various test subdirectories under the ``te
    constructed with another reinitialization option. Pinning remains limited
    to option 5.
 
+``reinit_conditional_no_retreat``: *logical* (Default: ``.false.``)
+   Control where the post-reinitialization no-retreat clamp is applied. The
+   default applies the historical global clamp, ``lfn_out=min(lfn_reinit,
+   lfn_in)``. When enabled, the clamp is applied only where the entering
+   level-set field is negative, allowing reinitialization to increase ``lfn``
+   on previously unburned cells.
+
 ``fire_lsm_band_ngp``: *integer* (Default: ``4``)
    When using ``fire_upwinding_reinit=3,4`` and ``fire_upwinding=8/9``, the number of grid points around lfn=0 that WENO5/3 is used
 
@@ -314,6 +321,12 @@ Example namelists can be found in the various test subdirectories under the ``te
    * ``lfn_pre_reinit_dbg`` and ``lfn_post_reinit_dbg`` are the level-set
      fields immediately before and after reinitialization, respectively.
    * ``lfn_reinit_delta_dbg`` is the post-minus-pre reinitialization increment.
+   * ``lfn_retreat_delta_dbg`` is the part of the raw PDE-reinitialization
+     increment [m] rejected by the no-retreat clamp. It is zero where the clamp
+     is inactive or does not alter the result.
+   * ``lfn_fastdist_delta_dbg`` is the post-minus-pre fast-distance
+     reinitialization increment [m], and is zero on timesteps without a
+     periodic fast-distance operation.
    * ``lfn_laplacian_dbg`` is the centered discrete Laplacian of the final
      level-set field [m-2].
    * ``rs_interface_mask`` is a dimensionless 0/1 field identifying the frozen

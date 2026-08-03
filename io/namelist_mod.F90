@@ -59,6 +59,7 @@
       logical :: reinit_godunov_sign_branch = .false. ! use the two-branch Godunov Hamiltonian for option 5
       integer :: reinit_rs_buffer_ngp = 0     ! optional buffer width [grid cells] around the RS interface ring
       logical :: allow_RS_any_reinit = .false. ! developer override for constructing RS diagnostics with other options
+      logical :: reinit_conditional_no_retreat = .false. ! limit the no-retreat clamp to previously burned cells
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
@@ -204,6 +205,7 @@
       call Broadcast_logical (this%reinit_godunov_sign_branch)
       call Broadcast_integer (this%reinit_rs_buffer_ngp)
       call Broadcast_logical (this%allow_RS_any_reinit)
+      call Broadcast_logical (this%reinit_conditional_no_retreat)
       call Broadcast_integer (this%fire_upwinding_reinit)
       call Broadcast_integer (this%fire_lsm_band_ngp)
       call Broadcast_real (this%reinit_pseudot_coef)
@@ -482,7 +484,8 @@
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, ros_cap_value
       logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, use_ros_cap, &
-          fast_dist_reinit_at_startup, reinit_use_russo_smereka, reinit_godunov_sign_branch, allow_RS_any_reinit
+          fast_dist_reinit_at_startup, reinit_use_russo_smereka, reinit_godunov_sign_branch, allow_RS_any_reinit, &
+          reinit_conditional_no_retreat
 
         ! ignitions
       integer :: fire_num_ignitions
@@ -500,6 +503,7 @@
       namelist /fire/  fire_print_msg, fire_atm_feedback, fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
           reinit_use_russo_smereka, reinit_godunov_sign_branch, reinit_rs_buffer_ngp, allow_RS_any_reinit, &
+          reinit_conditional_no_retreat, &
           fast_dist_reinit_at_startup, &
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, use_ros_cap, ros_cap_value, &
           fire_viscosity_bg, fire_viscosity_band, &
@@ -539,6 +543,7 @@
       reinit_godunov_sign_branch = this%reinit_godunov_sign_branch
       reinit_rs_buffer_ngp = this%reinit_rs_buffer_ngp
       allow_RS_any_reinit = this%allow_RS_any_reinit
+      reinit_conditional_no_retreat = this%reinit_conditional_no_retreat
       fire_upwinding_reinit = this%fire_upwinding_reinit
       fire_lsm_band_ngp = this%fire_lsm_band_ngp
       reinit_pseudot_coef = this%reinit_pseudot_coef
@@ -642,6 +647,7 @@
       this%reinit_godunov_sign_branch = reinit_godunov_sign_branch
       this%reinit_rs_buffer_ngp = reinit_rs_buffer_ngp
       this%allow_RS_any_reinit = allow_RS_any_reinit
+      this%reinit_conditional_no_retreat = reinit_conditional_no_retreat
       this%fire_upwinding_reinit = fire_upwinding_reinit
       this%fire_lsm_band_ngp = fire_lsm_band_ngp
       this%reinit_pseudot_coef = reinit_pseudot_coef

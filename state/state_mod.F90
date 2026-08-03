@@ -81,6 +81,8 @@
       real, dimension(:, :), allocatable :: lfn_pre_reinit_dbg ! level-set field before reinitialization
       real, dimension(:, :), allocatable :: lfn_post_reinit_dbg ! level-set field after reinitialization
       real, dimension(:, :), allocatable :: lfn_reinit_delta_dbg ! reinitialization increment: post minus pre
+      real, dimension(:, :), allocatable :: lfn_retreat_delta_dbg ! reinit increment rejected by the no-retreat clamp
+      real, dimension(:, :), allocatable :: lfn_fastdist_delta_dbg ! fast-distance reinitialization increment
       real, dimension(:, :), allocatable :: lfn_laplacian_dbg ! discrete Laplacian of the final level-set field
       real, dimension(:, :), allocatable :: rs_interface_mask ! frozen RS interface ring used for pinning
       real, dimension(:, :), allocatable :: rs_distance_dbg ! frozen subcell RS distance on the pinned ring
@@ -204,6 +206,8 @@
       allocate (this%lfn_pre_reinit_dbg(ifms:ifme, jfms:jfme))
       allocate (this%lfn_post_reinit_dbg(ifms:ifme, jfms:jfme))
       allocate (this%lfn_reinit_delta_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_retreat_delta_dbg(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_fastdist_delta_dbg(ifms:ifme, jfms:jfme))
       allocate (this%lfn_laplacian_dbg(ifms:ifme, jfms:jfme))
       allocate (this%rs_interface_mask(ifms:ifme, jfms:jfme))
       allocate (this%rs_distance_dbg(ifms:ifme, jfms:jfme))
@@ -214,6 +218,8 @@
       this%lfn_pre_reinit_dbg = 0.0
       this%lfn_post_reinit_dbg = 0.0
       this%lfn_reinit_delta_dbg = 0.0
+      this%lfn_retreat_delta_dbg = 0.0
+      this%lfn_fastdist_delta_dbg = 0.0
       this%lfn_laplacian_dbg = 0.0
       this%rs_interface_mask = 0.0
       this%rs_distance_dbg = 0.0
@@ -1034,6 +1040,12 @@
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'lfn_reinit_delta_dbg', this%lfn_reinit_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_retreat_delta_dbg', this%lfn_retreat_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+
+          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
+              'lfn_fastdist_delta_dbg', this%lfn_fastdist_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'lfn_laplacian_dbg', this%lfn_laplacian_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))

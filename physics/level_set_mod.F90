@@ -871,7 +871,8 @@
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, cart_comm, &
         ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, grad_norm_reinit, reinit_godunov_sign_branch, &
-        reinit_use_russo_smereka, reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg)
+        reinit_use_russo_smereka, reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg, &
+        reinit_conditional_no_retreat, lfn_retreat_delta_dbg)
 
     ! Purpose: Level-set function reinitialization
     !
@@ -890,11 +891,12 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme
       integer, intent (in) :: ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp, reinit_rs_buffer_ngp
-      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka
+      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka, reinit_conditional_no_retreat
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit, rs_interface_mask, rs_distance_dbg
+      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit, rs_interface_mask, rs_distance_dbg, &
+          lfn_retreat_delta_dbg
       real, intent (in) :: reinit_pseudot_coef, dx, dy, ts, dt
 
       logical, allocatable :: mask_next(:, :), mask_work(:, :)
@@ -906,6 +908,7 @@
 
 
       threshold_hlu = fire_lsm_band_ngp * dx
+      lfn_retreat_delta_dbg = 0.0
 
         ! Define S0 based on current lfn values
       !$OMP PARALLEL DO   &
@@ -1131,7 +1134,10 @@
               ! assing to lfn_out the reinitialized level-set function
             lfn_out(i, j) = lfn_s3(i, j)
               ! fire area can only increase
-            lfn_out(i, j) = min (lfn_out(i, j), lfn_in(i, j))
+            if (.not. reinit_conditional_no_retreat .or. lfn_in(i, j) < 0.0) then
+              lfn_out(i, j) = min (lfn_out(i, j), lfn_in(i, j))
+            end if
+            lfn_retreat_delta_dbg(i, j) = lfn_s3(i, j) - lfn_out(i, j)
           end do
         end do
       end do
