@@ -62,6 +62,7 @@
 
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
+      logical :: fast_dist_reinit_at_startup = .false. ! run one FSM pass during real-perimeter initialization
 
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       integer :: wind_vinterp_opt = VINTERP_WINDS_FROM_10M_WINDS ! "mid-flame height wind interpolation option: 0) Interp to specified height, 1) Use WAFs"
@@ -200,6 +201,7 @@
       call Broadcast_real (this%reinit_pseudot_coef)
       call Broadcast_integer (this%fast_dist_reinit_opt)
       call Broadcast_integer (this%fast_dist_reinit_freq)
+      call Broadcast_logical (this%fast_dist_reinit_at_startup)
       call Broadcast_logical (this%fire_lsm_zcoupling)
       call Broadcast_real (this%fire_lsm_zcoupling_ref)
       call Broadcast_logical (this%use_ros_cap)
@@ -467,7 +469,8 @@
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, ros_cap_value
-      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, use_ros_cap
+      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, use_ros_cap, &
+          fast_dist_reinit_at_startup
 
         ! ignitions
       integer :: fire_num_ignitions
@@ -484,6 +487,7 @@
 
       namelist /fire/  fire_print_msg, fire_atm_feedback, fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
+          fast_dist_reinit_at_startup, &
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, use_ros_cap, ros_cap_value, &
           fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
@@ -523,6 +527,7 @@
       reinit_pseudot_coef = this%reinit_pseudot_coef
       fast_dist_reinit_opt = this%fast_dist_reinit_opt
       fast_dist_reinit_freq = this%fast_dist_reinit_freq
+      fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
       fire_lsm_zcoupling = this%fire_lsm_zcoupling
       fire_lsm_zcoupling_ref = this%fire_lsm_zcoupling_ref
       use_ros_cap = this%use_ros_cap
@@ -621,6 +626,7 @@
       this%reinit_pseudot_coef = reinit_pseudot_coef
       this%fast_dist_reinit_opt = fast_dist_reinit_opt
       this%fast_dist_reinit_freq = fast_dist_reinit_freq
+      this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup
       this%fire_lsm_zcoupling = fire_lsm_zcoupling
       this%fire_lsm_zcoupling_ref = fire_lsm_zcoupling_ref
       this%use_ros_cap = use_ros_cap

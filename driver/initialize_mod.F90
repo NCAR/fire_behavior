@@ -1,13 +1,14 @@
   module initialize_mod
 
-    use state_mod, only : state_fire_t
+    use state_mod, only : state_fire_t, N_POINTS_IN_HALO
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use wrfdata_mod, only : wrfdata_t
     use fire_driver_mod, only : Init_fire_components
+    use level_set_mod, only : Reinit_level_set_fast_dist, Extrapol_var_at_bdys, Copy_lfnout_to_lfn
     use stderrout_mod, only: Print_message, Stop_simulation
 #ifdef DM_PARALLEL
-    use mpi_mod, only : Convert_mpi_comm_to_f08
+    use mpi_mod, only : Convert_mpi_comm_to_f08, Do_halo_exchange_with_corners
 #endif
 
     private
@@ -109,6 +110,7 @@
       end if
 
       call Init_fire_components (grid, config_flags)
+      call Init_real_perimeter_fast_dist (grid, config_flags)
 
       if (present (wrf)) then
         if (DEBUG_LOCAL) call Print_message ('    Initializing atmospheric state')
@@ -184,9 +186,99 @@
           nfuel_cat = nfuel_cat, zsf = zsf, dzdxf = dzdxf, dzdyf = dzdyf)
 
       call Init_fire_components (state, config_flags)
+      call Init_real_perimeter_fast_dist (state, config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_fire_state_within_wrf...')
 
     end subroutine Init_fire_state_within_wrf
+
+    subroutine Init_real_perimeter_fast_dist (grid, config_flags)
+
+      implicit none
+
+      type (state_fire_t), intent (in out) :: grid
+      type (namelist_t), intent (in) :: config_flags
+
+      real, parameter :: EPSILON = 0.00001
+      integer :: i, ig, ij, ifts, ifte, ifms, ifme, ifps, ifpe, jfts, jfte, jfms, jfme, jfps, jfpe
+      integer :: j
+      real :: start_time_ig
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (.not. config_flags%fire_is_real_perim) return
+      if (.not. config_flags%fast_dist_reinit_at_startup) then
+        call Print_message ('Startup fast-distance reinit disabled for real perimeter')
+        return
+      end if
+      if (grid%real_perim_initialized) return
+
+      if (DEBUG_LOCAL) call Print_message ('    Initializing real-perimeter field before startup fast-distance reinit')
+      call Print_message ('Startup fast-distance reinit enabled for real perimeter: method=1')
+
+      ifms = grid%ifms
+      ifme = grid%ifme
+      jfms = grid%jfms
+      jfme = grid%jfme
+      ifps = grid%ifps
+      ifpe = grid%ifpe
+      jfps = grid%jfps
+      jfpe = grid%jfpe
+
+      ig = 1
+      start_time_ig = grid%ignition_lines%start_time(ig)
+
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
+      do ij = 1, grid%num_tiles
+        ifts = grid%i_start(ij)
+        ifte = grid%i_end(ij)
+        jfts = grid%j_start(ij)
+        jfte = grid%j_end(ij)
+
+        do j = jfts, jfte
+          do i = ifts, ifte
+            grid%lfn(i, j) = grid%lfn_hist(i, j)
+            grid%lfn_out(i, j) = grid%lfn_hist(i, j)
+            if (abs (grid%lfn(i, j)) < EPSILON) grid%tign_g(i, j) = start_time_ig
+          end do
+        end do
+
+        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, grid%ifds, grid%ifde, grid%jfds, grid%jfde, &
+            ifts, ifte, jfts, jfte, grid%lfn)
+      end do
+      !$OMP END PARALLEL DO
+
+#ifdef DM_PARALLEL
+      call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, &
+          N_POINTS_IN_HALO, grid%cart_comm)
+#endif
+
+      if (DEBUG_LOCAL) call Print_message ('    Calling startup Reinit_level_set_fast_dist...')
+      call Reinit_level_set_fast_dist (grid%lfn_s0, grid%lfn_out, grid%i_start, grid%i_end, grid%j_start, grid%j_end, &
+          ifms, ifme, jfms, jfme, grid%num_tiles, 1, grid%dx, grid%dy, &
+          ifps, ifpe, jfps, jfpe, grid%ifds, grid%ifde, grid%jfds, grid%jfde, grid%cart_comm)
+      call Print_message ('Startup fast-distance reinit completed for real-perimeter initialization')
+
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE (ij, ifts, ifte, jfts, jfte)
+      do ij = 1, grid%num_tiles
+        ifts = grid%i_start(ij)
+        ifte = grid%i_end(ij)
+        jfts = grid%j_start(ij)
+        jfte = grid%j_end(ij)
+
+        call Copy_lfnout_to_lfn (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, grid%lfn_out, grid%lfn)
+      end do
+      !$OMP END PARALLEL DO
+
+#ifdef DM_PARALLEL
+      call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, &
+          N_POINTS_IN_HALO, grid%cart_comm)
+#endif
+
+      grid%real_perim_initialized = .true.
+
+    end subroutine Init_real_perimeter_fast_dist
 
   end module initialize_mod

@@ -216,7 +216,8 @@
       end_time_ig  = grid%ignition_lines%end_time(ig)
       ignitions_done = 0
 
-      if (config_flags%fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
+      if (config_flags%fire_is_real_perim .and. .not. grid%real_perim_initialized .and. &
+          time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
         ignited = 0
         do j = jfts, jfte
           do i = ifts, ifte

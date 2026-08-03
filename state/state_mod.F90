@@ -99,6 +99,7 @@
       integer :: nx ! "number of longitudinal grid points" "1"
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
+      logical :: real_perim_initialized = .false.
 
         ! Performance stats
       real :: grad_norm_residual_sq_sum
@@ -1060,4 +1061,3 @@
     end subroutine Set_vars_to_default
 
   end module state_mod
-

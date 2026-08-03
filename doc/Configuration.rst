@@ -151,6 +151,21 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_lsm_band_ngp``: *integer* (Default: ``4``)
    When using ``fire_upwinding_reinit=3,4`` and ``fire_upwinding=8/9``, the number of grid points around lfn=0 that WENO5/3 is used
 
+``fast_dist_reinit_at_startup``: *logical* (Default: ``.false.``)
+   For real-perimeter initialization, run one fast-sweeping distance
+   reinitialization pass before the first level-set propagation. The startup
+   pass always uses method 1 and is independent of ``fast_dist_reinit_opt``.
+
+``fast_dist_reinit_opt``: *integer* (Default: ``0``)
+   Periodic fast-distance reinitialization method used during time stepping.
+   A value of 0 disables periodic fast-distance reinitialization and a value
+   of 1 selects the fast-sweeping method. This option does not disable an
+   explicitly enabled startup pass.
+
+``fast_dist_reinit_freq``: *integer* (Default: ``600``)
+   Number of model timesteps between periodic fast-distance reinitialization
+   operations when ``fast_dist_reinit_opt=1``.
+
 ``fire_lsm_zcoupling``: *logical* (Default: ``1``)
    When true, uses ``fire_lsm_zcoupling_ref`` instead of ``fire_wind_height`` as a reference height to calculate the logarithmic surface layer wind profile
 
@@ -259,4 +274,3 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
-
