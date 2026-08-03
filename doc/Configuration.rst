@@ -211,6 +211,17 @@ Example namelists can be found in the various test subdirectories under the ``te
    Rate of Spread (ROS) parameterization option.
      0: Rothermel model (only option currently implemented)
 
+``use_ros_cap``: *logical* (Default: ``.true.``)
+   Apply an upper bound to the rate of spread calculated by the Rothermel
+   parameterization. The default retains the prior fixed upper bound. When
+   ``.false.``, the calculated rate of spread is not capped.
+
+``ros_cap_value``: *real* (Default: ``6.0``)
+   [Units: m s-1]
+   Upper bound applied to the combined no-wind, wind, and slope rate of spread
+   when ``use_ros_cap=.true.``. The value must be positive when the cap is
+   enabled.
+
 ``fmc_opt``: *integer* (Default: ``1``)
    :term:`FMC` model
      -1 = Constant fuel moisture (only option currently implemented)
@@ -248,5 +259,4 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
-
 

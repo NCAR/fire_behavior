@@ -37,6 +37,7 @@
       type (namelist_t), intent(in) :: config_flags
 
       integer :: ij
+      character (len = 256) :: msg
 
 
         ! Ignitions lines
@@ -73,6 +74,14 @@
           call Stop_simulation ('The selected ros_opt does not exist')
       end select
       call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme)
+      grid%ros_param%use_ros_cap = config_flags%use_ros_cap
+      grid%ros_param%ros_cap_value = config_flags%ros_cap_value
+      if (config_flags%use_ros_cap) then
+        write (msg, '(a,f8.3,a)') 'ROS cap enabled with ros_cap_value=', config_flags%ros_cap_value, ' m/s'
+      else
+        write (msg, '(a)') 'ROS cap disabled'
+      end if
+      call Print_message (trim (msg))
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij)
