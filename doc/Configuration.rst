@@ -327,6 +327,11 @@ Example namelists can be found in the various test subdirectories under the ``te
    Developer-facing output selector in the ``devel`` namelist block. Values
    greater than 0 add specialized level-set fields to NetCDF output:
 
+   * ``ros`` is the modeled rate of spread [m s-1] evaluated from the local
+     wind, terrain, fuel, and final propagation-stage level-set normal.
+   * ``ros_front`` is ``ros`` retained only in partially burned cells where
+     ``0 < fire_area < 1``; it is zero outside that cell-area representation of
+     the fire front.
    * ``grad_norm_ls`` is the propagation-stage level-set gradient norm.
    * ``grad_norm_reinit`` is the reinitialization-stage gradient norm.
    * ``lfn_tend_dbg`` is the total final-stage level-set tendency [s-1].
