@@ -21,7 +21,8 @@
     use constants_mod, only : PI
 
 #ifdef DM_PARALLEL
-    use mpi_mod, only : Do_halo_exchange, Sum_across_mpi_tasks, Max_across_mpi_tasks, Min_across_mpi_tasks
+    use mpi_mod, only : Do_halo_exchange, Do_halo_exchange_with_corners, Sum_across_mpi_tasks, &
+        Max_across_mpi_tasks, Min_across_mpi_tasks
 #endif
 
     implicit none
@@ -33,8 +34,137 @@
 
     integer, parameter :: BDY_ENO1 = 10, FAST_DIST_REINIT_FSM = 1
     integer, parameter :: FAR = 0, TRIAL = 1, KNOWN = 2
+    real, save, allocatable :: phi0_rs(:, :), D_rs(:, :)
+    logical, save, allocatable :: mask_rs(:, :)
+    integer, save, allocatable :: s_rs(:, :)
 
   contains
+
+    subroutine Ensure_rs_storage (ifms, ifme, jfms, jfme)
+
+      implicit none
+
+      integer, intent (in) :: ifms, ifme, jfms, jfme
+      logical :: need_realloc
+
+
+      need_realloc = .false.
+      if (.not. allocated (phi0_rs)) then
+        need_realloc = .true.
+      else if (lbound (phi0_rs, 1) /= ifms .or. ubound (phi0_rs, 1) /= ifme .or. &
+          lbound (phi0_rs, 2) /= jfms .or. ubound (phi0_rs, 2) /= jfme) then
+        need_realloc = .true.
+      end if
+
+      if (need_realloc) then
+        if (allocated (phi0_rs)) deallocate (phi0_rs)
+        if (allocated (D_rs)) deallocate (D_rs)
+        if (allocated (mask_rs)) deallocate (mask_rs)
+        if (allocated (s_rs)) deallocate (s_rs)
+        allocate (phi0_rs(ifms:ifme, jfms:jfme))
+        allocate (D_rs(ifms:ifme, jfms:jfme))
+        allocate (mask_rs(ifms:ifme, jfms:jfme))
+        allocate (s_rs(ifms:ifme, jfms:jfme))
+      end if
+
+    end subroutine Ensure_rs_storage
+
+    subroutine Compute_rs_interface_mask_and_distance (phi0, mask, D, s, ifms, ifme, jfms, jfme, &
+        ifps, ifpe, jfps, jfpe, dx, dy)
+
+      implicit none
+
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe
+      real, intent (in) :: dx, dy
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: phi0
+      logical, dimension(ifms:ifme, jfms:jfme), intent (out) :: mask
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: D
+      integer, dimension(ifms:ifme, jfms:jfme), intent (out) :: s
+
+      integer :: i, j, fallback_count
+      real :: denom_floor_grad, distance_cap, grad0, grad0_x, grad0_y, grad_c, grad_xm, grad_xp, &
+          grad_ym, grad_yp, phi0_c, tiny_lfn
+      logical :: has_opposite
+      character (len = 256) :: msg
+
+
+      distance_cap = 1.5 * max (dx, dy)
+      tiny_lfn = 1.0e-12 * max (dx, dy)
+      denom_floor_grad = 1.0e-10
+      mask = .false.
+      D = 0.0
+      s = 0
+      fallback_count = 0
+
+      do j = jfps - 1, jfpe + 1
+        do i = ifps - 1, ifpe + 1
+          if (phi0(i, j) > tiny_lfn) then
+            s(i, j) = 1
+          else if (phi0(i, j) < -tiny_lfn) then
+            s(i, j) = -1
+          else
+            s(i, j) = 0
+          end if
+        end do
+      end do
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          phi0_c = phi0(i, j)
+          if (s(i, j) == 0) then
+            mask(i, j) = .true.
+            D(i, j) = 0.0
+            cycle
+          end if
+
+          has_opposite = .false.
+          if (s(i - 1, j) == -s(i, j)) has_opposite = .true.
+          if (s(i + 1, j) == -s(i, j)) has_opposite = .true.
+          if (s(i, j - 1) == -s(i, j)) has_opposite = .true.
+          if (s(i, j + 1) == -s(i, j)) has_opposite = .true.
+          if (.not. has_opposite) cycle
+
+          mask(i, j) = .true.
+          if (i > ifms .and. i < ifme) then
+            grad0_x = (phi0(i + 1, j) - phi0(i - 1, j)) / (2.0 * dx)
+          else if (i == ifms) then
+            grad0_x = (phi0(i + 1, j) - phi0(i, j)) / dx
+          else
+            grad0_x = (phi0(i, j) - phi0(i - 1, j)) / dx
+          end if
+
+          if (j > jfms .and. j < jfme) then
+            grad0_y = (phi0(i, j + 1) - phi0(i, j - 1)) / (2.0 * dy)
+          else if (j == jfms) then
+            grad0_y = (phi0(i, j + 1) - phi0(i, j)) / dy
+          else
+            grad0_y = (phi0(i, j) - phi0(i, j - 1)) / dy
+          end if
+
+          grad_c = sqrt (grad0_x * grad0_x + grad0_y * grad0_y)
+          grad_xm = abs (phi0(i, j) - phi0(i - 1, j)) / dx
+          grad_xp = abs (phi0(i + 1, j) - phi0(i, j)) / dx
+          grad_ym = abs (phi0(i, j) - phi0(i, j - 1)) / dy
+          grad_yp = abs (phi0(i, j + 1) - phi0(i, j)) / dy
+          grad0 = max (grad_c, grad_xm, grad_xp, grad_ym, grad_yp)
+          if (grad0 > denom_floor_grad) then
+            D(i, j) = min (abs (phi0_c) / grad0, distance_cap)
+          else
+            D(i, j) = abs (phi0_c)
+            fallback_count = fallback_count + 1
+          end if
+        end do
+      end do
+
+      if (fallback_count > 0) then
+        write (msg, '(a, i0)') 'Compute_rs_interface_mask_and_distance used defensive D_rs fallback for cells=', &
+            fallback_count
+        call Print_message (trim (msg))
+      end if
+
+    end subroutine Compute_rs_interface_mask_and_distance
+
+    ! ***************************************************************************
 
     subroutine Calc_fuel_left (ims, ime, jms, jme, its, ite, jts, jte, ifs, ife, jfs, jfe, &
         lfn, tign, fuel_time, time_now, fuel_frac, fire_area, fuel_frac_burnt_dt)
@@ -740,7 +870,8 @@
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, cart_comm, &
-        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, grad_norm_reinit)
+        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, grad_norm_reinit, reinit_godunov_sign_branch, &
+        reinit_use_russo_smereka, reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg)
 
     ! Purpose: Level-set function reinitialization
     !
@@ -758,15 +889,20 @@
       integer, dimension (num_tiles), intent (in) :: i_start, i_end, j_start, j_end
       integer, intent (in) :: ifms, ifme, jfms, jfme
       integer, intent (in) :: ifds, ifde, jfds, jfde
-      integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp
+      integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp, reinit_rs_buffer_ngp
+      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit
+      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit, rs_interface_mask, rs_distance_dbg
       real, intent (in) :: reinit_pseudot_coef, dx, dy, ts, dt
 
-      real :: dt_s, threshold_hlu
-      integer :: nts, i, j, ij, ifts, ifte, jfts, jfte
+      logical, allocatable :: mask_next(:, :), mask_work(:, :)
+      integer, allocatable :: s_next(:, :), s_work(:, :)
+      real, allocatable :: D_next(:, :), D_work(:, :), mask_exchange(:, :)
+      real :: dt_s, threshold_hlu, local_sign_flip_count, total_sign_flip_count
+      integer :: nts, i, j, ij, ifts, ifte, jfts, jfte, buffer_pass
+      character (len = 256) :: msg
 
 
       threshold_hlu = fire_lsm_band_ngp * dx
@@ -806,6 +942,74 @@
       end do
       !$OMP END PARALLEL DO
 
+      call Ensure_rs_storage (ifms, ifme, jfms, jfme)
+      phi0_rs = lfn_s3
+      rs_interface_mask = 0.0
+      rs_distance_dbg = 0.0
+      if (reinit_use_russo_smereka) then
+        call Compute_rs_interface_mask_and_distance (phi0_rs, mask_rs, D_rs, s_rs, ifms, ifme, jfms, jfme, &
+            ifps, ifpe, jfps, jfpe, dx, dy)
+        if (reinit_rs_buffer_ngp > 0) then
+          allocate (mask_work(ifms:ifme, jfms:jfme), mask_next(ifms:ifme, jfms:jfme))
+          allocate (D_work(ifms:ifme, jfms:jfme), D_next(ifms:ifme, jfms:jfme))
+          allocate (s_work(ifms:ifme, jfms:jfme), s_next(ifms:ifme, jfms:jfme))
+          allocate (mask_exchange(ifms:ifme, jfms:jfme))
+          mask_work = mask_rs
+          D_work = D_rs
+          s_work = s_rs
+
+          do buffer_pass = 1, reinit_rs_buffer_ngp
+#ifdef DM_PARALLEL
+            mask_exchange = 0.0
+            where (mask_work) mask_exchange = 1.0
+            call Do_halo_exchange_with_corners (mask_exchange, ifms, ifme, jfms, jfme, &
+                ifps, ifpe, jfps, jfpe, 1, cart_comm)
+            mask_work = mask_exchange > 0.5
+#endif
+            mask_next = mask_work
+            D_next = D_work
+            s_next = s_work
+            do j = jfps, jfpe
+              do i = ifps, ifpe
+                if (mask_work(i, j)) cycle
+                if (.not. any (mask_work(max (ifms, i - 1):min (ifme, i + 1), &
+                    max (jfms, j - 1):min (jfme, j + 1)))) cycle
+                mask_next(i, j) = .true.
+                D_next(i, j) = abs (phi0_rs(i, j))
+                if (phi0_rs(i, j) > 0.0) then
+                  s_next(i, j) = 1
+                else if (phi0_rs(i, j) < 0.0) then
+                  s_next(i, j) = -1
+                else
+                  s_next(i, j) = 0
+                end if
+              end do
+            end do
+            mask_work = mask_next
+            D_work = D_next
+            s_work = s_next
+          end do
+
+          mask_rs = mask_work
+          D_rs = D_work
+          s_rs = s_work
+          deallocate (mask_work, mask_next, D_work, D_next, s_work, s_next, mask_exchange)
+        end if
+      else
+        mask_rs = .false.
+        D_rs = 0.0
+        s_rs = 0
+      end if
+
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (mask_rs(i, j)) then
+            rs_interface_mask(i, j) = 1.0
+            rs_distance_dbg(i, j) = D_rs(i, j)
+          end if
+        end do
+      end do
+
       dt_s = reinit_pseudot_coef * dx
 
         ! iterate to solve to steady state reinit PDE
@@ -823,7 +1027,8 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
-              fire_upwinding_reinit, grad_norm_reinit)
+              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
+              mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
  
@@ -856,7 +1061,8 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
-              fire_upwinding_reinit, grad_norm_reinit)
+              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
+              mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -889,7 +1095,8 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
-              fire_upwinding_reinit, grad_norm_reinit)
+              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
+              mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -930,11 +1137,29 @@
       end do
       !$OMP END PARALLEL DO
 
+      local_sign_flip_count = 0.0
+      do j = jfps, jfpe
+        do i = ifps, ifpe
+          if (phi0_rs(i, j) > 0.0 .and. lfn_out(i, j) < 0.0) &
+              local_sign_flip_count = local_sign_flip_count + 1.0
+          if (phi0_rs(i, j) < 0.0 .and. lfn_out(i, j) > 0.0) &
+              local_sign_flip_count = local_sign_flip_count + 1.0
+        end do
+      end do
+#ifdef DM_PARALLEL
+      call Sum_across_mpi_tasks (local_sign_flip_count, cart_comm, total_sign_flip_count)
+#else
+      total_sign_flip_count = local_sign_flip_count
+#endif
+      write (msg, '(a, i0)') 'Reinit sign-flip count (pre vs post reinit)=', nint (total_sign_flip_count)
+      call Print_message (trim (msg))
+
     end subroutine Reinit_level_set
 
     subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, lfn_s0, &
-        lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit, grad_norm_reinit)
+        lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit, grad_norm_reinit, &
+        reinit_godunov_sign_branch, reinit_use_russo_smereka, mask_rs, D_rs, s_rs)
 
       ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
 
@@ -943,17 +1168,23 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, &
           jfte, ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit
+      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_s0, lfn_ini, lfn_curr
+      logical, dimension (ifms:ifme, jfms:jfme), intent (in) :: mask_rs
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: D_rs
+      integer, dimension (ifms:ifme, jfms:jfme), intent (in) :: s_rs
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_fin
       real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit
       real, intent (in) :: dx, dy, dt_s, threshold_hlu, rk_coeff
 
       integer :: i, j
-      real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, tend_r
+      logical :: grad_precomputed
+      real :: diffLx, diffLy, diffRx, diffRy, diff2x, diff2y, grad, gx, gy, tend_r
 
 
       do j = jfts, jfte 
         do i = ifts, ifte 
+          grad_precomputed = .false.
           if (i < ifds + BDY_ENO1 .or. i > ifde - BDY_ENO1 .or. &
               j < jfds + BDY_ENO1 .or. j > jfde - BDY_ENO1) then
             diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
@@ -1030,6 +1261,29 @@
                   diff2y = Select_eno (diffLy, diffRy)
                 endif
 
+              case (5)
+                diffLx = (lfn_curr(i, j) - lfn_curr(i - 1, j)) / dx
+                diffLy = (lfn_curr(i, j) - lfn_curr(i, j - 1)) / dy
+                diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
+                diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
+
+                if (reinit_godunov_sign_branch) then
+                  if (lfn_s0(i, j) >= 0.0) then
+                    gx = max (max (diffLx, 0.0) ** 2, min (diffRx, 0.0) ** 2)
+                    gy = max (max (diffLy, 0.0) ** 2, min (diffRy, 0.0) ** 2)
+                  else
+                    gx = max (min (diffLx, 0.0) ** 2, max (diffRx, 0.0) ** 2)
+                    gy = max (min (diffLy, 0.0) ** 2, max (diffRy, 0.0) ** 2)
+                  end if
+                else
+                  gx = max (max (diffLx, 0.0) ** 2, min (diffRx, 0.0) ** 2)
+                  gy = max (max (diffLy, 0.0) ** 2, min (diffRy, 0.0) ** 2)
+                end if
+                grad = sqrt (gx + gy)
+                diff2x = max (diffLx, 0.0) - min (diffRx, 0.0)
+                diff2y = max (diffLy, 0.0) - min (diffRy, 0.0)
+                grad_precomputed = .true.
+
               case default
                 if (lfn_curr(i,j) < threshold_hlu) then
                   diff2x = Select_4th (dx, lfn_curr(i, j), lfn_curr(i - 1, j), &
@@ -1053,9 +1307,13 @@
 
             end select
           end if
-            grad = sqrt (diff2x * diff2x + diff2y * diff2y)
+            if (.not. grad_precomputed) grad = sqrt (diff2x * diff2x + diff2y * diff2y)
             grad_norm_reinit(i, j) = grad
-            tend_r = lfn_s0(i, j) * (1.0 - grad)
+            if (reinit_use_russo_smereka .and. fire_upwinding_reinit == 5 .and. mask_rs(i, j)) then
+              tend_r = - real (s_rs(i, j)) * (abs (lfn_curr(i, j)) - D_rs(i, j)) / dx
+            else
+              tend_r = lfn_s0(i, j) * (1.0 - grad)
+            end if
             lfn_fin(i, j) = lfn_ini(i, j) + (dt_s * rk_coeff) * tend_r
         end do
       end do
@@ -1116,10 +1374,11 @@
       real :: difflx, diffly, diffrx, diffry, diffcx, diffcy, &
          diff2x, diff2y, grad, mask, diff2x_eno, diff2y_eno, &
          diff2x_weno, diff2y_weno, transition_width, band_width, &
-         scale, nvx, nvy, a_valor, signo_x, signo_y, threshold_hll, &
+         nvx, nvy, norm_dx, norm_dy, normal_scale, a_valor, signo_x, signo_y, threshold_hll, &
          threshold_hlu, threshold_av, fire_viscosity_var
       integer :: i, j
       character (len = :), allocatable :: msg
+      logical :: near_eno_boundary
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
@@ -1151,10 +1410,11 @@
             ! central differences
           diffcx = 0.5 * (difflx + diffrx)
           diffcy = 0.5 * (diffly + diffry)
+          near_eno_boundary = i < ids + BDY_ENO1 .or. i > ide - BDY_ENO1 .or. &
+              j < jds + BDY_ENO1 .or. j > jde - BDY_ENO1
 
             ! use eno1 near domain boundaries
-          if (i < ids + BDY_ENO1 .or. i > ide - BDY_ENO1 .or. &
-              j < jds + BDY_ENO1 .or. j > jde - BDY_ENO1) then 
+          if (near_eno_boundary) then
             diff2x = Select_eno (difflx, diffrx)
             diff2y = Select_eno (diffly, diffry)
             grad = sqrt (diff2x * diff2x + diff2y * diff2y)
@@ -1310,6 +1570,15 @@
             end select
           end if
 
+          norm_dx = diff2x
+          norm_dy = diff2y
+          if (fire_upwinding == 4 .and. .not. near_eno_boundary) then
+              ! Retain the Godunov Hamiltonian magnitude while using signed
+              ! derivatives for the wind- and slope-relative spread direction.
+            norm_dx = Select_godunov (difflx, diffrx)
+            norm_dy = Select_godunov (diffly, diffry)
+          end if
+
           grad_norm_ls(i, j) = grad
           grad_norm_residual_sq_sum_local = grad_norm_residual_sq_sum_local + (grad - 1.0) ** 2
           if (abs(lfn(i, j)) < threshold_hlu) then
@@ -1318,9 +1587,9 @@
           end if
 
             ! Calc normal
-          scale = sqrt (grad ** 2.0 + EPS)
-          nvx = diff2x / scale
-          nvy = diff2y / scale
+          normal_scale = sqrt (norm_dx ** 2.0 + norm_dy ** 2.0 + EPS)
+          nvx = norm_dx / normal_scale
+          nvy = norm_dy / normal_scale
 
             ! Get rate of spread from wind speed and slope
           ros(i, j) = ros_model%Calc_ros (ifms, ifme, jfms, jfme, i, j, &
