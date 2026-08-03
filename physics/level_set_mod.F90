@@ -870,7 +870,8 @@
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, cart_comm, &
-        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, grad_norm_reinit, reinit_godunov_sign_branch, &
+        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, grad_norm_reinit, &
+        reinit_godunov_sign_branch, &
         reinit_use_russo_smereka, reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg, &
         reinit_conditional_no_retreat, lfn_retreat_delta_dbg)
 
@@ -897,13 +898,14 @@
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
       real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit, rs_interface_mask, rs_distance_dbg, &
           lfn_retreat_delta_dbg
-      real, intent (in) :: reinit_pseudot_coef, dx, dy, ts, dt
+      real, intent (in) :: reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, dx, dy, ts, dt
 
       logical, allocatable :: mask_next(:, :), mask_work(:, :)
       integer, allocatable :: s_next(:, :), s_work(:, :)
       real, allocatable :: D_next(:, :), D_work(:, :), mask_exchange(:, :)
-      real :: dt_s, threshold_hlu, local_sign_flip_count, total_sign_flip_count
-      integer :: nts, i, j, ij, ifts, ifte, jfts, jfte, buffer_pass
+      real :: dt_s, dt_s_cfl, max_stable_dt, max_stable_rate, min_grid_spacing, threshold_hlu, &
+          local_sign_flip_count, total_sign_flip_count
+      integer :: nts, i, j, ij, ifts, ifte, jfts, jfte, buffer_pass, min_stable_iter
       character (len = 256) :: msg
 
 
@@ -1013,7 +1015,27 @@
         end do
       end do
 
-      dt_s = reinit_pseudot_coef * dx
+      min_grid_spacing = min (dx, dy)
+      if (reinit_pseudot_rate >= 0.0) then
+        dt_s = reinit_pseudot_rate * dt / real (fire_lsm_reinit_iter)
+        dt_s_cfl = dt_s / min_grid_spacing
+        if (dt_s_cfl > reinit_pseudot_cfl) then
+          min_stable_iter = ceiling (reinit_pseudot_rate * dt / (reinit_pseudot_cfl * min_grid_spacing))
+          max_stable_rate = reinit_pseudot_cfl * min_grid_spacing * real (fire_lsm_reinit_iter) / dt
+          if (reinit_pseudot_rate > 0.0) then
+            max_stable_dt = reinit_pseudot_cfl * min_grid_spacing * real (fire_lsm_reinit_iter) / reinit_pseudot_rate
+          else
+            max_stable_dt = huge (max_stable_dt)
+          end if
+          write (msg, '(a, es12.4, a, es12.4, a, i0, a, es12.4, a, es12.4)') &
+              'reinit_pseudot_rate gives pseudo-time CFL=', dt_s_cfl, ', limit=', reinit_pseudot_cfl, &
+              '; set fire_lsm_reinit_iter >= ', min_stable_iter, ', or reinit_pseudot_rate <= ', max_stable_rate, &
+              ', or dt <= ', max_stable_dt
+          call Stop_simulation (trim (msg))
+        end if
+      else
+        dt_s = reinit_pseudot_coef * dx
+      end if
 
         ! iterate to solve to steady state reinit PDE
         ! 1 iter each time step is enoguh

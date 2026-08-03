@@ -182,6 +182,20 @@ Example namelists can be found in the various test subdirectories under the ``te
    level-set field is negative, allowing reinitialization to increase ``lfn``
    on previously unburned cells.
 
+``reinit_pseudot_rate``: *real* (Default: ``-1.0``)
+   Reinitialization pseudo-time rate [m s-1]. The sentinel value ``-1.0``
+   preserves legacy coefficient mode, in which each PDE iteration uses
+   the pseudo-time increment ``reinit_pseudot_coef * dx`` [m]. A nonnegative
+   value applies the total pseudo-time increment ``reinit_pseudot_rate * dt``
+   [m] per model step, divided equally among ``fire_lsm_reinit_iter``
+   iterations.
+
+``reinit_pseudot_cfl``: *real* (Default: ``0.5``)
+   Positive upper bound on ``dt_pseudo/min(dx,dy)`` in rate mode. The model
+   stops when this bound is exceeded and reports stable alternatives for the
+   iteration count, pseudo-time rate, or physical timestep. This check does not
+   alter legacy coefficient mode.
+
 ``fire_lsm_band_ngp``: *integer* (Default: ``4``)
    When using ``fire_upwinding_reinit=3,4`` and ``fire_upwinding=8/9``, the number of grid points around lfn=0 that WENO5/3 is used
 

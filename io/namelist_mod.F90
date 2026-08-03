@@ -64,6 +64,8 @@
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
       real :: reinit_pseudot_coef = 0.0001    ! Coefficient for the pseudo time
+      real :: reinit_pseudot_rate = -1.0      ! pseudo-time rate [m s-1]; -1 selects legacy coefficient mode
+      real :: reinit_pseudot_cfl = 0.5        ! maximum pseudo-time CFL in rate mode
 
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
@@ -209,6 +211,8 @@
       call Broadcast_integer (this%fire_upwinding_reinit)
       call Broadcast_integer (this%fire_lsm_band_ngp)
       call Broadcast_real (this%reinit_pseudot_coef)
+      call Broadcast_real (this%reinit_pseudot_rate)
+      call Broadcast_real (this%reinit_pseudot_cfl)
       call Broadcast_integer (this%fast_dist_reinit_opt)
       call Broadcast_integer (this%fast_dist_reinit_freq)
       call Broadcast_logical (this%fast_dist_reinit_at_startup)
@@ -402,6 +406,14 @@
           call Stop_simulation ('ros_cap_value must be positive when use_ros_cap is enabled')
       if (this%reinit_rs_buffer_ngp < 0) &
           call Stop_simulation ('reinit_rs_buffer_ngp must be nonnegative')
+      if (this%fire_lsm_reinit_iter < 0) &
+          call Stop_simulation ('fire_lsm_reinit_iter must be nonnegative')
+      if (this%reinit_pseudot_rate < 0.0 .and. this%reinit_pseudot_rate /= -1.0) &
+          call Stop_simulation ('reinit_pseudot_rate must be -1.0 for legacy coefficient mode or nonnegative for rate mode')
+      if (this%reinit_pseudot_rate >= 0.0 .and. this%fire_lsm_reinit_iter < 1) &
+          call Stop_simulation ('reinit_pseudot_rate requires fire_lsm_reinit_iter >= 1')
+      if (this%reinit_pseudot_cfl <= 0.0) &
+          call Stop_simulation ('reinit_pseudot_cfl must be positive')
       if (this%reinit_use_russo_smereka .and. this%fire_upwinding_reinit /= 5 .and. .not. this%allow_RS_any_reinit) &
           call Stop_simulation ('reinit_use_russo_smereka requires fire_upwinding_reinit=5 unless allow_RS_any_reinit=.true.')
 
@@ -482,7 +494,8 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
-          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, ros_cap_value
+          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, &
+          reinit_pseudot_rate, reinit_pseudot_cfl, ros_cap_value
       logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, use_ros_cap, &
           fast_dist_reinit_at_startup, reinit_use_russo_smereka, reinit_godunov_sign_branch, allow_RS_any_reinit, &
           reinit_conditional_no_retreat
@@ -509,7 +522,7 @@
           fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -547,6 +560,8 @@
       fire_upwinding_reinit = this%fire_upwinding_reinit
       fire_lsm_band_ngp = this%fire_lsm_band_ngp
       reinit_pseudot_coef = this%reinit_pseudot_coef
+      reinit_pseudot_rate = this%reinit_pseudot_rate
+      reinit_pseudot_cfl = this%reinit_pseudot_cfl
       fast_dist_reinit_opt = this%fast_dist_reinit_opt
       fast_dist_reinit_freq = this%fast_dist_reinit_freq
       fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
@@ -651,6 +666,8 @@
       this%fire_upwinding_reinit = fire_upwinding_reinit
       this%fire_lsm_band_ngp = fire_lsm_band_ngp
       this%reinit_pseudot_coef = reinit_pseudot_coef
+      this%reinit_pseudot_rate = reinit_pseudot_rate
+      this%reinit_pseudot_cfl = reinit_pseudot_cfl
       this%fast_dist_reinit_opt = fast_dist_reinit_opt
       this%fast_dist_reinit_freq = fast_dist_reinit_freq
       this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup
