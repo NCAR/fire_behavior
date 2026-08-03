@@ -204,6 +204,29 @@
 
     end subroutine Check_status
 
+    subroutine Check_var_status (status, file_name, var_name)
+
+      use netcdf
+
+      implicit none
+
+      integer, intent (in) :: status
+      character (len = *), intent (in) :: file_name, var_name
+
+      character (len = :), allocatable :: msg
+
+
+      if (status == NF90_NOERR) return
+
+      if (status == NF90_ENOTVAR) then
+        msg = 'NetCDF: Variable not found: ' // trim (var_name) // ' in file ' // trim (file_name)
+        call Stop_simulation (msg)
+      end if
+
+      call Stop_simulation (trim (nf90_strerror (status)))
+
+    end subroutine Check_var_status
+
     subroutine Create_netcdf_file (file_name)
 
       use netcdf
@@ -245,7 +268,7 @@
         call Check_status (status)
       else
         status = nf90_inq_varid (ncid, var_name, varid)
-        call Check_status (status)
+        call Check_var_status (status, file_name, var_name)
 
         status = nf90_get_att (ncid, varid, att_name, att_value)
         call Check_status (status)
@@ -281,7 +304,7 @@
         call Check_status (status)
       else
         status = nf90_inq_varid (ncid, var_name, varid)
-        call Check_status (status)
+        call Check_var_status (status, file_name, var_name)
 
         status = nf90_get_att (ncid, varid, att_name, att_value)
         call Check_status (status)
@@ -341,7 +364,7 @@
       call Check_status (status)
 
       status = nf90_inq_varid (ncid, name_var, ivar)
-      call Check_status (status)
+      call Check_var_status (status, file_name, name_var)
 
       status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
       call Check_status (status)
@@ -400,7 +423,7 @@
 
         ! Get var
       status = nf90_inq_varid (ncid, trim (var_name), ivar)
-      call Check_status (status)
+      call Check_var_status (status, file_name, var_name)
       status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
       call Check_status (status)
 
@@ -456,7 +479,7 @@
 
         ! Get var
       status = nf90_inq_varid (ncid, trim (var_name), ivar)
-      call Check_status (status)
+      call Check_var_status (status, file_name, var_name)
       status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
       call Check_status (status)
 
@@ -511,7 +534,7 @@
 
         ! Get var
       status = nf90_inq_varid (ncid, trim (var_name), ivar)
-      call Check_status (status)
+      call Check_var_status (status, file_name, var_name)
       status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
       call Check_status (status)
 
@@ -567,7 +590,7 @@
 
         ! Get var
       status = nf90_inq_varid (ncid, trim (var_name), ivar)
-      call Check_status (status)
+      call Check_var_status (status, file_name, var_name)
       status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
       call Check_status (status)
 
