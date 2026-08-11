@@ -19,7 +19,7 @@ Future releases will include a method for creating domains without needing to co
 Namelist Configuration
 ======================
 
-The options specific to the CFBM are controlled by a :term:`namelist` file ``namelist.fire``. This namelist file consists of three sections: ``&time``, ``&atm``, and ``&fire``. The available options in each section are described below.
+The options specific to the CFBM are controlled by a :term:`namelist` file ``namelist.fire``. This namelist file consists of three required sections (``&time``, ``&atm``, and ``&fire``) and an optional ``&ideal`` section that is read only for idealized runs (see ``ideal_opt``). The available options in each section are described below.
 
 Example namelists can be found in the various test subdirectories under the ``tests/`` directory.
 
@@ -64,19 +64,19 @@ Example namelists can be found in the various test subdirectories under the ``te
    End second of the simulation.
 
 ``dt``: *real* (Default: ``2.0``)
-   Atmospheric time step in seconds.
+   Model (fire) integration time step in seconds. This controls how often the fire model advances.
 
 ``interval_output``: *integer* (**Required**)
    [Units: s]
    Specifies the time interval (in seconds) for writing to the history output files
 
 ``num_tiles``: *integer* (Default: ``1``)
-   Number of tiles for MPI domain decomposition. Not yet implemented.
+   Number of OpenMP tiles. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The tile shape is controlled by ``tile_strategy``. The example namelists in ``tests/`` use ``num_tiles = 16``.
 
 
 &atm
 ----
-``kde``: *integer* (Default: ``2``)
+``kde``: *integer* (Default: ``1``)
    Number of vertical levels for the atmospheric simulation
 
 ``interval_atm``: *integer* (Default: ``0``)
@@ -151,7 +151,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``fire_lsm_band_ngp``: *integer* (Default: ``4``)
    When using ``fire_upwinding_reinit=3,4`` and ``fire_upwinding=8/9``, the number of grid points around lfn=0 that WENO5/3 is used
 
-``fire_lsm_zcoupling``: *logical* (Default: ``1``)
+``fire_lsm_zcoupling``: *logical* (Default: ``.false.``)
    When true, uses ``fire_lsm_zcoupling_ref`` instead of ``fire_wind_height`` as a reference height to calculate the logarithmic surface layer wind profile
 
 ``fire_lsm_zcoupling_ref``: *real* (Default: ``50.0``)
@@ -180,7 +180,7 @@ Example namelists can be found in the various test subdirectories under the ``te
    [Units: s]
    Time step of moisture model (only used if ``fmoist_freq=0``)
 
-``fire_wind_height``: *integer* (Default: ``6.096``)
+``fire_wind_height``: *real* (Default: ``6.096``)
    [Units: m]
    Height of uah,vah wind in fire spread formula
 
@@ -211,9 +211,15 @@ Example namelists can be found in the various test subdirectories under the ``te
    Rate of Spread (ROS) parameterization option.
      0: Rothermel model (only option currently implemented)
 
-``fmc_opt``: *integer* (Default: ``1``)
+``fmc_opt``: *integer* (Default: ``-1``)
    :term:`FMC` model
      -1 = Constant fuel moisture (only option currently implemented)
+
+``ideal_opt``: *integer* (Default: ``0``)
+   Selects a real-world or an idealized simulation.
+     0: Real-world run. The domain (grid, map projection, fuel, and topography) is read from ``geo_em.d01.nc`` and the fire is driven by external atmospheric data.
+
+     1: Idealized run. The domain and a constant wind forcing are constructed from the ``&ideal`` section below instead of being read from input files. Idealized runs do not support the fuel moisture model (``fmoist_run`` must be ``.false.``).
 
 ``fire_num_ignitions``: *integer* (Default: ``1``)
    Number of ignitions for fire initiation. Maximum of 5.
@@ -241,12 +247,73 @@ Example namelists can be found in the various test subdirectories under the ``te
    [Units: s]
    Start time of first ignition in seconds (counting from the beginning of the simulation)
 
-``fire_ignition_end_time1``: *real* (Default: ``1``)
+``fire_ignition_end_time1``: *real* (Default: ``0.0``)
    [Units: s]
    End time of first ignition in seconds (counting from the beginning of the simulation)
 
 ``fire_ignition_radius1``: *real* (Default: ``0.0``)
    [Units: m]
    Radius of the ignition area for first ignition.
+
+
+&ideal
+------
+
+This section is read only when ``ideal_opt = 1``. It defines an idealized domain (uniform fuel, a simple slope, and a constant wind) so the model can run without ``geo_em.d01.nc`` or external atmospheric data.
+
+``nx``: *integer* (Default: ``100``)
+   Number of fire-grid points in the x (west-east) direction.
+
+``ny``: *integer* (Default: ``100``)
+   Number of fire-grid points in the y (south-north) direction.
+
+``dx``: *real* (Default: ``100.0``)
+   [Units: m]
+   Grid spacing in the x direction.
+
+``dy``: *real* (Default: ``100.0``)
+   [Units: m]
+   Grid spacing in the y direction.
+
+``zonal_wind``: *real* (Default: ``5.0``)
+   [Units: m/s]
+   Constant zonal (west-east) wind component used to force the fire.
+
+``meridional_wind``: *real* (Default: ``0.0``)
+   [Units: m/s]
+   Constant meridional (south-north) wind component used to force the fire.
+
+``fuel_cat``: *integer* (Default: ``1``)
+   Uniform fuel category assigned to the whole domain (Anderson fuel model; see ``fuel_opt``).
+
+``dz_dx``: *real* (Default: ``0.0``)
+   Terrain slope in the x direction (rise over run).
+
+``dz_dy``: *real* (Default: ``0.0``)
+   Terrain slope in the y direction (rise over run).
+
+``elevation``: *real* (Default: ``0.0``)
+   [Units: m]
+   Uniform terrain elevation of the domain.
+
+``cen_lat``: *real* (Default: ``40.3636``)
+   [Units: degrees]
+   Center latitude of the idealized domain.
+
+``cen_lon``: *real* (Default: ``-4.4035``)
+   [Units: degrees]
+   Center longitude of the idealized domain.
+
+``stand_lon``: *real* (Default: ``-4.4035``)
+   [Units: degrees]
+   Standard (reference) longitude of the map projection.
+
+``true_lat_1``: *real* (Default: ``40.363``)
+   [Units: degrees]
+   First true latitude of the map projection.
+
+``true_lat_2``: *real* (Default: ``40.363``)
+   [Units: degrees]
+   Second true latitude of the map projection.
 
 
