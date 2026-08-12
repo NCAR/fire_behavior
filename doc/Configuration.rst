@@ -191,8 +191,9 @@ Example namelists can be found in the various test subdirectories under the ``te
      .false. = point/line ignition
 
 ``frac_fburnt_to_smoke``: *real* (Default: ``0.02``)
-   [Units: g/kg]
-   Parts per unit of burned fuel converted to smoke, represented as grams of smoke per kilogram of air.
+   [Units: kg smoke/kg burned fuel]
+   Fraction of burned fuel mass released as smoke when ``emis_opt=0``. The
+   default corresponds to 20 g of smoke per kilogram of burned fuel.
 
 ``fuelmc_g``: *real* (Default: ``0.08``)
    Fuel moisture content ground (Dead :term:`FMC`)
@@ -315,5 +316,3 @@ This section is read only when ``ideal_opt = 1``. It defines an idealized domain
 ``true_lat_2``: *real* (Default: ``40.363``)
    [Units: degrees]
    Second true latitude of the map projection.
-
-
