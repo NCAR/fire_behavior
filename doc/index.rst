@@ -8,8 +8,8 @@ Community Fire Behavior Module (CFBM) Documentation (|version|)
    Introduction
    Building
    Configuration
-   SRW
-   WRF
-   WRFData
    Idealized
+   WRFData
+   WRF
+   SRW
    Glossary
