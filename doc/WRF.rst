@@ -48,9 +48,6 @@ WRF's external-management tooling, followed by a submodule update:
 
 .. code-block:: console
 
-   # Clear the placeholder directory before checking out the external
-   rm -rf phys/fire_behavior
-
    ./tools/manage_externals/checkout_externals -e arch/OptionalExternals_cfbm.cfg
 
    # Initialize submodules

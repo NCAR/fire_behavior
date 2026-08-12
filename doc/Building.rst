@@ -63,8 +63,8 @@ This loads the Derecho GNU environment, configures the project with CMake, and
 builds and installs the model. On success the executable is produced at
 ``build/fire_behavior.exe`` and installed to ``install/bin/fire_behavior.exe``.
 
-To rebuild from scratch, add ``--clean``, which removes the build and install
-directories first.
+To rebuild from scratch, add ``--clean``, which removes the build directory
+first.
 
 ``compile.sh`` options
 ========================================
@@ -114,7 +114,7 @@ directories first.
    Verbose build output.
 
 ``--clean``
-   Delete the build and install directories before building.
+   Delete the build directory before building.
 
 ``--help``, ``-h``
    Print usage and exit.
@@ -130,8 +130,8 @@ parallelism, selected at build time:
 * **OpenMP** is disabled by default. Enable it with ``--openmp-on``.
 
 At run time, OpenMP threading is applied over the tiles that each MPI patch is
-divided into. The number of tiles is set by ``num_tiles`` and their shape by
-``tile_strategy`` in the namelist; see :ref:`namelist`.
+divided into. The number of tiles is set by ``num_tiles`` in the namelist; see
+:ref:`namelist`.
 
 Coupled and ESMX builds
 ========================================
@@ -160,4 +160,4 @@ The run directory must contain a ``namelist.fire`` (see :ref:`namelist`). For
 real-world runs it must also contain the static ``geo_em.d01.nc`` and the
 atmospheric input; see :ref:`WRF_data` for offline runs driven by WRF data.
 Idealized runs need no external atmospheric input; see :ref:`Idealized`. Model
-output is written to ``fire_output_*`` files and diagnostics to a ``log`` file.
+output is written to ``fire_output_*`` files. Run-time diagnostics are printed to standard output; redirect them to keep a copy (for example ``fire_behavior.exe > log 2>&1``).

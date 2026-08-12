@@ -71,7 +71,7 @@ Example namelists can be found in the various test subdirectories under the ``te
    Specifies the time interval (in seconds) for writing to the history output files
 
 ``num_tiles``: *integer* (Default: ``1``)
-   Number of OpenMP tiles. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The tile shape is controlled by ``tile_strategy``. The example namelists in ``tests/`` use ``num_tiles = 16``.
+   Number of OpenMP tiles. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
 
 
 &atm
@@ -79,7 +79,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 ``kde``: *integer* (Default: ``1``)
    Number of vertical levels for the atmospheric simulation
 
-``interval_atm``: *integer* (Default: ``0``)
+``interval_atm``: *integer* (Default: ``-1``)
    [Units: s]
    Time interval (in seconds) for incoming atmospheric data. When running a coupled model, this value represents the atmospheric timestep. In offline mode, it determines the frequency of reading atmospheric data from the input file.
 
@@ -222,7 +222,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 
      1: Idealized run. The domain and a constant wind forcing are constructed from the ``&ideal`` section below instead of being read from input files. Idealized runs do not support the fuel moisture model (``fmoist_run`` must be ``.false.``).
 
-``fire_num_ignitions``: *integer* (Default: ``1``)
+``fire_num_ignitions``: *integer* (Default: ``0``)
    Number of ignitions for fire initiation. Maximum of 5.
 
 .. note::

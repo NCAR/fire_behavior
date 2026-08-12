@@ -112,4 +112,4 @@ directory containing only the ``namelist.fire`` above:
    /path/to/build/fire_behavior.exe
 
 No other input files are required. Model output is written to ``fire_output_*``
-files and run-time diagnostics to a ``log`` file.
+files. Run-time diagnostics are printed to standard output; redirect them to keep a copy (for example ``fire_behavior.exe > log 2>&1``).

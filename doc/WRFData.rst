@@ -24,4 +24,4 @@ See :ref:`building` for the full set of build options. If the compilation is suc
 
 An example is provided in the ``tests/test7/`` directory with the ``namelist.fire``.
 
-If the simulation is successful, the model outputs are written to files named ``fire_output_*``, and diagnostic messages are recorded in the ``log`` file.
+If the simulation is successful, the model outputs are written to files named ``fire_output_*``, and diagnostic messages are printed to standard output (redirect them to keep a copy, for example ``fire_behavior.exe > log 2>&1``).
