@@ -62,8 +62,6 @@
       real :: reinit_pseudot_coef = 0.0001    ! Coefficient for the pseudo time
       real :: reinit_pseudot_rate = -1.0      ! pseudo-time rate [m s-1]; -1 selects legacy coefficient mode
       real :: reinit_pseudot_cfl = 0.5        ! maximum pseudo-time CFL in rate mode
-      integer :: active_front_band_ngp = 4    ! diagnostic band width in grid points
-
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
       logical :: fast_dist_reinit_at_startup = .false. ! run one FSM pass during real-perimeter initialization
@@ -168,7 +166,9 @@
         ! Devel block
       integer :: check_isolated_neg_lfn = 0   ! 0) disabled, 1) save and stop, 2) report and continue
       integer :: output_level = 0             ! 0) Standard output, >0) Specialized output
+      integer :: lfn_diag = 0                 ! 0) disabled, 1) allocate and output level-set diagnostics
       logical :: use_active_front = .false.   ! use exact exterior-connected diagnostic masks
+      integer :: active_front_band_ngp = 4    ! diagnostic band width in grid points
     contains
       procedure, public :: Broadcast_nml => Broadcast_nml
       procedure, public :: Check_nml => Check_nml
@@ -207,7 +207,6 @@
       call Broadcast_real (this%reinit_pseudot_coef)
       call Broadcast_real (this%reinit_pseudot_rate)
       call Broadcast_real (this%reinit_pseudot_cfl)
-      call Broadcast_integer (this%active_front_band_ngp)
       call Broadcast_integer (this%fast_dist_reinit_opt)
       call Broadcast_integer (this%fast_dist_reinit_freq)
       call Broadcast_logical (this%fast_dist_reinit_at_startup)
@@ -329,7 +328,9 @@
         ! Devel block
       call Broadcast_integer (this%check_isolated_neg_lfn)
       call Broadcast_integer (this%output_level)
+      call Broadcast_integer (this%lfn_diag)
       call Broadcast_logical (this%use_active_front)
+      call Broadcast_integer (this%active_front_band_ngp)
     contains
 
       subroutine Broadcast_integer (val)
@@ -410,6 +411,10 @@
           call Stop_simulation ('reinit_pseudot_cfl must be positive')
       if (this%check_isolated_neg_lfn < 0 .or. this%check_isolated_neg_lfn > 2) &
           call Stop_simulation ('check_isolated_neg_lfn must be 0, 1, or 2')
+      if (this%lfn_diag < 0 .or. this%lfn_diag > 1) &
+          call Stop_simulation ('lfn_diag must be 0 or 1')
+      if (this%lfn_diag == 0 .and. this%use_active_front) &
+          call Stop_simulation ('use_active_front requires lfn_diag=1')
       if (this%active_front_band_ngp < 0) &
           call Stop_simulation ('active_front_band_ngp must be nonnegative')
       if (this%fire_upwinding == 4 .and. this%fire_upwinding_reinit /= 5) &
@@ -456,18 +461,21 @@
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
-      integer :: check_isolated_neg_lfn, output_level
+      integer :: check_isolated_neg_lfn, output_level, lfn_diag, active_front_band_ngp
       real :: ros_cap_value, rothermel_wind_speed_cap
       logical :: use_active_front
       integer :: unit_nml, io_stat
       character (len = :), allocatable :: msg
 
-      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front, ros_cap_value, rothermel_wind_speed_cap
+      namelist /devel/ check_isolated_neg_lfn, output_level, lfn_diag, use_active_front, active_front_band_ngp, &
+          ros_cap_value, rothermel_wind_speed_cap
 
 
       check_isolated_neg_lfn = this%check_isolated_neg_lfn
       output_level = this%output_level
+      lfn_diag = this%lfn_diag
       use_active_front = this%use_active_front
+      active_front_band_ngp = this%active_front_band_ngp
       ros_cap_value = this%ros_cap_value
       rothermel_wind_speed_cap = this%rothermel_wind_speed_cap
 
@@ -483,7 +491,9 @@
 
       this%check_isolated_neg_lfn = check_isolated_neg_lfn
       this%output_level = output_level
+      this%lfn_diag = lfn_diag
       this%use_active_front = use_active_front
+      this%active_front_band_ngp = active_front_band_ngp
       this%ros_cap_value = ros_cap_value
       this%rothermel_wind_speed_cap = rothermel_wind_speed_cap
 
@@ -497,7 +507,7 @@
       character (len = *), intent (in) :: file_name
 
       integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
-          active_front_band_ngp, reinit_rs_buffer_ngp, &
+          reinit_rs_buffer_ngp, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
@@ -527,7 +537,7 @@
           fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, active_front_band_ngp, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -563,7 +573,6 @@
       reinit_pseudot_coef = this%reinit_pseudot_coef
       reinit_pseudot_rate = this%reinit_pseudot_rate
       reinit_pseudot_cfl = this%reinit_pseudot_cfl
-      active_front_band_ngp = this%active_front_band_ngp
       fast_dist_reinit_opt = this%fast_dist_reinit_opt
       fast_dist_reinit_freq = this%fast_dist_reinit_freq
       fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
@@ -664,7 +673,6 @@
       this%reinit_pseudot_coef = reinit_pseudot_coef
       this%reinit_pseudot_rate = reinit_pseudot_rate
       this%reinit_pseudot_cfl = reinit_pseudot_cfl
-      this%active_front_band_ngp = active_front_band_ngp
       this%fast_dist_reinit_opt = fast_dist_reinit_opt
       this%fast_dist_reinit_freq = fast_dist_reinit_freq
       this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup

@@ -15,7 +15,7 @@
 
     use ros_wrffire_mod, only: ros_wrffire_t
     use stderrout_mod, only: Stop_simulation, Print_message
-    use state_mod, only: state_fire_t, N_POINTS_IN_HALO
+    use state_mod, only: lfn_diag_t, state_fire_t, N_POINTS_IN_HALO
     use ignition_line_mod, only : ignition_line_t
     use ros_mod, only : ros_t
     use constants_mod, only : PI
@@ -796,8 +796,7 @@
         num_tiles, i_start, i_end, j_start, j_end, ts, dt, dx, dy, fire_upwinding, fire_viscosity, &
         fire_viscosity_bg, fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, &
         tbound, lfn_in, lfn_0, lfn_1, lfn_2, lfn_out, tign, ros, uf, vf, dzdxf, dzdyf, ros_model, cart_comm, &
-        ifps, ifpe, jfps, jfpe, grad_norm_ls, grad_norm_residual_sq_sum, grad_norm_residual_sq_sum_band, &
-        grad_norm_residual_rms_band, lfn_tend_dbg)
+        ifps, ifpe, jfps, jfpe, lfn_diag)
 
       ! Purpose: Advance the level set function from time ts to time ts + dt
 
@@ -809,15 +808,16 @@
       real, intent(in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign, lfn_1, lfn_2, lfn_0
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros, grad_norm_ls, lfn_tend_dbg
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: lfn_out, ros
       real, intent (in) :: dx, dy, ts, dt
-      real, intent (out) :: tbound, grad_norm_residual_sq_sum, grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
+      real, intent (out) :: tbound
       class (ros_t), intent (in) :: ros_model
+      type (lfn_diag_t), intent (in out) :: lfn_diag
 
         ! to store tendency (rhs of the level set pde)
       real, dimension(ifms:ifme, jfms:jfme) :: tend
-      real :: tbound2, tbound3, tbound_thread, tbound_min, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, &
-          np_band, gmin, gsum
+      real :: tbound2, tbound3, tbound_thread, tbound_min, grad_norm_residual_sq_sum, grad_norm_residual_sq_sum_band, &
+          grad_norm_residual_rms_band, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band, gmin, gsum
       integer :: i, j, ij, ifts, ifte, jfts, jfte, np_band_local
       character (len = 128) :: msg
       logical, parameter :: DEBUG_LOCAL = .false., PRINT_ERRORS = .false.
@@ -866,7 +866,7 @@
             ifms, ifme, jfms, jfme, ts, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_0, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, lfn_diag, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -903,7 +903,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
-      lfn_tend_dbg = tend
+      if (lfn_diag%enabled) lfn_diag%lfn_tend = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -948,7 +948,7 @@
             ifms,ifme,jfms,jfme, ts + dt, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_1, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, lfn_diag, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -985,7 +985,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
-      lfn_tend_dbg = tend
+      if (lfn_diag%enabled) lfn_diag%lfn_tend = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -1029,7 +1029,7 @@
             ifms, ifme, jfms, jfme, ts + dt, dt, dx, dy, fire_upwinding, &
             fire_viscosity, fire_viscosity_bg, fire_viscosity_band, &
             fire_viscosity_ngp, fire_lsm_band_ngp, lfn_2, tbound_thread, tend, ros, uf, vf, dzdxf, dzdyf, &
-            ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+            ros_model, lfn_diag, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
 
         tbound_min = min(tbound_min, tbound_thread)
         grad_norm_residual_sq_sum = grad_norm_residual_sq_sum + grad_norm_residual_sq_sum_local
@@ -1065,7 +1065,7 @@
             grad_norm_residual_sq_sum_band, grad_norm_residual_rms_band
         call Print_message (msg)
       end if
-      lfn_tend_dbg = tend
+      if (lfn_diag%enabled) lfn_diag%lfn_tend = tend
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
@@ -1105,8 +1105,8 @@
         ifds, ifde, jfds, jfde, ts, dt, dx, dy, fire_upwinding_reinit, &
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, cart_comm, &
-        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, grad_norm_reinit, &
-        reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg)
+        ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, &
+        reinit_rs_buffer_ngp, lfn_diag)
 
     ! Purpose: Level-set function reinitialization
     !
@@ -1128,8 +1128,8 @@
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit, rs_interface_mask, rs_distance_dbg
       real, intent (in) :: reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, dx, dy, ts, dt
+      type (lfn_diag_t), intent (in out) :: lfn_diag
 
       logical, allocatable :: mask_next(:, :), mask_work(:, :)
       integer, allocatable :: s_next(:, :), s_work(:, :)
@@ -1179,8 +1179,10 @@
 
       call Ensure_rs_storage (ifms, ifme, jfms, jfme)
       phi0_rs = lfn_s3
-      rs_interface_mask = 0.0
-      rs_distance_dbg = 0.0
+      if (lfn_diag%enabled) then
+        lfn_diag%rs_interface_mask = 0.0
+        lfn_diag%rs_distance = 0.0
+      end if
       if (fire_upwinding_reinit == 5) then
         call Compute_rs_interface_mask_and_distance (phi0_rs, mask_rs, D_rs, s_rs, ifms, ifme, jfms, jfme, &
             ifps, ifpe, jfps, jfpe, dx, dy)
@@ -1238,9 +1240,9 @@
 
       do j = jfps, jfpe
         do i = ifps, ifpe
-          if (mask_rs(i, j)) then
-            rs_interface_mask(i, j) = 1.0
-            rs_distance_dbg(i, j) = D_rs(i, j)
+          if (lfn_diag%enabled .and. mask_rs(i, j)) then
+            lfn_diag%rs_interface_mask(i, j) = 1.0
+            lfn_diag%rs_distance(i, j) = D_rs(i, j)
           end if
         end do
       end do
@@ -1282,7 +1284,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
-              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, lfn_diag, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
  
@@ -1315,7 +1317,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
-              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, lfn_diag, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -1348,7 +1350,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
-              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, lfn_diag, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -1412,7 +1414,7 @@
 
     subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, lfn_s0, &
-        lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit, grad_norm_reinit, &
+        lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit, lfn_diag, &
         mask_rs, D_rs, s_rs)
 
       ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
@@ -1427,8 +1429,8 @@
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: D_rs
       integer, dimension (ifms:ifme, jfms:jfme), intent (in) :: s_rs
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_fin
-      real, dimension (ifms:ifme, jfms:jfme), intent (out) :: grad_norm_reinit
       real, intent (in) :: dx, dy, dt_s, threshold_hlu, rk_coeff
+      type (lfn_diag_t), intent (in out) :: lfn_diag
 
       integer :: i, j
       logical :: grad_precomputed
@@ -1556,7 +1558,7 @@
             end select
           end if
             if (.not. grad_precomputed) grad = sqrt (diff2x * diff2x + diff2y * diff2y)
-            grad_norm_reinit(i, j) = grad
+            if (lfn_diag%enabled) lfn_diag%grad_norm_reinit(i, j) = grad
             if (fire_upwinding_reinit == 5 .and. mask_rs(i, j)) then
               tend_r = - real (s_rs(i, j)) * (abs (lfn_curr(i, j)) - D_rs(i, j)) / dx
             else
@@ -1601,7 +1603,7 @@
     subroutine Calc_tend_ls (ids, ide, jds, jde, its, ite, jts, jte, ifms, ifme, jfms, jfme, &
         t, dt, dx, dy, fire_upwinding, fire_viscosity, fire_viscosity_bg, &
         fire_viscosity_band, fire_viscosity_ngp, fire_lsm_band_ngp, lfn, tbound, tend, ros, uf, vf, dzdxf, dzdyf, &
-        ros_model, grad_norm_ls, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
+        ros_model, lfn_diag, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local, np_band_local)
 
       ! compute the right hand side of the level set equation
 
@@ -1613,9 +1615,10 @@
       real, intent (in) :: fire_viscosity, fire_viscosity_bg, fire_viscosity_band, t, dt, dx, dy
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: uf, vf, dzdxf, dzdyf
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn
-      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros, grad_norm_ls
+      real, dimension(ifms:ifme, jfms:jfme), intent (out) :: tend, ros
       real, intent (out) :: tbound, grad_norm_residual_sq_sum_local, grad_norm_residual_sq_sum_band_local
       class (ros_t), intent (in) :: ros_model
+      type (lfn_diag_t), intent (in out) :: lfn_diag
 
       real, parameter :: EPS = epsilon (0.0), TOL = 100.0 * EPS
       real :: difflx, diffly, diffrx, diffry, diffcx, diffcy, &
@@ -1824,11 +1827,13 @@
             norm_dy = Select_godunov (diffly, diffry)
           end if
 
-          grad_norm_ls(i, j) = grad
-          grad_norm_residual_sq_sum_local = grad_norm_residual_sq_sum_local + (grad - 1.0) ** 2
-          if (abs(lfn(i, j)) < threshold_hlu) then
-            grad_norm_residual_sq_sum_band_local = grad_norm_residual_sq_sum_band_local + (grad - 1.0) ** 2
-            np_band_local = np_band_local + 1
+          if (lfn_diag%enabled) then
+            lfn_diag%grad_norm_ls(i, j) = grad
+            grad_norm_residual_sq_sum_local = grad_norm_residual_sq_sum_local + (grad - 1.0) ** 2
+            if (abs(lfn(i, j)) < threshold_hlu) then
+              grad_norm_residual_sq_sum_band_local = grad_norm_residual_sq_sum_band_local + (grad - 1.0) ** 2
+              np_band_local = np_band_local + 1
+            end if
           end if
 
             ! Calc normal

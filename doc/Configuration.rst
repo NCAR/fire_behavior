@@ -193,12 +193,6 @@ Example namelists can be found in the various test subdirectories under the ``te
    use the same parameter for their established LFN-distance stencil
    selection. This numerical control is independent of ``use_active_front``.
 
-``active_front_band_ngp``: *integer* (Default: ``4``)
-   Nonnegative diagnostic-band width in grid points. Values 0 and 1 retain
-   the selected seed; each larger value adds one bounded four-neighbor layer
-   per additional grid point. This option controls only ``band_mask`` and
-   does not affect propagation, artificial viscosity, or reinitialization.
-
 ``fast_dist_reinit_at_startup``: *logical* (Default: ``.false.``)
    For real-perimeter initialization only, run one fast-sweeping distance
    reinitialization pass before the first level-set propagation. This option
@@ -335,7 +329,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``output_level``: *integer* (Default: ``0``)
    Developer-facing output selector in the ``devel`` namelist block. Values
-   greater than 0 add specialized level-set fields to NetCDF output:
+   greater than 0 add these fields to NetCDF output:
 
    * ``ros`` is the modeled rate of spread [m s-1] evaluated from the local
      wind, terrain, fuel, and final propagation-stage level-set normal.
@@ -344,6 +338,13 @@ Example namelists can be found in the various test subdirectories under the ``te
      because no model advance has occurred. Area introduced during the first
      advance by prescribed ignition or real-perimeter initialization is
      included in the rate.
+
+``lfn_diag``: *integer* (Default: ``0``)
+   Developer-facing level-set diagnostic selector in the ``devel`` namelist
+   block. A value of 0 disables the diagnostic calculations and storage. A
+   value of 1 allocates the diagnostic fields and adds them to NetCDF output,
+   independently of ``output_level``:
+
    * ``active_front_mask`` identifies burned, burnable interface cells that
      touch exterior-connected nonnegative-LFN burnable space when
      ``use_active_front=.true.``. Exterior connectivity is four-neighbor and
@@ -378,8 +379,8 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``use_active_front``: *logical* (Default: ``.false.``)
    Diagnostic-only selector in the ``devel`` namelist block. It is read when
-   ``devel_opt > 0`` and never selects a propagation or reinitialization
-   stencil.
+   ``devel_opt > 0``, requires ``lfn_diag=1``, and never selects a propagation
+   or reinitialization stencil.
 
    When false, ``band_mask`` is seeded exactly where
    ``abs(fire_area_change_rate) > 0`` and expanded with
@@ -396,6 +397,13 @@ Example namelists can be found in the various test subdirectories under the ``te
    ``fire_print_msg > 1``, the model reports the exact connectivity-call count
    for each physical timestep. The initial output contains zero masks and zero
    ``ros_lfn_error_front`` because no physical timestep has occurred.
+
+``active_front_band_ngp``: *integer* (Default: ``4``)
+   Nonnegative diagnostic-band width in grid points in the ``devel`` namelist
+   block. Values 0 and 1 retain the selected seed; each larger value adds one
+   bounded four-neighbor layer per additional grid point. This option controls
+   only ``band_mask`` when ``lfn_diag=1`` and does not affect propagation,
+   artificial viscosity, or reinitialization.
 
 Each PDE reinitialization also logs the number of strict nonzero sign reversals
 between the entering and final level-set fields. If the Russo-Smereka distance

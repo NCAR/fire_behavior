@@ -60,14 +60,14 @@
           config_flags%fire_upwinding, config_flags%fire_viscosity, config_flags%fire_viscosity_bg, config_flags%fire_viscosity_band, &
           config_flags%fire_viscosity_ngp, config_flags%fire_lsm_band_ngp, tbound, grid%lfn, grid%lfn_0, grid%lfn_1, grid%lfn_2, &
           grid%lfn_out, grid%tign_g, grid%ros, grid%uf, grid%vf, grid%dzdxf, grid%dzdyf, grid%ros_param, grid%cart_comm, &
-          grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%grad_norm_ls, grid%grad_norm_residual_sq_sum, &
-          grid%grad_norm_residual_sq_sum_band, grid%grad_norm_residual_rms_band, grid%lfn_tend_dbg)
+          grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%lfn_diag)
 
-      if (config_flags%use_active_front .and. reinit_scheduled) then
+      if (grid%lfn_diag%enabled .and. config_flags%use_active_front .and. reinit_scheduled) then
         call Compute_active_front_masks (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
             grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%active_front_band_ngp, grid%cart_comm, &
-            grid%lfn_out, grid%nfuel_cat, grid%active_front_mask, grid%barrier_contact_front_mask, grid%band_mask)
-        call Update_ros_lfn_error (grid, grid%active_front_mask)
+            grid%lfn_out, grid%nfuel_cat, grid%lfn_diag%active_front_mask, &
+            grid%lfn_diag%barrier_contact_front_mask, grid%lfn_diag%band_mask)
+        call Update_ros_lfn_error (grid, grid%lfn_diag%active_front_mask)
         exact_active_front_calls = exact_active_front_calls + 1
         has_pre_reinit_mask = .true.
       end if
@@ -125,16 +125,15 @@
       end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Reinit_level_set...')
-      grid%lfn_pre_reinit_dbg = grid%lfn_out
+      if (grid%lfn_diag%enabled) grid%lfn_diag%lfn_pre_reinit = grid%lfn_out
       if (config_flags%fire_lsm_reinit) call Reinit_level_set (grid%num_tiles, grid%i_start, grid%i_end, grid%j_start, grid%j_end, &
           ifms, ifme, jfms, jfme, &
           ifds, ifde, jfds, jfde, time_start, grid%dt, grid%dx, grid%dy, config_flags%fire_upwinding_reinit, &
           config_flags%fire_lsm_reinit_iter, config_flags%fire_lsm_band_ngp, grid%lfn, grid%lfn_2, grid%lfn_s0, &
           grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, grid%cart_comm, &
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%reinit_pseudot_coef, &
-          config_flags%reinit_pseudot_rate, config_flags%reinit_pseudot_cfl, grid%grad_norm_reinit, &
-          config_flags%reinit_rs_buffer_ngp, grid%rs_interface_mask, grid%rs_distance_dbg)
-      grid%lfn_post_reinit_dbg = grid%lfn_out
+          config_flags%reinit_pseudot_rate, config_flags%reinit_pseudot_cfl, config_flags%reinit_rs_buffer_ngp, grid%lfn_diag)
+      if (grid%lfn_diag%enabled) grid%lfn_diag%lfn_post_reinit = grid%lfn_out
 
       if (DEBUG_LOCAL) call Print_message ('calling Copy_lfnout_to_lfn...')
       !$OMP PARALLEL DO   &
@@ -174,12 +173,13 @@
       call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, N_POINTS_IN_HALO, grid%cart_comm)
 #endif
 
-      if (config_flags%use_active_front) then
+      if (grid%lfn_diag%enabled .and. config_flags%use_active_front) then
         call Compute_active_front_masks (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
             grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%active_front_band_ngp, grid%cart_comm, &
-            grid%lfn, grid%nfuel_cat, grid%active_front_mask, grid%barrier_contact_front_mask, grid%band_mask)
+            grid%lfn, grid%nfuel_cat, grid%lfn_diag%active_front_mask, &
+            grid%lfn_diag%barrier_contact_front_mask, grid%lfn_diag%band_mask)
         exact_active_front_calls = exact_active_front_calls + 1
-        if (.not. has_pre_reinit_mask) call Update_ros_lfn_error (grid, grid%active_front_mask)
+        if (.not. has_pre_reinit_mask) call Update_ros_lfn_error (grid, grid%lfn_diag%active_front_mask)
       end if
 
       if (DEBUG_LOCAL) call Print_message ('calling Calc_fuel_left...')
@@ -196,15 +196,15 @@
       end do
       !$OMP END PARALLEL DO
 
-      if (.not. config_flags%use_active_front) then
-        grid%active_front_mask = 0.0
-        grid%barrier_contact_front_mask = 0.0
+      if (grid%lfn_diag%enabled .and. .not. config_flags%use_active_front) then
+        grid%lfn_diag%active_front_mask = 0.0
+        grid%lfn_diag%barrier_contact_front_mask = 0.0
         call Expand_diagnostic_band (ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, &
-            config_flags%active_front_band_ngp, grid%cart_comm, grid%fire_area_change_rate, grid%nfuel_cat, grid%band_mask)
-        call Update_ros_lfn_error (grid, grid%band_mask)
+            config_flags%active_front_band_ngp, grid%cart_comm, grid%fire_area_change_rate, grid%nfuel_cat, grid%lfn_diag%band_mask)
+        call Update_ros_lfn_error (grid, grid%lfn_diag%band_mask)
       end if
 
-      if (config_flags%fire_print_msg > 1) then
+      if (grid%lfn_diag%enabled .and. config_flags%fire_print_msg > 1) then
         write (msg, '(a, i0)') 'Active-front exact connectivity calls this timestep=', exact_active_front_calls
         call Print_message (trim (msg))
       end if
@@ -250,12 +250,12 @@
       real, parameter :: GRAD_NORM_MIN = 100.0 * epsilon (0.0)
 
 
-      grid%ros_lfn_error_front = 0.0
+      grid%lfn_diag%ros_lfn_error_front = 0.0
       do j = grid%jfps, grid%jfpe
         do i = grid%ifps, grid%ifpe
-          if (support_mask(i, j) > 0.5 .and. abs (grid%grad_norm_ls(i, j)) > GRAD_NORM_MIN) then
-            grid%ros_lfn_error_front(i, j) = &
-                -grid%lfn_tend_dbg(i, j) / grid%grad_norm_ls(i, j) - grid%ros(i, j)
+          if (support_mask(i, j) > 0.5 .and. abs (grid%lfn_diag%grad_norm_ls(i, j)) > GRAD_NORM_MIN) then
+            grid%lfn_diag%ros_lfn_error_front(i, j) = &
+                -grid%lfn_diag%lfn_tend(i, j) / grid%lfn_diag%grad_norm_ls(i, j) - grid%ros(i, j)
           end if
         end do
       end do

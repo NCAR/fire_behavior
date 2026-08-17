@@ -22,11 +22,28 @@
 
     private
 
-    public :: state_fire_t, N_POINTS_IN_HALO
+    public :: lfn_diag_t, state_fire_t, N_POINTS_IN_HALO
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
     logical, dimension(2), parameter :: PERIODS = [ .false., .false. ]
     logical, parameter :: REORDER = .true. ! Allow MPI recording tasks for performance
+
+    type :: lfn_diag_t
+      logical :: enabled = .false.
+      real, dimension(:, :), allocatable :: grad_norm_ls ! propagation-stage level-set gradient norm
+      real, dimension(:, :), allocatable :: grad_norm_reinit ! reinitialization-stage level-set gradient norm
+      real, dimension(:, :), allocatable :: lfn_tend ! total level-set tendency at the final Runge-Kutta stage
+      real, dimension(:, :), allocatable :: lfn_pre_reinit ! level-set field before reinitialization
+      real, dimension(:, :), allocatable :: lfn_post_reinit ! level-set field after reinitialization
+      real, dimension(:, :), allocatable :: rs_interface_mask ! frozen Russo-Smereka interface ring used for pinning
+      real, dimension(:, :), allocatable :: rs_distance ! frozen subcell Russo-Smereka distance on the pinned ring
+      real, dimension(:, :), allocatable :: active_front_mask ! exact exterior-connected fire-front mask
+      real, dimension(:, :), allocatable :: barrier_contact_front_mask ! burned interface excluded from the active front
+      real, dimension(:, :), allocatable :: band_mask ! diagnostic band around the inferred or exact fire front
+      real, dimension(:, :), allocatable :: ros_lfn_error_front ! kinematic ROS residual within the diagnostic front band
+    contains
+      procedure :: Allocate_vars => Allocate_lfn_diag_vars
+    end type lfn_diag_t
 
     type :: state_fire_t
       integer :: ifds, ifde, jfds, jfde, kfds, kfde, ifms, ifme, jfms, jfme, kfms, kfme, &
@@ -73,17 +90,7 @@
       real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
-      real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function
-      real, dimension(:, :), allocatable :: grad_norm_reinit ! Gracient norm of the level set function used to reinitilize the level set function
-      real, dimension(:, :), allocatable :: lfn_tend_dbg ! total level-set tendency at the final Runge-Kutta stage
-      real, dimension(:, :), allocatable :: lfn_pre_reinit_dbg ! level-set field before reinitialization
-      real, dimension(:, :), allocatable :: lfn_post_reinit_dbg ! level-set field after reinitialization
-      real, dimension(:, :), allocatable :: rs_interface_mask ! frozen RS interface ring used for pinning
-      real, dimension(:, :), allocatable :: rs_distance_dbg ! frozen subcell RS distance on the pinned ring
-      real, dimension(:, :), allocatable :: active_front_mask ! exact exterior-connected fire-front mask
-      real, dimension(:, :), allocatable :: barrier_contact_front_mask ! burned interface excluded from the active front
-      real, dimension(:, :), allocatable :: band_mask ! diagnostic band around the inferred or exact fire front
-      real, dimension(:, :), allocatable :: ros_lfn_error_front ! kinematic ROS residual within the diagnostic front band
+      type (lfn_diag_t) :: lfn_diag
 
       class (fuel_t), allocatable :: fuels
       class (ros_t), allocatable :: ros_param
@@ -109,11 +116,6 @@
       integer :: ny ! "number of latitudinal grid points" "1"
       real :: cen_lat, cen_lon
       logical :: real_perim_initialized = .false.
-
-        ! Performance stats
-      real :: grad_norm_residual_sq_sum
-      real :: grad_norm_residual_sq_sum_band
-      real :: grad_norm_residual_rms_band
 
         ! Output
       integer :: output_level
@@ -146,6 +148,42 @@
     end type state_fire_t
 
   contains
+
+    subroutine Allocate_lfn_diag_vars (this, ifms, ifme, jfms, jfme)
+
+      implicit none
+
+      class (lfn_diag_t), intent (in out) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme
+
+
+      if (.not. this%enabled) return
+
+      allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
+      allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_tend(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_pre_reinit(ifms:ifme, jfms:jfme))
+      allocate (this%lfn_post_reinit(ifms:ifme, jfms:jfme))
+      allocate (this%rs_interface_mask(ifms:ifme, jfms:jfme))
+      allocate (this%rs_distance(ifms:ifme, jfms:jfme))
+      allocate (this%active_front_mask(ifms:ifme, jfms:jfme))
+      allocate (this%barrier_contact_front_mask(ifms:ifme, jfms:jfme))
+      allocate (this%band_mask(ifms:ifme, jfms:jfme))
+      allocate (this%ros_lfn_error_front(ifms:ifme, jfms:jfme))
+
+      this%grad_norm_ls = 0.0
+      this%grad_norm_reinit = 0.0
+      this%lfn_tend = 0.0
+      this%lfn_pre_reinit = 0.0
+      this%lfn_post_reinit = 0.0
+      this%rs_interface_mask = 0.0
+      this%rs_distance = 0.0
+      this%active_front_mask = 0.0
+      this%barrier_contact_front_mask = 0.0
+      this%band_mask = 0.0
+      this%ros_lfn_error_front = 0.0
+
+    end subroutine Allocate_lfn_diag_vars
 
     subroutine Allocate_vars (this, ifms, ifme, jfms, jfme)
 
@@ -196,28 +234,9 @@
       allocate (this%dzdyf(ifms:ifme, jfms:jfme))
       allocate (this%nfuel_cat(ifms:ifme, jfms:jfme))
       allocate (this%emis_smoke(ifms:ifme, jfms:jfme))
-      allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
-      allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_tend_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_pre_reinit_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_post_reinit_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%rs_interface_mask(ifms:ifme, jfms:jfme))
-      allocate (this%rs_distance_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%active_front_mask(ifms:ifme, jfms:jfme))
-      allocate (this%barrier_contact_front_mask(ifms:ifme, jfms:jfme))
-      allocate (this%band_mask(ifms:ifme, jfms:jfme))
-      allocate (this%ros_lfn_error_front(ifms:ifme, jfms:jfme))
+      call this%lfn_diag%Allocate_vars (ifms, ifme, jfms, jfme)
 
       this%fire_area_change_rate = 0.0
-      this%lfn_tend_dbg = 0.0
-      this%lfn_pre_reinit_dbg = 0.0
-      this%lfn_post_reinit_dbg = 0.0
-      this%rs_interface_mask = 0.0
-      this%rs_distance_dbg = 0.0
-      this%active_front_mask = 0.0
-      this%barrier_contact_front_mask = 0.0
-      this%band_mask = 0.0
-      this%ros_lfn_error_front = 0.0
 
     end subroutine Allocate_vars
 
@@ -551,6 +570,8 @@
       this%nx = this%ifde
       this%ny = this%jfde
       this%dt = config_flags%dt
+      this%output_level = config_flags%output_level
+      this%lfn_diag%enabled = config_flags%lfn_diag == 1
 
         ! Init memory
       if (DEBUG_LOCAL) call Print_message ('  Allocating memory...')
@@ -653,9 +674,6 @@
         ! Set clock
       if (DEBUG_LOCAL) call Print_message ('  Setting clock...')
       call this%Set_time_stamps (config_flags)
-
-        ! Output
-      this%output_level = config_flags%output_level
 
       if (DEBUG_LOCAL) call this%Print()
 
@@ -1018,35 +1036,38 @@
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'fire_area_change_rate', this%fire_area_change_rate(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
+      end if
+
+      if (this%lfn_diag%enabled) then
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'active_front_mask', this%active_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'active_front_mask', this%lfn_diag%active_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'barrier_contact_front_mask', this%barrier_contact_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'barrier_contact_front_mask', this%lfn_diag%barrier_contact_front_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'band_mask', this%band_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'band_mask', this%lfn_diag%band_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'ros_lfn_error_front', this%ros_lfn_error_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'ros_lfn_error_front', this%lfn_diag%ros_lfn_error_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_ls', &
-              this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              this%lfn_diag%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_reinit', &
-              this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              this%lfn_diag%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_pre_reinit_dbg', this%lfn_pre_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'lfn_pre_reinit_dbg', this%lfn_diag%lfn_pre_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_post_reinit_dbg', this%lfn_post_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'lfn_post_reinit_dbg', this%lfn_diag%lfn_post_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'rs_interface_mask', this%rs_interface_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'rs_interface_mask', this%lfn_diag%rs_interface_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'rs_distance_dbg', this%rs_distance_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              'rs_distance_dbg', this%lfn_diag%rs_distance(this%ifps:this%ifpe, this%jfps:this%jfpe))
       end if
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Save_state...')
