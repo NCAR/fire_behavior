@@ -88,7 +88,7 @@
       ros_slope = ros_slope * cor_slope
 
       return_value = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
-      if (this%use_ros_cap) return_value = min (return_value, this%ros_cap_value)
+      if (this%ros_cap_value > 0.0) return_value = min (return_value, this%ros_cap_value)
       if (FIRE_GROWS_ONLY) return_value = max (return_value, 0.0)
 
     end function Calc_ros_wrffire

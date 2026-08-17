@@ -73,8 +73,7 @@
       integer :: hinterp_opt = HINTERP_BILINEAR ! "Horizontal interpolation from atm to fire (offline option): 1) nearest neighbour, 2) bi-linear"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
       real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
-      logical :: use_ros_cap = .true.         ! apply an upper bound to the spread-rate parameterization
-      real :: ros_cap_value = 6.0             ! upper bound [m s-1] used when use_ros_cap is enabled
+      real :: ros_cap_value = 6.0             ! positive upper bound [m s-1]; nonpositive disables the cap
 
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
@@ -213,7 +212,6 @@
       call Broadcast_logical (this%fast_dist_reinit_at_startup)
       call Broadcast_logical (this%fire_lsm_zcoupling)
       call Broadcast_real (this%fire_lsm_zcoupling_ref)
-      call Broadcast_logical (this%use_ros_cap)
       call Broadcast_real (this%ros_cap_value)
       call Broadcast_real (this%fire_viscosity_bg)
       call Broadcast_real (this%fire_viscosity_band)
@@ -398,8 +396,6 @@
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
-      if (this%use_ros_cap .and. this%ros_cap_value <= 0.0) &
-          call Stop_simulation ('ros_cap_value must be positive when use_ros_cap is enabled')
       if (this%reinit_rs_buffer_ngp < 0) &
           call Stop_simulation ('reinit_rs_buffer_ngp must be nonnegative')
       if (this%fire_lsm_reinit_iter < 0) &
@@ -459,16 +455,18 @@
       character (len = *), intent (in) :: file_name
 
       integer :: check_isolated_neg_lfn, output_level
+      real :: ros_cap_value
       logical :: use_active_front
       integer :: unit_nml, io_stat
       character (len = :), allocatable :: msg
 
-      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front
+      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front, ros_cap_value
 
 
       check_isolated_neg_lfn = this%check_isolated_neg_lfn
       output_level = this%output_level
       use_active_front = this%use_active_front
+      ros_cap_value = this%ros_cap_value
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -483,6 +481,7 @@
       this%check_isolated_neg_lfn = check_isolated_neg_lfn
       this%output_level = output_level
       this%use_active_front = use_active_front
+      this%ros_cap_value = ros_cap_value
 
     end subroutine Init_devel_block
 
@@ -499,8 +498,8 @@
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, &
-          reinit_pseudot_rate, reinit_pseudot_cfl, ros_cap_value
-      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, use_ros_cap, &
+          reinit_pseudot_rate, reinit_pseudot_cfl
+      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, &
           fast_dist_reinit_at_startup
 
         ! ignitions
@@ -520,7 +519,7 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
           reinit_rs_buffer_ngp, &
           fast_dist_reinit_at_startup, &
-          fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, use_ros_cap, ros_cap_value, &
+          fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
           fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
@@ -566,8 +565,6 @@
       fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
       fire_lsm_zcoupling = this%fire_lsm_zcoupling
       fire_lsm_zcoupling_ref = this%fire_lsm_zcoupling_ref
-      use_ros_cap = this%use_ros_cap
-      ros_cap_value = this%ros_cap_value
       fire_viscosity_bg = this%fire_viscosity_bg
       fire_viscosity_band = this%fire_viscosity_band
       fire_viscosity_ngp = this%fire_viscosity_ngp
@@ -669,8 +666,6 @@
       this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup
       this%fire_lsm_zcoupling = fire_lsm_zcoupling
       this%fire_lsm_zcoupling_ref = fire_lsm_zcoupling_ref
-      this%use_ros_cap = use_ros_cap
-      this%ros_cap_value = ros_cap_value
       this%fire_viscosity_bg = fire_viscosity_bg
       this%fire_viscosity_band = fire_viscosity_band
       this%fire_viscosity_ngp = fire_viscosity_ngp

@@ -12,7 +12,6 @@
 
     type, abstract :: ros_t
       real, dimension(:, :), allocatable :: iboros
-      logical :: use_ros_cap = .true.
       real :: ros_cap_value = 6.0
     contains
       procedure (Calc_ros), deferred :: Calc_ros
