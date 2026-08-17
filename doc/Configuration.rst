@@ -216,9 +216,10 @@ Example namelists can be found in the various test subdirectories under the ``te
    does not affect propagation, artificial viscosity, or reinitialization.
 
 ``fast_dist_reinit_at_startup``: *logical* (Default: ``.false.``)
-   For real-perimeter initialization, run one fast-sweeping distance
-   reinitialization pass before the first level-set propagation. The startup
-   pass always uses method 1 and is independent of ``fast_dist_reinit_opt``.
+   For real-perimeter initialization only, run one fast-sweeping distance
+   reinitialization pass before the first level-set propagation. This option
+   has no effect when ``fire_is_real_perim = .false.``. The startup pass
+   always uses method 1 and is independent of ``fast_dist_reinit_opt``.
 
 ``fast_dist_reinit_opt``: *integer* (Default: ``0``)
    Periodic fast-distance reinitialization method used during time stepping.
