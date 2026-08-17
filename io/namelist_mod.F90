@@ -74,6 +74,7 @@
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
       real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
       real :: ros_cap_value = 6.0             ! positive upper bound [m s-1]; nonpositive disables the cap
+      real :: rothermel_wind_speed_cap = 30.0 ! positive Rothermel wind-input cap [m s-1]; nonpositive disables the cap
 
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
@@ -213,6 +214,7 @@
       call Broadcast_logical (this%fire_lsm_zcoupling)
       call Broadcast_real (this%fire_lsm_zcoupling_ref)
       call Broadcast_real (this%ros_cap_value)
+      call Broadcast_real (this%rothermel_wind_speed_cap)
       call Broadcast_real (this%fire_viscosity_bg)
       call Broadcast_real (this%fire_viscosity_band)
       call Broadcast_integer (this%fire_viscosity_ngp)
@@ -455,18 +457,19 @@
       character (len = *), intent (in) :: file_name
 
       integer :: check_isolated_neg_lfn, output_level
-      real :: ros_cap_value
+      real :: ros_cap_value, rothermel_wind_speed_cap
       logical :: use_active_front
       integer :: unit_nml, io_stat
       character (len = :), allocatable :: msg
 
-      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front, ros_cap_value
+      namelist /devel/ check_isolated_neg_lfn, output_level, use_active_front, ros_cap_value, rothermel_wind_speed_cap
 
 
       check_isolated_neg_lfn = this%check_isolated_neg_lfn
       output_level = this%output_level
       use_active_front = this%use_active_front
       ros_cap_value = this%ros_cap_value
+      rothermel_wind_speed_cap = this%rothermel_wind_speed_cap
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -482,6 +485,7 @@
       this%output_level = output_level
       this%use_active_front = use_active_front
       this%ros_cap_value = ros_cap_value
+      this%rothermel_wind_speed_cap = rothermel_wind_speed_cap
 
     end subroutine Init_devel_block
 

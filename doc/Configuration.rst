@@ -322,6 +322,17 @@ Example namelists can be found in the various test subdirectories under the ``te
    parameterization. A value less than or equal to 0 disables the cap. The
    default retains the historical 6 m s-1 upper bound.
 
+``rothermel_wind_speed_cap``: *real* (Default: ``30.0``)
+   Developer control in the ``devel`` namelist block, read when
+   ``devel_opt > 0``. [Units: m s-1]
+
+   A positive value limits the wind speed used to calculate the Rothermel
+   wind enhancement factor. A value less than or equal to 0 disables this
+   wind-input cap. The option does not modify the atmospheric wind fields and
+   does not apply to the chaparral rate-of-spread formulation. The final
+   combined rate of spread remains independently controlled by
+   ``ros_cap_value``.
+
 ``output_level``: *integer* (Default: ``0``)
    Developer-facing output selector in the ``devel`` namelist block. Values
    greater than 0 add specialized level-set fields to NetCDF output:

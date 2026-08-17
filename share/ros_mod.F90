@@ -13,6 +13,7 @@
     type, abstract :: ros_t
       real, dimension(:, :), allocatable :: iboros
       real :: ros_cap_value = 6.0
+      real :: rothermel_wind_speed_cap = 30.0
     contains
       procedure (Calc_ros), deferred :: Calc_ros
       procedure (Init), deferred :: Init

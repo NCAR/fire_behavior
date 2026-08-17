@@ -66,7 +66,11 @@
       if (.not. this%ischap(i, j) > 0.0) then
           ! Rothermel
         spdms = max (speed, 0.0)
-        umidm = min (spdms, 30.0)
+        if (this%rothermel_wind_speed_cap > 0.0) then
+          umidm = min (spdms, this%rothermel_wind_speed_cap)
+        else
+          umidm = spdms
+        end if
         umid = umidm * 196.850 ! m/s to ft/min
         phiw = umid ** this%bbb(i, j) * this%phiwc(i, j)
         phis = 0.0

@@ -75,10 +75,17 @@
       end select
       call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme)
       grid%ros_param%ros_cap_value = config_flags%ros_cap_value
+      grid%ros_param%rothermel_wind_speed_cap = config_flags%rothermel_wind_speed_cap
       if (config_flags%ros_cap_value > 0.0) then
         write (msg, '(a,f8.3,a)') 'ROS cap enabled with ros_cap_value=', config_flags%ros_cap_value, ' m/s'
       else
         write (msg, '(a)') 'ROS cap disabled'
+      end if
+      call Print_message (trim (msg))
+      if (config_flags%rothermel_wind_speed_cap > 0.0) then
+        write (msg, '(a,f8.3,a)') 'Rothermel wind-speed cap enabled at ', config_flags%rothermel_wind_speed_cap, ' m/s'
+      else
+        write (msg, '(a)') 'Rothermel wind-speed cap disabled'
       end if
       call Print_message (trim (msg))
 
