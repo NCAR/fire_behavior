@@ -1110,9 +1110,7 @@
         fire_lsm_reinit_iter, fire_lsm_band_ngp, lfn_in, lfn_2, lfn_s0, &
         lfn_s1, lfn_s2, lfn_s3, lfn_out, tign, cart_comm, &
         ifps, ifpe, jfps, jfpe, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, grad_norm_reinit, &
-        reinit_godunov_sign_branch, &
-        reinit_use_russo_smereka, reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg, &
-        reinit_conditional_no_retreat, lfn_retreat_delta_dbg)
+        reinit_rs_buffer_ngp, rs_interface_mask, rs_distance_dbg, lfn_retreat_delta_dbg)
 
     ! Purpose: Level-set function reinitialization
     !
@@ -1131,7 +1129,6 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme
       integer, intent (in) :: ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit, fire_lsm_reinit_iter, fire_lsm_band_ngp, reinit_rs_buffer_ngp
-      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka, reinit_conditional_no_retreat
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_in, tign
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_2, lfn_s0, lfn_s1, lfn_s2, lfn_s3
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: lfn_out
@@ -1190,7 +1187,7 @@
       phi0_rs = lfn_s3
       rs_interface_mask = 0.0
       rs_distance_dbg = 0.0
-      if (reinit_use_russo_smereka) then
+      if (fire_upwinding_reinit == 5) then
         call Compute_rs_interface_mask_and_distance (phi0_rs, mask_rs, D_rs, s_rs, ifms, ifme, jfms, jfme, &
             ifps, ifpe, jfps, jfpe, dx, dy)
         if (reinit_rs_buffer_ngp > 0) then
@@ -1291,8 +1288,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s3, lfn_s1, 1.0 / 3.0, & ! sign funcition, initial ls, current stage ls, next stage advanced ls, RK coefficient
-              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
-              mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
  
@@ -1325,8 +1321,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s1, lfn_s2, 1.0 / 2.0, &
-              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
-              mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -1359,8 +1354,7 @@
           call Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
               ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, &
               lfn_s0, lfn_s3, lfn_s2, lfn_s3, 1.0, &
-              fire_upwinding_reinit, grad_norm_reinit, reinit_godunov_sign_branch, reinit_use_russo_smereka, &
-              mask_rs, D_rs, s_rs)
+              fire_upwinding_reinit, grad_norm_reinit, mask_rs, D_rs, s_rs)
         end do
         !$OMP END PARALLEL DO
 
@@ -1395,7 +1389,7 @@
               ! assing to lfn_out the reinitialized level-set function
             lfn_out(i, j) = lfn_s3(i, j)
               ! fire area can only increase
-            if (.not. reinit_conditional_no_retreat .or. lfn_in(i, j) < 0.0) then
+            if (fire_upwinding_reinit /= 5 .or. lfn_in(i, j) < 0.0) then
               lfn_out(i, j) = min (lfn_out(i, j), lfn_in(i, j))
             end if
             lfn_retreat_delta_dbg(i, j) = lfn_s3(i, j) - lfn_out(i, j)
@@ -1426,7 +1420,7 @@
     subroutine Advance_ls_reinit (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
         ifts, ifte, jfts, jfte, dx, dy, dt_s, threshold_hlu, lfn_s0, &
         lfn_ini, lfn_curr, lfn_fin, rk_coeff, fire_upwinding_reinit, grad_norm_reinit, &
-        reinit_godunov_sign_branch, reinit_use_russo_smereka, mask_rs, D_rs, s_rs)
+        mask_rs, D_rs, s_rs)
 
       ! Calculates right-hand-side forcing and advances a RK-stage the level-set reinitialization PDE
 
@@ -1435,7 +1429,6 @@
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, &
           jfte, ifds, ifde, jfds, jfde
       integer, intent (in) :: fire_upwinding_reinit
-      logical, intent (in) :: reinit_godunov_sign_branch, reinit_use_russo_smereka
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lfn_s0, lfn_ini, lfn_curr
       logical, dimension (ifms:ifme, jfms:jfme), intent (in) :: mask_rs
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: D_rs
@@ -1534,17 +1527,12 @@
                 diffRx = (lfn_curr(i + 1, j) - lfn_curr(i, j)) / dx
                 diffRy = (lfn_curr(i, j + 1) - lfn_curr(i, j)) / dy
 
-                if (reinit_godunov_sign_branch) then
-                  if (lfn_s0(i, j) >= 0.0) then
-                    gx = max (max (diffLx, 0.0) ** 2, min (diffRx, 0.0) ** 2)
-                    gy = max (max (diffLy, 0.0) ** 2, min (diffRy, 0.0) ** 2)
-                  else
-                    gx = max (min (diffLx, 0.0) ** 2, max (diffRx, 0.0) ** 2)
-                    gy = max (min (diffLy, 0.0) ** 2, max (diffRy, 0.0) ** 2)
-                  end if
-                else
+                if (lfn_s0(i, j) >= 0.0) then
                   gx = max (max (diffLx, 0.0) ** 2, min (diffRx, 0.0) ** 2)
                   gy = max (max (diffLy, 0.0) ** 2, min (diffRy, 0.0) ** 2)
+                else
+                  gx = max (min (diffLx, 0.0) ** 2, max (diffRx, 0.0) ** 2)
+                  gy = max (min (diffLy, 0.0) ** 2, max (diffRy, 0.0) ** 2)
                 end if
                 grad = sqrt (gx + gy)
                 diff2x = max (diffLx, 0.0) - min (diffRx, 0.0)
@@ -1576,7 +1564,7 @@
           end if
             if (.not. grad_precomputed) grad = sqrt (diff2x * diff2x + diff2y * diff2y)
             grad_norm_reinit(i, j) = grad
-            if (reinit_use_russo_smereka .and. fire_upwinding_reinit == 5 .and. mask_rs(i, j)) then
+            if (fire_upwinding_reinit == 5 .and. mask_rs(i, j)) then
               tend_r = - real (s_rs(i, j)) * (abs (lfn_curr(i, j)) - D_rs(i, j)) / dx
             else
               tend_r = lfn_s0(i, j) * (1.0 - grad)

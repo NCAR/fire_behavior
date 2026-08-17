@@ -119,7 +119,8 @@ Example namelists can be found in the various test subdirectories under the ``te
 
      4: Classical Godunov: The propagation Hamiltonian uses
      the Godunov magnitude while the wind- and slope-relative ROS calculation
-     uses signed Godunov normal derivatives.
+     uses signed Godunov normal derivatives. This propagation option requires
+     ``fire_upwinding_reinit=5``.
 
      5: 2nd-order: Calculates gradients using a second-order central difference.
 
@@ -153,37 +154,20 @@ Example namelists can be found in the various test subdirectories under the ``te
 
      4: hybrid WENO5-ENO1
 
-     5: Godunov gradient with optional sign-aware branching and
-     Russo-Smereka interface pinning
-
-``reinit_godunov_sign_branch``: *logical* (Default: ``.false.``)
-   For ``fire_upwinding_reinit=5``, select the Godunov one-sided derivative
-   branch from the frozen pre-reinitialization sign. When disabled, option 5
-   uses the corrected non-branch Godunov norm based on the maximum one-sided
-   contribution in each coordinate direction.
-
-``reinit_use_russo_smereka``: *logical* (Default: ``.false.``)
-   Apply Russo-Smereka interface pinning during reinitialization option 5.
-   The entering zero contour, sign, and subcell distance are frozen before the
-   pseudo-time iterations. On the detected interface ring, the distance
-   estimate is capped at 1.5 times the larger horizontal grid spacing.
-   Disabled mode leaves the PDE tendency unpinned.
+     5: Sign-aware Godunov gradient with intrinsic Russo-Smereka interface
+     pinning. The one-sided derivative branch is selected from the frozen
+     pre-reinitialization sign. The entering zero contour, sign, and subcell
+     distance are frozen before the pseudo-time iterations. On the detected
+     interface ring, the distance estimate is capped at 1.5 times the larger
+     horizontal grid spacing. The post-reinitialization no-retreat clamp is
+     applied only where the entering level-set field is negative, allowing
+     reinitialization to increase the level-set value on previously unburned
+     cells.
 
 ``reinit_rs_buffer_ngp``: *integer* (Default: ``0``)
    Nonnegative number of grid-cell layers added around the detected
-   Russo-Smereka interface ring. A value of 0 pins only the ring.
-
-``allow_RS_any_reinit``: *logical* (Default: ``.false.``)
-   Developer override that permits Russo-Smereka diagnostics to be
-   constructed with another reinitialization option. Pinning remains limited
-   to option 5.
-
-``reinit_conditional_no_retreat``: *logical* (Default: ``.false.``)
-   Control where the post-reinitialization no-retreat clamp is applied. The
-   default applies the historical global clamp, ``lfn_out=min(lfn_reinit,
-   lfn_in)``. When enabled, the clamp is applied only where the entering
-   level-set field is negative, allowing reinitialization to increase ``lfn``
-   on previously unburned cells.
+   Russo-Smereka interface ring for ``fire_upwinding_reinit=5``. A value of
+   0 pins only the ring.
 
 ``reinit_pseudot_rate``: *real* (Default: ``-1.0``)
    Reinitialization pseudo-time rate [m s-1]. The sentinel value ``-1.0``

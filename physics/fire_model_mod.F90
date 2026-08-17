@@ -139,9 +139,8 @@
           grid%lfn_s1, grid%lfn_s2, grid%lfn_s3, grid%lfn_out, grid%tign_g, grid%cart_comm, &
           grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, config_flags%reinit_pseudot_coef, &
           config_flags%reinit_pseudot_rate, config_flags%reinit_pseudot_cfl, grid%grad_norm_reinit, &
-          config_flags%reinit_godunov_sign_branch, config_flags%reinit_use_russo_smereka, &
           config_flags%reinit_rs_buffer_ngp, grid%rs_interface_mask, grid%rs_distance_dbg, &
-          config_flags%reinit_conditional_no_retreat, grid%lfn_retreat_delta_dbg)
+          grid%lfn_retreat_delta_dbg)
       grid%lfn_post_reinit_dbg = grid%lfn_out
       grid%lfn_reinit_delta_dbg = grid%lfn_post_reinit_dbg - grid%lfn_pre_reinit_dbg
 
