@@ -108,16 +108,16 @@ Example namelists can be found in the various test subdirectories under the ``te
      Intermediate values will vary the amount of forcing provided from the fire to the dynamical core.
 
 ``fire_upwinding``: *integer* (Default: ``9``)
-   This option controls the type of upwinding scheme used for calculating the normal spread of the fire front. The choice of upwinding scheme significantly impacts the accuracy of fire spread simulations. Higher-order schemes, like WENO3 and WENO5, generally offer better accuracy but can be more computationally expensive.
+   This option controls the type of upwinding scheme used for calculating the normal spread of the fire front. The choice of upwinding scheme significantly impacts the accuracy of fire spread simulations. Higher-order schemes, like WENO3 and WENO5, generally offer better accuracy but can be more computationally expensive and unstable in heterogeneous fuels and terrain, producing numerical instability.
      0: Central Difference: Uses central differences for calculating gradients, combining left- and right-sided differences for both x- and y-directions to compute a central gradient approximation.
 
      1: Standard: Employs an upwind scheme, selecting between left- and right-sided differences based on flow direction.
 
-     2: Godunov: The Godunov scheme is a first-order upwind scheme based on Osher & Fedkiw
+     2: Legacy Godunov: A first-order, component-based (x,y) upwind scheme based on Osher & Fedkiw. 
 
      3: ENO1: The First-Order Essentially Non-Oscillatory (ENO1) scheme uses the smoothest stencil to avoid sharp gradients, which can lead to underestimations of fire area and errors in the rate of spread.
 
-     4: Sethian scheme :cite:`SethianMethod`. The propagation Hamiltonian uses
+     4: Classical Godunov: The propagation Hamiltonian uses
      the Godunov magnitude while the wind- and slope-relative ROS calculation
      uses signed Godunov normal derivatives.
 
