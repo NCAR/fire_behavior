@@ -55,7 +55,6 @@
       real, dimension(:, :), allocatable :: lfn_out
       real, dimension(:, :), allocatable :: fuel_load_g ! [kg m-2]
       real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
-      real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
       real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
       real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
@@ -77,14 +76,8 @@
       real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function
       real, dimension(:, :), allocatable :: grad_norm_reinit ! Gracient norm of the level set function used to reinitilize the level set function
       real, dimension(:, :), allocatable :: lfn_tend_dbg ! total level-set tendency at the final Runge-Kutta stage
-      real, dimension(:, :), allocatable :: lfn_adv_dbg ! physical fire-spread contribution to the final-stage tendency
-      real, dimension(:, :), allocatable :: lfn_visc_dbg ! artificial-viscosity contribution to the final-stage tendency
       real, dimension(:, :), allocatable :: lfn_pre_reinit_dbg ! level-set field before reinitialization
       real, dimension(:, :), allocatable :: lfn_post_reinit_dbg ! level-set field after reinitialization
-      real, dimension(:, :), allocatable :: lfn_reinit_delta_dbg ! reinitialization increment: post minus pre
-      real, dimension(:, :), allocatable :: lfn_retreat_delta_dbg ! reinit increment rejected by the no-retreat clamp
-      real, dimension(:, :), allocatable :: lfn_fastdist_delta_dbg ! fast-distance reinitialization increment
-      real, dimension(:, :), allocatable :: lfn_laplacian_dbg ! discrete Laplacian of the final level-set field
       real, dimension(:, :), allocatable :: rs_interface_mask ! frozen RS interface ring used for pinning
       real, dimension(:, :), allocatable :: rs_distance_dbg ! frozen subcell RS distance on the pinned ring
       real, dimension(:, :), allocatable :: active_front_mask ! exact exterior-connected fire-front mask
@@ -177,7 +170,6 @@
       allocate (this%lfn_out(ifms:ifme, jfms:jfme))
       allocate (this%fuel_load_g(ifms:ifme, jfms:jfme))
       allocate (this%flame_length(ifms:ifme, jfms:jfme))
-      allocate (this%ros_front(ifms:ifme, jfms:jfme))
       allocate (this%tign_g(ifms:ifme, jfms:jfme))
       allocate (this%fuel_frac(ifms:ifme, jfms:jfme))
       allocate (this%fire_area(ifms:ifme, jfms:jfme))
@@ -207,14 +199,8 @@
       allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
       allocate (this%lfn_tend_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_adv_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_visc_dbg(ifms:ifme, jfms:jfme))
       allocate (this%lfn_pre_reinit_dbg(ifms:ifme, jfms:jfme))
       allocate (this%lfn_post_reinit_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_reinit_delta_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_retreat_delta_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_fastdist_delta_dbg(ifms:ifme, jfms:jfme))
-      allocate (this%lfn_laplacian_dbg(ifms:ifme, jfms:jfme))
       allocate (this%rs_interface_mask(ifms:ifme, jfms:jfme))
       allocate (this%rs_distance_dbg(ifms:ifme, jfms:jfme))
       allocate (this%active_front_mask(ifms:ifme, jfms:jfme))
@@ -224,14 +210,8 @@
 
       this%fire_area_change_rate = 0.0
       this%lfn_tend_dbg = 0.0
-      this%lfn_adv_dbg = 0.0
-      this%lfn_visc_dbg = 0.0
       this%lfn_pre_reinit_dbg = 0.0
       this%lfn_post_reinit_dbg = 0.0
-      this%lfn_reinit_delta_dbg = 0.0
-      this%lfn_retreat_delta_dbg = 0.0
-      this%lfn_fastdist_delta_dbg = 0.0
-      this%lfn_laplacian_dbg = 0.0
       this%rs_interface_mask = 0.0
       this%rs_distance_dbg = 0.0
       this%active_front_mask = 0.0
@@ -1035,9 +1015,6 @@
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'ros', &
               this%ros(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'ros_front', &
-              this%ros_front(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'fire_area_change_rate', this%fire_area_change_rate(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
@@ -1059,32 +1036,11 @@
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_reinit', &
               this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_tend_dbg', &
-              this%lfn_tend_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_adv_dbg', &
-              this%lfn_adv_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn_visc_dbg', &
-              this%lfn_visc_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'lfn_pre_reinit_dbg', this%lfn_pre_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'lfn_post_reinit_dbg', this%lfn_post_reinit_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_reinit_delta_dbg', this%lfn_reinit_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_retreat_delta_dbg', this%lfn_retreat_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_fastdist_delta_dbg', this%lfn_fastdist_delta_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
-
-          call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
-              'lfn_laplacian_dbg', this%lfn_laplacian_dbg(this%ifps:this%ifpe, this%jfps:this%jfpe))
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, &
               'rs_interface_mask', this%rs_interface_mask(this%ifps:this%ifpe, this%jfps:this%jfpe))

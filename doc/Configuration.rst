@@ -339,9 +339,6 @@ Example namelists can be found in the various test subdirectories under the ``te
 
    * ``ros`` is the modeled rate of spread [m s-1] evaluated from the local
      wind, terrain, fuel, and final propagation-stage level-set normal.
-   * ``ros_front`` is ``ros`` retained only in partially burned cells where
-     ``0 < fire_area < 1``; it is zero outside that cell-area representation of
-     the fire front.
    * ``fire_area_change_rate`` is the signed model-timestep change in the
      dimensionless burned-area fraction [s-1]. The initial output is zero
      because no model advance has occurred. Area introduced during the first
@@ -361,28 +358,17 @@ Example namelists can be found in the various test subdirectories under the ``te
      burned-side active-front cells and their eight-neighbor exterior
      nonnegative-LFN burnable cells. Larger widths add four-neighbor layers on
      both sides, excluding barrier-contact cells from burned-side expansion.
-   * ``ros_lfn_error_front`` is
-     ``-lfn_tend_dbg / grad_norm_ls - ros`` [m s-1] where the gradient norm is
+   * ``ros_lfn_error_front`` is the kinematic rate-of-spread residual [m s-1]
+     calculated from the final-stage level-set tendency, propagation-stage
+     gradient norm, and modeled rate of spread where the gradient norm is
      numerically resolvable. Its support is the exact pre-reinitialization
      active-front mask when reinitialization occurs in exact-mask mode, the
      exact final active-front mask when it does not, or the area-change band
      in local diagnostic mode.
    * ``grad_norm_ls`` is the propagation-stage level-set gradient norm.
    * ``grad_norm_reinit`` is the reinitialization-stage gradient norm.
-   * ``lfn_tend_dbg`` is the total final-stage level-set tendency [m s-1].
-   * ``lfn_adv_dbg`` is the final-stage physical spread contribution [m s-1].
-   * ``lfn_visc_dbg`` is the final-stage artificial-viscosity contribution [m s-1].
    * ``lfn_pre_reinit_dbg`` and ``lfn_post_reinit_dbg`` are the level-set
      fields immediately before and after reinitialization, respectively.
-   * ``lfn_reinit_delta_dbg`` is the post-minus-pre reinitialization increment.
-   * ``lfn_retreat_delta_dbg`` is the part of the raw PDE-reinitialization
-     increment [m] rejected by the no-retreat clamp. It is zero where the clamp
-     is inactive or does not alter the result.
-   * ``lfn_fastdist_delta_dbg`` is the post-minus-pre fast-distance
-     reinitialization increment [m], and is zero on timesteps without a
-     periodic fast-distance operation.
-   * ``lfn_laplacian_dbg`` is the centered discrete Laplacian of the final
-     level-set field [m-2].
    * ``rs_interface_mask`` is a dimensionless 0/1 field identifying the frozen
      Russo-Smereka interface ring and optional buffer cells.
    * ``rs_distance_dbg`` is the frozen Russo-Smereka distance [m]. The detected
