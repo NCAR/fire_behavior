@@ -1,10 +1,11 @@
   module initialize_mod
 
-    use state_mod, only : state_fire_t
+    use state_mod, only : state_fire_t, Build_restart_file_name
     use namelist_mod, only : namelist_t
     use geogrid_mod, only : geogrid_t
     use wrfdata_mod, only : wrfdata_t
     use fire_driver_mod, only : Init_fire_components
+    use datetime_mod, only : datetime_t
     use stderrout_mod, only: Print_message, Stop_simulation
 #ifdef DM_PARALLEL
     use mpi_mod, only : Convert_mpi_comm_to_f08
@@ -59,7 +60,11 @@
       if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_state')
 
       if (DEBUG_LOCAL) call Print_message ('  Initialization...')
-      if (config_flags%ideal_opt == 0) then
+      if (config_flags%ideal_opt == 0 .and. config_flags%restart) then
+          ! Real world, restart run: the grid metadata comes from the restart file
+        call Init_fire_state_from_restart (grid, config_flags)
+
+      else if (config_flags%ideal_opt == 0) then
           ! Real world
         if (DEBUG_LOCAL) call Print_message ('    Reading geogrid file')
 #ifdef DM_PARALLEL
@@ -110,7 +115,7 @@
 
       call Init_fire_components (grid, config_flags)
 
-      if (present (wrf)) then
+      if (present (wrf) .and. .not. config_flags%restart) then
         if (DEBUG_LOCAL) call Print_message ('    Initializing atmospheric state')
         call grid%Handle_wrfdata_update (wrf, config_flags)
       end if
@@ -142,6 +147,31 @@
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_state')
 
     end subroutine Init_fire_state
+
+    subroutine Init_fire_state_from_restart (grid, config_flags)
+
+      implicit none
+
+      type (state_fire_t), intent (in out) :: grid
+      type (namelist_t), intent (in) :: config_flags
+
+      type (datetime_t) :: datetime_restart
+      character (len = :), allocatable :: file_restart
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_fire_state_from_restart')
+
+      datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+          config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+      file_restart = Build_restart_file_name (datetime_restart%datetime)
+
+      if (DEBUG_LOCAL) call Print_message ('    Initializing fire state from restart metadata')
+      call grid%Initialization (config_flags, restart_file = file_restart)
+
+      if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_fire_state_from_restart')
+
+    end subroutine Init_fire_state_from_restart
 
     subroutine Init_fire_state_within_wrf (state, config_flags, &
         ifds, ifde, ifms, ifme, ifps, ifpe, &
@@ -184,6 +214,8 @@
           nfuel_cat = nfuel_cat, zsf = zsf, dzdxf = dzdxf, dzdyf = dzdyf)
 
       call Init_fire_components (state, config_flags)
+
+      if (config_flags%restart) call state%Read_restart (config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_fire_state_within_wrf...')
 

@@ -38,6 +38,10 @@
       integer :: interval_output = -1         ! Frequency to save the output [s]
       real :: dt = 2.0                        ! Time step of the fire model [s]
 
+        ! Restart controls
+      logical :: restart = .false.            ! Read initial dynamic fire state from fire_restart_<start datetime>.nc
+      integer :: restart_interval = -1        ! Restart output interval [s]; -1 disables restart writes
+
       integer :: num_tiles = 1                ! Number of tiles in each patch
       integer :: tile_strategy = 0            ! Strategy for the tile decomposition: 0) ...
 
@@ -215,6 +219,8 @@
 
       call Broadcast_integer (this%ideal_opt)
       call Broadcast_integer (this%devel_opt)
+      call Broadcast_logical (this%restart)
+      call Broadcast_integer (this%restart_interval)
       call Broadcast_integer (this%fuel_opt)
       call Broadcast_integer (this%ros_opt)
       call Broadcast_integer (this%emis_opt)
@@ -382,6 +388,9 @@
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
+
+      if (this%restart_interval /= -1 .and. this%restart_interval <= 0) &
+          call Stop_simulation ('restart_interval must be positive or -1')
 
     end subroutine Check_nml
 
@@ -765,15 +774,16 @@
 
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, interval_output, &
-          num_tiles, tile_strategy
+          restart_interval, num_tiles, tile_strategy
       real :: dt
+      logical :: restart
 
       character (len = :), allocatable :: msg
       integer :: unit_nml, io_stat
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
-          num_tiles
+          restart, restart_interval, num_tiles
 
 
         ! Set default values
@@ -791,6 +801,8 @@
       end_second = this%end_second
       dt = this%dt
       interval_output = this%interval_output
+      restart = this%restart
+      restart_interval = this%restart_interval
 
       num_tiles = this%num_tiles
       tile_strategy = this%tile_strategy
@@ -822,6 +834,8 @@
       this%end_second = end_second
       this%dt = dt
       this%interval_output = interval_output
+      this%restart = restart
+      this%restart_interval = restart_interval
 
       this%num_tiles = num_tiles
       this%tile_strategy = tile_strategy
