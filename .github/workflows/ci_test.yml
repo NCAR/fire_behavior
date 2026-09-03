@@ -1,41 +1,44 @@
-name: Fire Behavior Release Test
+name: Fire Behavior CI Test
 
 on:
-  release:
-    types: [ published ]
+  schedule:
+    - cron: '30 6 * * *'
+  push:
+    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  release:
+    types: [ published ]
   workflow_dispatch:
     inputs:
-      build-type:
+      build_type:
         description: 'Build Type'
         required: true
         type: choice
         options:
-          - release
-          - debug
-          - relWithDebInfo
-        default: release
-      test-args:
-        description: 'Test ID'
+          - Release
+          - Debug
+          - RelWithDebInfo
+        default: Release
+      test_names:
+        description: 'Test Names (regex)'
         required: false
+        type: string
         default: ''
-      enable-nuopc:
+      enable_nuopc:
         description: 'Enable NUOPC'
-        required: true
         type: boolean
         default: true
-      enable-esmx:
+      enable_esmx:
         description: 'Enable ESMX'
-        required: true
         type: boolean
         default: true
 
 env:
-  build-type: 'release'
-  tests: ''
-  nuopc-flag: true
-  esmx-flag: true
+  build_type: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'Release' }}
+  test_names: ${{ github.event_name == 'workflow_dispatch' && inputs.test_names || '' }}
+  enable_nuopc: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_nuopc || true }}
+  enable_esmx: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_esmx || true }}
   openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
   hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
   netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
@@ -147,33 +150,21 @@ jobs:
         echo "ESMF_ROOT=$STACK_DIR" >> $GITHUB_ENV
     - name: Checkout Repository
       uses: actions/checkout@v4
-    - name: Manual Dispatch Configuration
-      if: ${{github.event_name == 'workflow_dispatch'}}
-      env:
-        build-type: "${{github.event.inputs.build-type}}"
-        tests: "${{github.event.inputs.test-args}}"
-        nuopc-flag: "${{github.event.inputs.enable-nuopc == 'true'}}"
-        esmx-flag: "${{github.event.inputs.enable-esmx == 'true'}}"
-      run: |
-        echo "build-type=${{env.build-type}}" >> $GITHUB_ENV
-        echo "tests=${{env.tests}}" >> $GITHUB_ENV
-        echo "nuopc-flag=${{env.nuopc-flag}}" >> $GITHUB_ENV
-        echo "esmx-flag=${{env.esmx-flag}}" >> $GITHUB_ENV
     - name: Build and Test
       run: |
-        OPTIONS=("")
-        if [ -z "${{env.tests}}" ]; then
+        OPTIONS=()
+        if [ -z "${test_names}" ]; then
           OPTIONS+=("--test")
         else
-          OPTIONS+=("--test='${{env.tests}}'")
+          OPTIONS+=("--test=${test_names}")
         fi
-        if ${{env.nuopc-flag}}; then
+        if [[ "${enable_nuopc}" == 'true' ]]; then
           OPTIONS+=("--nuopc")
         fi
-        if ${{env.esmx-flag}}; then
+        if [[ "${enable_esmx}" == 'true' ]]; then
           OPTIONS+=("--esmx")
         fi
-        ./compile.sh --build-type=${{env.build-type}} ${OPTIONS[@]}
+        ./compile.sh --build-type=${build_type} ${OPTIONS[@]}
     - name: Archive Test Results
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
