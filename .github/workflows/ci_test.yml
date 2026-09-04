@@ -2,7 +2,7 @@ name: Fire Behavior CI Test
 
 on:
   schedule:
-    - cron: '30 6 * * *'
+    - cron: '0 10 * * 4'
   push:
     branches: [ main, develop ]
   pull_request:
