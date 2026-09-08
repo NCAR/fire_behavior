@@ -1,8 +1,8 @@
 .. _Idealized:
 
-========================================
-CFBM: Idealized cases
-========================================
+=============================
+Running Idealized Simulations
+=============================
 
 An idealized case runs the fire model on a synthetic domain with prescribed,
 uniform conditions instead of real geographic and atmospheric data. Idealized

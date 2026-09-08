@@ -1,8 +1,8 @@
 .. _building:
 
-========================================
-Building and Installing the CFBM
-========================================
+===============================================
+Building and Installing the Standalone CFBM
+===============================================
 
 This page describes how to build the **standalone** Community Fire Behavior
 Module: the ``fire_behavior.exe`` executable that runs the fire model on its own,

@@ -6,10 +6,8 @@ Community Fire Behavior Module (CFBM) Documentation (|version|)
    :maxdepth: 3
    
    Introduction
-   Building
    Configuration
-   Idealized
-   WRFData
-   WRF
    SRW
+   WRF
+   Standalone
    Glossary

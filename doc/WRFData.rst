@@ -1,8 +1,8 @@
 .. _WRF_data:
 
-================================
-Running real cases with WRF data
-================================
+=========================================
+Running Offline Simulations with WRF Data
+=========================================
 
 The CFBM can run in offline mode using WRF atmospheric fields as input. To run CFBM in the offline mode, users need to provide WRF atmospheric data, including all available timestamps, in a file named ``wrf.nc``, along with static inputs in ``geo_em.d01.nc``. The atmospheric data must include wind components (U, V), geopotential heights (PH, PHB), surface variables used with the fuel moisture model (RAINC, RAINNC, T2, Q2, PSFC), and roughness length (ZNT).
 
