@@ -591,6 +591,8 @@ def main(argv: list[str] | None = None) -> int:
         if bool(args.baseline_root) == bool(args.reference_result):
             raise ValueError("Specify exactly one of --baseline-root or --reference-result")
         result = compare_case(args.result_dir, args.baseline_root or args.result_dir, args.report_parent, args.reference_result)
+        if not result["pass"]:
+            print("CFBM comparison failed: " + "; ".join(result["reasons"]), file=sys.stderr)
         return 0 if result["pass"] else 1
     if args.command == "case":
         run_dir = args.run_dir
@@ -606,15 +608,21 @@ def main(argv: list[str] | None = None) -> int:
             args.process_count_flag, args.launcher_post_arg,
         )
         if manifest["status"] != "completed":
-            _blocked_comparison(run_dir / "reports", "Comparison blocked because model execution failed")
+            reason = "Comparison blocked because model execution failed"
+            _blocked_comparison(run_dir / "reports", reason)
+            print(f"CFBM {reason.lower()}", file=sys.stderr)
             return 1
         document = load_yaml(args.config)
         try:
             baseline_root = resolve_baseline(args.baseline_root, os.environ.get("CFBM_BASELINE_ROOT"), document["baseline"]["approved_id"], DEFAULT_BASELINES)
         except Exception as error:
-            _blocked_comparison(run_dir / "reports", f"Comparison blocked: {error}")
+            reason = f"Comparison blocked: {error}"
+            _blocked_comparison(run_dir / "reports", reason)
+            print(f"CFBM {reason.lower()}", file=sys.stderr)
             return 1
         result = compare_case(run_dir, baseline_root, run_dir / "reports")
+        if not result["pass"]:
+            print("CFBM comparison failed: " + "; ".join(result["reasons"]), file=sys.stderr)
         return 0 if result["pass"] else 1
     if args.command == "all":
         document = load_yaml(args.config)
@@ -624,7 +632,20 @@ def main(argv: list[str] | None = None) -> int:
             args.config, args.suite, set(args.variants.split(",")), args.work_root,
             args.platform, baseline_root, args.source_root.resolve(), selected_cases,
         )
-        return 0 if summary["pass"] else 1
+        summary_path = args.work_root / "summary.json"
+        if baseline_root is None:
+            accepted = summary["candidate_validation_pass"]
+            print(f"candidate_validation_pass={str(accepted).lower()} summary={summary_path}")
+        else:
+            accepted = summary["pass"]
+            print(f"regression_pass={str(accepted).lower()} summary={summary_path}")
+        for comparison in summary["cross_execution"]:
+            if not comparison["pass"]:
+                print(
+                    f"CFBM cross-execution comparison failed: {comparison['pair']} "
+                    f"case={comparison['case']}", file=sys.stderr,
+                )
+        return 0 if accepted else 1
     if args.command == "baseline-create":
         candidate = create_candidate(args.candidate_root, args.identifier, args.work_root, args.model_repository, SOURCE_ROOT)
         print(candidate)
