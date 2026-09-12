@@ -57,6 +57,11 @@ FORBIDDEN_EXECUTION_KEYS = SCIENTIFIC_KEYS | {
 }
 ALLOWED_CASES = {"circle_nowind", "fuel_strip_wind", "terrain_fuel_fmc_wind"}
 ALLOWED_METHOD_PAIRS = {(9, 4), (2, 4)}
+PLATFORM_KEYS = {
+    "schema_version", "name", "build_environment", "mpi_launcher",
+    "mpi_process_flag", "mpi_preflags", "mpi_postflags", "pbs",
+}
+PBS_KEYS = {"account", "queue", "select", "ncpus", "mpiprocs", "memory", "walltime"}
 
 
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -86,6 +91,38 @@ def load_yaml(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise TypeError(f"Top-level YAML value must be a mapping: {path}")
     return value
+
+
+def load_platform(path: Path) -> dict[str, Any]:
+    """Load and strictly validate one host and launcher policy profile."""
+    platform = load_yaml(path)
+    _expect_keys(platform, PLATFORM_KEYS, "platform")
+    if platform.get("schema_version") != 1:
+        raise ValueError("Platform schema_version must equal 1")
+    if not isinstance(platform.get("name"), str) or not platform["name"]:
+        raise TypeError("Platform name must be a nonempty string")
+    if platform.get("build_environment") is not None and not isinstance(platform["build_environment"], str):
+        raise TypeError("Platform build_environment must be a string or null")
+    for name in ("mpi_launcher", "mpi_process_flag", "mpi_preflags", "mpi_postflags"):
+        value = platform.get(name)
+        if not isinstance(value, list) or any(not isinstance(item, str) or not item for item in value):
+            raise TypeError(f"Platform {name} must be a list of nonempty strings")
+    if not platform["mpi_launcher"] or len(platform["mpi_process_flag"]) != 1:
+        raise ValueError("Platform requires a launcher and exactly one MPI process-count flag")
+    pbs = platform.get("pbs")
+    if pbs is not None:
+        if not isinstance(pbs, dict):
+            raise TypeError("Platform pbs must be a mapping or null")
+        _expect_keys(pbs, PBS_KEYS, "platform.pbs")
+        for name in ("select", "ncpus", "mpiprocs"):
+            if not isinstance(pbs.get(name), int) or pbs[name] < 1:
+                raise ValueError(f"Platform pbs.{name} must be a positive integer")
+        for name in ("account", "queue", "walltime"):
+            if not isinstance(pbs.get(name), str) or not pbs[name]:
+                raise TypeError(f"Platform pbs.{name} must be a nonempty string")
+        if "memory" in pbs and (not isinstance(pbs["memory"], str) or not pbs["memory"]):
+            raise TypeError("Platform pbs.memory must be a nonempty string")
+    return platform
 
 
 def deep_merge(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:

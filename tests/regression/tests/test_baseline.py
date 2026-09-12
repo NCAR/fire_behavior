@@ -30,7 +30,7 @@ import numpy as np
 REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
 
-from baseline import create_candidate
+from baseline import accept_candidate, create_candidate
 from generate_inputs import sha256_file
 
 
@@ -101,6 +101,16 @@ class BaselineTests(unittest.TestCase):
         self.assertTrue((created / "manifest.yaml").is_file())
         with self.assertRaisesRegex(FileExistsError, "already exists"):
             create_candidate(self.candidate_root, identifier, self.work_root, self.repository, self.repository)
+
+    def test_modified_candidate_payload_rejected_before_approval(self) -> None:
+        """Refuse approval when a candidate output no longer matches its recorded hash."""
+        identifier = f"pre-pr39-{self.commit[:7]}-modified"
+        candidate = create_candidate(self.candidate_root, identifier, self.work_root, self.repository, self.repository)
+        output = next(candidate.glob("references/**/*.nc"))
+        with output.open("ab") as stream:
+            stream.write(b"modified")
+        with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+            accept_candidate(candidate, "test approver", "test rejection path", self.root / "approved.yaml")
 
 
 if __name__ == "__main__":

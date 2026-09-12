@@ -38,7 +38,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 
 from baseline import accept_candidate, create_candidate, git_identity, resolve_baseline, verify_baseline
 from compare_outputs import compare_directories, write_reports
-from config import enumerate_matrix, load_yaml, resolve_spec
+from config import enumerate_matrix, load_platform, load_yaml, resolve_spec
 from generate_inputs import generate_inputs, sha256_file
 from render_namelist import namelist_values, render_template
 
@@ -281,24 +281,42 @@ def compare_case(
     diagnostic_reference: Path | None = None,
 ) -> dict[str, Any]:
     """Compare one completed result with an approved mapping or diagnostic result."""
-    manifest = json.loads((result_dir / "run_manifest.json").read_text(encoding="utf-8"))
-    if diagnostic_reference is not None:
-        reference_dir = diagnostic_reference
-        baseline_identity = "diagnostic"
-    else:
-        baseline_manifest = verify_baseline(baseline_root)
-        identity = manifest["spec"]["identity"]
-        key = "|".join(identity[name] for name in ("case", "suite", "method", "feature", "execution"))
-        if key not in baseline_manifest["mappings"]:
-            raise KeyError(f"Baseline has no explicit mapping for {key}")
-        reference_dir = baseline_root / baseline_manifest["mappings"][key]
-        baseline_identity = baseline_manifest["identifier"]
-    document = load_yaml(Path(manifest["configuration"]["path"]))
-    result = compare_directories(
-        reference_dir, result_dir, manifest["expected_outputs"], set(document["static_fields"]),
-        set(document["metadata_policy"]["volatile_global_attributes"]),
-    )
-    result.update({"baseline_identity": baseline_identity, "execution": manifest["spec"]["identity"]["execution"], "comparison_direction": "test-minus-reference"})
+    report_dir = _attempt_directory(report_parent)
+    try:
+        manifest = json.loads((result_dir / "run_manifest.json").read_text(encoding="utf-8"))
+        if diagnostic_reference is not None:
+            reference_dir = diagnostic_reference
+            baseline_identity = "diagnostic"
+        else:
+            baseline_manifest = verify_baseline(baseline_root)
+            identity = manifest["spec"]["identity"]
+            key = "|".join(identity[name] for name in ("case", "suite", "method", "feature", "execution"))
+            if key not in baseline_manifest["mappings"]:
+                raise KeyError(f"Baseline has no explicit mapping for {key}")
+            reference_dir = baseline_root / baseline_manifest["mappings"][key]
+            baseline_identity = baseline_manifest["identifier"]
+        document = load_yaml(Path(manifest["configuration"]["path"]))
+        result = compare_directories(
+            reference_dir, result_dir, manifest["expected_outputs"], set(document["static_fields"]),
+            set(document["metadata_policy"]["volatile_global_attributes"]),
+        )
+        result.update({"baseline_identity": baseline_identity, "execution": manifest["spec"]["identity"]["execution"], "comparison_direction": "test-minus-reference"})
+    except Exception as error:
+        result = {
+            "stage": "compare", "pass": False, "reasons": [str(error)],
+            "test": str(result_dir), "baseline_identity": None,
+            "comparison_direction": "test-minus-reference",
+        }
+    result["reports"] = write_reports(result, report_dir)
+    return result
+
+
+def _blocked_comparison(report_parent: Path, reason: str) -> dict[str, Any]:
+    """Write all report formats for a comparison blocked by an earlier stage."""
+    result = {
+        "stage": "compare", "pass": False, "reasons": [reason],
+        "baseline_identity": None, "comparison_direction": "test-minus-reference",
+    }
     report_dir = _attempt_directory(report_parent)
     result["reports"] = write_reports(result, report_dir)
     return result
@@ -400,7 +418,7 @@ def run_all(
 ) -> dict[str, Any]:
     """Build requested variants, run the required matrix, and aggregate comparisons."""
     document = load_yaml(config_path)
-    platform_cfg = load_yaml(platform_path)
+    platform_cfg = load_platform(platform_path)
     unknown_variants = variants - {"serial", "omp", "mpi"}
     if unknown_variants:
         raise ValueError(f"Unknown variants: {sorted(unknown_variants)}")
@@ -588,9 +606,14 @@ def main(argv: list[str] | None = None) -> int:
             args.process_count_flag, args.launcher_post_arg,
         )
         if manifest["status"] != "completed":
+            _blocked_comparison(run_dir / "reports", "Comparison blocked because model execution failed")
             return 1
         document = load_yaml(args.config)
-        baseline_root = resolve_baseline(args.baseline_root, os.environ.get("CFBM_BASELINE_ROOT"), document["baseline"]["approved_id"], DEFAULT_BASELINES)
+        try:
+            baseline_root = resolve_baseline(args.baseline_root, os.environ.get("CFBM_BASELINE_ROOT"), document["baseline"]["approved_id"], DEFAULT_BASELINES)
+        except Exception as error:
+            _blocked_comparison(run_dir / "reports", f"Comparison blocked: {error}")
+            return 1
         result = compare_case(run_dir, baseline_root, run_dir / "reports")
         return 0 if result["pass"] else 1
     if args.command == "all":

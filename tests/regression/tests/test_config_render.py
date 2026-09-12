@@ -23,7 +23,7 @@ REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
 SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/glade/derecho/scratch/frediani/tmp/cfbm-regression-unit"))
 
-from config import enumerate_matrix, load_yaml, resolve_spec, validate_document
+from config import enumerate_matrix, load_platform, load_yaml, resolve_spec, validate_document
 from render_namelist import fortran_value, namelist_values, render_template
 
 
@@ -79,6 +79,19 @@ class ConfigurationTests(unittest.TestCase):
         path.write_text("schema_version: 1\nschema_version: 1\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Duplicate YAML key"):
             load_yaml(path)
+
+    def test_unknown_platform_key_rejected(self) -> None:
+        """Reject host profiles that mix launcher policy with unknown settings."""
+        path = SCRATCH_ROOT / str(uuid.uuid4()) / "platform.yaml"
+        path.parent.mkdir(parents=True)
+        path.write_text(
+            "schema_version: 1\nname: test\nbuild_environment: null\n"
+            "mpi_launcher: [mpiexec]\nmpi_process_flag: [-n]\n"
+            "mpi_preflags: []\nmpi_postflags: []\npbs: null\nscience: forbidden\n",
+            encoding="utf-8",
+        )
+        with self.assertRaisesRegex(ValueError, "Unknown platform"):
+            load_platform(path)
 
 
 class NamelistTests(unittest.TestCase):

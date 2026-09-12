@@ -46,12 +46,32 @@ def verify_baseline(root: Path) -> dict[str, Any]:
     if not manifest_path.is_file():
         raise FileNotFoundError(f"Missing baseline manifest: {manifest_path}")
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    required = {
+        "schema_version", "identifier", "approved", "validation_status",
+        "model_source", "harness_source", "mappings", "checksums",
+        "candidate_validation_summary_sha256", "approval",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != required:
+        raise ValueError(f"Baseline manifest keys differ from the approved schema: {root}")
+    if manifest["schema_version"] != 1 or manifest["identifier"] != root.name:
+        raise ValueError(f"Baseline schema or identifier is invalid: {root}")
     if not manifest.get("approved", False):
         raise ValueError(f"Baseline is not approved: {root}")
     for relative, expected in manifest["checksums"].items():
         path = root / relative
+        if not path.resolve().is_relative_to(root.resolve()):
+            raise ValueError(f"Baseline checksum path escapes its root: {relative}")
         if not path.is_file() or sha256_file(path) != expected:
             raise ValueError(f"Baseline checksum mismatch: {path}")
+    for key, relative in manifest["mappings"].items():
+        if len(key.split("|")) != 5:
+            raise ValueError(f"Baseline mapping key is invalid: {key}")
+        directory = root / relative
+        if not directory.resolve().is_relative_to(root.resolve()) or not directory.is_dir():
+            raise ValueError(f"Baseline mapping directory is invalid: {directory}")
+        files = sorted(directory.glob("fire_output_*.nc"))
+        if not files or any(str(path.relative_to(root)) not in manifest["checksums"] for path in files):
+            raise ValueError(f"Baseline mapping is empty or has unrecorded payloads: {directory}")
     return manifest
 
 
@@ -71,8 +91,13 @@ def resolve_baseline(
         if not approved.is_file():
             raise FileNotFoundError("No approved baseline is configured")
         selection = yaml.safe_load(approved.read_text(encoding="utf-8"))
+        if not isinstance(selection, dict) or set(selection) != {"approved_id", "manifest_sha256"}:
+            raise ValueError(f"Approved baseline selection is invalid: {approved}")
         root = configured_parent / selection["approved_id"]
     verify_baseline(root)
+    if cli_root is None and not environment_root and not configured_id:
+        if sha256_file(root / "manifest.yaml") != selection["manifest_sha256"]:
+            raise ValueError(f"Approved baseline manifest identity changed: {root}")
     return root.resolve()
 
 
@@ -102,6 +127,10 @@ def create_candidate(
     for manifest_path in sorted(work_root.glob("runs/*/*/*/*/*/*/run_manifest.json")):
         run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if run_manifest.get("status") == "completed":
+            for output in run_manifest.get("outputs", []):
+                source = manifest_path.parent / output["name"]
+                if not source.is_file() or sha256_file(source) != output["sha256"]:
+                    raise ValueError(f"Completed result identity changed: {source}")
             completed_manifests.append((manifest_path, run_manifest))
     if not completed_manifests:
         raise ValueError(f"No completed runs found beneath {work_root}")
@@ -111,6 +140,8 @@ def create_candidate(
     for manifest_path, run_manifest in completed_manifests:
         identity = run_manifest["spec"]["identity"]
         key = "|".join(identity[name] for name in ("case", "suite", "method", "feature", "execution"))
+        if key in mappings:
+            raise ValueError(f"Candidate contains duplicate result identity: {key}")
         relative_dir = Path("references") / identity["execution"] / identity["case"] / identity["suite"] / identity["method"] / identity["feature"]
         target_dir = destination / relative_dir
         target_dir.mkdir(parents=True, exist_ok=False)
@@ -135,6 +166,23 @@ def accept_candidate(candidate: Path, approver: str, decision: str, approved_fil
     """Record an explicit decision and select a validated candidate without changing payloads."""
     manifest_path = candidate / "manifest.yaml"
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    if not approver.strip() or not decision.strip():
+        raise ValueError("Baseline approval requires nonempty approver and decision text")
+    expected_keys = {
+        "schema_version", "identifier", "approved", "validation_status",
+        "model_source", "harness_source", "mappings", "checksums",
+        "candidate_validation_summary_sha256",
+    }
+    if not isinstance(manifest, dict) or set(manifest) != expected_keys:
+        raise ValueError(f"Candidate manifest keys differ from the expected schema: {candidate}")
+    if manifest["schema_version"] != 1 or manifest["identifier"] != candidate.name:
+        raise ValueError(f"Candidate schema or identifier is invalid: {candidate}")
+    for relative, expected in manifest["checksums"].items():
+        path = candidate / relative
+        if not path.resolve().is_relative_to(candidate.resolve()):
+            raise ValueError(f"Candidate checksum path escapes its root: {relative}")
+        if not path.is_file() or sha256_file(path) != expected:
+            raise ValueError(f"Candidate checksum mismatch: {path}")
     if manifest.get("validation_status") != "candidate validation passed":
         raise ValueError("Only a passing candidate can be accepted")
     if manifest.get("approved"):
