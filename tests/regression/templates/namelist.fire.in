@@ -1,33 +1,70 @@
 &time
- start_year={{START_YEAR}}, start_month={{START_MONTH}}, start_day={{START_DAY}},
- start_hour={{START_HOUR}}, start_minute={{START_MINUTE}}, start_second={{START_SECOND}},
- end_year={{END_YEAR}}, end_month={{END_MONTH}}, end_day={{END_DAY}},
- end_hour={{END_HOUR}}, end_minute={{END_MINUTE}}, end_second={{END_SECOND}},
- dt={{DT}}, interval_output={{INTERVAL_OUTPUT}},
+ start_year={{START_YEAR}},
+ start_month={{START_MONTH}},
+ start_day={{START_DAY}},
+ start_hour={{START_HOUR}},
+ start_minute={{START_MINUTE}},
+ start_second={{START_SECOND}},
+ end_year={{END_YEAR}},
+ end_month={{END_MONTH}},
+ end_day={{END_DAY}},
+ end_hour={{END_HOUR}},
+ end_minute={{END_MINUTE}},
+ end_second={{END_SECOND}},
+ dt={{DT}},
+ interval_output={{INTERVAL_OUTPUT}},
  num_tiles={{NUM_TILES}}
 /
 &atm
- interval_atm={{INTERVAL_ATM}}, kde={{KDE}}
+ interval_atm={{INTERVAL_ATM}},
+ kde={{KDE}}
 /
 &fire
- fire_num_ignitions={{FIRE_NUM_IGNITIONS}}, fire_ignition_ros1={{IGNITION_ROS}},
- fire_ignition_start_lat1={{IGNITION_START_LAT}}, fire_ignition_start_lon1={{IGNITION_START_LON}},
- fire_ignition_end_lat1={{IGNITION_END_LAT}}, fire_ignition_end_lon1={{IGNITION_END_LON}},
- fire_ignition_radius1={{IGNITION_RADIUS}}, fire_ignition_start_time1={{IGNITION_START_TIME}},
- fire_ignition_end_time1={{IGNITION_END_TIME}}, fire_is_real_perim={{FIRE_IS_REAL_PERIM}},
- fire_upwinding={{FIRE_UPWINDING}}, fire_upwinding_reinit={{FIRE_UPWINDING_REINIT}},
- fire_lsm_reinit={{FIRE_LSM_REINIT}}, fire_lsm_reinit_iter=1,
- reinit_pseudot_coef={{REINIT_COEF}}, wind_vinterp_opt={{WIND_VINTERP_OPT}},
- hinterp_opt={{HINTERP_OPT}}, fmoist_run={{FMOIST_RUN}}, fmoist_freq={{FMOIST_FREQ}},
- fmoist_dt={{FMOIST_DT}}, fuelmc_g={{FUELMC_G}}, fuelmc_g_live={{FUELMC_G_LIVE}},
- ideal_opt={{IDEAL_OPT}}, devel_opt={{DEVEL_OPT}}, fuel_opt={{FUEL_OPT}}, fmc_opt={{FMC_OPT}}
+ fire_num_ignitions={{FIRE_NUM_IGNITIONS}},
+ fire_ignition_ros1={{IGNITION_ROS}},
+ fire_ignition_start_lat1={{IGNITION_START_LAT}},
+ fire_ignition_start_lon1={{IGNITION_START_LON}},
+ fire_ignition_end_lat1={{IGNITION_END_LAT}},
+ fire_ignition_end_lon1={{IGNITION_END_LON}},
+ fire_ignition_radius1={{IGNITION_RADIUS}},
+ fire_ignition_start_time1={{IGNITION_START_TIME}},
+ fire_ignition_end_time1={{IGNITION_END_TIME}},
+ fire_is_real_perim={{FIRE_IS_REAL_PERIM}},
+ fire_upwinding={{FIRE_UPWINDING}},
+ fire_upwinding_reinit={{FIRE_UPWINDING_REINIT}},
+ fire_lsm_reinit={{FIRE_LSM_REINIT}},
+ fire_lsm_reinit_iter=1,
+ reinit_pseudot_coef={{REINIT_COEF}},
+ wind_vinterp_opt={{WIND_VINTERP_OPT}},
+ hinterp_opt={{HINTERP_OPT}},
+ fmoist_run={{FMOIST_RUN}},
+ fmoist_freq={{FMOIST_FREQ}},
+ fmoist_dt={{FMOIST_DT}},
+ fuelmc_g={{FUELMC_G}},
+ fuelmc_g_live={{FUELMC_G_LIVE}},
+ ideal_opt={{IDEAL_OPT}},
+ devel_opt={{DEVEL_OPT}},
+ fuel_opt={{FUEL_OPT}},
+ fmc_opt={{FMC_OPT}}
 /
 &ideal
- dx={{DX}}, dy={{DY}}, nx={{NX}}, ny={{NY}}, zonal_wind={{ZONAL_WIND}},
- meridional_wind={{MERIDIONAL_WIND}}, fuel_cat={{FUEL_CAT}}, dz_dx={{DZ_DX}},
- dz_dy={{DZ_DY}}, elevation={{ELEVATION}}, cen_lat={{CEN_LAT}}, cen_lon={{CEN_LON}},
- stand_lon={{STAND_LON}}, true_lat_1={{TRUE_LAT_1}}, true_lat_2={{TRUE_LAT_2}}
+ dx={{DX}},
+ dy={{DY}},
+ nx={{NX}},
+ ny={{NY}},
+ zonal_wind={{ZONAL_WIND}},
+ meridional_wind={{MERIDIONAL_WIND}},
+ fuel_cat={{FUEL_CAT}},
+ dz_dx={{DZ_DX}},
+ dz_dy={{DZ_DY}},
+ elevation={{ELEVATION}},
+ cen_lat={{CEN_LAT}},
+ cen_lon={{CEN_LON}},
+ stand_lon={{STAND_LON}},
+ true_lat_1={{TRUE_LAT_1}},
+ true_lat_2={{TRUE_LAT_2}}
 /
 &devel
- check_isolated_neg_lfn={{CHECK_ISOLATED}}, output_level={{OUTPUT_LEVEL}}
+ check_isolated_neg_lfn={{CHECK_ISOLATED}},
+ output_level={{OUTPUT_LEVEL}}
 /

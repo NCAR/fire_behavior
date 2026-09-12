@@ -42,7 +42,7 @@ NESTED_KEYS = {
     "grid": {"nx", "ny", "dx_m", "dy_m", "sr_x", "sr_y", "axis_order"},
     "projection": {"cen_lat", "cen_lon", "stand_lon", "true_lat_1", "true_lat_2", "map_proj"},
     "forcing": {"u10_m_s", "v10_m_s", "temperature_start_k", "temperature_end_k", "specific_humidity_start_kg_kg", "specific_humidity_end_kg_kg", "surface_pressure_pa", "accumulated_rain_start_mm", "accumulated_rain_end_mm", "vertical_levels_stag"},
-    "fuel": {"family", "family_id", "uniform_category", "categories", "strip_axis", "background_category", "patch_category", "patch_radius_m"},
+    "fuel": {"family", "family_id", "uniform_category", "categories", "strip_axis"},
     "terrain": {"kind", "base_elevation_m", "amplitude_m", "wavelength_x_m", "wavelength_y_m", "ideal_dz_dx", "ideal_dz_dy"},
     "ignition": {"kind", "count", "center_x_fraction", "center_y_fraction", "line_x_fraction", "radius_m", "ros_m_s", "start_time_s", "end_time_s", "start_lat", "start_lon", "end_lat", "end_lon"},
     "moisture": {"run", "frequency_timesteps", "dt_seconds", "initial_dead", "initial_live", "model_id"},

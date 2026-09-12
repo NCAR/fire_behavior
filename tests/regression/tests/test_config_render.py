@@ -112,6 +112,18 @@ class NamelistTests(unittest.TestCase):
         self.assertNotIn("{{", rendered)
         self.assertIn("ideal_opt=1", rendered)
 
+    def test_production_template_has_one_assignment_per_line(self) -> None:
+        """Keep every namelist option on a separate line for readable review."""
+        lines = (REGRESSION_DIR / "templates" / "namelist.fire.in").read_text(
+            encoding="utf-8",
+        ).splitlines()
+        assignment_lines = [
+            line for line in lines
+            if line.strip() and not line.lstrip().startswith(("&", "/"))
+        ]
+        self.assertTrue(assignment_lines)
+        self.assertTrue(all(line.count("=") == 1 for line in assignment_lines))
+
     def test_missing_and_unused_substitutions_fail(self) -> None:
         """Reject both unresolved placeholders and values absent from the template."""
         template = SCRATCH_ROOT / str(uuid.uuid4()) / "template.in"

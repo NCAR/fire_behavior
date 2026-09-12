@@ -69,14 +69,24 @@ class GeneratorTests(unittest.TestCase):
         self.assertEqual(cats, {1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13})
 
     def test_complex_inputs_include_perimeter_and_forcing_records(self) -> None:
-        """Require observed-perimeter initialization and forcing through final time."""
+        """Require shared fuel strips, observed perimeter, and forcing through final time."""
         document = load_yaml(REGRESSION_DIR / "cases.yaml")
         spec = resolve_spec(document, "terrain_fuel_fmc_wind", "quick", None, None, "serial")
-        _, _ = generate_inputs(spec, self.root)
-        with netCDF4.Dataset(self.root / "geo_em.d01.nc") as geo:
+        strip_spec = resolve_spec(document, "fuel_strip_wind", "quick", None, None, "serial")
+        complex_root = self.root / "complex"
+        strip_root = self.root / "strips"
+        complex_root.mkdir()
+        strip_root.mkdir()
+        _, _ = generate_inputs(spec, complex_root)
+        _, _ = generate_inputs(strip_spec, strip_root)
+        with (
+            netCDF4.Dataset(complex_root / "geo_em.d01.nc") as geo,
+            netCDF4.Dataset(strip_root / "geo_em.d01.nc") as strips,
+        ):
             self.assertIn("lfn_init", geo.variables)
             self.assertGreater(float(np.ptp(geo.variables["ZSF"][:])), 0.0)
-        with netCDF4.Dataset(self.root / "wrf.nc") as wrf:
+            np.testing.assert_array_equal(geo.variables["NFUEL_CAT"][:], strips.variables["NFUEL_CAT"][:])
+        with netCDF4.Dataset(complex_root / "wrf.nc") as wrf:
             self.assertEqual(len(wrf.dimensions["Time"]), 16)
             self.assertNotEqual(float(wrf.variables["Q2"][0, 0, 0]), float(wrf.variables["Q2"][-1, 0, 0]))
 

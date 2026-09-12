@@ -56,7 +56,7 @@ recursively.
 | --- | --- | --- | --- |
 | `circle_nowind` | 72 × 72 at 100 m | Anderson category 3; U=V=0 | 500 m point/circle; bilinear horizontal; 10 m winds |
 | `fuel_strip_wind` | 72 × 72 at 100 m | Anderson categories 7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8; U=10 m s⁻¹, V=0 | vertical ignition line near the west side; nearest-neighbor horizontal; 10 m winds |
-| `terrain_fuel_fmc_wind` | 72 × 72 at 100 m | sinusoidal 150 m terrain; central category-3 patch in category 8; U=V=10 m s⁻¹; changing T2/Q2 | 500 m observed perimeter; bilinear horizontal; 10 m winds; moisture updated every timestep |
+| `terrain_fuel_fmc_wind` | 72 × 72 at 100 m | sinusoidal 150 m terrain; same 12-category strips as `fuel_strip_wind`; U=V=10 m s⁻¹; changing T2/Q2 | 500 m observed perimeter; bilinear horizontal; 10 m winds; moisture updated every timestep |
 
 “Stacked vertically” is represented by horizontal strips whose category
 changes with the NetCDF `south_north` index. The 12-category order is the
@@ -66,8 +66,10 @@ U10=10 m s⁻¹, with Anderson chaparral category 4 excluded by the documented
 12. The source script SHA-256 values are recorded in `cases.yaml`.
 
 The point ignition follows the reference circle radius of 500 m. The complex
-case uses a smooth analytic terrain so `ZSF`, `DZDXF`, and `DZDYF` are mutually
-consistent. Its generated relative-humidity forcing changes during the run.
+case uses the identical `NFUEL_CAT` strip field on a smooth analytic terrain,
+so `ZSF`, `DZDXF`, and `DZDYF` are mutually consistent while fuel coverage is
+shared between the two cases. Its generated relative-humidity forcing changes
+during the run.
 `fmoist_freq=1` follows `physics/fmc_wrffire_mod.F90`: moisture advances when
 `mod(itimestep,fmoist_freq)==0`. Successful validation requires `fmc_g` to
 change between the initialization and final output.

@@ -10,9 +10,10 @@ provenance:
     strip campaign ranks 12 Anderson categories at U10=10 m s-1 and excludes
     chaparral category 4. Horizontal fuel strips vary with the south_north
     index, so they appear stacked vertically on a conventional map. The
-    complex case uses generated smooth terrain, a central category-3 patch,
-    observed-perimeter initialization, and changing atmospheric humidity to
-    exercise the remaining reader, interpolation, and moisture paths.
+    complex case applies the same 12-category strip pattern over generated
+    smooth terrain, with observed-perimeter initialization and changing
+    atmospheric humidity to exercise the remaining reader, interpolation,
+    and moisture paths.
 
 defaults:
   time:
@@ -53,9 +54,6 @@ defaults:
     uniform_category: 3
     categories: [3]
     strip_axis: south_north
-    background_category: 8
-    patch_category: 3
-    patch_radius_m: 1200.0
   terrain:
     kind: flat
     base_elevation_m: 1600.0
@@ -150,10 +148,8 @@ cases:
       specific_humidity_start_kg_kg: 0.008
       specific_humidity_end_kg_kg: 0.004
     fuel:
-      categories: [3, 8]
-      background_category: 8
-      patch_category: 3
-      patch_radius_m: 1200.0
+      categories: [7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8]
+      strip_axis: south_north
     terrain:
       kind: sinusoidal
       base_elevation_m: 1600.0

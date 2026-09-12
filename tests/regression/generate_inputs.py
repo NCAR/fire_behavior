@@ -164,16 +164,10 @@ def _fields(spec: dict[str, Any]) -> dict[str, np.ndarray]:
 
     fuel = spec["fuel"]
     case = spec["identity"]["case"]
-    if case == "fuel_strip_wind":
+    if case in {"fuel_strip_wind", "terrain_fuel_fmc_wind"}:
         categories = np.asarray(fuel["categories"], dtype=np.float32)
         strip_index = np.minimum((np.arange(ny) * len(categories)) // ny, len(categories) - 1)
         nfuel = np.broadcast_to(categories[strip_index, None], (ny, nx)).copy()
-    elif case == "terrain_fuel_fmc_wind":
-        cx = 0.5 * nx * grid["dx_m"]
-        cy = 0.5 * ny * grid["dy_m"]
-        patch = (xm - cx) ** 2 + (ym - cy) ** 2 <= fuel["patch_radius_m"] ** 2
-        nfuel = np.full((ny, nx), fuel["background_category"], dtype=np.float32)
-        nfuel[patch] = fuel["patch_category"]
     else:
         nfuel = np.full((ny, nx), fuel["uniform_category"], dtype=np.float32)
 
