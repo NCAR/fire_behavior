@@ -1,0 +1,260 @@
+schema_version: 1
+
+provenance:
+  reference_scripts:
+    create_cases_circle_sha256: d891d5d6e7eb05ef881b65840092b1d8db4f58cc3ea8eec90b055308addbb6f9
+    create_cases_strips_sha256: 9840df95fd73015951b31427a771aeedd9a26642c7c1e3d600475b0e8f18a816
+    make_strip_ladder_inputs_sha256: 9215af99a205d3ae3d6b959b22ce3720db05735185bc8b48349e5b2c62f79f17
+  rationale: >-
+    The reference circle campaign uses a 500 m radius point ignition. The
+    strip campaign ranks 12 Anderson categories at U10=10 m s-1 and excludes
+    chaparral category 4. Horizontal fuel strips vary with the south_north
+    index, so they appear stacked vertically on a conventional map. The
+    complex case uses generated smooth terrain, a central category-3 patch,
+    observed-perimeter initialization, and changing atmospheric humidity to
+    exercise the remaining reader, interpolation, and moisture paths.
+
+defaults:
+  time:
+    start: '2020-01-01_00:00:00'
+    duration_seconds: 60
+    dt_seconds: 4
+    output_interval_seconds: 60
+    atmosphere_interval_seconds: 4
+  grid:
+    nx: 72
+    ny: 72
+    dx_m: 100.0
+    dy_m: 100.0
+    sr_x: 1
+    sr_y: 1
+    axis_order: 'NetCDF (Time,south_north,west_east); Fortran (west_east,south_north)'
+  projection:
+    cen_lat: 40.0
+    cen_lon: -105.0
+    stand_lon: -105.0
+    true_lat_1: 30.0
+    true_lat_2: 60.0
+    map_proj: 1
+  forcing:
+    u10_m_s: 0.0
+    v10_m_s: 0.0
+    temperature_start_k: 300.0
+    temperature_end_k: 300.0
+    specific_humidity_start_kg_kg: 0.006
+    specific_humidity_end_kg_kg: 0.006
+    surface_pressure_pa: 90000.0
+    accumulated_rain_start_mm: 0.0
+    accumulated_rain_end_mm: 0.0
+    vertical_levels_stag: 2
+  fuel:
+    family: Anderson13
+    family_id: 1
+    uniform_category: 3
+    categories: [3]
+    strip_axis: south_north
+    background_category: 8
+    patch_category: 3
+    patch_radius_m: 1200.0
+  terrain:
+    kind: flat
+    base_elevation_m: 1600.0
+    amplitude_m: 0.0
+    wavelength_x_m: 6000.0
+    wavelength_y_m: 6000.0
+    ideal_dz_dx: 0.0
+    ideal_dz_dy: 0.0
+  ignition:
+    kind: point
+    count: 1
+    center_x_fraction: 0.5
+    center_y_fraction: 0.5
+    line_x_fraction: 0.20
+    radius_m: 500.0
+    ros_m_s: 250.0
+    start_time_s: 0.0
+    end_time_s: 2.0
+    start_lat: 40.0
+    start_lon: -105.0
+    end_lat: 40.0
+    end_lon: -105.0
+  moisture:
+    run: false
+    frequency_timesteps: 0
+    dt_seconds: 600.0
+    initial_dead: 0.08
+    initial_live: 0.30
+    model_id: -1
+  interpolation:
+    horizontal: 2
+    vertical: 1
+  method: ref94
+  model:
+    ideal_opt: 1
+    devel_opt: 1
+    fire_lsm_reinit: true
+    reinit_pseudot_coef: 0.0001
+    num_tiles: 1
+    tile_strategy: 0
+  output:
+    level: 0
+    check_isolated_neg_lfn: 2
+  feature: point_bilinear_10m
+
+cases:
+  circle_nowind:
+    model:
+      ideal_opt: 1
+    forcing:
+      u10_m_s: 0.0
+      v10_m_s: 0.0
+    fuel:
+      uniform_category: 3
+      categories: [3]
+    terrain:
+      kind: flat
+      base_elevation_m: 0.0
+    ignition:
+      kind: point
+      radius_m: 500.0
+    method: ref94
+    feature: point_bilinear_10m
+
+  fuel_strip_wind:
+    model:
+      ideal_opt: 0
+    forcing:
+      u10_m_s: 10.0
+      v10_m_s: 0.0
+    fuel:
+      categories: [7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8]
+      strip_axis: south_north
+    terrain:
+      kind: flat
+      base_elevation_m: 0.0
+    ignition:
+      kind: line
+      radius_m: 100.0
+      ros_m_s: 100.0
+    method: ref94
+    feature: line_nearest_10m
+
+  terrain_fuel_fmc_wind:
+    model:
+      ideal_opt: 0
+    forcing:
+      u10_m_s: 10.0
+      v10_m_s: 10.0
+      temperature_start_k: 300.0
+      temperature_end_k: 302.0
+      specific_humidity_start_kg_kg: 0.008
+      specific_humidity_end_kg_kg: 0.004
+    fuel:
+      categories: [3, 8]
+      background_category: 8
+      patch_category: 3
+      patch_radius_m: 1200.0
+    terrain:
+      kind: sinusoidal
+      base_elevation_m: 1600.0
+      amplitude_m: 150.0
+      wavelength_x_m: 6000.0
+      wavelength_y_m: 6000.0
+    ignition:
+      kind: perimeter
+      radius_m: 500.0
+      count: 1
+    moisture:
+      run: true
+      frequency_timesteps: 1
+      dt_seconds: 4.0
+    method: ref94
+    feature: perimeter_bilinear_10m
+
+suites:
+  quick:
+    time:
+      duration_seconds: 60
+      dt_seconds: 4
+      output_interval_seconds: 60
+      atmosphere_interval_seconds: 4
+    grid:
+      nx: 72
+      ny: 72
+      dx_m: 100.0
+      dy_m: 100.0
+    matrix_methods: [ref94]
+    matrix_executions: [serial, omp4, mpi4]
+  pr:
+    time:
+      duration_seconds: 60
+      dt_seconds: 4
+      output_interval_seconds: 60
+      atmosphere_interval_seconds: 4
+    grid:
+      nx: 72
+      ny: 72
+      dx_m: 100.0
+      dy_m: 100.0
+    matrix_methods: [ref94]
+    matrix_executions: [serial, omp1, omp4, mpi1, mpi4]
+  full:
+    time:
+      duration_seconds: 3600
+      dt_seconds: 2
+      output_interval_seconds: 900
+      atmosphere_interval_seconds: 60
+    grid:
+      nx: 320
+      ny: 320
+      dx_m: 25.0
+      dy_m: 25.0
+    matrix_methods: [ref24, ref94]
+    matrix_executions: [serial, omp1, omp4, mpi1, mpi4, mpi8]
+
+methods:
+  ref94:
+    fire_upwinding: 9
+    fire_upwinding_reinit: 4
+  ref24:
+    fire_upwinding: 2
+    fire_upwinding_reinit: 4
+
+features:
+  point_bilinear_10m:
+    feature:
+      real_perimeter: false
+    interpolation:
+      horizontal: 2
+      vertical: 1
+  line_nearest_10m:
+    feature:
+      real_perimeter: false
+    interpolation:
+      horizontal: 1
+      vertical: 1
+  perimeter_bilinear_10m:
+    feature:
+      real_perimeter: true
+    interpolation:
+      horizontal: 2
+      vertical: 1
+
+executions:
+  serial: {variant: serial, ranks: 1, threads: 1, timeout_seconds: 900, environment: {OMP_NUM_THREADS: '1', OMP_DYNAMIC: 'FALSE'}}
+  omp1: {variant: omp, ranks: 1, threads: 1, timeout_seconds: 900, environment: {OMP_NUM_THREADS: '1', OMP_DYNAMIC: 'FALSE'}}
+  omp4: {variant: omp, ranks: 1, threads: 4, timeout_seconds: 900, environment: {OMP_NUM_THREADS: '4', OMP_DYNAMIC: 'FALSE'}}
+  mpi1: {variant: mpi, ranks: 1, threads: 1, timeout_seconds: 900, environment: {OMP_NUM_THREADS: '1', OMP_DYNAMIC: 'FALSE'}}
+  mpi4: {variant: mpi, ranks: 4, threads: 1, timeout_seconds: 900, environment: {OMP_NUM_THREADS: '1', OMP_DYNAMIC: 'FALSE'}}
+  mpi8: {variant: mpi, ranks: 8, threads: 1, timeout_seconds: 1800, environment: {OMP_NUM_THREADS: '1', OMP_DYNAMIC: 'FALSE'}}
+
+static_fields: [lats, lons, zsf, nfuel_cat, fz0]
+expected_output_fields: [lats, lons, fgrnhfx, fgrnqfx, fire_area, fuel_frac_burnt_dt, fuel_frac, emis_smoke, fire_t2, fire_q2, fire_psfc, fire_rain, fz0, fmc_g, uf, vf, zsf, lfn, nfuel_cat]
+metadata_policy:
+  compare_global_attributes: true
+  compare_variable_attributes: true
+  volatile_global_attributes: []
+  rationale: 'The current standalone writer emits no volatile scientific or provenance attributes.'
+baseline:
+  approved_id: null
+  relative_root: baselines

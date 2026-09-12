@@ -1,0 +1,148 @@
+#!/usr/bin/env python3
+# Copyright 2026      Research Applications Laboratory (RAL),
+#                     National Center for Atmospheric Research (NCAR),
+#                     University Corporation for Atmospheric Research (UCAR)
+#
+#--------------------------------------------------------------------------------
+# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+#--------------------------------------------------------------------------------
+# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python tests/regression/regression.py baseline-create --help
+#
+"""Create, validate, select, and accept immutable CFBM baseline sets."""
+
+from __future__ import annotations
+
+#--------------------------------------------------------------------------------
+# Python modules
+#--------------------------------------------------------------------------------
+
+import json
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from generate_inputs import sha256_file
+
+
+def git_identity(repository: Path) -> dict[str, Any]:
+    """Return exact commit and cleanliness required for candidate production."""
+    commit = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "HEAD"], check=True,
+        capture_output=True, text=True,
+    ).stdout.strip()
+    status = subprocess.run(
+        ["git", "-C", str(repository), "status", "--porcelain", "--untracked-files=all"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return {"repository": str(repository.resolve()), "commit": commit, "clean": not bool(status), "status": status.splitlines()}
+
+
+def verify_baseline(root: Path) -> dict[str, Any]:
+    """Validate an immutable baseline manifest and every recorded checksum."""
+    manifest_path = root / "manifest.yaml"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"Missing baseline manifest: {manifest_path}")
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    if not manifest.get("approved", False):
+        raise ValueError(f"Baseline is not approved: {root}")
+    for relative, expected in manifest["checksums"].items():
+        path = root / relative
+        if not path.is_file() or sha256_file(path) != expected:
+            raise ValueError(f"Baseline checksum mismatch: {path}")
+    return manifest
+
+
+def resolve_baseline(
+    cli_root: Path | None, environment_root: str | None, configured_id: str | None,
+    configured_parent: Path,
+) -> Path:
+    """Resolve baseline selection by CLI, environment, then approved configuration."""
+    if cli_root is not None:
+        root = cli_root
+    elif environment_root:
+        root = Path(environment_root)
+    elif configured_id:
+        root = configured_parent / configured_id
+    else:
+        approved = configured_parent / "approved.yaml"
+        if not approved.is_file():
+            raise FileNotFoundError("No approved baseline is configured")
+        selection = yaml.safe_load(approved.read_text(encoding="utf-8"))
+        root = configured_parent / selection["approved_id"]
+    verify_baseline(root)
+    return root.resolve()
+
+
+def create_candidate(
+    candidate_root: Path, identifier: str, work_root: Path, model_repository: Path,
+    harness_repository: Path,
+) -> Path:
+    """Publish completed validated runs into a previously nonexistent candidate set."""
+    summary_path = work_root / "summary.json"
+    if not summary_path.is_file():
+        raise FileNotFoundError(f"Missing candidate validation summary: {summary_path}")
+    summary = json.loads(summary_path.read_text(encoding="utf-8"))
+    if not summary.get("candidate_validation_pass", False):
+        raise ValueError("A failed or incomplete candidate validation cannot create a baseline set")
+    model = git_identity(model_repository)
+    harness = git_identity(harness_repository)
+    if not model["clean"] or not harness["clean"]:
+        raise ValueError("Model source and harness repositories must be clean committed states")
+    if model["commit"][:7] not in identifier:
+        raise ValueError("Candidate identifier must contain the model-source commit abbreviation")
+    if summary.get("model_source", {}).get("commit") != model["commit"]:
+        raise ValueError("Candidate validation model commit differs from the requested model repository")
+    destination = candidate_root / identifier
+    if destination.exists():
+        raise FileExistsError(f"Candidate identifier already exists: {destination}")
+    completed_manifests = []
+    for manifest_path in sorted(work_root.glob("runs/*/*/*/*/*/*/run_manifest.json")):
+        run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if run_manifest.get("status") == "completed":
+            completed_manifests.append((manifest_path, run_manifest))
+    if not completed_manifests:
+        raise ValueError(f"No completed runs found beneath {work_root}")
+    destination.mkdir(parents=True, exist_ok=False)
+    mappings: dict[str, str] = {}
+    checksums: dict[str, str] = {}
+    for manifest_path, run_manifest in completed_manifests:
+        identity = run_manifest["spec"]["identity"]
+        key = "|".join(identity[name] for name in ("case", "suite", "method", "feature", "execution"))
+        relative_dir = Path("references") / identity["execution"] / identity["case"] / identity["suite"] / identity["method"] / identity["feature"]
+        target_dir = destination / relative_dir
+        target_dir.mkdir(parents=True, exist_ok=False)
+        for output in run_manifest["outputs"]:
+            source = manifest_path.parent / output["name"]
+            target = target_dir / output["name"]
+            shutil.copy2(source, target)
+            relative = str(target.relative_to(destination))
+            checksums[relative] = sha256_file(target)
+        mappings[key] = str(relative_dir)
+    manifest = {
+        "schema_version": 1, "identifier": identifier, "approved": False,
+        "validation_status": "candidate validation passed", "model_source": model,
+        "harness_source": harness, "mappings": mappings, "checksums": checksums,
+        "candidate_validation_summary_sha256": sha256_file(summary_path),
+    }
+    (destination / "manifest.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
+    return destination
+
+
+def accept_candidate(candidate: Path, approver: str, decision: str, approved_file: Path) -> None:
+    """Record an explicit decision and select a validated candidate without changing payloads."""
+    manifest_path = candidate / "manifest.yaml"
+    manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("validation_status") != "candidate validation passed":
+        raise ValueError("Only a passing candidate can be accepted")
+    if manifest.get("approved"):
+        raise FileExistsError(f"Candidate is already approved: {candidate}")
+    if approved_file.exists():
+        raise FileExistsError(f"Approval selection already exists: {approved_file}")
+    manifest["approved"] = True
+    manifest["approval"] = {"approver": approver, "decision": decision}
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
+    approved_file.parent.mkdir(parents=True, exist_ok=True)
+    approved_file.write_text(yaml.safe_dump({"approved_id": candidate.name, "manifest_sha256": sha256_file(manifest_path)}, sort_keys=False), encoding="utf-8")

@@ -1,0 +1,8 @@
+schema_version: 1
+name: github
+build_environment: null
+mpi_launcher: [mpiexec]
+mpi_process_flag: ['-n']
+mpi_preflags: [--oversubscribe]
+mpi_postflags: []
+pbs: null
