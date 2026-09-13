@@ -970,8 +970,8 @@
           this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'Pa', 'surface air pressure')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_rain', &
-          this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'mm', &
-          'standalone accumulated precipitation; coupled-driver units unresolved')
+          this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe), fill_value=NF90_FILL_FLOAT, &
+          long_name='standalone accumulated precipitation; coupled-driver units unresolved')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fz0', &
           this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm', 'surface roughness length')

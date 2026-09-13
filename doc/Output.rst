@@ -78,7 +78,7 @@ identifies its inputs by the established WRF variable names and dimensions.
      - surface air pressure
      - dynamic
    * - ``fire_rain``
-     - mm [1]_
+     - unresolved [1]_
      - atmospheric
      - standalone accumulated precipitation; coupled-driver units unresolved
      - dynamic
