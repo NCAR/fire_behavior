@@ -14,6 +14,7 @@
 
     use fmc_mod, only : FMC_WRFFIRE
     use fmc_wrffire_mod, only : fmc_wrffire_t
+    use humidity_mod, only : Validate_mixing_ratio_2m
 
 #ifdef DM_PARALLEL
     use mpi_mod, only : Max_across_mpi_tasks, Sum_across_mpi_tasks
@@ -105,6 +106,9 @@
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Advance_fire_components...') 
+
+      if (config_flags%fmoist_run) call Validate_mixing_ratio_2m (grid%fire_q2, grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
+          grid%ifps, grid%ifpe, grid%jfps, grid%jfpe)
 
       if (config_flags%fmoist_run) call grid%fmc_param%Advance_fmc_model (config_flags%fmoist_freq, config_flags%fmoist_dt, &
           grid%itimestep, grid%dt, grid%ifms, grid%ifme, grid%jfms, grid%jfme, &

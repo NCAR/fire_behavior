@@ -19,6 +19,7 @@
     use namelist_mod, only : namelist_t
     use fmc_mod, only : fmc_t
     use fuel_mod, only : fuel_t
+    use humidity_mod, only : Vapor_pressure_from_mixing_ratio
 
     implicit none
 
@@ -136,7 +137,7 @@
     end subroutine Init_fmc_wrffire
 
     subroutine Advance_fmc_model (this, fmoist_freq, fmoist_dt, itimestep, dt, ifms, ifme, jfms, jfme, i_start, i_end, j_start, &
-            j_end, num_tiles, fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, &
+            j_end, num_tiles, fire_rain, fire_t2, fire_r2, fire_psfc, fire_rain_old, fire_t2_old, fire_r2_old, &
             fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, nfuel_cat, fuels, ros_param)
 
       implicit none
@@ -148,8 +149,8 @@
       integer, dimension(num_tiles) :: i_start, i_end, j_start, j_end
       real, intent (in) ::  fmoist_dt, dt, fuelmc_g
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
-      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, &
-          fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_r2, fire_psfc, fire_rain_old, fire_t2_old, &
+          fire_r2_old, fire_psfc_old, fire_rh_fire, fmc_g
 
       integer :: ij
       real :: time_start, moisture_time
@@ -180,7 +181,7 @@
         !$OMP PRIVATE (ij)
         do ij = 1, num_tiles
           call this%Advance_moisture_classes (itimestep == 1, ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
-              fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, fire_psfc_old, fire_rh_fire, fuelmc_g)
+              fire_rain, fire_t2, fire_r2, fire_psfc, fire_rain_old, fire_t2_old, fire_r2_old, fire_psfc_old, fire_rh_fire, fuelmc_g)
         end do
         !$OMP END PARALLEL DO
 
@@ -232,7 +233,7 @@
     end subroutine Average_moisture_classes
 
     subroutine Advance_moisture_classes (this, initialize, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        rain, t2, q2, psfc, rain_old, t2_old, q2_old, psfc_old, rh_fire, fuelmc_g)
+        rain, t2, r2, psfc, rain_old, t2_old, r2_old, psfc_old, rh_fire, fuelmc_g)
 
       implicit none
 
@@ -240,16 +241,16 @@
       logical, intent (in) :: initialize
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte
       real, intent (in) :: fuelmc_g
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: t2, q2, psfc, rain
-      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: t2_old, q2_old, psfc_old, rain_old
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: t2, r2, psfc, rain
+      real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: t2_old, r2_old, psfc_old, rain_old
       real, intent (out), dimension (ifms:ifme, jfms:jfme) :: rh_fire 
 
       integer :: i, j, k
-      real :: rain_int, T, P, Q, QRS, ES, RH, tend, EMC_d, EMC_w, EMC, R, rain_diff, fmc, rlag, equi, &
+      real :: rain_int, T, P, r2_mean, QRS, ES, RH, tend, EMC_d, EMC_w, EMC, R, rain_diff, fmc, rlag, equi, &
           d, w, rhmax, rhmin, change, rainmax,rainmin, fmc_old, H, deltaS, deltaE
       real, parameter :: TOL = 1e-2 ! relative change larger than that will switch to exponential ode solver 
       logical, parameter :: CHECK_RH = .false.
-      real :: epsilon, Pws, Pw
+      real :: Pws, Pw
 
 
       if (initialize) call Copy2old ()
@@ -276,16 +277,10 @@
               ! average the inputs for second order accuracy
             t = 0.5 * (t2_old(i,j) + t2(i,j))
             p = 0.5 * (psfc_old(i,j) + psfc(i,j))
-            q = 0.5 * (q2_old(i,j) + q2(i,j))
+            r2_mean = 0.5 * (r2_old(i,j) + r2(i,j))
 
-              ! compute the relative humidity
-              ! ES=610.78*exp(17.269*(T-273.161)/(T-35.861))
-              ! QRS=0.622*ES/(P-0.378*ES)
-              ! RH = Q/QRS
-              ! function rh_from_q from Adam Kochanski following Murphy and Koop, Q.J.R. Meteorol. Soc (2005) 131 1539-1565 eq. (10)
-            epsilon = 0.622 ! Molecular weight of water (18.02 g/mol) to molecular weight of dry air (28.97 g/mol)
-              ! vapor pressure [Pa]
-            pw = q * p / (epsilon + (1.0 - epsilon) * q)
+              ! Convert the 2 m water-vapor mixing ratio to vapor pressure [Pa].
+            pw = Vapor_pressure_from_mixing_ratio (r2_mean, p)
               ! saturation vapor pressure [Pa]
             pws = exp (54.842763 - 6763.22 / t - 4.210 * log (t) + 0.000367 * t + &
                 tanh (0.0415 * (t - 218.8)) * (53.878 - 1331.22 / t - 9.44523 * log (t) + 0.014025 * t))
@@ -404,7 +399,7 @@
           do i = ifts ,ifte
             rain_old(i, j) = rain(i, j)
             t2_old(i, j) = t2(i, j)
-            q2_old(i, j) = q2(i, j)
+            r2_old(i, j) = r2(i, j)
             psfc_old(i, j) = psfc(i, j)
           end do
         end do

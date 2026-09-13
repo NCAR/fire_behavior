@@ -20,6 +20,7 @@ module fire_behavior_nuopc
   use stderrout_mod, only : Stop_simulation, Print_message
   use coupling_mod, only : Calc_fire_wind
   use interp_mod, only: VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+  use humidity_mod, only : Specific_humidity_to_mixing_ratio, Is_valid_mixing_ratio, Is_valid_specific_humidity
 
   implicit none
 
@@ -871,7 +872,7 @@ module fire_behavior_nuopc
     real(ESMF_KIND_R8)          :: ts
     type(ESMF_State)            :: importState, exportState
     integer                     :: i, j
-    real                        :: q0, rho
+    real                        :: q0, q2_import, rho
     character(len=160)          :: msgString
     real, dimension(:, :, :), allocatable :: atm_u3d, atm_v3d, atm_ph
     real, dimension(:, :), allocatable :: atm_lowest_t, atm_lowest_q, atm_lowest_pres
@@ -911,7 +912,6 @@ module fire_behavior_nuopc
     ! Update atmospheric fields
     ! convert cm to m
     grid%fz0(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_z0(clb(1):cub(1),clb(2):cub(2)) * 0.01
-    grid%fire_q2(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_q2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_t2(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
     if (imp_rainrte) then
@@ -929,7 +929,19 @@ module fire_behavior_nuopc
 
     do j = grid%jfps, grid%jfpe
       do i = grid%ifps, grid%ifpe
-        grid%fire_q2(i,j) = max (grid%fire_q2(i,j), .001)
+        q2_import = real (ptr_q2(i,j))
+        if (.not. Is_valid_specific_humidity (q2_import)) then
+          call ESMF_LogSetError (ESMF_RC_ARG_BAD, msg='2 m specific humidity must satisfy 0 <= q2 < 1', &
+              line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+        end if
+        q2_import = max (q2_import, 0.001)
+        grid%fire_q2(i,j) = Specific_humidity_to_mixing_ratio (q2_import)
+        if (.not. Is_valid_mixing_ratio (grid%fire_q2(i,j))) then
+          call ESMF_LogSetError (ESMF_RC_ARG_BAD, msg='converted 2 m mixing ratio is invalid', &
+              line=__LINE__, file=__FILE__, rcToReturn=rc)
+          return
+        end if
         grid%fire_t2(i,j) = max (grid%fire_t2(i,j), 123.4) ! avoid arithmatic error
         grid%fire_psfc(i,j) = max (grid%fire_psfc(i,j), .001)
       end do
@@ -1152,4 +1164,3 @@ module fire_behavior_nuopc
   end subroutine Check_fire_grid_cells
 
 end module
-

@@ -87,12 +87,12 @@
       real, dimension(:, :), allocatable :: fire_psfc       ! "Surface Pressure"  "Pa"
       real, dimension(:, :), allocatable :: fire_rain       ! "Accumulated total rain"  "mm"
       real, dimension(:, :), allocatable :: fire_t2         ! "TEMP at 2 M"       "K"
-      real, dimension(:, :), allocatable :: fire_q2         ! "Value of 2m specific humidity" "kg/kg"
+      real, dimension(:, :), allocatable :: fire_q2         ! 2 m water-vapor mixing ratio (legacy public name) [kg kg-1 dry air]
       real, dimension(:, :), allocatable :: fire_rh_fire    ! "relative humidity, diagnostics" ""
       real, dimension(:, :), allocatable :: fire_psfc_old   ! "Surface Pressure, previous value"  "Pa"
       real, dimension(:, :), allocatable :: fire_rain_old   ! "Accumulated total rain, previous value"  "mm"
       real, dimension(:, :), allocatable :: fire_t2_old     ! "TEMP at 2 M, previous value"       "K"
-      real, dimension(:, :), allocatable :: fire_q2_old     ! "Value of 2m specific humidity, previous value" "kg/kg"
+      real, dimension(:, :), allocatable :: fire_q2_old     ! Previous 2 m water-vapor mixing ratio [kg kg-1 dry air]
 
       integer, dimension(:), allocatable :: i_start, i_end, j_start, j_end
 

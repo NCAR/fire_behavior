@@ -27,7 +27,7 @@
       end subroutine Init
 
       subroutine Advance_fmc_model (this, fmoist_freq, fmoist_dt, itimestep, dt, ifms, ifme, jfms, jfme, i_start, i_end, &
-            j_start, j_end, num_tiles, fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, &
+            j_start, j_end, num_tiles, fire_rain, fire_t2, fire_r2, fire_psfc, fire_rain_old, fire_t2_old, fire_r2_old, &
             fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, nfuel_cat, fuels, ros_param)
         import :: fmc_t, fuel_t, ros_t
         class (fmc_t), intent (in out) :: this
@@ -37,8 +37,8 @@
         integer, dimension(num_tiles) :: i_start, i_end, j_start, j_end
         real, intent (in) ::  fmoist_dt, dt, fuelmc_g
         real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
-        real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, &
-            fire_t2_old, fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
+        real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_r2, fire_psfc, fire_rain_old, &
+            fire_t2_old, fire_r2_old, fire_psfc_old, fire_rh_fire, fmc_g
       end subroutine Advance_fmc_model
     end interface
 
