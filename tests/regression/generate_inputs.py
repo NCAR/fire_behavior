@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python tests/regression/generate_inputs.py --help
+# run python -B tests/regression/regression.py prepare --help
 #
 """Generate deterministic geogrid and WRF inputs for CFBM regression cases."""
 

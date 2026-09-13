@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python -m pytest tests/regression/tests
+# run python -B -m unittest discover -s tests/regression/tests -p test_config_render.py -v
 #
 """Load, merge, and validate CFBM regression case specifications."""
 
@@ -61,7 +61,7 @@ PLATFORM_KEYS = {
     "schema_version", "name", "build_environment", "mpi_launcher",
     "mpi_process_flag", "mpi_preflags", "mpi_postflags", "pbs",
 }
-PBS_KEYS = {"account", "queue", "select", "ncpus", "mpiprocs", "memory", "walltime"}
+PBS_KEYS = {"queue", "select", "ncpus", "mpiprocs", "memory", "walltime"}
 
 
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -113,11 +113,13 @@ def load_platform(path: Path) -> dict[str, Any]:
     if pbs is not None:
         if not isinstance(pbs, dict):
             raise TypeError("Platform pbs must be a mapping or null")
+        if "account" in pbs:
+            raise ValueError("Set the PBS account in your job submission, not in the platform profile")
         _expect_keys(pbs, PBS_KEYS, "platform.pbs")
         for name in ("select", "ncpus", "mpiprocs"):
             if not isinstance(pbs.get(name), int) or pbs[name] < 1:
                 raise ValueError(f"Platform pbs.{name} must be a positive integer")
-        for name in ("account", "queue", "walltime"):
+        for name in ("queue", "walltime"):
             if not isinstance(pbs.get(name), str) or not pbs[name]:
                 raise TypeError(f"Platform pbs.{name} must be a nonempty string")
         if "memory" in pbs and (not isinstance(pbs["memory"], str) or not pbs["memory"]):

@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python -m unittest tests.regression.tests.test_config_render
+# run python -B -m unittest discover -s tests/regression/tests -p test_config_render.py -v
 #
 """Test strict YAML resolution and portable Fortran namelist rendering."""
 
@@ -21,7 +21,7 @@ from pathlib import Path
 
 REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
-SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/glade/derecho/scratch/frediani/tmp/cfbm-regression-unit"))
+SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/tmp/cfbm-regression-unit"))
 
 from config import enumerate_matrix, load_platform, load_yaml, resolve_spec, validate_document
 from render_namelist import fortran_value, namelist_values, render_template
@@ -91,6 +91,22 @@ class ConfigurationTests(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "Unknown platform"):
+            load_platform(path)
+
+    def test_shared_platforms_do_not_require_an_account(self) -> None:
+        """Load shared PBS resource profiles independently of a user's allocation."""
+        for name in ("casper", "derecho"):
+            with self.subTest(platform=name):
+                profile = load_platform(REGRESSION_DIR / "platforms" / f"{name}.yaml")
+                self.assertNotIn("account", profile["pbs"])
+
+    def test_profile_account_redirects_user_to_submission(self) -> None:
+        """Reject the former profile setting with an actionable submission diagnostic."""
+        path = SCRATCH_ROOT / str(uuid.uuid4()) / "platform.yaml"
+        path.parent.mkdir(parents=True)
+        profile = (REGRESSION_DIR / "platforms" / "casper.yaml").read_text(encoding="utf-8")
+        path.write_text(profile.replace("pbs:\n", "pbs:\n  account: example-account\n"), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "PBS account in your job submission"):
             load_platform(path)
 
 

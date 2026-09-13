@@ -6,7 +6,6 @@ mpi_process_flag: ['-n']
 mpi_preflags: []
 mpi_postflags: []
 pbs:
-  account: NSAP0003
   queue: casper
   select: 1
   ncpus: 16

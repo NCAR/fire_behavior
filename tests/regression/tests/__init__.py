@@ -6,6 +6,6 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python -m unittest discover -s tests/regression/tests
+# run python -B -m unittest discover -s tests/regression/tests -v
 #
 """Focused synthetic tests for the CFBM regression harness."""

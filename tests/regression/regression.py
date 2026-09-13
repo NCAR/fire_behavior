@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python tests/regression/regression.py all --suite quick --variants serial,omp,mpi --work-root /glade/derecho/scratch/frediani/cfbm-regression/quick-v1
+# run python -B tests/regression/regression.py all --help
 #
 """Prepare, execute, compare, and manage standalone CFBM regression cases."""
 

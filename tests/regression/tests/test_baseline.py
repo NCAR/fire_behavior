@@ -6,7 +6,7 @@
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
 #--------------------------------------------------------------------------------
-# run /glade/work/frediani/casper/anaconda3/envs/py314/bin/python -m unittest tests.regression.tests.test_baseline
+# run python -B -m unittest discover -s tests/regression/tests -p test_baseline.py -v
 #
 """Test immutable baseline provenance and rejection paths."""
 
@@ -34,7 +34,7 @@ from baseline import accept_candidate, create_candidate
 from generate_inputs import sha256_file
 
 
-SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/glade/derecho/scratch/frediani/tmp/cfbm-regression-unit"))
+SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/tmp/cfbm-regression-unit"))
 
 
 def initialize_repository(root: Path) -> str:

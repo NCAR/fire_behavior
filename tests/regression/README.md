@@ -6,15 +6,28 @@ for the pre-PR39 standalone CFBM tests. `regression.py` is the only public
 command-line interface. Normal regression commands never create or approve a
 reference.
 
-Use the pinned Derecho/Casper Python environment:
+Run the following commands from the repository root. Activate a Conda or
+virtual environment containing the packages pinned in
+`tests/regression/requirements.txt`, then invoke its Python interpreter:
 
 ```text
-/glade/work/frediani/casper/anaconda3/envs/py314/bin/python \
-  tests/regression/regression.py all \
+python -B tests/regression/regression.py all \
   --suite quick --variants serial,omp,mpi \
   --platform tests/regression/platforms/derecho.yaml \
-  --work-root /glade/derecho/scratch/frediani/cfbm-regression/quick-001
+  --work-root /path/to/your/scratch/cfbm-regression/quick-001
 ```
+
+Replace `/path/to/your/scratch` with a writable location on your system. To
+select Python without activating an environment, replace `python` with
+`/path/to/environment/bin/python`. For direct CMake/CTest use, configure with
+`-DPython3_EXECUTABLE=/path/to/environment/bin/python`. The harness uses the
+interpreter that launched it; no separate environment option is needed.
+
+The harness executes inside an existing PBS allocation and does not submit
+jobs. Select your account in your own submission, for example
+`qsub -A YOUR_ACCOUNT your_job.pbs`, replacing the account and script name with
+your own. Shared platform profiles contain resource recommendations and
+launcher settings; these do not allocate resources or select a billing account.
 
 Load the current NCAR compiler, NetCDF, and MPI modules before invoking the
 outer command. The retained `env/derecho/gnu-12.2.0` file references an old
@@ -26,10 +39,15 @@ must run within a PBS compute job on Casper or Derecho. Synthetic Python unit
 tests may run on a login node:
 
 ```text
-PYTHONDONTWRITEBYTECODE=1 \
-  /glade/work/frediani/casper/anaconda3/envs/py314/bin/python \
-  -m unittest discover -s tests/regression/tests -v
+python -B -m unittest discover -s tests/regression/tests -v
 ```
+
+Unit tests default to `/tmp/cfbm-regression-unit`. Set `CFBM_TEST_TMP` to a
+writable scratch directory to override that location, for example
+`export CFBM_TEST_TMP=/path/to/your/scratch/cfbm-regression-unit`. Each test
+creates a unique directory, and artifacts are retained for inspection.
+This default applies only to unit tests. Model workflows still require an
+explicit new `--work-root`; candidate destinations remain explicit.
 
 The outer summary records each compile argument vector, the required CMake
 cache switches, installed executable hashes, exact model and harness commits,
@@ -147,10 +165,10 @@ clean committed model and harness repositories. The immutable identifier must
 contain the model commit abbreviation:
 
 ```text
-python tests/regression/regression.py baseline-create \
-  --candidate-root /glade/derecho/scratch/frediani/cfbm-candidates \
+python -B tests/regression/regression.py baseline-create \
+  --candidate-root /path/to/your/scratch/cfbm-candidates \
   --identifier pre-pr39-6ae8078-candidate001 \
-  --work-root /glade/derecho/scratch/frediani/cfbm-regression/quick-001 \
+  --work-root /path/to/your/scratch/cfbm-regression/quick-001 \
   --model-repository /path/to/clean/model-checkout
 ```
 
