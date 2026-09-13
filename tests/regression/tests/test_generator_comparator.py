@@ -88,7 +88,12 @@ class GeneratorTests(unittest.TestCase):
             np.testing.assert_array_equal(geo.variables["NFUEL_CAT"][:], strips.variables["NFUEL_CAT"][:])
         with netCDF4.Dataset(complex_root / "wrf.nc") as wrf:
             self.assertEqual(len(wrf.dimensions["Time"]), 16)
-            self.assertNotEqual(float(wrf.variables["Q2"][0, 0, 0]), float(wrf.variables["Q2"][-1, 0, 0]))
+            self.assertEqual(wrf.variables["Q2"].units, "kg kg-1")
+            self.assertAlmostEqual(float(wrf.variables["Q2"][0, 0, 0]), 0.008, places=6)
+            self.assertAlmostEqual(float(wrf.variables["Q2"][-1, 0, 0]), 0.004, places=6)
+            self.assertGreater(float(np.ptp(wrf.variables["ZNT"][:])), 0.0)
+            self.assertAlmostEqual(float(np.min(wrf.variables["ZNT"][:])), 0.05, places=6)
+            self.assertAlmostEqual(float(np.max(wrf.variables["ZNT"][:])), 0.25, places=6)
 
     def test_reader_schema_validation_rejects_missing_field(self) -> None:
         """Reject a generated geogrid file that omits a field required by the reader."""

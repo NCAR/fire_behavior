@@ -41,10 +41,10 @@ NESTED_KEYS = {
     "time": {"start", "duration_seconds", "dt_seconds", "output_interval_seconds", "atmosphere_interval_seconds"},
     "grid": {"nx", "ny", "dx_m", "dy_m", "sr_x", "sr_y", "axis_order"},
     "projection": {"cen_lat", "cen_lon", "stand_lon", "true_lat_1", "true_lat_2", "map_proj"},
-    "forcing": {"u10_m_s", "v10_m_s", "temperature_start_k", "temperature_end_k", "specific_humidity_start_kg_kg", "specific_humidity_end_kg_kg", "surface_pressure_pa", "accumulated_rain_start_mm", "accumulated_rain_end_mm", "vertical_levels_stag"},
+    "forcing": {"u10_m_s", "v10_m_s", "temperature_start_k", "temperature_end_k", "mixing_ratio_start_kg_kg", "mixing_ratio_end_kg_kg", "surface_pressure_pa", "accumulated_rain_start_mm", "accumulated_rain_end_mm", "vertical_levels_stag", "roughness_length_min_m", "roughness_length_max_m"},
     "fuel": {"family", "family_id", "uniform_category", "categories", "strip_axis"},
     "terrain": {"kind", "base_elevation_m", "amplitude_m", "wavelength_x_m", "wavelength_y_m", "ideal_dz_dx", "ideal_dz_dy"},
-    "ignition": {"kind", "count", "center_x_fraction", "center_y_fraction", "line_x_fraction", "radius_m", "ros_m_s", "start_time_s", "end_time_s", "start_lat", "start_lon", "end_lat", "end_lon"},
+    "ignition": {"kind", "count", "center_x_fraction", "center_y_fraction", "line_x_fraction", "line_y_start_fraction", "line_y_end_fraction", "radius_m", "ros_m_s", "start_time_s", "end_time_s", "start_lat", "start_lon", "end_lat", "end_lon"},
     "moisture": {"run", "frequency_timesteps", "dt_seconds", "initial_dead", "initial_live", "model_id"},
     "interpolation": {"horizontal", "vertical"},
     "model": {"ideal_opt", "devel_opt", "fire_lsm_reinit", "reinit_pseudot_coef", "num_tiles", "tile_strategy"},
@@ -280,6 +280,13 @@ def validate_spec(spec: dict[str, Any]) -> None:
             raise ValueError(f"grid.{name} must be a positive integer")
     for name in ("dx_m", "dy_m"):
         _require_number(grid, name, 1.0e-12, "grid")
+    forcing = spec["forcing"]
+    for name in ("mixing_ratio_start_kg_kg", "mixing_ratio_end_kg_kg"):
+        _require_number(forcing, name, 0.0, "forcing")
+    z0_min = _require_number(forcing, "roughness_length_min_m", 0.0, "forcing")
+    z0_max = _require_number(forcing, "roughness_length_max_m", z0_min, "forcing")
+    if z0_max <= z0_min:
+        raise ValueError("forcing roughness-length bounds must define spatial variation")
     pair = (spec["method"]["fire_upwinding"], spec["method"]["fire_upwinding_reinit"])
     if pair not in ALLOWED_METHOD_PAIRS:
         raise ValueError(f"Unsupported resolved method pair {pair}")
@@ -297,6 +304,19 @@ def validate_spec(spec: dict[str, Any]) -> None:
         raise ValueError("Anderson fuel categories must be a nonempty list within 1..13")
     if spec["ignition"]["kind"] not in {"point", "line", "perimeter"}:
         raise ValueError("Unsupported ignition kind")
+    ignition = spec["ignition"]
+    for name in ("center_x_fraction", "center_y_fraction", "line_x_fraction", "line_y_start_fraction", "line_y_end_fraction"):
+        value = _require_number(ignition, name, 0.0, "ignition")
+        if value > 1.0:
+            raise ValueError(f"ignition.{name} must be <= 1")
+    if ignition["line_y_end_fraction"] <= ignition["line_y_start_fraction"]:
+        raise ValueError("line ignition end fraction must exceed its start fraction")
+    if spec["feature"]["real_perimeter"] and spec["ignition"]["count"] != 0:
+        raise ValueError("Observed-perimeter cases require zero line ignitions")
+    if not spec["feature"]["real_perimeter"] and spec["ignition"]["count"] < 1:
+        raise ValueError("Point and line cases require at least one ignition")
+    if spec["model"]["num_tiles"] < 4:
+        raise ValueError("Regression cases require at least four computational tiles")
     if not isinstance(spec["moisture"]["run"], bool):
         raise TypeError("moisture.run must be logical")
 

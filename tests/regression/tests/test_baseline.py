@@ -54,7 +54,7 @@ def initialize_repository(root: Path) -> str:
     ).stdout.strip()
 
 
-def write_candidate_evidence(work_root: Path, commit: str) -> None:
+def write_candidate_evidence(work_root: Path, repository: Path, commit: str) -> None:
     """Write the smallest completed result accepted by candidate publication."""
     run_dir = work_root / "runs" / "serial" / "circle_nowind" / "quick" / "ref94" / "point_bilinear_10m" / "attempt-000001"
     run_dir.mkdir(parents=True)
@@ -62,16 +62,33 @@ def write_candidate_evidence(work_root: Path, commit: str) -> None:
     with netCDF4.Dataset(output, "w", format="NETCDF4_CLASSIC") as dataset:
         dataset.createDimension("cell", 1)
         dataset.createVariable("field", "f4", ("cell",))[:] = np.array([1.0], dtype="f4")
+    local_entries = {}
+    for name in ("namelist", "resolved", "input"):
+        path = run_dir / name
+        path.write_text(f"{name} evidence\n", encoding="utf-8")
+        local_entries[name] = {"path": path.name, "sha256": sha256_file(path)}
+    source_entry = {"path": str(repository / "source.txt"), "sha256": sha256_file(repository / "source.txt")}
     manifest = {
         "status": "completed",
         "spec": {"identity": {
             "case": "circle_nowind", "suite": "quick", "method": "ref94",
             "feature": "point_bilinear_10m", "execution": "serial",
         }},
+        "configuration": source_entry,
+        "template": source_entry,
+        "generator": source_entry,
+        "namelist": local_entries["namelist"],
+        "resolved": local_entries["resolved"],
+        "inputs": [local_entries["input"]],
+        "executable": source_entry,
         "outputs": [{"name": output.name, "sha256": sha256_file(output)}],
     }
     (run_dir / "run_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
-    summary = {"candidate_validation_pass": True, "model_source": {"commit": commit}}
+    summary = {
+        "candidate_validation_pass": True,
+        "model_source": {"commit": commit},
+        "harness_source": {"commit": commit},
+    }
     (work_root / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
 
@@ -84,7 +101,7 @@ class BaselineTests(unittest.TestCase):
         self.repository = self.root / "repository"
         self.commit = initialize_repository(self.repository)
         self.work_root = self.root / "work"
-        write_candidate_evidence(self.work_root, self.commit)
+        write_candidate_evidence(self.work_root, self.repository, self.commit)
         self.candidate_root = self.root / "candidates"
 
     def test_dirty_source_rejected(self) -> None:
@@ -99,6 +116,8 @@ class BaselineTests(unittest.TestCase):
         identifier = f"pre-pr39-{self.commit[:7]}-existing"
         created = create_candidate(self.candidate_root, identifier, self.work_root, self.repository, self.repository)
         self.assertTrue((created / "manifest.yaml").is_file())
+        self.assertTrue((created / "evidence" / "summary.json").is_file())
+        self.assertEqual(len(list((created / "evidence" / "runs").rglob("run_manifest.json"))), 1)
         with self.assertRaisesRegex(FileExistsError, "already exists"):
             create_candidate(self.candidate_root, identifier, self.work_root, self.repository, self.repository)
 

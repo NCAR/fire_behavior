@@ -51,6 +51,31 @@ DEFAULT_CONFIG = SCRIPT_DIR / "cases.yaml"
 DEFAULT_TEMPLATE = SCRIPT_DIR / "templates" / "namelist.fire.in"
 DEFAULT_BASELINES = SCRIPT_DIR / "baselines"
 FATAL_PREFIXES = ("STOP:", "ERROR: mpi_", "ERROR: ideal_opt option not supported")
+OUTPUT_METADATA = {
+    "lats": ("degrees_north", "fire-grid cell-center latitude"),
+    "lons": ("degrees_east", "fire-grid cell-center longitude"),
+    "fgrnhfx": ("W m-2", "ground fire sensible heat flux"),
+    "fgrnqfx": ("W m-2", "ground fire latent heat flux"),
+    "fire_area": ("1", "fire-area fraction within cell"),
+    "fuel_frac_burnt_dt": ("1", "fuel fraction burned during current fire timestep"),
+    "fuel_frac": ("1", "remaining fuel fraction"),
+    "emis_smoke": ("kg m-2", "fire particulate emissions per cell area during current timestep"),
+    "fire_t2": ("K", "air temperature at 2 m"),
+    "fire_q2": ("kg kg-1", "water-vapor mixing ratio at 2 m (legacy variable name)"),
+    "fire_psfc": ("Pa", "surface air pressure"),
+    "fire_rain": (None, "standalone accumulated precipitation; coupled-driver units unresolved"),
+    "fz0": ("m", "surface roughness length"),
+    "fmc_g": ("kg kg-1", "ground fuel moisture content"),
+    "uf": ("m s-1", "eastward wind used by fire spread"),
+    "vf": ("m s-1", "northward wind used by fire spread"),
+    "zsf": ("m", "fire-grid terrain height"),
+    "lfn": ("m", "signed level-set distance to fire perimeter"),
+    "nfuel_cat": ("1", "fuel category identifier"),
+    "grad_norm_ls": ("1", "level-set gradient norm used during propagation"),
+    "grad_norm_reinit": ("1", "level-set gradient norm used during reinitialization"),
+}
+ATMOSPHERIC_FIELDS = {"fire_t2", "fire_q2", "fire_psfc", "fire_rain", "fz0"}
+FORCING_CHECK_RTOL = 8.0 * np.finfo(np.float32).eps
 
 
 def _json_write(path: Path, value: dict[str, Any]) -> None:
@@ -187,7 +212,7 @@ def _launcher_argv(
 
 
 def _validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
-    """Require exact output inventory, writer field inventory, finite science, and moisture activity."""
+    """Require the output schema and evidence that each configured scientific path ran."""
     expected = set(manifest["expected_outputs"])
     actual = {path.name for path in run_dir.glob("fire_output_*.nc")}
     validation: dict[str, Any] = {"pass": True, "reasons": [], "files": []}
@@ -202,20 +227,91 @@ def _validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]
                 validation["reasons"].append(f"{name} fields differ: expected={sorted(expected_fields)}, actual={sorted(fields)}")
             nonfinite = []
             for variable_name, variable in dataset.variables.items():
-                if variable.dtype.kind == "f" and not np.isfinite(variable[:]).all():
+                if variable.dtype.kind != "f":
+                    continue
+                values = np.ma.asarray(variable[:])
+                valid = values.compressed()
+                if valid.size and not np.isfinite(valid).all():
                     nonfinite.append(variable_name)
+                expected_units, expected_long_name = OUTPUT_METADATA[variable_name]
+                attributes = set(variable.ncattrs())
+                required_attributes = {"_FillValue", "long_name"}
+                if expected_units is not None:
+                    required_attributes.add("units")
+                if not required_attributes <= attributes:
+                    validation["reasons"].append(
+                        f"{name} {variable_name} lacks metadata {sorted(required_attributes - attributes)}"
+                    )
+                if expected_units is None and "units" in attributes:
+                    validation["reasons"].append(f"{name} {variable_name} has unresolved units but declares {variable.units!r}")
+                if expected_units is not None and getattr(variable, "units", None) != expected_units:
+                    validation["reasons"].append(f"{name} {variable_name} units differ from the output contract")
+                if getattr(variable, "long_name", None) != expected_long_name:
+                    validation["reasons"].append(f"{name} {variable_name} long_name differs from the output contract")
             if nonfinite:
                 validation["reasons"].append(f"{name} contains nonfinite fields: {sorted(nonfinite)}")
             validation["files"].append({"name": name, "sha256": sha256_file(path), "size": path.stat().st_size, "fields": sorted(fields)})
     spec = manifest["spec"]
-    if spec["moisture"]["run"] and expected <= actual and len(expected) >= 2:
+    if expected <= actual and len(expected) >= 2:
         first = run_dir / sorted(expected)[0]
         last = run_dir / sorted(expected)[-1]
         with netCDF4.Dataset(first) as first_ds, netCDF4.Dataset(last) as last_ds:
-            changed = bool(np.any(first_ds.variables["fmc_g"][:] != last_ds.variables["fmc_g"][:]))
-        validation["moisture_update_observed"] = changed
-        if not changed:
-            validation["reasons"].append("fmc_g did not change between initialization and final output")
+            lfn_changed = not np.array_equal(first_ds.variables["lfn"][:], last_ds.variables["lfn"][:])
+            fuel_consumed = bool(np.any(last_ds.variables["fuel_frac"][:] < first_ds.variables["fuel_frac"][:]))
+            active_flux = bool(
+                np.any(last_ds.variables["fgrnhfx"][:] > 0.0)
+                or np.any(last_ds.variables["fgrnqfx"][:] > 0.0)
+            )
+            validation.update({
+                "level_set_changed": lfn_changed,
+                "fuel_consumption_observed": fuel_consumed,
+                "positive_fire_flux_observed": active_flux,
+            })
+            if not lfn_changed:
+                validation["reasons"].append("lfn did not change between initialization and final output")
+            if not fuel_consumed:
+                validation["reasons"].append("fuel_frac did not decrease between initialization and final output")
+            if not active_flux:
+                validation["reasons"].append("no positive sensible or latent fire flux was produced")
+            if spec["moisture"]["run"]:
+                moisture_changed = bool(np.any(first_ds.variables["fmc_g"][:] != last_ds.variables["fmc_g"][:]))
+                validation["moisture_update_observed"] = moisture_changed
+                if not moisture_changed:
+                    validation["reasons"].append("fmc_g did not change between initialization and final output")
+
+            if spec["model"]["ideal_opt"] == 1:
+                unmasked = [name for name in ATMOSPHERIC_FIELDS if np.ma.count(last_ds.variables[name][:])]
+                if unmasked:
+                    validation["reasons"].append(f"ideal output contains applicable values in {sorted(unmasked)}")
+            else:
+                forcing = spec["forcing"]
+                expected_forcing = {
+                    "fire_t2": forcing["temperature_end_k"],
+                    "fire_q2": forcing["mixing_ratio_end_kg_kg"],
+                    "fire_psfc": forcing["surface_pressure_pa"],
+                    "fire_rain": forcing["accumulated_rain_end_mm"],
+                }
+                for field, target in expected_forcing.items():
+                    values = np.ma.asarray(last_ds.variables[field][:]).compressed()
+                    if not values.size or not np.allclose(values, target, rtol=FORCING_CHECK_RTOL, atol=0.0):
+                        validation["reasons"].append(
+                            f"final {field} does not contain the forcing record valid at the output timestamp"
+                        )
+                z0 = np.ma.asarray(last_ds.variables["fz0"][:]).compressed()
+                if not z0.size or float(np.ptp(z0)) <= 0.0:
+                    validation["reasons"].append("fz0 does not retain the spatially varying WRF ZNT field")
+
+            if spec["feature"]["real_perimeter"]:
+                geo_path = run_dir / "geo_em.d01.nc"
+                with netCDF4.Dataset(geo_path) as geo:
+                    supplied = np.asarray(geo.variables["lfn_init"][:])
+                initial = np.asarray(first_ds.variables["lfn"][:])
+                matches = initial.shape == supplied.shape and np.array_equal(initial, supplied)
+                if not matches and initial.shape == supplied.T.shape:
+                    matches = np.array_equal(initial, supplied.T)
+                validation["observed_perimeter_installed_at_initial_time"] = matches
+                if not matches:
+                    validation["reasons"].append("initial lfn does not equal the supplied observed perimeter")
     validation["pass"] = not validation["reasons"]
     return validation
 
@@ -234,6 +330,7 @@ def run_case(
     executable_sha256 = sha256_file(executable)
     environment = os.environ.copy()
     environment.update(manifest["spec"]["execution"]["environment"])
+    started_utc = dt.datetime.now(dt.timezone.utc).isoformat()
     started = time.monotonic()
     timed_out = False
     try:
@@ -261,6 +358,8 @@ def run_case(
         "stage": "run", "status": "completed" if passed else "failed", "argv": argv,
         "executable": {"path": str(executable), "sha256": executable_sha256},
         "exit_status": exit_status, "timed_out": timed_out, "fatal_lines": fatal_lines,
+        "started_utc": started_utc,
+        "finished_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
         "elapsed_seconds": time.monotonic() - started, "output_validation": validation,
         "outputs": validation["files"],
     })
@@ -435,7 +534,11 @@ def run_all(
         and (selected_cases is None or row["case"] in selected_cases)
     ]
     source_identity = git_identity(source_root)
+    harness_identity = git_identity(SOURCE_ROOT)
+    if not source_identity["clean"] or not harness_identity["clean"]:
+        raise ValueError("Candidate validation requires clean committed model and harness repositories")
     source_before = _repository_inventory(source_root)
+    harness_before = _repository_inventory(SOURCE_ROOT)
     baseline_before = _directory_inventory(baseline_root) if baseline_root is not None else None
     _new_directory(work_root)
     builds = {variant: _build_variant(source_root, work_root, variant, platform_cfg) for variant in sorted(variants)}
@@ -474,7 +577,12 @@ def run_all(
         serial = by_key.get((identity["case"], identity["method"], identity["feature"], "serial"))
         if serial and serial.get("run_pass"):
             comparison = compare_case(Path(item["run_dir"]), Path(item["run_dir"]), work_root / "reports" / "cross" / identity["execution"] / identity["case"], Path(serial["run_dir"]))
-            cross.append({"pair": f"serial->{identity['execution']}", "case": identity["case"], "pass": comparison["pass"]})
+            cross.append({
+                "pair": f"serial->{identity['execution']}",
+                "case": identity["case"],
+                "pass": comparison["pass"],
+                "comparison": comparison,
+            })
     if suite in {"pr", "full"}:
         direct_pairs = [("omp1", "omp4"), ("mpi1", "mpi4")]
         if suite == "full":
@@ -490,22 +598,35 @@ def run_all(
                         work_root / "reports" / "cross" / f"{reference_execution}-to-{test_execution}" / case_name,
                         Path(reference["run_dir"]),
                     )
-                    cross.append({"pair": f"{reference_execution}->{test_execution}", "case": case_name, "pass": comparison["pass"]})
+                    cross.append({
+                        "pair": f"{reference_execution}->{test_execution}",
+                        "case": case_name,
+                        "pass": comparison["pass"],
+                        "comparison": comparison,
+                    })
     complete_variants = variants == {"serial", "omp", "mpi"} and len(rows) == len(complete_rows)
     source_after = _repository_inventory(source_root)
+    harness_after = _repository_inventory(SOURCE_ROOT)
     baseline_after = _directory_inventory(baseline_root) if baseline_root is not None else None
     integrity = {
         "source_unchanged": source_before == source_after,
+        "harness_unchanged": harness_before == harness_after,
         "baseline_unchanged": baseline_before == baseline_after,
         "source_before": source_before, "source_after": source_after,
+        "harness_before": harness_before, "harness_after": harness_after,
         "baseline_before": baseline_before, "baseline_after": baseline_after,
     }
     summary = {
         "suite": suite, "variants": sorted(variants), "complete_matrix": complete_variants,
-        "model_source": source_identity, "builds": builds, "results": results,
+        "model_source": source_identity, "harness_source": harness_identity,
+        "builds": builds, "results": results,
         "cross_execution": cross, "integrity": integrity,
     }
-    integrity_pass = integrity["source_unchanged"] and integrity["baseline_unchanged"]
+    integrity_pass = (
+        integrity["source_unchanged"]
+        and integrity["harness_unchanged"]
+        and integrity["baseline_unchanged"]
+    )
     summary["candidate_validation_pass"] = complete_variants and integrity_pass and all(item.get("run_pass") for item in results) and all(item["pass"] for item in cross)
     summary["pass"] = complete_variants and integrity_pass and all(item.get("run_pass") and item.get("baseline_pass") for item in results) and all(item["pass"] for item in cross)
     _json_write(work_root / "summary.json", summary)

@@ -32,10 +32,13 @@ PYTHONDONTWRITEBYTECODE=1 \
 ```
 
 The outer summary records each compile argument vector, the required CMake
-cache switches, installed executable hashes, and tracked, untracked, and
-ignored source inventories before and after execution. If an approved
-baseline is selected, it records and compares every baseline file hash as
-well. Any change to either tree fails the invocation.
+cache switches, installed executable hashes, exact model and harness commits,
+and tracked, untracked, and ignored inventories before and after execution.
+Candidate publication also records the hashes of the configuration, template,
+generator, resolved specification, rendered namelist, generated inputs,
+executable, run manifest, and every output. If an approved baseline is
+selected, the harness records and compares every baseline file hash as well.
+Any change to these source or baseline trees fails the invocation.
 
 Direct CMake builds register the quick cases against
 `$<TARGET_FILE:fire_behavior.exe>`. Set the documented
@@ -55,8 +58,8 @@ recursively.
 | Case | Grid in quick/pr | Fuel and forcing | Ignition and interpolation |
 | --- | --- | --- | --- |
 | `circle_nowind` | 72 × 72 at 100 m | Anderson category 3; U=V=0 | 500 m point/circle; bilinear horizontal; 10 m winds |
-| `fuel_strip_wind` | 72 × 72 at 100 m | Anderson categories 7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8; U=10 m s⁻¹, V=0 | vertical ignition line near the west side; nearest-neighbor horizontal; 10 m winds |
-| `terrain_fuel_fmc_wind` | 72 × 72 at 100 m | sinusoidal 150 m terrain; same 12-category strips as `fuel_strip_wind`; U=V=10 m s⁻¹; changing T2/Q2 | 500 m observed perimeter; bilinear horizontal; 10 m winds; moisture updated every timestep |
+| `fuel_strip_wind` | 72 × 72 at 100 m | Anderson categories 7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8; U=10 m s⁻¹, V=0 | vertical ignition line at 35% of domain width; nearest-neighbor horizontal; 10 m winds |
+| `terrain_fuel_fmc_wind` | 72 × 72 at 100 m | sinusoidal 150 m terrain; same 12-category strips as `fuel_strip_wind`; U=V=10 m s⁻¹; changing T2 and water-vapor mixing ratio | 500 m observed perimeter; bilinear horizontal; 10 m winds; moisture updated every timestep |
 
 “Stacked vertically” is represented by horizontal strips whose category
 changes with the NetCDF `south_north` index. The 12-category order is the
@@ -74,15 +77,18 @@ during the run.
 `mod(itimestep,fmoist_freq)==0`. Successful validation requires `fmc_g` to
 change between the initialization and final output.
 
-The resolved configuration records `tile_strategy`, but the pre-PR39
-`Init_time_block` omits it from the Fortran namelist declaration. The template
-therefore renders only `num_tiles`; including `tile_strategy` causes the model
-to reject the time block.
+The line ignition remains in the western half of the domain at 35% of its
+width and extends from 25% to 75% of its height. These bounds provide enough
+clearance for the required 60 s integration; the earlier line from 8% to 92%
+of domain height reached a boundary before the final output.
 
-Observed-perimeter runs still set `fire_num_ignitions=1`. The current
-`ignition_line_t` constructor rejects zero ignitions before the perimeter path
-copies `lfn_init`, and the perimeter advance path reads ignition 1's start
-time even though it does not use the line geometry.
+Every case requests four internal tiles and `tile_strategy=3`. This gives the
+OpenMP-4 configuration one nonempty tile per thread and keeps serial, OpenMP,
+and MPI tile policy explicit in the resolved namelist.
+
+Observed-perimeter runs set `fire_num_ignitions=0`. The supplied `lfn_init`
+is installed as the initial condition at simulation-relative time 0 before
+the first output and is not reapplied during propagation.
 
 Quick and PR use dt=4 s for 60 s and require initialization plus the 60 s
 output. Full uses dt=2 s for 3600 s on a 320 × 320 grid at 25 m and requires
@@ -102,7 +108,7 @@ reverses those dimensions when reading into arrays, yielding the model's
 | `geo_em.d01.nc` | `ZSF`, `DZDXF`, `DZDYF`, `NFUEL_CAT` | `(Time,south_north_subgrid,west_east_subgrid)` | float32; m, 1, 1, category |
 | `geo_em.d01.nc` | `lfn_init` for the perimeter case | `(south_north_subgrid,west_east_subgrid)` | float32; m |
 | `wrf.nc` | `Times` | `(Time,DateStrLen=19)` | char; `YYYY-MM-DD_HH:MM:SS` |
-| `wrf.nc` | `XLAT`, `XLONG`, `T2`, `Q2`, `PSFC`, `RAINC`, `RAINNC`, `U10`, `V10` | `(Time,south_north,west_east)` | float32; standard WRF surface units |
+| `wrf.nc` | `XLAT`, `XLONG`, `T2`, `Q2`, `ZNT`, `PSFC`, `RAINC`, `RAINNC`, `U10`, `V10` | `(Time,south_north,west_east)` | float32; standard WRF surface units; `Q2` is water-vapor mixing ratio and `ZNT` is m |
 
 The real-case mass grid is one cell smaller than the staggered/fire grid in
 each horizontal direction, following the current readers and reference
@@ -150,13 +156,10 @@ decision and selects the exact identifier without changing reference NetCDF
 payloads. Acceptance is an explicit team action and is never performed by
 candidate generation.
 
-## Current source limitation
+## Baseline gate
 
-At commit `6ae8078a5ad9056f4259fcdef918961df2cedf54`, `state/state_mod.F90`
-allocates and writes `fz0` without assigning it. The initialization output
-also writes several fields before their first scientific assignment. These
-finite uninitialized values can vary by build or execution and violate the
-all-field and bitwise-static contract. The harness retains `fz0` as required
-and will expose the difference. Candidate activation therefore remains
-blocked until a separately reviewed model change initializes every output
-field or equivalent evidence establishes deterministic valid values.
+Baseline production requires the reviewed pre-baseline repair stack. The
+timestep correction remains gated on confirmation that the first physics call
+represents `[0,dt]` while physics receives `itimestep=1`. Candidate validation
+must remain blocked until that decision is implemented and the complete PBS
+quick and PR matrices pass.

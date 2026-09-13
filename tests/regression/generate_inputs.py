@@ -51,6 +51,7 @@ WRF_VARIABLES = {
     "XLONG": ("float32", ("Time", "south_north", "west_east")),
     "T2": ("float32", ("Time", "south_north", "west_east")),
     "Q2": ("float32", ("Time", "south_north", "west_east")),
+    "ZNT": ("float32", ("Time", "south_north", "west_east")),
     "PSFC": ("float32", ("Time", "south_north", "west_east")),
     "RAINC": ("float32", ("Time", "south_north", "west_east")),
     "RAINNC": ("float32", ("Time", "south_north", "west_east")),
@@ -267,12 +268,16 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
         values = {
             "XLAT": np.broadcast_to(lat, shape), "XLONG": np.broadcast_to(lon, shape),
             "T2": np.broadcast_to(forcing["temperature_start_k"] + fraction * (forcing["temperature_end_k"] - forcing["temperature_start_k"]), shape),
-            "Q2": np.broadcast_to(forcing["specific_humidity_start_kg_kg"] + fraction * (forcing["specific_humidity_end_kg_kg"] - forcing["specific_humidity_start_kg_kg"]), shape),
+            "Q2": np.broadcast_to(forcing["mixing_ratio_start_kg_kg"] + fraction * (forcing["mixing_ratio_end_kg_kg"] - forcing["mixing_ratio_start_kg_kg"]), shape),
+            "ZNT": np.broadcast_to(
+                np.linspace(forcing["roughness_length_min_m"], forcing["roughness_length_max_m"], grid["nx"] - 1, dtype=np.float32)[None, None, :],
+                shape,
+            ),
             "PSFC": np.full(shape, forcing["surface_pressure_pa"]),
             "RAINC": np.broadcast_to(forcing["accumulated_rain_start_mm"] + fraction * (forcing["accumulated_rain_end_mm"] - forcing["accumulated_rain_start_mm"]), shape),
             "RAINNC": np.zeros(shape), "U10": np.full(shape, forcing["u10_m_s"]), "V10": np.full(shape, forcing["v10_m_s"]),
         }
-        units = {"XLAT": "degree_north", "XLONG": "degree_east", "T2": "K", "Q2": "kg kg-1", "PSFC": "Pa", "RAINC": "mm", "RAINNC": "mm", "U10": "m s-1", "V10": "m s-1"}
+        units = {"XLAT": "degree_north", "XLONG": "degree_east", "T2": "K", "Q2": "kg kg-1", "ZNT": "m", "PSFC": "Pa", "RAINC": "mm", "RAINNC": "mm", "U10": "m s-1", "V10": "m s-1"}
         for name in WRF_VARIABLES:
             if name == "Times":
                 continue
@@ -312,8 +317,12 @@ def generate_inputs(spec: dict[str, Any], run_dir: Path) -> tuple[dict[str, Any]
     _write_geo(geo_path, resolved, fields)
     _write_wrf(wrf_path, resolved)
     if resolved["ignition"]["kind"] == "line":
-        start_lat, start_lon = _fire_latlon(resolved, resolved["ignition"]["line_x_fraction"], 0.08)
-        end_lat, end_lon = _fire_latlon(resolved, resolved["ignition"]["line_x_fraction"], 0.92)
+        start_lat, start_lon = _fire_latlon(
+            resolved, resolved["ignition"]["line_x_fraction"], resolved["ignition"]["line_y_start_fraction"]
+        )
+        end_lat, end_lon = _fire_latlon(
+            resolved, resolved["ignition"]["line_x_fraction"], resolved["ignition"]["line_y_end_fraction"]
+        )
         resolved["ignition"].update({"start_lat": start_lat, "start_lon": start_lon, "end_lat": end_lat, "end_lon": end_lon})
     geo_schema = dict(GEO_VARIABLES)
     if "lfn_init" in fields:

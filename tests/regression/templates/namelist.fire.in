@@ -13,7 +13,8 @@
  end_second={{END_SECOND}},
  dt={{DT}},
  interval_output={{INTERVAL_OUTPUT}},
- num_tiles={{NUM_TILES}}
+ num_tiles={{NUM_TILES}},
+ tile_strategy={{TILE_STRATEGY}}
 /
 &atm
  interval_atm={{INTERVAL_ATM}},

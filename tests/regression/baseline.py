@@ -48,7 +48,7 @@ def verify_baseline(root: Path) -> dict[str, Any]:
     manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
     required = {
         "schema_version", "identifier", "approved", "validation_status",
-        "model_source", "harness_source", "mappings", "checksums",
+        "model_source", "harness_source", "mappings", "checksums", "run_evidence",
         "candidate_validation_summary_sha256", "approval",
     }
     if not isinstance(manifest, dict) or set(manifest) != required:
@@ -72,6 +72,8 @@ def verify_baseline(root: Path) -> dict[str, Any]:
         files = sorted(directory.glob("fire_output_*.nc"))
         if not files or any(str(path.relative_to(root)) not in manifest["checksums"] for path in files):
             raise ValueError(f"Baseline mapping is empty or has unrecorded payloads: {directory}")
+    if set(manifest["run_evidence"]) != set(manifest["mappings"]):
+        raise ValueError(f"Baseline run evidence differs from its mappings: {root}")
     return manifest
 
 
@@ -120,6 +122,8 @@ def create_candidate(
         raise ValueError("Candidate identifier must contain the model-source commit abbreviation")
     if summary.get("model_source", {}).get("commit") != model["commit"]:
         raise ValueError("Candidate validation model commit differs from the requested model repository")
+    if summary.get("harness_source", {}).get("commit") != harness["commit"]:
+        raise ValueError("Candidate validation harness commit differs from the requested harness repository")
     destination = candidate_root / identifier
     if destination.exists():
         raise FileExistsError(f"Candidate identifier already exists: {destination}")
@@ -127,6 +131,17 @@ def create_candidate(
     for manifest_path in sorted(work_root.glob("runs/*/*/*/*/*/*/run_manifest.json")):
         run_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         if run_manifest.get("status") == "completed":
+            local_entries = [run_manifest[name] for name in ("namelist", "resolved")]
+            local_entries.extend(run_manifest["inputs"])
+            external_entries = [run_manifest[name] for name in ("configuration", "template", "generator", "executable")]
+            for entry in local_entries:
+                source = manifest_path.parent / Path(entry["path"]).name
+                if not source.is_file() or sha256_file(source) != entry["sha256"]:
+                    raise ValueError(f"Completed run evidence changed: {source}")
+            for entry in external_entries:
+                source = Path(entry["path"])
+                if not source.is_file() or sha256_file(source) != entry["sha256"]:
+                    raise ValueError(f"Completed run provenance changed: {source}")
             for output in run_manifest.get("outputs", []):
                 source = manifest_path.parent / output["name"]
                 if not source.is_file() or sha256_file(source) != output["sha256"]:
@@ -137,6 +152,11 @@ def create_candidate(
     destination.mkdir(parents=True, exist_ok=False)
     mappings: dict[str, str] = {}
     checksums: dict[str, str] = {}
+    run_evidence: dict[str, Any] = {}
+    summary_target = destination / "evidence" / "summary.json"
+    summary_target.parent.mkdir(parents=True, exist_ok=False)
+    shutil.copy2(summary_path, summary_target)
+    checksums[str(summary_target.relative_to(destination))] = sha256_file(summary_target)
     for manifest_path, run_manifest in completed_manifests:
         identity = run_manifest["spec"]["identity"]
         key = "|".join(identity[name] for name in ("case", "suite", "method", "feature", "execution"))
@@ -145,6 +165,11 @@ def create_candidate(
         relative_dir = Path("references") / identity["execution"] / identity["case"] / identity["suite"] / identity["method"] / identity["feature"]
         target_dir = destination / relative_dir
         target_dir.mkdir(parents=True, exist_ok=False)
+        evidence_dir = Path("evidence") / "runs" / identity["execution"] / identity["case"] / identity["suite"] / identity["method"] / identity["feature"]
+        evidence_target = destination / evidence_dir / "run_manifest.json"
+        evidence_target.parent.mkdir(parents=True, exist_ok=False)
+        shutil.copy2(manifest_path, evidence_target)
+        checksums[str(evidence_target.relative_to(destination))] = sha256_file(evidence_target)
         for output in run_manifest["outputs"]:
             source = manifest_path.parent / output["name"]
             target = target_dir / output["name"]
@@ -152,10 +177,23 @@ def create_candidate(
             relative = str(target.relative_to(destination))
             checksums[relative] = sha256_file(target)
         mappings[key] = str(relative_dir)
+        run_evidence[key] = {
+            "configuration": run_manifest["configuration"],
+            "template": run_manifest["template"],
+            "generator": run_manifest["generator"],
+            "namelist": run_manifest["namelist"],
+            "resolved": run_manifest["resolved"],
+            "inputs": run_manifest["inputs"],
+            "executable": run_manifest["executable"],
+            "outputs": run_manifest["outputs"],
+            "run_manifest_sha256": sha256_file(manifest_path),
+            "candidate_run_manifest": str(evidence_target.relative_to(destination)),
+        }
     manifest = {
         "schema_version": 1, "identifier": identifier, "approved": False,
         "validation_status": "candidate validation passed", "model_source": model,
         "harness_source": harness, "mappings": mappings, "checksums": checksums,
+        "run_evidence": run_evidence,
         "candidate_validation_summary_sha256": sha256_file(summary_path),
     }
     (destination / "manifest.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
@@ -170,7 +208,7 @@ def accept_candidate(candidate: Path, approver: str, decision: str, approved_fil
         raise ValueError("Baseline approval requires nonempty approver and decision text")
     expected_keys = {
         "schema_version", "identifier", "approved", "validation_status",
-        "model_source", "harness_source", "mappings", "checksums",
+        "model_source", "harness_source", "mappings", "checksums", "run_evidence",
         "candidate_validation_summary_sha256",
     }
     if not isinstance(manifest, dict) or set(manifest) != expected_keys:
@@ -183,6 +221,8 @@ def accept_candidate(candidate: Path, approver: str, decision: str, approved_fil
             raise ValueError(f"Candidate checksum path escapes its root: {relative}")
         if not path.is_file() or sha256_file(path) != expected:
             raise ValueError(f"Candidate checksum mismatch: {path}")
+    if set(manifest["run_evidence"]) != set(manifest["mappings"]):
+        raise ValueError("Candidate run evidence differs from its mappings")
     if manifest.get("validation_status") != "candidate validation passed":
         raise ValueError("Only a passing candidate can be accepted")
     if manifest.get("approved"):

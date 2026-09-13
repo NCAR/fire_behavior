@@ -50,6 +50,7 @@ def namelist_values(spec: dict[str, Any]) -> dict[str, Any]:
         "DT": spec["time"]["dt_seconds"],
         "INTERVAL_OUTPUT": spec["time"]["output_interval_seconds"],
         "NUM_TILES": spec["model"]["num_tiles"],
+        "TILE_STRATEGY": spec["model"]["tile_strategy"],
         "INTERVAL_ATM": spec["time"]["atmosphere_interval_seconds"], "KDE": spec["forcing"]["vertical_levels_stag"],
         "FIRE_NUM_IGNITIONS": ignition["count"], "IGNITION_ROS": ignition["ros_m_s"],
         "IGNITION_START_LAT": ignition["start_lat"], "IGNITION_START_LON": ignition["start_lon"],
