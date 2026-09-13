@@ -55,19 +55,24 @@
 
       logical :: fire_lsm_reinit = .true.     ! "flag to activate reinitialization of level set method"
       integer :: fire_lsm_reinit_iter = 1     ! "number of iterations for the reinitialization PDE"
+      integer :: reinit_rs_buffer_ngp = 0     ! optional buffer width [grid cells] around the RS interface ring
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
-                                              ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
+                                              ! for fire_upwinding_reinit=3,4 and fire_upwinding=8,9,10 options"
       real :: reinit_pseudot_coef = 0.0001    ! Coefficient for the pseudo time
-
+      real :: reinit_pseudot_rate = -1.0      ! pseudo-time rate [m s-1]; -1 selects legacy coefficient mode
+      real :: reinit_pseudot_cfl = 0.5        ! maximum pseudo-time CFL in rate mode
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
+      logical :: fast_dist_reinit_at_startup = .false. ! run one FSM pass during real-perimeter initialization
 
       real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
       integer :: wind_vinterp_opt = VINTERP_WINDS_FROM_10M_WINDS ! "mid-flame height wind interpolation option: 0) Interp to specified height, 1) Use WAFs"
       integer :: hinterp_opt = HINTERP_BILINEAR ! "Horizontal interpolation from atm to fire (offline option): 1) nearest neighbour, 2) bi-linear"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"
       real :: fire_lsm_zcoupling_ref = 50.0   ! "reference height from wich u at fire_wind_hegiht is calculated using a logarithmic profile" "m"
+      real :: ros_cap_value = 6.0             ! positive upper bound [m s-1]; nonpositive disables the cap
+      real :: rothermel_wind_speed_cap = 30.0 ! positive Rothermel wind-input cap [m s-1]; nonpositive disables the cap
 
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
@@ -159,8 +164,11 @@
       integer :: kde = 1                      ! Number of atm vertical levels
 
         ! Devel block
-      integer :: check_isolated_neg_lfn = 0   ! 0) Nothing, 1) Check for isolated negative values of the level set function
+      integer :: check_isolated_neg_lfn = 0   ! 0) disabled, 1) save and stop, 2) report and continue
       integer :: output_level = 0             ! 0) Standard output, >0) Specialized output
+      integer :: lfn_diag = 0                 ! 0) disabled, 1) allocate and output level-set diagnostics
+      logical :: use_active_front = .false.   ! use exact exterior-connected diagnostic masks
+      integer :: active_front_band_ngp = 4    ! diagnostic band width in grid points
     contains
       procedure, public :: Broadcast_nml => Broadcast_nml
       procedure, public :: Check_nml => Check_nml
@@ -193,13 +201,19 @@
       call Broadcast_real (this%fire_viscosity)
       call Broadcast_logical (this%fire_lsm_reinit)
       call Broadcast_integer (this%fire_lsm_reinit_iter)
+      call Broadcast_integer (this%reinit_rs_buffer_ngp)
       call Broadcast_integer (this%fire_upwinding_reinit)
       call Broadcast_integer (this%fire_lsm_band_ngp)
       call Broadcast_real (this%reinit_pseudot_coef)
+      call Broadcast_real (this%reinit_pseudot_rate)
+      call Broadcast_real (this%reinit_pseudot_cfl)
       call Broadcast_integer (this%fast_dist_reinit_opt)
       call Broadcast_integer (this%fast_dist_reinit_freq)
+      call Broadcast_logical (this%fast_dist_reinit_at_startup)
       call Broadcast_logical (this%fire_lsm_zcoupling)
       call Broadcast_real (this%fire_lsm_zcoupling_ref)
+      call Broadcast_real (this%ros_cap_value)
+      call Broadcast_real (this%rothermel_wind_speed_cap)
       call Broadcast_real (this%fire_viscosity_bg)
       call Broadcast_real (this%fire_viscosity_band)
       call Broadcast_integer (this%fire_viscosity_ngp)
@@ -314,6 +328,9 @@
         ! Devel block
       call Broadcast_integer (this%check_isolated_neg_lfn)
       call Broadcast_integer (this%output_level)
+      call Broadcast_integer (this%lfn_diag)
+      call Broadcast_logical (this%use_active_front)
+      call Broadcast_integer (this%active_front_band_ngp)
     contains
 
       subroutine Broadcast_integer (val)
@@ -382,6 +399,26 @@
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
+      if (this%reinit_rs_buffer_ngp < 0) &
+          call Stop_simulation ('reinit_rs_buffer_ngp must be nonnegative')
+      if (this%fire_lsm_reinit_iter < 0) &
+          call Stop_simulation ('fire_lsm_reinit_iter must be nonnegative')
+      if (this%reinit_pseudot_rate < 0.0 .and. this%reinit_pseudot_rate /= -1.0) &
+          call Stop_simulation ('reinit_pseudot_rate must be -1.0 for legacy coefficient mode or nonnegative for rate mode')
+      if (this%reinit_pseudot_rate >= 0.0 .and. this%fire_lsm_reinit_iter < 1) &
+          call Stop_simulation ('reinit_pseudot_rate requires fire_lsm_reinit_iter >= 1')
+      if (this%reinit_pseudot_cfl <= 0.0) &
+          call Stop_simulation ('reinit_pseudot_cfl must be positive')
+      if (this%check_isolated_neg_lfn < 0 .or. this%check_isolated_neg_lfn > 2) &
+          call Stop_simulation ('check_isolated_neg_lfn must be 0, 1, or 2')
+      if (this%lfn_diag < 0 .or. this%lfn_diag > 1) &
+          call Stop_simulation ('lfn_diag must be 0 or 1')
+      if (this%lfn_diag == 0 .and. this%use_active_front) &
+          call Stop_simulation ('use_active_front requires lfn_diag=1')
+      if (this%active_front_band_ngp < 0) &
+          call Stop_simulation ('active_front_band_ngp must be nonnegative')
+      if (this%fire_upwinding == 4 .and. this%fire_upwinding_reinit /= 5) &
+          call Stop_simulation ('fire_upwinding=4 requires fire_upwinding_reinit=5')
 
     end subroutine Check_nml
 
@@ -424,15 +461,23 @@
       class (namelist_t), intent (in out) :: this
       character (len = *), intent (in) :: file_name
 
-      integer :: check_isolated_neg_lfn, output_level
+      integer :: check_isolated_neg_lfn, output_level, lfn_diag, active_front_band_ngp
+      real :: ros_cap_value, rothermel_wind_speed_cap
+      logical :: use_active_front
       integer :: unit_nml, io_stat
       character (len = :), allocatable :: msg
 
-      namelist /devel/ check_isolated_neg_lfn, output_level
+      namelist /devel/ check_isolated_neg_lfn, output_level, lfn_diag, use_active_front, active_front_band_ngp, &
+          ros_cap_value, rothermel_wind_speed_cap
 
 
       check_isolated_neg_lfn = this%check_isolated_neg_lfn
       output_level = this%output_level
+      lfn_diag = this%lfn_diag
+      use_active_front = this%use_active_front
+      active_front_band_ngp = this%active_front_band_ngp
+      ros_cap_value = this%ros_cap_value
+      rothermel_wind_speed_cap = this%rothermel_wind_speed_cap
 
       open (newunit = unit_nml, file = trim (file_name), action = 'read', iostat = io_stat)
       if (io_stat /= 0) then
@@ -446,6 +491,11 @@
 
       this%check_isolated_neg_lfn = check_isolated_neg_lfn
       this%output_level = output_level
+      this%lfn_diag = lfn_diag
+      this%use_active_front = use_active_front
+      this%active_front_band_ngp = active_front_band_ngp
+      this%ros_cap_value = ros_cap_value
+      this%rothermel_wind_speed_cap = rothermel_wind_speed_cap
 
     end subroutine Init_devel_block
 
@@ -457,11 +507,14 @@
       character (len = *), intent (in) :: file_name
 
       integer :: fire_print_msg, fire_upwinding, fire_lsm_reinit_iter, fire_upwinding_reinit, fire_lsm_band_ngp, &
+          reinit_rs_buffer_ngp, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
-          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef
-      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim
+          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef, &
+          reinit_pseudot_rate, reinit_pseudot_cfl
+      logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim, &
+          fast_dist_reinit_at_startup
 
         ! ignitions
       integer :: fire_num_ignitions
@@ -478,10 +531,13 @@
 
       namelist /fire/  fire_print_msg, fire_atm_feedback, fire_upwinding, fire_viscosity, fire_lsm_reinit, &
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
-          fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
+          reinit_rs_buffer_ngp, &
+          fast_dist_reinit_at_startup, &
+          fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, &
+          fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
           frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
-          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
+          wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, reinit_pseudot_rate, reinit_pseudot_cfl, &
             ! Ignitions
           fire_num_ignitions, &
             ! Ignition 1
@@ -511,11 +567,15 @@
       fire_viscosity = this%fire_viscosity
       fire_lsm_reinit = this%fire_lsm_reinit
       fire_lsm_reinit_iter = this%fire_lsm_reinit_iter
+      reinit_rs_buffer_ngp = this%reinit_rs_buffer_ngp
       fire_upwinding_reinit = this%fire_upwinding_reinit
       fire_lsm_band_ngp = this%fire_lsm_band_ngp
       reinit_pseudot_coef = this%reinit_pseudot_coef
+      reinit_pseudot_rate = this%reinit_pseudot_rate
+      reinit_pseudot_cfl = this%reinit_pseudot_cfl
       fast_dist_reinit_opt = this%fast_dist_reinit_opt
       fast_dist_reinit_freq = this%fast_dist_reinit_freq
+      fast_dist_reinit_at_startup = this%fast_dist_reinit_at_startup
       fire_lsm_zcoupling = this%fire_lsm_zcoupling
       fire_lsm_zcoupling_ref = this%fire_lsm_zcoupling_ref
       fire_viscosity_bg = this%fire_viscosity_bg
@@ -607,11 +667,15 @@
       this%fire_viscosity = fire_viscosity
       this%fire_lsm_reinit = fire_lsm_reinit
       this%fire_lsm_reinit_iter = fire_lsm_reinit_iter
+      this%reinit_rs_buffer_ngp = reinit_rs_buffer_ngp
       this%fire_upwinding_reinit = fire_upwinding_reinit
       this%fire_lsm_band_ngp = fire_lsm_band_ngp
       this%reinit_pseudot_coef = reinit_pseudot_coef
+      this%reinit_pseudot_rate = reinit_pseudot_rate
+      this%reinit_pseudot_cfl = reinit_pseudot_cfl
       this%fast_dist_reinit_opt = fast_dist_reinit_opt
       this%fast_dist_reinit_freq = fast_dist_reinit_freq
+      this%fast_dist_reinit_at_startup = fast_dist_reinit_at_startup
       this%fire_lsm_zcoupling = fire_lsm_zcoupling
       this%fire_lsm_zcoupling_ref = fire_lsm_zcoupling_ref
       this%fire_viscosity_bg = fire_viscosity_bg

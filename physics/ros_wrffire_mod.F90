@@ -43,7 +43,6 @@
 
       real :: speed, tanphi ! windspeed and slope in the direction normal to the fireline
       real :: umid, phis, phiw, spdms, umidm, excess, ros_back, cor_wind, cor_slope, ros_base, ros_wind, ros_slope
-      real, parameter :: ROS_MAX = 6.0
 
 
       if (FIRE_ADVECTION /= 0) then
@@ -67,7 +66,11 @@
       if (.not. this%ischap(i, j) > 0.0) then
           ! Rothermel
         spdms = max (speed, 0.0)
-        umidm = min (spdms, 30.0)
+        if (this%rothermel_wind_speed_cap > 0.0) then
+          umidm = min (spdms, this%rothermel_wind_speed_cap)
+        else
+          umidm = spdms
+        end if
         umid = umidm * 196.850 ! m/s to ft/min
         phiw = umid ** this%bbb(i, j) * this%phiwc(i, j)
         phis = 0.0
@@ -88,7 +91,8 @@
       ros_wind = ros_wind * cor_wind
       ros_slope = ros_slope * cor_slope
 
-      return_value = min (ros_base + ros_wind + SLOPE_FACTOR * ros_slope, ROS_MAX)
+      return_value = ros_base + ros_wind + SLOPE_FACTOR * ros_slope
+      if (this%ros_cap_value > 0.0) return_value = min (return_value, this%ros_cap_value)
       if (FIRE_GROWS_ONLY) return_value = max (return_value, 0.0)
 
     end function Calc_ros_wrffire

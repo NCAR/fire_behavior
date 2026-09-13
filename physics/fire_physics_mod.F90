@@ -47,7 +47,7 @@
     end subroutine Calc_fire_fluxes
 
     subroutine Calc_flame_length (ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, &
-        ros, iboros, flame_length, ros_fl, fire_area)
+        ros, iboros, flame_length, fire_area)
 
       ! flame length according to Byram (1959)
 
@@ -55,7 +55,7 @@
 
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       real, dimension(ifms:ifme, jfms:jfme), intent(in) :: ros, iboros, fire_area
-      real, dimension(ifms:ifme, jfms:jfme), intent(out) :: flame_length, ros_fl
+      real, dimension(ifms:ifme, jfms:jfme), intent(out) :: flame_length
 
       integer :: i, j
 
@@ -64,10 +64,8 @@
         do i = ifts, ifte
           if (fire_area(i, j) > 0.0 .and. fire_area(i, j) < 1.0) then
             flame_length(i, j) = 0.0775 * (iboros(i, j) * ros(i, j)) ** 0.46 
-            ros_fl(i, j) = ros(i, j)
           else
             flame_length(i, j) = 0.0
-            ros_fl(i, j) = 0.0
           end if
         end do
       end do
@@ -125,4 +123,3 @@
     end subroutine Calc_smoke_emissions
 
   end module fire_physics_mod
-
