@@ -311,8 +311,8 @@ def validate_spec(spec: dict[str, Any]) -> None:
             raise ValueError(f"ignition.{name} must be <= 1")
     if ignition["line_y_end_fraction"] <= ignition["line_y_start_fraction"]:
         raise ValueError("line ignition end fraction must exceed its start fraction")
-    if spec["feature"]["real_perimeter"] and spec["ignition"]["count"] != 0:
-        raise ValueError("Observed-perimeter cases require zero line ignitions")
+    if spec["feature"]["real_perimeter"] and spec["ignition"]["count"] != 1:
+        raise ValueError("Observed-perimeter cases require one ignition record for the activation time")
     if not spec["feature"]["real_perimeter"] and spec["ignition"]["count"] < 1:
         raise ValueError("Point and line cases require at least one ignition")
     if spec["model"]["num_tiles"] < 4:

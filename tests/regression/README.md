@@ -86,9 +86,12 @@ Every case requests four internal tiles and `tile_strategy=3`. This gives the
 OpenMP-4 configuration one nonempty tile per thread and keeps serial, OpenMP,
 and MPI tile policy explicit in the resolved namelist.
 
-Observed-perimeter runs set `fire_num_ignitions=0`. The supplied `lfn_init`
-is installed as the initial condition at simulation-relative time 0 before
-the first output and is not reapplied during propagation.
+Observed-perimeter runs set `fire_num_ignitions=1` for compatibility with the
+established namelist convention. `fire_ignition_start_time1` supplies the
+perimeter activation time; the remaining line-ignition fields in record 1 are
+ignored. The complex case schedules activation at 8 s, verifies that the
+perimeter is absent from the 0 s output, and requires subsequent propagation
+and fuel consumption.
 
 Quick and PR use dt=4 s for 60 s and require initialization plus the 60 s
 output. Full uses dt=2 s for 3600 s on a 320 × 320 grid at 25 m and requires

@@ -165,7 +165,8 @@ cases:
     ignition:
       kind: perimeter
       radius_m: 500.0
-      count: 0
+      count: 1
+      start_time_s: 8.0
     moisture:
       run: true
       frequency_timesteps: 1

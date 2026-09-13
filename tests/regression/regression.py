@@ -309,9 +309,17 @@ def _validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]
                 matches = initial.shape == supplied.shape and np.array_equal(initial, supplied)
                 if not matches and initial.shape == supplied.T.shape:
                     matches = np.array_equal(initial, supplied.T)
-                validation["observed_perimeter_installed_at_initial_time"] = matches
-                if not matches:
-                    validation["reasons"].append("initial lfn does not equal the supplied observed perimeter")
+                activation_time = float(spec["ignition"]["start_time_s"])
+                validation["observed_perimeter_activation_time_s"] = activation_time
+                if activation_time <= 0.0:
+                    validation["observed_perimeter_installed_at_initial_time"] = matches
+                    if not matches:
+                        validation["reasons"].append("zero-time perimeter is absent from the initial lfn")
+                else:
+                    inactive = not matches and bool(np.all(initial > 0.0))
+                    validation["observed_perimeter_inactive_at_initial_time"] = inactive
+                    if not inactive:
+                        validation["reasons"].append("delayed perimeter is active before its scheduled time")
     validation["pass"] = not validation["reasons"]
     return validation
 
