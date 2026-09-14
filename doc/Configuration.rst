@@ -19,7 +19,13 @@ Future releases will include a method for creating domains without needing to co
 Namelist Configuration
 ======================
 
-The options specific to the CFBM are controlled by a :term:`namelist` file ``namelist.fire``. This namelist file consists of three required sections (``&time``, ``&atm``, and ``&fire``) and an optional ``&ideal`` section that is read only for idealized runs (see ``ideal_opt``). The available options in each section are described below.
+The options specific to the CFBM are controlled by a :term:`namelist` file
+``namelist.fire`` for standalone and NUOPC runs. When coupled directly to WRF
+v4.8.0, these options are read from ``namelist.cfbm``; WRF's ``namelist.input``
+enables the coupling (see :ref:`WRF`). This namelist file consists of three
+required sections (``&time``, ``&atm``, and ``&fire``) and an optional ``&ideal``
+section that is read only for idealized runs (see ``ideal_opt``). The available
+options in each section are described below.
 
 Example namelists can be found in the various test subdirectories under the ``tests/`` directory.
 
@@ -81,7 +87,13 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``interval_atm``: *integer* (Default: ``-1``)
    [Units: s]
-   Time interval (in seconds) for incoming atmospheric data. When running a coupled model, this value represents the atmospheric timestep. In offline mode, it determines the frequency of reading atmospheric data from the input file.
+   Time interval for incoming atmospheric data. In offline runs, set a positive
+   value matching the interval between atmospheric records in ``wrf.nc``. The
+   default ``-1`` is an unset value; it does not detect the interval automatically.
+   Standalone idealized runs do not read atmospheric data and ignore this option,
+   so it may be left at its default. NUOPC runs require a positive atmospheric
+   coupling interval. Direct WRF-CFBM coupling uses WRF's time stepping instead
+   and does not use this option (see :ref:`WRF`).
 
 
 &fire
@@ -105,7 +117,7 @@ Example namelists can be found in the various test subdirectories under the ``te
 
      1.0: normal two-way coupling.
 
-     Intermediate values will vary the amount of forcing provided from the fire to the dynamical core.
+     Intermediate values will vary the amount of forcing provided from the fire to the :term:`dynamical core`.
 
 ``fire_upwinding``: *integer* (Default: ``9``)
    This option controls the type of upwinding scheme used for calculating the normal spread of the fire front. The choice of upwinding scheme significantly impacts the accuracy of fire spread simulations. Higher-order schemes, like WENO3 and WENO5, generally offer better accuracy but can be more computationally expensive.

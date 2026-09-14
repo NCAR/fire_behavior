@@ -41,6 +41,10 @@ ignited along a north-south line near the western edge of the domain. Driven by
 the wind, the fire spreads eastward across the domain. The run covers twenty
 minutes and writes output every minute.
 
+The calendar dates label the simulation and its output files; they do not
+change the prescribed idealized conditions. The difference between the start
+and end times determines the simulation duration.
+
 .. code-block:: fortran
 
    &time

@@ -40,17 +40,14 @@ Clone WRF and check out the release used for CFBM coupling:
    cd WRF
    git checkout release-v4.8.0
 
-Step 1: Pull the fire_behavior external
-=======================================
+Step 1: Initialize the Git submodules
+========================================
 
-The CFBM source is brought into the WRF tree under ``phys/fire_behavior`` using
-WRF's external-management tooling, followed by a submodule update:
+After checking out the WRF release, initialize its Git submodules. This retrieves
+the CFBM source under ``phys/fire_behavior`` along with WRF's other submodules:
 
 .. code-block:: console
 
-   ./tools/manage_externals/checkout_externals -e arch/OptionalExternals_cfbm.cfg
-
-   # Initialize submodules
    git submodule update --init --recursive
 
 You can confirm the versions that were checked out with:
@@ -65,9 +62,9 @@ You can confirm the versions that were checked out with:
 
 .. note::
 
-   The ``fire_behavior`` version is pinned by
-   ``arch/OptionalExternals_cfbm.cfg``. Use the commands above to see the exact
-   WRF and CFBM commits your checkout contains.
+   The WRF release records the ``fire_behavior`` submodule commit;
+   ``git submodule update`` checks out that recorded version. The version
+   commands above report the exact WRF and CFBM commits in your checkout.
 
 Step 2: Configure
 =================
@@ -105,11 +102,12 @@ WRF. The remaining options select the ARW core, basic nesting, and the real-data
 Step 3: Compile
 ===============
 
-Build the coupled executable:
+Build the coupled executable using Bash:
 
 .. code-block:: console
 
-   set -o pipefail
+   # Optional: report build failures even when tee succeeds.
+   # set -o pipefail
    ./compile_new -j 8 2>&1 | tee compile.log
 
 On success the coupled ``real.exe`` and ``wrf.exe`` executables are linked in
@@ -119,6 +117,19 @@ Running WRF-CFBM
 ================
 
 A coupled WRF-CFBM run follows the standard WRF real-data workflow (WPS,
-``real.exe``, ``wrf.exe``), with the fire model enabled through the fire options
-in ``namelist.input``. The fire configuration mirrors the options documented in
-:ref:`namelist`.
+``real.exe``, ``wrf.exe``). For the WRF v4.8.0 release used above, configure two
+namelist files in the run directory:
+
+* In WRF's ``namelist.input``, set ``ifire = 1`` in the ``&fire`` section for
+  the domain where CFBM is active. WRF's domain, physics, and simulation timing
+  settings also belong in this file.
+* Put the CFBM options described in :ref:`namelist` in a separate
+  ``namelist.cfbm``, with ``&time``, ``&atm``, and ``&fire`` sections. This is
+  the filename WRF reads when CFBM is enabled; the standalone filename
+  ``namelist.fire`` is not used for these settings in direct WRF coupling.
+
+Set ``dt`` in the ``&time`` section of ``namelist.cfbm`` to match WRF's time
+step for the fire domain. WRF supplies the start and end dates to CFBM and
+controls atmospheric updates, so ``interval_atm`` is unused in this mode and
+the ``&atm`` section may be empty. WRF v4.8.0 supports CFBM in one domain per
+simulation and requires a Lambert conformal projection.
