@@ -210,8 +210,22 @@ candidate generation.
 
 ## Baseline gate
 
-Baseline production requires the reviewed pre-baseline repair stack. The
-timestep correction remains gated on confirmation that the first physics call
-represents `[0,dt]` while physics receives `itimestep=1`. Candidate validation
-must remain blocked until that decision is implemented and the complete PBS
-quick and PR matrices pass.
+Candidate production requires the deterministic-output, initialization/time,
+and parallel repairs in PRs #45, #47, and #48, followed by complete passing PBS
+quick and PR matrices. PR #46 is a separate scientific correction and is not
+a prerequisite for the harness or its candidate references.
+
+The terrain case retains dynamic fuel moisture and WRF-compatible `Q2`
+mixing-ratio inputs. Until PR #46 is adopted, the inherited moisture routine
+uses those inputs in a vapor-pressure equation for specific humidity. This
+known discrepancy biases relative humidity and can change fuel moisture and
+fire propagation. A candidate produced without PR #46 records that existing
+behavior; reproducibility does not establish thermodynamic correctness.
+Evaluate the correction against this documented behavior in its own review,
+and create a new provenance-matched candidate when the source changes.
+
+The timestep correction remains gated on Pedro's confirmation that the first
+physics call represents `[0,dt]` while physics receives `itimestep=1`. That
+confirmation is a merge condition, separate from executing candidate
+validation. Candidate activation still requires explicit team approval of
+the exact identifier and checksums, including the documented humidity limit.
