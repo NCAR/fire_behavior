@@ -67,6 +67,10 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
     runs-on: ${{matrix.os}}
+    env:
+      # The four-rank CTest also needs oversubscription on smaller CI runners.
+      OMPI_MCA_rmaps_base_oversubscribe: '1'
+      CTEST_OUTPUT_ON_FAILURE: '1'
 
     steps:
     - name: Cache Dependencies
