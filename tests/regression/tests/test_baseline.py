@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B -m unittest discover -s tests/regression/tests -p test_baseline.py -v
 #
-"""Test immutable baseline provenance and rejection paths."""
+"""Verify immutable baseline provenance, publication, and approval checks.
+
+Create small NetCDF outputs and committed repositories in isolated scratch
+directories, then check clean-source, identifier, and checksum rejection paths.
+Run with unittest discovery; preserve the evidence for inspection.
+"""
 
 from __future__ import annotations
 
@@ -27,15 +32,31 @@ from pathlib import Path
 import netCDF4
 import numpy as np
 
+#--------------------------------------------------------------------------------
+# Local module lookup
+#--------------------------------------------------------------------------------
+
 REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
+
+#--------------------------------------------------------------------------------
+# Harness modules under test
+#--------------------------------------------------------------------------------
 
 from baseline import accept_candidate, create_candidate
 from generate_inputs import sha256_file
 
 
+#--------------------------------------------------------------------------------
+# Paths and test layout
+#--------------------------------------------------------------------------------
+
 SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/tmp/cfbm-regression-unit"))
 
+
+#--------------------------------------------------------------------------------
+# Synthetic source and output fixtures
+#--------------------------------------------------------------------------------
 
 def initialize_repository(root: Path) -> str:
     """Create one clean committed scratch repository and return its exact commit."""
@@ -92,6 +113,10 @@ def write_candidate_evidence(work_root: Path, repository: Path, commit: str) -> 
     (work_root / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
 
 
+#--------------------------------------------------------------------------------
+# Baseline provenance tests
+#--------------------------------------------------------------------------------
+
 class BaselineTests(unittest.TestCase):
     """Verify clean-source and immutable-identifier requirements."""
 
@@ -131,6 +156,10 @@ class BaselineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             accept_candidate(candidate, "test approver", "test rejection path", self.root / "approved.yaml")
 
+
+#--------------------------------------------------------------------------------
+# Main
+#--------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     unittest.main()

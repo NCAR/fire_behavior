@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B -m unittest discover -s tests/regression/tests -p test_config_render.py -v
 #
-"""Test strict YAML resolution and portable Fortran namelist rendering."""
+"""Verify YAML policy resolution and Fortran namelist rendering.
+
+Read the shared case and platform profiles and use scratch fixtures to check
+precedence, invalid settings, formatting, and exact template substitutions.
+Run with unittest discovery; no model executable is launched.
+"""
 
 from __future__ import annotations
+
+#--------------------------------------------------------------------------------
+# Python modules
+#--------------------------------------------------------------------------------
 
 import copy
 import os
@@ -19,13 +28,25 @@ import unittest
 import uuid
 from pathlib import Path
 
+#--------------------------------------------------------------------------------
+# Paths and test layout
+#--------------------------------------------------------------------------------
+
 REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
 SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/tmp/cfbm-regression-unit"))
 
+#--------------------------------------------------------------------------------
+# Harness modules under test
+#--------------------------------------------------------------------------------
+
 from config import enumerate_matrix, load_platform, load_yaml, resolve_spec, validate_document
 from render_namelist import fortran_value, namelist_values, render_template
 
+
+#--------------------------------------------------------------------------------
+# Configuration and platform tests
+#--------------------------------------------------------------------------------
 
 class ConfigurationTests(unittest.TestCase):
     """Exercise configuration precedence and rejected policy combinations."""
@@ -110,6 +131,10 @@ class ConfigurationTests(unittest.TestCase):
             load_platform(path)
 
 
+#--------------------------------------------------------------------------------
+# Namelist rendering tests
+#--------------------------------------------------------------------------------
+
 class NamelistTests(unittest.TestCase):
     """Exercise Fortran scalar syntax and strict template substitution."""
 
@@ -150,6 +175,10 @@ class NamelistTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unused"):
             render_template(template, {"VALUE": 1, "EXTRA": 2})
 
+
+#--------------------------------------------------------------------------------
+# Main
+#--------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     unittest.main()

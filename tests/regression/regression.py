@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B tests/regression/regression.py all --help
 #
-"""Prepare, execute, compare, and manage standalone CFBM regression cases."""
+"""Prepare, execute, compare, and manage standalone CFBM regression cases.
+
+Read YAML policy, stage deterministic inputs, build and launch isolated model
+variants, and write validation reports and provenance manifests. This is the
+public CLI for case workflows and separate baseline creation and approval.
+"""
 
 from __future__ import annotations
 
@@ -32,9 +37,17 @@ import netCDF4
 import numpy as np
 import yaml
 
+#--------------------------------------------------------------------------------
+# Local module lookup
+#--------------------------------------------------------------------------------
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 SOURCE_ROOT = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
+
+#--------------------------------------------------------------------------------
+# Harness modules
+#--------------------------------------------------------------------------------
 
 from baseline import accept_candidate, create_candidate, git_identity, resolve_baseline, verify_baseline
 from compare_outputs import compare_directories, write_reports
@@ -77,6 +90,10 @@ OUTPUT_METADATA = {
 ATMOSPHERIC_FIELDS = {"fire_t2", "fire_q2", "fire_psfc", "fire_rain", "fz0"}
 FORCING_CHECK_RTOL = 8.0 * np.finfo(np.float32).eps
 
+
+#--------------------------------------------------------------------------------
+# Artifact allocation and stage reports
+#--------------------------------------------------------------------------------
 
 def _json_write(path: Path, value: dict[str, Any]) -> None:
     """Write deterministic strict JSON through an atomic same-directory replacement."""
@@ -135,6 +152,10 @@ def _write_stage_report(run_dir: Path, stage: str, passed: bool, reasons: list[s
     ET.ElementTree(suite).write(run_dir / f"{stage}_report.xml", encoding="utf-8", xml_declaration=True)
 
 
+#--------------------------------------------------------------------------------
+# Case preparation
+#--------------------------------------------------------------------------------
+
 def prepare_case(
     config_path: Path, template_path: Path, case: str, suite: str, method: str | None,
     feature: str | None, execution: str, run_dir: Path,
@@ -178,6 +199,10 @@ def prepare_attempt(
             continue
     raise RuntimeError(f"Unable to allocate a case attempt beneath {parent}")
 
+
+#--------------------------------------------------------------------------------
+# Execution prerequisites and output validation
+#--------------------------------------------------------------------------------
 
 def _verify_prepared(run_dir: Path, manifest: dict[str, Any], executable: Path) -> None:
     """Refuse stale inputs, namelists, executables, completed runs, and output collisions."""
@@ -324,6 +349,10 @@ def _validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]
     return validation
 
 
+#--------------------------------------------------------------------------------
+# Model execution
+#--------------------------------------------------------------------------------
+
 def run_case(
     run_dir: Path, executable: Path, launcher: list[str], process_flag: str,
     postflags: list[str] | None = None,
@@ -383,6 +412,10 @@ def run_case(
     return manifest
 
 
+#--------------------------------------------------------------------------------
+# Case comparison and prerequisite failures
+#--------------------------------------------------------------------------------
+
 def compare_case(
     result_dir: Path, baseline_root: Path, report_parent: Path,
     diagnostic_reference: Path | None = None,
@@ -428,6 +461,10 @@ def _blocked_comparison(report_parent: Path, reason: str) -> dict[str, Any]:
     result["reports"] = write_reports(result, report_dir)
     return result
 
+
+#--------------------------------------------------------------------------------
+# Source integrity and isolated builds
+#--------------------------------------------------------------------------------
 
 def _repository_inventory(repository: Path) -> dict[str, Any]:
     """Record tracked, untracked, and ignored file identities without changing the tree."""
@@ -517,6 +554,10 @@ def _build_variant(
         "executable": str(executable), "executable_sha256": sha256_file(executable),
     }
 
+
+#--------------------------------------------------------------------------------
+# Complete matrix workflow
+#--------------------------------------------------------------------------------
 
 def run_all(
     config_path: Path, suite: str, variants: set[str], work_root: Path,
@@ -641,6 +682,10 @@ def run_all(
     return summary
 
 
+#--------------------------------------------------------------------------------
+# Command-line interface
+#--------------------------------------------------------------------------------
+
 def _add_selection(parser: argparse.ArgumentParser, include_run_dir: bool = True) -> None:
     """Add shared case-selection arguments to one CLI stage."""
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -702,6 +747,10 @@ def build_parser() -> argparse.ArgumentParser:
     accept.add_argument("--approved-file", type=Path, default=DEFAULT_BASELINES / "approved.yaml")
     return parser
 
+
+#--------------------------------------------------------------------------------
+# Command dispatch
+#--------------------------------------------------------------------------------
 
 def main(argv: list[str] | None = None) -> int:
     """Dispatch one harness stage and return a process status suitable for CTest."""
@@ -785,6 +834,10 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     raise AssertionError(args.command)
 
+
+#--------------------------------------------------------------------------------
+# Main
+#--------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     try:

@@ -1,16 +1,25 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B -m unittest discover -s tests/regression/tests -p test_generator_comparator.py -v
 #
-"""Test deterministic NetCDF generation and comparison edge cases."""
+"""Verify generated NetCDF inputs and output-comparison edge cases.
+
+Create small scratch datasets to check deterministic fields, reader schemas,
+fixed tolerances, storage bits, masks, and report serialization. Run with
+unittest discovery; no model executable is launched.
+"""
 
 from __future__ import annotations
+
+#--------------------------------------------------------------------------------
+# Python modules
+#--------------------------------------------------------------------------------
 
 import json
 import os
@@ -23,16 +32,32 @@ from pathlib import Path
 import netCDF4
 import numpy as np
 
+#--------------------------------------------------------------------------------
+# Local module lookup
+#--------------------------------------------------------------------------------
+
 REGRESSION_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REGRESSION_DIR))
+
+#--------------------------------------------------------------------------------
+# Harness modules under test
+#--------------------------------------------------------------------------------
 
 from compare_outputs import compare_directories, compare_file, write_reports
 from config import load_yaml, resolve_spec
 from generate_inputs import GEO_VARIABLES, generate_inputs, validate_input_file
 
 
+#--------------------------------------------------------------------------------
+# Paths and test layout
+#--------------------------------------------------------------------------------
+
 SCRATCH_ROOT = Path(os.environ.get("CFBM_TEST_TMP", "/tmp/cfbm-regression-unit"))
 
+
+#--------------------------------------------------------------------------------
+# Synthetic NetCDF fixtures
+#--------------------------------------------------------------------------------
 
 def write_netcdf(path: Path, values: np.ndarray, fill_value: float | None = None) -> None:
     """Write one small synthetic field with explicit dimensions and metadata."""
@@ -44,6 +69,10 @@ def write_netcdf(path: Path, values: np.ndarray, fill_value: float | None = None
         variable.units = "1"
         variable[:] = values
 
+
+#--------------------------------------------------------------------------------
+# Input generation tests
+#--------------------------------------------------------------------------------
 
 class GeneratorTests(unittest.TestCase):
     """Verify deterministic schema and scientifically selected fields."""
@@ -105,6 +134,10 @@ class GeneratorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "schema mismatch"):
             validate_input_file(path, GEO_VARIABLES)
 
+
+#--------------------------------------------------------------------------------
+# Output comparison and report tests
+#--------------------------------------------------------------------------------
 
 class ComparatorTests(unittest.TestCase):
     """Exercise tolerance, zero-reference, masks, NaNs, infinities, and raw bits."""
@@ -204,6 +237,10 @@ class ComparatorTests(unittest.TestCase):
         json.loads(Path(paths["json"]).read_text(encoding="utf-8"), parse_constant=lambda value: (_ for _ in ()).throw(ValueError(value)))
         ET.parse(paths["junit"])
 
+
+#--------------------------------------------------------------------------------
+# Main
+#--------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     unittest.main()

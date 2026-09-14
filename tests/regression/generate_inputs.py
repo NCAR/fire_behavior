@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B tests/regression/regression.py prepare --help
 #
-"""Generate deterministic geogrid and WRF inputs for CFBM regression cases."""
+"""Generate deterministic NetCDF inputs for standalone CFBM cases.
+
+Use a resolved run specification to construct terrain, fuel, ignition, and
+atmospheric fields; write reader-compatible files and return schema and hash
+evidence. Called by regression.py; idealized cases require no input files.
+"""
 
 from __future__ import annotations
 
@@ -59,6 +64,10 @@ WRF_VARIABLES = {
     "V10": ("float32", ("Time", "south_north", "west_east")),
 }
 
+
+#--------------------------------------------------------------------------------
+# Lambert projection
+#--------------------------------------------------------------------------------
 
 class LambertProjection:
     """Reproduce the model Lambert grid-to-geographic coordinate transform."""
@@ -113,6 +122,10 @@ class LambertProjection:
         return lat, (lon + 180.0) % 360.0 - 180.0
 
 
+#--------------------------------------------------------------------------------
+# File integrity
+#--------------------------------------------------------------------------------
+
 def sha256_file(path: Path) -> str:
     """Return the SHA-256 digest of one generated or model file."""
     digest = hashlib.sha256()
@@ -121,6 +134,10 @@ def sha256_file(path: Path) -> str:
             digest.update(block)
     return digest.hexdigest()
 
+
+#--------------------------------------------------------------------------------
+# Coordinates and scientific fields
+#--------------------------------------------------------------------------------
 
 def _grid_latlon(spec: dict[str, Any], corners: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """Generate mass-point or corner latitude and longitude arrays."""
@@ -179,6 +196,10 @@ def _fields(spec: dict[str, Any]) -> dict[str, np.ndarray]:
         fields["lfn_init"] = (np.hypot(xm - cx, ym - cy) - spec["ignition"]["radius_m"]).astype("f4")
     return fields
 
+
+#--------------------------------------------------------------------------------
+# NetCDF metadata and writers
+#--------------------------------------------------------------------------------
 
 def _set_attrs(target: Any, attributes: dict[str, Any]) -> None:
     """Assign NetCDF attributes in a stable insertion order."""
@@ -285,6 +306,10 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
             variable.units = units[name]
             variable[:] = np.asarray(values[name], dtype=np.float32)
 
+
+#--------------------------------------------------------------------------------
+# Input validation and generation workflow
+#--------------------------------------------------------------------------------
 
 def validate_input_file(path: Path, expected: dict[str, tuple[str, tuple[str, ...]]]) -> dict[str, Any]:
     """Validate generated dimensions, variables, dtypes, finiteness, and attributes."""

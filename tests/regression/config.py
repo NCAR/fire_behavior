@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B -m unittest discover -s tests/regression/tests -p test_config_render.py -v
 #
-"""Load, merge, and validate CFBM regression case specifications."""
+"""Resolve and validate YAML case specifications and platform profiles.
+
+Combine case, suite, method, feature, and execution settings into complete run
+specifications and enumerate the required matrices for regression.py.
+"""
 
 from __future__ import annotations
 
@@ -63,6 +67,10 @@ PLATFORM_KEYS = {
 }
 PBS_KEYS = {"queue", "select", "ncpus", "mpiprocs", "memory", "walltime"}
 
+
+#--------------------------------------------------------------------------------
+# YAML loading and platform policy
+#--------------------------------------------------------------------------------
 
 class UniqueKeyLoader(yaml.SafeLoader):
     """Load safe YAML while rejecting duplicate mapping keys."""
@@ -126,6 +134,10 @@ def load_platform(path: Path) -> dict[str, Any]:
             raise TypeError("Platform pbs.memory must be a nonempty string")
     return platform
 
+
+#--------------------------------------------------------------------------------
+# Configuration merging and validation
+#--------------------------------------------------------------------------------
 
 def deep_merge(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
     """Deep-merge mappings while replacing lists and scalar values."""
@@ -227,6 +239,10 @@ def validate_document(document: dict[str, Any]) -> None:
         raise ValueError("Every static field must be in expected_output_fields")
 
 
+#--------------------------------------------------------------------------------
+# Scientific run specification
+#--------------------------------------------------------------------------------
+
 def resolve_spec(
     document: dict[str, Any], case: str, suite: str, method: str | None = None,
     feature: str | None = None, execution: str = "serial",
@@ -322,6 +338,10 @@ def validate_spec(spec: dict[str, Any]) -> None:
     if not isinstance(spec["moisture"]["run"], bool):
         raise TypeError("moisture.run must be logical")
 
+
+#--------------------------------------------------------------------------------
+# Execution matrix
+#--------------------------------------------------------------------------------
 
 def enumerate_matrix(document: dict[str, Any], suite: str) -> list[dict[str, str]]:
     """Enumerate the required matrix without duplicating shared quick and PR members."""

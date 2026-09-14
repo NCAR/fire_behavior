@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B tests/regression/regression.py prepare --help
 #
-"""Render one strictly substituted CFBM Fortran namelist."""
+"""Render one CFBM Fortran namelist from a resolved run specification.
+
+Format scalar values and substitute the shared template, rejecting missing or
+unused substitutions. Return namelist text to regression.py for staging.
+"""
 
 from __future__ import annotations
 
@@ -21,8 +25,16 @@ from pathlib import Path
 from typing import Any
 
 
+#--------------------------------------------------------------------------------
+# Template syntax
+#--------------------------------------------------------------------------------
+
 PLACEHOLDER = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 
+
+#--------------------------------------------------------------------------------
+# Fortran values and namelist settings
+#--------------------------------------------------------------------------------
 
 def fortran_value(value: Any) -> str:
     """Format a scalar as a portable Fortran namelist literal."""
@@ -75,6 +87,10 @@ def namelist_values(spec: dict[str, Any]) -> dict[str, Any]:
         "OUTPUT_LEVEL": spec["output"]["level"], "CHECK_ISOLATED": spec["output"]["check_isolated_neg_lfn"],
     }
 
+
+#--------------------------------------------------------------------------------
+# Strict template rendering
+#--------------------------------------------------------------------------------
 
 def render_template(template_path: Path, values: dict[str, Any]) -> str:
     """Render a template while rejecting missing, extra, or repeated substitutions."""

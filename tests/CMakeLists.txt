@@ -3,6 +3,9 @@ enable_testing()
 
 add_subdirectory(unit)
 
+# Register isolated standalone quick cases through the Python harness. Each
+# invocation stages inputs, runs the selected executable, and reports comparison
+# results in a new attempt directory beneath the configured artifact root.
 if(TARGET fire_behavior.exe AND NOT NUOPC AND NOT ESMX)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   execute_process(

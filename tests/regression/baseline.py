@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B tests/regression/regression.py baseline-create --help
 #
-"""Create, validate, select, and accept immutable CFBM baseline sets."""
+"""Manage immutable CFBM reference sets and their approval records.
+
+Validate manifests and checksums, copy validated run evidence into a new
+candidate, and record explicit approval. Called by regression.py.
+"""
 
 from __future__ import annotations
 
@@ -27,6 +31,10 @@ import yaml
 from generate_inputs import sha256_file
 
 
+#--------------------------------------------------------------------------------
+# Source identity
+#--------------------------------------------------------------------------------
+
 def git_identity(repository: Path) -> dict[str, Any]:
     """Return exact commit and cleanliness required for candidate production."""
     commit = subprocess.run(
@@ -39,6 +47,10 @@ def git_identity(repository: Path) -> dict[str, Any]:
     ).stdout
     return {"repository": str(repository.resolve()), "commit": commit, "clean": not bool(status), "status": status.splitlines()}
 
+
+#--------------------------------------------------------------------------------
+# Reference validation and selection
+#--------------------------------------------------------------------------------
 
 def verify_baseline(root: Path) -> dict[str, Any]:
     """Validate an immutable baseline manifest and every recorded checksum."""
@@ -102,6 +114,10 @@ def resolve_baseline(
             raise ValueError(f"Approved baseline manifest identity changed: {root}")
     return root.resolve()
 
+
+#--------------------------------------------------------------------------------
+# Candidate publication
+#--------------------------------------------------------------------------------
 
 def create_candidate(
     candidate_root: Path, identifier: str, work_root: Path, model_repository: Path,
@@ -199,6 +215,10 @@ def create_candidate(
     (destination / "manifest.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False), encoding="utf-8")
     return destination
 
+
+#--------------------------------------------------------------------------------
+# Explicit candidate approval
+#--------------------------------------------------------------------------------
 
 def accept_candidate(candidate: Path, approver: str, decision: str, approved_file: Path) -> None:
     """Record an explicit decision and select a validated candidate without changing payloads."""

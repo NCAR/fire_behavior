@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# Copyright 2026      Research Applications Laboratory (RAL),
-#                     National Center for Atmospheric Research (NCAR),
-#                     University Corporation for Atmospheric Research (UCAR)
 #
 #--------------------------------------------------------------------------------
-# Created by Maria Frediani (frediani@ucar.edu) on 2026-09-12
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
 #--------------------------------------------------------------------------------
 # run python -B tests/regression/regression.py compare --help
 #
-"""Compare CFBM NetCDF outputs using exact schema and fixed numerical rules."""
+"""Compare CFBM NetCDF output inventories using the fixed acceptance policy.
+
+Read reference and test fields, check schema and numerical differences, and
+write text, strict JSON, and JUnit reports. Called by regression.py.
+"""
 
 from __future__ import annotations
 
@@ -26,8 +30,16 @@ import netCDF4
 import numpy as np
 
 
+#--------------------------------------------------------------------------------
+# Comparison parameters
+#--------------------------------------------------------------------------------
+
 RELATIVE_TOLERANCE = 1.0e-4
 
+
+#--------------------------------------------------------------------------------
+# Metadata, storage bits, and decoded values
+#--------------------------------------------------------------------------------
 
 def _attribute_value(value: Any) -> Any:
     """Convert a NetCDF attribute into an exactly comparable Python value."""
@@ -79,6 +91,10 @@ def _json_number(value: float | None) -> tuple[float | None, str | None]:
         return None, "metric is infinite or nonfinite"
     return value, None
 
+
+#--------------------------------------------------------------------------------
+# Field comparison
+#--------------------------------------------------------------------------------
 
 def compare_variable(
     reference: netCDF4.Variable, test: netCDF4.Variable, static: bool,
@@ -176,6 +192,10 @@ def compare_variable(
     return result
 
 
+#--------------------------------------------------------------------------------
+# File and timestamp inventory comparison
+#--------------------------------------------------------------------------------
+
 def compare_file(
     reference_path: Path, test_path: Path, static_fields: set[str],
     volatile_global_attributes: set[str] | None = None,
@@ -225,6 +245,10 @@ def compare_directories(
     result["pass"] = not result["reasons"] and all(item["pass"] for item in result["files"])
     return result
 
+
+#--------------------------------------------------------------------------------
+# Comparison reports
+#--------------------------------------------------------------------------------
 
 def write_reports(result: dict[str, Any], report_dir: Path, name: str = "comparison") -> dict[str, str]:
     """Write concise text, strict JSON, and valid JUnit XML reports."""

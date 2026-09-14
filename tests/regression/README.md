@@ -6,6 +6,37 @@ for the pre-PR39 standalone CFBM tests. `regression.py` is the only public
 command-line interface. Normal regression commands never create or approve a
 reference.
 
+## Development provenance and source style
+
+The CFBM development team maintains this harness. Initial development included
+coding assistance from GPT-5.6-Sol and GPT-6-Astra. Git history records individual
+contributions and subsequent changes; this acknowledgement does not imply that
+both models assisted every file or revision.
+
+Harness Python headers retain the original creation date and use these lines:
+
+```python
+# Created on 2026-09-12.
+# Developed by the CFBM development team.
+# Initial harness development included coding assistance from
+# GPT-5.6-Sol and GPT-6-Astra.
+```
+
+Institutional copyright information is maintained at the repository level.
+This project convention replaces the personal attribution and repeated
+copyright block in the local `script-style` guidance. Preserve existing
+creation dates when editing a file; use the actual date for new files and
+record coding assistance only when applicable.
+
+Give each module a brief description of its purpose, inputs, and outputs, and
+group its workflow with 80-dash comment separators and descriptive section
+titles. Omit empty sections. Header commands run from the repository root using
+the user's selected Python environment. Supporting modules are imported by
+`regression.py`; their examples should point to the public CLI or relevant
+unit tests rather than suggest that they implement a separate command line.
+
+## Environment and execution
+
 Run the following commands from the repository root. Activate a Conda or
 virtual environment containing the packages pinned in
 `tests/regression/requirements.txt`, then invoke its Python interpreter:
