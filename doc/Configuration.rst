@@ -71,7 +71,7 @@ Example namelists can be found in the various test subdirectories under the ``te
    Specifies the time interval (in seconds) for writing to the history output files
 
 ``num_tiles``: *integer* (Default: ``1``)
-   Number of OpenMP tiles. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
+   Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
 
 
 &atm
@@ -191,7 +191,7 @@ Example namelists can be found in the various test subdirectories under the ``te
      .false. = point/line ignition
 
 ``frac_fburnt_to_smoke``: *real* (Default: ``0.02``)
-   [Units: kg smoke/kg burned fuel]
+   [Units: kg/kg]
    Fraction of burned fuel mass released as smoke when ``emis_opt=0``. The
    default corresponds to 20 g of smoke per kilogram of burned fuel.
 

@@ -112,8 +112,8 @@ Build the coupled executable:
    set -o pipefail
    ./compile_new -j 8 2>&1 | tee compile.log
 
-On success the coupled ``real.exe`` and ``wrf.exe`` executables are produced in
-the build directory, and ``compile.log`` holds the full build output.
+On success the coupled ``real.exe`` and ``wrf.exe`` executables are linked in
+the ``install/run`` directory, and ``compile.log`` holds the full build output.
 
 Running WRF-CFBM
 ================
