@@ -118,7 +118,6 @@ html_logo= "https://www.archives.ucar.edu/sites/default/files/images/NSF-NCAR_Lo
 # html_theme_options = {}
 html_theme_options = {
     "body_max_width": "none", 
-    "navigation_depth": 8,
     }
 
 
@@ -186,19 +185,7 @@ epub_exclude_files = ['search.html']
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {
-   'python': ('https://docs.python.org/3', None),
-   'hpc-stack': ('https://hpc-stack-epic.readthedocs.io/en/develop/', None),
-   'spack-stack': ('https://spack-stack.readthedocs.io/en/develop/', None),
-   'met': ('https://met.readthedocs.io/en/develop/', None),
-   'metplus': ('https://metplus.readthedocs.io/en/develop/', None),
-   'ufs-wm': ('https://ufs-weather-model.readthedocs.io/en/develop/', None),
-   'upp': ('https://upp.readthedocs.io/en/develop/', None),
-   'ufs-utils': ('https://noaa-emcufs-utils.readthedocs.io/en/latest/', None),
-   'ccpp-techdoc': ('https://ccpp-techdoc.readthedocs.io/en/ufs_srw_app_v2.2.0/', None),
-   'stochphys': ('https://stochastic-physics.readthedocs.io/en/latest/', None),
-   'srw_v2.2.0': ('https://ufs-srweather-app.readthedocs.io/en/release-public-v2.2.0/', None),
-}
+intersphinx_mapping = {}
 
 # -- Options for extlinks extension ---------------------------------------
 
