@@ -13,6 +13,9 @@ Glossary
    CCPP
       The `Common Community Physics Package <https://dtcenter.org/community-code/common-community-physics-package-ccpp>`_ is a forecast-model agnostic, vetted collection of code containing atmospheric physical parameterizations and suites of parameterizations for use in Numerical Weather Prediction (NWP) along with a framework that connects the physics to the host forecast model.
 
+   dynamical core
+      The component of an atmospheric model that numerically solves the governing equations of large-scale fluid motion and thermodynamics on the model grid, as distinct from the physical :term:`Parameterizations`. The :term:`FV3` dynamical core is used in the UFS.
+
    ESMF
       `Earth System Modeling Framework <https://earthsystemmodeling.org/docs/release/latest/ESMF_usrdoc/>`__. The ESMF defines itself as “a suite of software tools for developing high-performance, multi-component Earth science modeling applications.” 
 
@@ -69,5 +72,5 @@ Glossary
    UFS
       The Unified Forecast System is a community-based, coupled, comprehensive Earth modeling 
       system consisting of several applications (apps). These apps span regional to global 
-      domains and sub-hourly to seasonal time scales. The UFS is designed to support the :term:`Weather Enterprise` and to be the source system for NOAA's operational numerical weather prediction applications. For more information, visit https://ufs.epic.noaa.gov/.
+      domains and sub-hourly to seasonal time scales. The UFS is designed to support the Weather Enterprise and to be the source system for NOAA's operational numerical weather prediction applications. For more information, visit https://ufs.epic.noaa.gov/.
 
