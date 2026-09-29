@@ -10,15 +10,13 @@
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, Get_netcdf_att, &
-        Get_netcdf_var_mpi, Is_netcdf_file_present, NAME_DIM_X, NAME_DIM_Y
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
     use proj_lc_mod, only : proj_lc_t
     use ros_mod, only : ros_t
     use stderrout_mod, only : Stop_simulation, Print_message
     use tiles_mod, only : Calc_tiles_dims
     use wrfdata_mod, only : wrfdata_t, G, RERADIUS
-    use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Do_halo_exchange_with_corners, &
-        Print_cart_info, topology_dim_order
+    use mpi_mod, only : Calc_tasks_in_x_and_y, Calc_patch_dims, Distribute_var2d, Print_cart_info, topology_dim_order
 
     implicit none
 

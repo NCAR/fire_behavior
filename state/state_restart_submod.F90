@@ -4,6 +4,8 @@
     use mpi
 #endif
     use fmc_wrffire_mod, only : fmc_wrffire_t
+    use mpi_mod, only : Do_halo_exchange_with_corners
+    use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present
     use, intrinsic :: iso_fortran_env, only : INT32, REAL32
 
     implicit none

@@ -8,6 +8,7 @@
     use initialize_mod, only : Init_fire_state, Init_atm_state
     use advance_mod, only : Advance_state
     use wrfdata_mod, only : wrfdata_t
+    use stderrout_mod, only : Print_message
     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
     implicit none
@@ -70,6 +71,11 @@
         stop
 
     end select
+
+    if (.not. config_flags%restart) then
+      if (DEBUG_LOCAL) call Print_message ('    Saving fire state')
+      call grid%Save_state ()
+    end if
 
     call grid%Handle_restart (config_flags, initialize = .true.)
 

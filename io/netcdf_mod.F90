@@ -247,7 +247,7 @@
       integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
       real, dimension(ifps:ifpe, jfps:jfpe), intent (out) :: var2d_local
 
-      real, dimension(:, :), allocatable :: var2d_restart
+      real, dimension(:, :), allocatable :: var2d_global
       character (len = :), allocatable :: msg
       integer :: rank, ierr
       logical, parameter :: DEBUG_LOCAL = .false.
@@ -260,24 +260,24 @@
       if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
 
       if (rank == 0) then
-        call Get_netcdf_var (file_name, var_name, var2d_restart)
-        if (size (var2d_restart, 1) /= nx .or. size (var2d_restart, 2) /= ny) then
-          msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+        call Get_netcdf_var (file_name, var_name, var2d_global)
+        if (size (var2d_global, 1) /= nx .or. size (var2d_global, 2) /= ny) then
+          msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
           call Stop_simulation (msg)
         end if
       end if
 
-      call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_restart, var2d_local)
+      call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_global, var2d_local)
 #else
-      call Get_netcdf_var (file_name, var_name, var2d_restart)
-      if (size (var2d_restart, 1) /= nx .or. size (var2d_restart, 2) /= ny) then
-        msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+      call Get_netcdf_var (file_name, var_name, var2d_global)
+      if (size (var2d_global, 1) /= nx .or. size (var2d_global, 2) /= ny) then
+        msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
         call Stop_simulation (msg)
       end if
-      var2d_local(1:nx, 1:ny) = var2d_restart(1:nx, 1:ny)
+      var2d_local(1:nx, 1:ny) = var2d_global(1:nx, 1:ny)
 #endif
 
-      if (allocated (var2d_restart)) deallocate (var2d_restart)
+      if (allocated (var2d_global)) deallocate (var2d_global)
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Get_netcdf_var_real32_2d_mpi...')
 
@@ -380,8 +380,8 @@
       integer, intent (in) :: cfbm_comm, nx, ny, n2, ifps, ifpe, jfps, jfpe
       real, dimension(ifps:ifpe, n2, jfps:jfpe), intent (out) :: var3d_local
 
-      real, dimension(:, :), allocatable :: var2d_restart
-      real, dimension(:, :, :), allocatable :: var3d_restart
+      real, dimension(:, :), allocatable :: var2d_global
+      real, dimension(:, :, :), allocatable :: var3d_global
       character (len = :), allocatable :: msg
       integer :: rank, ierr, k
       logical, parameter :: DEBUG_LOCAL = .false.
@@ -394,31 +394,31 @@
       if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
 
       if (rank == 0) then
-        call Get_netcdf_var (file_name, var_name, var3d_restart)
-        if (size (var3d_restart, 1) /= nx .or. size (var3d_restart, 2) /= n2 .or. size (var3d_restart, 3) /= ny) then
-          msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+        call Get_netcdf_var (file_name, var_name, var3d_global)
+        if (size (var3d_global, 1) /= nx .or. size (var3d_global, 2) /= n2 .or. size (var3d_global, 3) /= ny) then
+          msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
           call Stop_simulation (msg)
         end if
       end if
 
       do k = 1, n2
         if (rank == 0) then
-          allocate (var2d_restart(nx, ny))
-          var2d_restart(1:nx, 1:ny) = var3d_restart(1:nx, k, 1:ny)
+          allocate (var2d_global(nx, ny))
+          var2d_global(1:nx, 1:ny) = var3d_global(1:nx, k, 1:ny)
         end if
-        call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_restart, var3d_local(ifps:ifpe, k, jfps:jfpe))
-        if (allocated (var2d_restart)) deallocate (var2d_restart)
+        call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_global, var3d_local(ifps:ifpe, k, jfps:jfpe))
+        if (allocated (var2d_global)) deallocate (var2d_global)
       end do
 #else
-      call Get_netcdf_var (file_name, var_name, var3d_restart)
-      if (size (var3d_restart, 1) /= nx .or. size (var3d_restart, 2) /= n2 .or. size (var3d_restart, 3) /= ny) then
-        msg = 'Restart variable has unexpected dimensions: '//trim (var_name)
+      call Get_netcdf_var (file_name, var_name, var3d_global)
+      if (size (var3d_global, 1) /= nx .or. size (var3d_global, 2) /= n2 .or. size (var3d_global, 3) /= ny) then
+        msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
         call Stop_simulation (msg)
       end if
-      var3d_local(1:nx, 1:n2, 1:ny) = var3d_restart(1:nx, 1:n2, 1:ny)
+      var3d_local(1:nx, 1:n2, 1:ny) = var3d_global(1:nx, 1:n2, 1:ny)
 #endif
 
-      if (allocated (var3d_restart)) deallocate (var3d_restart)
+      if (allocated (var3d_global)) deallocate (var3d_global)
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Get_netcdf_var_real32_3d_mpi...')
 

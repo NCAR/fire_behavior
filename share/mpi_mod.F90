@@ -1,6 +1,6 @@
   module mpi_mod
 
-    use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
+    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
 
     implicit none
 
@@ -222,9 +222,7 @@
 
 #ifdef DM_PARALLEL
       call Mpi_comm_rank (cfbm_comm, rank, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with Mpi_comm_rank ')
       call Mpi_comm_size (cfbm_comm, nprocs, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems getting the number of MPI tasks')
 
       nx_local = ifpe - ifps + 1
       ny_local = jfpe - jfps + 1
@@ -236,13 +234,9 @@
       end if
 
       call MPI_Gather (ifps, 1, MPI_INTEGER, all_ifps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with MPI_Gather for ifps')
       call MPI_Gather (ifpe, 1, MPI_INTEGER, all_ifpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with MPI_Gather for ifpe')
       call MPI_Gather (jfps, 1, MPI_INTEGER, all_jfps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with MPI_Gather for jfps')
       call MPI_Gather (jfpe, 1, MPI_INTEGER, all_jfpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with MPI_Gather for jfpe')
 
       if (rank == 0) then
         allocate (sendcounts(nprocs), displs(nprocs))
@@ -270,7 +264,6 @@
       end if
 
       call MPI_Scatterv (sendbuf, sendcounts, displs, MPI_REAL, var2d_local, nx_local * ny_local, MPI_REAL, 0, cfbm_comm, ierr)
-      if (ierr /= MPI_SUCCESS) call Abort_mpi_operation ('Problems with MPI_Scatterv for distributed variable')
 
       deallocate (all_ifps, all_ifpe, all_jfps, all_jfpe, sendcounts, displs, sendbuf)
 #else
@@ -278,27 +271,6 @@
 #endif
 
     end subroutine Distribute_global_var2d
-
-    subroutine Abort_mpi_operation (msg)
-
-#ifdef DM_PARALLEL
-      use mpi
-#endif
-      implicit none
-
-      character (len = *), intent (in) :: msg
-      integer :: ierr
-
-
-      write (ERROR_UNIT, *) 'STOP:' // trim (msg)
-#ifdef DM_PARALLEL
-      call MPI_Abort (MPI_COMM_WORLD, 1, ierr)
-      call MPI_Finalize (ierr)
-#else
-      stop
-#endif
-
-    end subroutine Abort_mpi_operation
 
     subroutine Do_halo_exchange (patch, ims, ime, jms, jme, ips, ipe, jps, jpe, nghost, cart_comm)
 

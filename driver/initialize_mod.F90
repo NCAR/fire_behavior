@@ -124,9 +124,6 @@
       if (config_flags%restart) then
         if (DEBUG_LOCAL) call Print_message ('    Reading restart state')
         call grid%Read_restart (config_flags)
-      else
-        if (DEBUG_LOCAL) call Print_message ('    Saving fire state')
-        call grid%Save_state ()
       end if
 
       if (DEBUG_LOCAL) then
