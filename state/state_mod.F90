@@ -25,6 +25,8 @@
 
     public :: state_fire_t, N_POINTS_IN_HALO
 
+    integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
+
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
     logical, dimension(2), parameter :: PERIODS = [ .false., .false. ]
     logical, parameter :: REORDER = .true. ! Allow MPI recording tasks for performance
@@ -108,7 +110,8 @@
 
         ! Output
       integer :: output_level
-      logical :: atmospheric_output_applicable = .true.
+        ! Resolved initialization path; supplied grid data can override ideal_opt.
+      integer :: init_mode = INIT_MODE_NONE
 
         ! For MPI tasks
       integer :: cfbm_comm ! The MPI communicator before the domain decomposition
@@ -319,19 +322,18 @@
       real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
 
-      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
-      integer :: ids0, ide0, jds0, jde0, i, j, init_mode, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
+      integer :: ids0, ide0, jds0, jde0, i, j, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
       integer, dimension(2) :: coords
       character (len = 300) :: msg
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Init_domain...')
 
-      init_mode = INIT_MODE_NONE
-      if (config_flags%ideal_opt == 1) init_mode = INIT_MODE_IDEAL
-      if (present (geogrid)) init_mode = INIT_MODE_GEOGRID
+      this%init_mode = INIT_MODE_NONE
+      if (config_flags%ideal_opt == 1) this%init_mode = INIT_MODE_IDEAL
+      if (present (geogrid)) this%init_mode = INIT_MODE_GEOGRID
       if (present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. present (ifps) .and. present (ifpe) .and. &
           present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
           present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
@@ -339,17 +341,17 @@
           present (cen_lat) .and. present (cen_lon) .and. present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. &
           present (dx) .and. present (dy) .and. present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. &
           present (dzdxf) .and. present (dzdyf)) &
-          init_mode = INIT_MODE_WRF
+          this%init_mode = INIT_MODE_WRF
 
-      if (init_mode == INIT_MODE_NONE) &
+      if (this%init_mode == INIT_MODE_NONE) &
           call Stop_simulation ('Not enough information to initialize domain')
 
         ! Set dimensions
       if (DEBUG_LOCAL) call Print_message ('  Setting dimensions...')
-      Set_dims: select case (init_mode)
+      Set_dims: select case (this%init_mode)
         case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL)
 
-          if (init_mode == INIT_MODE_GEOGRID) then
+          if (this%init_mode == INIT_MODE_GEOGRID) then
 
             ids0 = geogrid%ifds
             ide0 = geogrid%ifde
@@ -406,7 +408,7 @@
             jpe = jde0
 #endif
 
-          else if (init_mode == INIT_MODE_IDEAL) then
+          else if (this%init_mode == INIT_MODE_IDEAL) then
 
             ids0 = 1
             ide0 = config_flags%nx
@@ -530,7 +532,7 @@
 
         ! Set projection
       if (DEBUG_LOCAL) call Print_message ('  Setting projection...')
-      Set_proj: select case (init_mode)
+      Set_proj: select case (this%init_mode)
         case (INIT_MODE_GEOGRID)
           proj = geogrid%Get_atm_proj ()
           call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
@@ -570,14 +572,13 @@
 
       end select Set_proj
       this%proj = proj
-      this%atmospheric_output_applicable = init_mode /= INIT_MODE_IDEAL
 
         ! Init vars
       if (DEBUG_LOCAL) call Print_message ('  Initializing default variables...')
       call this%Set_vars_to_default (config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Setting topo and fuels...')
-      Set_topo_fuels: select case (init_mode)
+      Set_topo_fuels: select case (this%init_mode)
         case (INIT_MODE_GEOGRID)
           this%zsf(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%elevations
           this%dzdxf(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%dz_dxs
@@ -1072,12 +1073,14 @@
       this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
 
+      ! Fill values mark unavailable atmospheric output; they are not valid FMC inputs.
+      ! Atmospheric forcing must replace them before the moisture model advances.
       this%fire_t2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       this%fire_q2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
-      if (.not. this%atmospheric_output_applicable) then
+      if (this%init_mode == INIT_MODE_IDEAL) then
         this%fire_t2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
         this%fire_q2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
         this%fire_psfc_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
