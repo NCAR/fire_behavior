@@ -77,8 +77,10 @@
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Starting temporal loop...'
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
-      call grid%Handle_output (config_flags)
+      ! Load forcing due at the new clock before writing timestamped output.
+      ! The completed advance used the previously loaded atmospheric fields.
       if (config_flags%ideal_opt == 0) call grid%Handle_wrfdata_update (atm_state, config_flags)
+      call grid%Handle_output (config_flags)
     end do
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Completed temporal loop'
 
