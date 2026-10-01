@@ -375,20 +375,59 @@
 
     end subroutine Broadcast_nml
 
-    subroutine Check_nml (this)
+    subroutine Check_nml (this, require_atm_interval)
+
+      use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+      use, intrinsic :: iso_fortran_env, only : real64
 
       implicit none
 
-      class (namelist_t), intent (in out) :: this
+      class (namelist_t), intent (in) :: this
+      logical, intent (in), optional :: require_atm_interval
+      real (real64) :: ratio, tolerance
+      logical :: check_atm
+
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
       if (this%fire_is_real_perim .and. this%fire_num_ignitions /= 1) &
-          call Stop_simulation ('observed-perimeter mode requires one ignition record for its activation time')
+          call Stop_simulation ('perimeter mode requires one ignition record for its ignition time')
       if (.not. this%fire_is_real_perim .and. this%fire_num_ignitions <= 0) &
           call Stop_simulation ('line-ignition mode requires at least one ignition')
-      if (this%fire_is_real_perim .and. this%fire_ignition_start_time1 < 0.0) &
-          call Stop_simulation ('observed-perimeter activation time must be nonnegative')
+      if (this%fire_num_ignitions > FIRE_MAX_IGNITIONS_IN_NAMELIST) &
+          call Stop_simulation ('fire_num_ignitions exceeds FIRE_MAX_IGNITIONS_IN_NAMELIST')
+
+      if (.not. ieee_is_finite (this%dt)) call Stop_simulation ('dt must be finite and positive')
+      if (this%dt <= 0.0) call Stop_simulation ('dt must be finite and positive')
+
+      ! File-driven and NUOPC schedules need interval_atm; direct WRF stepping
+      ! and unforced ideal runs can leave it unset. Validate a supplied interval.
+      check_atm = this%interval_atm > 0
+      if (present (require_atm_interval)) check_atm = check_atm .or. require_atm_interval
+      if (check_atm) then
+        if (this%interval_atm <= 0) call Stop_simulation ('interval_atm must be positive for atmospheric updates')
+        ratio = real (this%interval_atm, real64) / real (this%dt, real64)
+        ! Four single-precision roundoff units in the dimensionless step count.
+        ! Cap the tolerance at 1e-4 step so long schedules cannot admit partial steps.
+        tolerance = min (1.0e-4_real64, 4.0_real64 * epsilon (this%dt) * max (1.0_real64, abs (ratio)))
+        if (anint (ratio) < 1.0_real64 .or. abs (ratio - anint (ratio)) > tolerance) &
+            call Stop_simulation ('interval_atm must be an integer multiple of dt')
+      end if
+
+      ! The equality-based scheduler can stall after a missed update.
+      ! interval_atm is the exchange interval, not necessarily the host model dt.
+      ! Intentional record skipping and output/restart alignment need a separate
+      ! time-scheduling review; bypassing this check would not implement skipping.
+      if (this%fire_is_real_perim) then
+        if (.not. ieee_is_finite (this%fire_ignition_start_time1)) &
+            call Stop_simulation ('perimeter ignition time must be finite and nonnegative')
+        if (this%fire_ignition_start_time1 < 0.0) &
+            call Stop_simulation ('perimeter ignition time must be finite and nonnegative')
+        ratio = real (this%fire_ignition_start_time1, real64) / real (this%dt, real64)
+        tolerance = min (1.0e-4_real64, 4.0_real64 * epsilon (this%dt) * max (1.0_real64, abs (ratio)))
+        if (abs (ratio - anint (ratio)) > tolerance) &
+            call Stop_simulation ('perimeter ignition time must align with a fire timestep')
+      end if
 
     end subroutine Check_nml
 

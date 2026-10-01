@@ -340,3 +340,57 @@ atmospheric data.
 ``true_lat_2``: *real* (Default: ``40.363``)
    [Units: degrees]
    Second true latitude of the map projection.
+
+Timing and perimeter validation
+===============================
+
+``interval_atm`` must be a positive integer multiple of ``dt`` when using the
+standalone forcing reader or NUOPC exchange schedule. For example, a 4 s fire
+step and 60 s atmospheric interval are aligned. An 8 s fire step with a 4 s
+atmospheric interval is not: the equality-based update trigger would miss the
+first update and retain its expired schedule. The interval is an exchange
+cadence, not necessarily the atmospheric solver timestep. Direct WRF stepping
+and unforced ideal runs may leave ``interval_atm`` unset. Supplied positive
+intervals are checked; file-driven and NUOPC entry points also require that the
+interval is supplied. Programmatically constructed configurations are checked
+before state allocation.
+
+For a supplied perimeter, ``fire_ignition_start_time1`` must be nonnegative
+and align with a fire timestep. Roundoff-sized offsets are normalized to that
+boundary; the requested and effective times are printed when they differ.
+Validation uses four default-real roundoff units in the dimensionless step
+count, capped at 0.0001 timestep. Clearly interior times are rejected, not
+rounded. Prescribed line/circle times do not have this restriction: their
+elapsed-time expansion is distinct from level-set propagation.
+
+A perimeter at zero is installed before initial output. A delayed perimeter
+is installed at the inclusive end of its scheduled interval and propagates
+from the next interval. The former mid-step path could account for elapsed
+burning time without propagating for that partial interval; supporting that
+case consistently requires a separately reviewed split advance.
+
+Deferred scheduling and boundary reviews
+---------------------------------------
+
+A future ``Validate_time_intervals`` design should address forcing selection,
+coupled subcycling, clock precision, output, final time, and restart together.
+Output and restart intervals need not divide one another when both are
+reachable on the fire clock. Deliberately skipping input records requires a
+selection policy that advances missed events; disabling validation alone does
+not implement it. No bypass option or restart behavior is introduced here.
+
+After ignition, both level set and ignition time are exchanged with corners
+and refreshed at physical boundaries before subcell fuel consumption. With
+finite positive level set throughout a boundary stencil, ignition ages there
+do not contribute to consumption. The boundary guard precedes later ignition,
+so validity of newly supplied boundary geometry requires separate review.
+Changes to extrapolation bounds must consider all callers, overlapping OpenMP
+writes, and MPI exchange ordering. The y exchange includes x halos and can
+transmit existing physical-boundary values. A halo read alone does not prove
+a combustion effect, and no isolated failure established that the additional
+component-initialization exchanges were necessary. Those initialization edits
+are omitted; the bounds-extension algorithm remains unchanged.
+
+Fuel-moisture first-update scheduling and the inherited humidity-convention
+discrepancy remain separate scientific reviews. Atmospheric fill values mark
+unavailable output and must not reach the active moisture calculation.

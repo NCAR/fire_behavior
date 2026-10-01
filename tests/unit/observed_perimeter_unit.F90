@@ -9,6 +9,7 @@ program observed_perimeter_unit
   real :: unignited
 
 
+  state%dt = 4.0
   state%ifps = 1
   state%ifpe = 2
   state%jfps = 1
@@ -20,13 +21,13 @@ program observed_perimeter_unit
   initial_lfn = reshape ([-2.0, 0.0, 1.0, 3.0], shape (initial_lfn))
 
   state%lfn = 100.0
-  call state%Init_observed_perimeter (initial_lfn, 8.0)
+  call state%Init_fire_perimeter (initial_lfn, 8.0)
 
-  if (state%observed_perimeter_active) error stop 'delayed perimeter activated during initialization'
+  if (state%fire_perimeter_ignited) error stop 'delayed perimeter activated during initialization'
   if (any (state%lfn /= 100.0)) error stop 'delayed perimeter changed the active level set before its start time'
   if (any (state%lfn_hist /= initial_lfn)) error stop 'delayed perimeter history does not match supplied perimeter'
 
-  call state%Activate_observed_perimeter (8.0)
+  call state%Ignite_fire_perimeter (8.0)
 
   if (any (state%lfn /= initial_lfn)) error stop 'active level set does not match supplied perimeter'
   if (any (state%lfn_hist /= initial_lfn)) error stop 'perimeter history does not match supplied perimeter'
@@ -35,11 +36,11 @@ program observed_perimeter_unit
   if (state%tign_g(1, 2) /= unignited .or. state%tign_g(2, 2) /= unignited) &
       error stop 'unburned perimeter cells lost their ignition-time sentinel'
 
-  state%observed_perimeter_active = .false.
+  state%fire_perimeter_ignited = .false.
   state%lfn = 100.0
   state%tign_g = unignited
-  call state%Init_observed_perimeter (initial_lfn, 0.0)
-  if (.not. state%observed_perimeter_active) error stop 'zero-time perimeter was not initialized'
+  call state%Init_fire_perimeter (initial_lfn, 0.0)
+  if (.not. state%fire_perimeter_ignited) error stop 'zero-time perimeter was not initialized'
   if (any (state%lfn /= initial_lfn)) error stop 'zero-time perimeter does not match supplied perimeter'
   if (state%tign_g(1, 1) /= 0.0 .or. state%tign_g(2, 1) /= 0.0) &
       error stop 'zero-time perimeter cells do not have zero ignition time'

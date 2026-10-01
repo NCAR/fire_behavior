@@ -154,6 +154,8 @@ module fire_behavior_nuopc
     call grid%Set_mpi_comm_cfbm (mpi_comm_cfbm)
 #endif
 
+    ! NUOPC uses interval_atm for exchange and flux accumulation.
+    call config_flags%Check_nml (require_atm_interval = .true.)
     call Init_fire_state (grid, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------

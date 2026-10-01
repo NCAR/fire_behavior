@@ -1,11 +1,18 @@
-# Keep each test's command and labels together.
+# Keep each test's command, labels, and expected diagnostic together.
 function(add_cfbm_unit_test)
-  cmake_parse_arguments(PARSE_ARGV 0 test "" "NAME" "COMMAND;LABELS")
+  cmake_parse_arguments(PARSE_ARGV 0 test "" "NAME;EXPECT" "COMMAND;LABELS")
   add_test(NAME ${test_NAME} COMMAND ${test_COMMAND})
   set_tests_properties(${test_NAME} PROPERTIES LABELS "unit;${test_LABELS}")
+  if(test_EXPECT)
+    # Serial Stop_simulation uses a plain Fortran STOP, which can exit with
+    # status zero. Check the expected rejection diagnostic rather than use
+    # WILL_FAIL, which requires a nonzero exit status.
+    set_tests_properties(${test_NAME} PROPERTIES PASS_REGULAR_EXPRESSION "${test_EXPECT}")
+  endif()
 endfunction()
 
-foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit)
+foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
+                      namelist_validation_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -24,3 +31,37 @@ if(DM_PARALLEL)
     COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 4
             ${MPIEXEC_PREFLAGS} $<TARGET_FILE:namelist_broadcast_mpi> ${MPIEXEC_POSTFLAGS})
 endif()
+
+foreach(scenario IN ITEMS aligned wrf_unset ideal_unset boundary_time boundary_above boundary_below line_interior)
+  add_cfbm_unit_test(NAME namelist_${scenario}_unit
+    COMMAND namelist_validation_unit ${scenario} LABELS namelist)
+endforeach()
+foreach(scenario IN ITEMS reversed nonmultiple)
+  add_cfbm_unit_test(NAME namelist_${scenario}_unit
+    COMMAND namelist_validation_unit ${scenario} LABELS namelist
+    EXPECT "STOP:interval_atm must be an integer multiple of dt")
+endforeach()
+foreach(scenario IN ITEMS zero_count negative_count)
+  add_cfbm_unit_test(NAME namelist_${scenario}_unit
+    COMMAND namelist_validation_unit ${scenario} LABELS namelist
+    EXPECT "STOP:line-ignition mode requires at least one ignition")
+endforeach()
+add_cfbm_unit_test(NAME namelist_zero_dt_unit
+  COMMAND namelist_validation_unit zero_dt LABELS namelist
+  EXPECT "STOP:dt must be finite and positive")
+add_cfbm_unit_test(NAME namelist_missing_atm_unit
+  COMMAND namelist_validation_unit missing_atm LABELS namelist
+  EXPECT "STOP:interval_atm must be positive")
+add_cfbm_unit_test(NAME namelist_excess_count_unit
+  COMMAND namelist_validation_unit excess_count LABELS namelist
+  EXPECT "STOP:fire_num_ignitions exceeds")
+add_cfbm_unit_test(NAME namelist_perimeter_count_unit
+  COMMAND namelist_validation_unit perimeter_count LABELS namelist
+  EXPECT "STOP:perimeter mode requires one ignition")
+add_cfbm_unit_test(NAME namelist_negative_time_unit
+  COMMAND namelist_validation_unit negative_time LABELS namelist
+  EXPECT "STOP:perimeter ignition time must be finite and nonnegative")
+add_cfbm_unit_test(NAME namelist_interior_time_unit
+  COMMAND namelist_validation_unit interior_time LABELS namelist
+  EXPECT "STOP:perimeter ignition time must align")
+

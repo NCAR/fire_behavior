@@ -2,7 +2,8 @@
 
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
     use level_set_mod, only: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, &
-        Stop_if_close_to_bdy, Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn
+        Stop_if_close_to_bdy, Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn, Extrapol_var_at_bdys
+    use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t, N_POINTS_IN_HALO
@@ -28,7 +29,7 @@
       type (state_fire_t), intent (in out) :: grid
 
       integer :: ij, ifds, ifde, jfds, jfde, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
-      real :: tbound, time_start
+      real :: tbound, time_start, time_end, ignition_time
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
@@ -46,12 +47,7 @@
 
       time_start = grid%itimestep * grid%dt
 
-      ! A perimeter scheduled at an interval boundary is active throughout
-      ! that interval. A perimeter scheduled inside an interval is installed
-      ! after propagation below and begins propagating on the next interval.
-      if (config_flags%fire_is_real_perim .and. .not. grid%observed_perimeter_active .and. &
-          config_flags%fire_ignition_start_time1 <= time_start) &
-          call grid%Activate_observed_perimeter (config_flags%fire_ignition_start_time1)
+      time_end = time_start + grid%dt
 
       if (DEBUG_LOCAL) call Print_message ('calling Prop_level_set...')
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
@@ -141,11 +137,16 @@
 
       if (config_flags%check_isolated_neg_lfn == 1) call Check_isolated_negative_lfn (grid)
 
-      if (config_flags%fire_is_real_perim .and. .not. grid%observed_perimeter_active .and. &
-          config_flags%fire_ignition_start_time1 < time_start + grid%dt) &
-          call grid%Activate_observed_perimeter (config_flags%fire_ignition_start_time1)
+      ! Install an aligned perimeter at the inclusive interval end. It begins
+      ! propagating next step; zero-time perimeters were installed at initialization.
+      ! Mid-step activation would age fuel without proportional propagation.
+      ! Check_nml rejects it pending a separate review of split advances.
+      if (config_flags%fire_is_real_perim .and. .not. grid%fire_perimeter_ignited) then
+        ignition_time = anint (config_flags%fire_ignition_start_time1 / grid%dt) * grid%dt
+        if (ignition_time <= time_end) call grid%Ignite_fire_perimeter (ignition_time)
+      end if
  
-      if (DEBUG_LOCAL) call Print_message ('calling Ignite_prescribed_fires...')
+      if (DEBUG_LOCAL) call Print_message ('calling Ignite_fire_line...')
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij, ifts, ifte, jfts, jfte)
       do ij = 1, grid%num_tiles
@@ -154,7 +155,10 @@
         jfts = grid%j_start(ij)
         jfte = grid%j_end(ij)
 
-        call Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
+        if (.not. config_flags%fire_is_real_perim) &
+            call Ignite_fire_line (grid%ignition_lines, config_flags%fire_num_ignitions, time_start, time_end, &
+                ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, grid%lons, grid%lats, grid%unit_fxlong, &
+                grid%unit_fxlat, grid%lfn, grid%tign_g)
       end do
       !$OMP END PARALLEL DO
 
@@ -162,6 +166,17 @@
       call Do_halo_exchange_with_corners (grid%tign_g, ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, N_POINTS_IN_HALO, grid%cart_comm)
       call Do_halo_exchange_with_corners (grid%lfn, ifms, ifme, jfms, jfme, grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, N_POINTS_IN_HALO, grid%cart_comm)
 #endif
+
+      ! Synchronize ignition changes above, then refresh physical boundaries
+      ! before subcell fuel-area and ignition-age interpolation.
+      call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+          grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%lfn)
+      ! With finite positive lfn throughout the boundary stencil, these ignition
+      ! times do not contribute to fuel consumption. Refresh for consistency.
+      ! The boundary guard precedes ignition, so newly installed geometry still
+      ! needs separate review before assuming this condition at every boundary.
+      call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
+          grid%ifps, grid%ifpe, grid%jfps, grid%jfpe, grid%tign_g)
 
       if (DEBUG_LOCAL) call Print_message ('calling Calc_fuel_left...')
       !$OMP PARALLEL DO   &
@@ -172,7 +187,7 @@
         jfts = grid%j_start(ij)
         jfte = grid%j_end(ij)
         call Calc_fuel_left (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
-            grid%lfn,grid%tign_g,grid%fuel_time, time_start + grid%dt, grid%fuel_frac, grid%fire_area, &
+            grid%lfn,grid%tign_g,grid%fuel_time, time_end, grid%fuel_frac, grid%fire_area, &
             grid%fuel_frac_burnt_dt)
       end do
       !$OMP END PARALLEL DO
@@ -207,26 +222,26 @@
 
     end subroutine Advance_fire_model
 
-    subroutine Ignite_prescribed_fires (grid, config_flags, time_start, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde)
+    subroutine Ignite_fire_line (ignition_lines, num_ignitions, time_start, time_end, &
+        ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, lons, lats, unit_fxlong, unit_fxlat, lfn, tign)
 
       implicit none
 
-      type (namelist_t), intent (in) :: config_flags
-      type (state_fire_t), intent (in out) :: grid
-      real, intent (in) :: time_start
-      integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde
+      type (ignition_line_t), intent (in) :: ignition_lines
+      integer, intent (in) :: num_ignitions, ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
+      real, intent (in) :: time_start, time_end, unit_fxlong, unit_fxlat
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lons, lats
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: lfn, tign
 
       integer :: ig, ignited
 
 
-      if (.not. config_flags%fire_is_real_perim) then
-        do ig = 1, config_flags%fire_num_ignitions
-          call grid%ignition_lines%Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-              ig, time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, &
-              grid%lfn, grid%tign_g, ignited)
-        end do
-      end if
+      ! Apply each prescribed line; this expansion is separate from propagation.
+      do ig = 1, num_ignitions
+        call ignition_lines%Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+            ig, time_start, time_end, lons, lats, unit_fxlong, unit_fxlat, lfn, tign, ignited)
+      end do
 
-    end subroutine Ignite_prescribed_fires
+    end subroutine Ignite_fire_line
 
   end module fire_model_mod

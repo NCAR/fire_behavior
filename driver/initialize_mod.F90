@@ -28,6 +28,7 @@
 
       if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_atm_state')
 
+      call config_flags%Check_nml (require_atm_interval = .true.)
       atm_state = wrfdata_t ('wrf.nc', config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_atm_state')
