@@ -331,6 +331,12 @@ def validate_spec(spec: dict[str, Any]) -> None:
         raise ValueError("line ignition end fraction must exceed its start fraction")
     if spec["feature"]["real_perimeter"] and spec["ignition"]["count"] != 1:
         raise ValueError("Observed-perimeter cases require one ignition record for the activation time")
+    if spec["feature"]["real_perimeter"]:
+        ignition_time = _require_number(ignition, "start_time_s", 0.0, "ignition")
+        # Harness schedules are exact boundaries; the model separately admits
+        # single-precision roundoff and records any normalization of input time.
+        if abs(ignition_time / step - round(ignition_time / step)) > 1.0e-10:
+            raise ValueError("Perimeter ignition time must align with a fire timestep")
     if not spec["feature"]["real_perimeter"] and spec["ignition"]["count"] < 1:
         raise ValueError("Point and line cases require at least one ignition")
     if spec["model"]["num_tiles"] < 4:

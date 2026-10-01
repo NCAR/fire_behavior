@@ -229,3 +229,24 @@ physics call represents `[0,dt]` while physics receives `itimestep=1`. That
 confirmation is a merge condition, separate from executing candidate
 validation. Candidate activation still requires explicit team approval of
 the exact identifier and checksums, including the documented humidity limit.
+
+### Reviewed perimeter timing and source stack
+
+The Pedro review reconstruction orders source changes as PR1 -> PR4 -> PR3,
+followed by this harness. A supplied perimeter must ignite at a fire-step
+boundary. It is present in output at that inclusive endpoint and propagates
+from the following interval; the initial output includes a zero-time perimeter.
+Point/line ignition uses its separate elapsed-time prescription. The harness
+rejects partial-step perimeter schedules before building or launching.
+
+The model retains the equality-based atmospheric update trigger and validates
+that active exchange intervals are integer multiples of the fire timestep.
+Output follows any due forcing update; this does not change the forcing used
+by the completed advance. Intentional record skipping, general output/restart
+scheduling, partial-step perimeter propagation, and boundary-extrapolation bounds
+remain separate reviews described in `doc/Configuration.rst`.
+
+Original component initialization is retained. Post-ignition corner exchanges
+and physical-boundary refreshes precede fuel consumption. Any revised source
+requires a new immutable candidate; previously validated candidates do not
+certify this reconstruction. Humidity PR46 remains deferred.

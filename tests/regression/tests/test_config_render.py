@@ -93,6 +93,24 @@ class ConfigurationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_document(bad)
 
+    def test_perimeter_time_alignment(self) -> None:
+        """Reject partial-step perimeter activation before launching the model."""
+        for ignition_time, accepted in ((0.0, True), (8.0, True), (6.0, False)):
+            with self.subTest(ignition_time=ignition_time):
+                document = copy.deepcopy(self.document)
+                document["cases"]["terrain_fuel_fmc_wind"]["ignition"]["start_time_s"] = ignition_time
+                if accepted:
+                    resolve_spec(document, "terrain_fuel_fmc_wind", "quick", "ref94", None, "serial")
+                else:
+                    with self.assertRaisesRegex(ValueError, "Perimeter ignition time must align"):
+                        resolve_spec(document, "terrain_fuel_fmc_wind", "quick", "ref94", None, "serial")
+
+    def test_line_time_can_be_inside_step(self) -> None:
+        """Keep line-prescription timing independent of perimeter alignment."""
+        document = copy.deepcopy(self.document)
+        document["cases"]["fuel_strip_wind"]["ignition"]["start_time_s"] = 6.0
+        resolve_spec(document, "fuel_strip_wind", "quick", "ref94", None, "serial")
+
     def test_duplicate_yaml_key_rejected(self) -> None:
         """Reject duplicate YAML keys before later values can hide earlier policy."""
         path = SCRATCH_ROOT / str(uuid.uuid4()) / "duplicate-key-test.yaml"
