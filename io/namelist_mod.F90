@@ -383,6 +383,12 @@
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
+      if (this%fire_is_real_perim .and. this%fire_num_ignitions /= 1) &
+          call Stop_simulation ('observed-perimeter mode requires one ignition record for its activation time')
+      if (.not. this%fire_is_real_perim .and. this%fire_num_ignitions <= 0) &
+          call Stop_simulation ('line-ignition mode requires at least one ignition')
+      if (this%fire_is_real_perim .and. this%fire_ignition_start_time1 < 0.0) &
+          call Stop_simulation ('observed-perimeter activation time must be nonnegative')
 
     end subroutine Check_nml
 

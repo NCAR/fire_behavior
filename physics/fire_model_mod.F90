@@ -1,7 +1,7 @@
   module fire_model_mod
 
     use fire_physics_mod, only: Calc_flame_length, Calc_fire_fluxes, Calc_smoke_emissions
-    use level_set_mod, only: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, Extrapol_var_at_bdys, &
+    use level_set_mod, only: Calc_fuel_left, Update_ignition_times, Reinit_level_set, Prop_level_set, &
         Stop_if_close_to_bdy, Copy_lfnout_to_lfn, Reinit_level_set_fast_dist, Check_isolated_negative_lfn
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
@@ -45,6 +45,13 @@
       jfme = grid%jfme
 
       time_start = grid%itimestep * grid%dt
+
+      ! A perimeter scheduled at an interval boundary is active throughout
+      ! that interval. A perimeter scheduled inside an interval is installed
+      ! after propagation below and begins propagating on the next interval.
+      if (config_flags%fire_is_real_perim .and. .not. grid%observed_perimeter_active .and. &
+          config_flags%fire_ignition_start_time1 <= time_start) &
+          call grid%Activate_observed_perimeter (config_flags%fire_ignition_start_time1)
 
       if (DEBUG_LOCAL) call Print_message ('calling Prop_level_set...')
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &
@@ -133,6 +140,10 @@
 #endif
 
       if (config_flags%check_isolated_neg_lfn == 1) call Check_isolated_negative_lfn (grid)
+
+      if (config_flags%fire_is_real_perim .and. .not. grid%observed_perimeter_active .and. &
+          config_flags%fire_ignition_start_time1 < time_start + grid%dt) &
+          call grid%Activate_observed_perimeter (config_flags%fire_ignition_start_time1)
  
       if (DEBUG_LOCAL) call Print_message ('calling Ignite_prescribed_fires...')
       !$OMP PARALLEL DO   &
@@ -205,39 +216,14 @@
       real, intent (in) :: time_start
       integer, intent (in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde
 
-      real, parameter :: EPSILON = 0.00001
-      integer :: i, j, ig, ignitions_done, start_time_ig, end_time_ig, ignited
-        ! number of gridpts ignited in a given ignition
-      integer :: ignited_tile(config_flags%fire_num_ignitions)
+      integer :: ig, ignited
 
 
-      ig = 1
-      start_time_ig = grid%ignition_lines%start_time(ig)
-      end_time_ig  = grid%ignition_lines%end_time(ig)
-      ignitions_done = 0
-
-      if (config_flags%fire_is_real_perim .and. time_start >= start_time_ig .and. time_start < start_time_ig + grid%dt) then
-        ignited = 0
-        do j = jfts, jfte
-          do i = ifts, ifte
-            grid%lfn(i, j) = grid%lfn_hist(i, j)
-            if (abs(grid%lfn(i, j)) < EPSILON) then
-              grid%tign_g(i, j) = time_start
-              ignited = ignited + 1
-            end if
-          end do
-        end do
-
-        call Extrapol_var_at_bdys (ifms, ifme, jfms, jfme, ifds, ifde, jfds, jfde, &
-            ifts, ifte, jfts, jfte, grid%lfn)
-
-      else if (.not. config_flags%fire_is_real_perim) then
+      if (.not. config_flags%fire_is_real_perim) then
         do ig = 1, config_flags%fire_num_ignitions
           call grid%ignition_lines%Ignite_fire (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
               ig, time_start, time_start + grid%dt,  grid%lons, grid%lats, grid%unit_fxlong, grid%unit_fxlat, &
               grid%lfn, grid%tign_g, ignited)
-          ignitions_done = ignitions_done + 1
-          ignited_tile(ignitions_done) = ignited
         end do
       end if
 

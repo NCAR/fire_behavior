@@ -180,7 +180,7 @@
 
 
       n_ignitions = config_flags%fire_num_ignitions
-      if (n_ignitions <= 0) call Stop_simulation ('Not enough ignitions set')
+      if (n_ignitions < 0) call Stop_simulation ('The number of ignitions cannot be negative')
       if (n_ignitions > FIRE_MAX_IGNITIONS_IN_NAMELIST) call Stop_simulation ('FIRE_MAX_IGNITIONS_IN_NAMELIST too small')
 
       allocate (this%start_x(n_ignitions))
@@ -191,6 +191,8 @@
       allocate (this%end_time(n_ignitions))
       allocate (this%radius(n_ignitions))
       allocate (this%ros(n_ignitions))
+
+      if (n_ignitions == 0) return
 
       if (n_ignitions >= 1) then
         this%start_x(1) = config_flags%fire_ignition_start_lon1

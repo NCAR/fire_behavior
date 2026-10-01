@@ -198,7 +198,12 @@ Example namelists can be found in the various test subdirectories under the ``te
    Height of uah,vah wind in fire spread formula
 
 ``fire_is_real_perim``: *logical* (Default: ``.false.``)
-   Determines if perimeter represents a real fire boundary.
+   Determines if the supplied perimeter represents an observed fire boundary.
+   When this option is true, set ``fire_num_ignitions=1`` and use
+   ``fire_ignition_start_time1`` for the perimeter activation time.  The line
+   coordinates, radius, rate of spread, and end time in ignition record 1 are
+   ignored.
+
      .true. = observed perimeter
 
      .false. = point/line ignition
