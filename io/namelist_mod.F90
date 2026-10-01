@@ -217,6 +217,7 @@
       call Broadcast_integer (this%devel_opt)
       call Broadcast_integer (this%fuel_opt)
       call Broadcast_integer (this%ros_opt)
+      call Broadcast_integer (this%fmc_opt)
       call Broadcast_integer (this%emis_opt)
       call Broadcast_integer (this%wind_vinterp_opt)
       call Broadcast_integer (this%hinterp_opt)
@@ -773,7 +774,7 @@
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
-          num_tiles
+          num_tiles, tile_strategy
 
 
         ! Set default values
