@@ -11,7 +11,9 @@ are useful for testing a build, learning the workflow, and studying the
 sensitivity of fire spread to wind, fuel, and slope in a controlled setting.
 
 The domain (grid and map projection), fuels, terrain, and a constant wind are
-all defined in the ``&ideal`` section of the namelist.
+all defined in the ``&ideal`` section of the namelist. The ``ideal_opt`` option
+and ``&ideal`` section described here are available only for standalone runs,
+not for WRF-CFBM or NUOPC-coupled runs.
 
 Enabling idealized mode
 ========================================
