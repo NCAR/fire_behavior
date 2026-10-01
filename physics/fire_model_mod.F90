@@ -7,7 +7,7 @@
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
     use state_mod, only: state_fire_t, N_POINTS_IN_HALO
-    use stderrout_mod, only : Print_message
+    use stderrout_mod, only : Print_message, Stop_simulation
 
 #ifdef DM_PARALLEL
     use mpi_mod, only : Do_halo_exchange_with_corners
@@ -45,9 +45,13 @@
       jfms = grid%jfms
       jfme = grid%jfme
 
-      time_start = grid%itimestep * grid%dt
-
-      time_end = time_start + grid%dt
+      if (grid%itimestep < 1) call Stop_simulation ('Fire advance requires itimestep >= 1')
+      ! Advance_state increments first, so itimestep indexes the interval end.
+      ! Keep this counter for FMC and coupling; the first interval is [0,dt].
+      time_start = (grid%itimestep - 1) * grid%dt
+      ! Form the endpoint with the same multiplication used for ignition times
+      ! and the driver clock, avoiding a differently rounded time_start + dt.
+      time_end = grid%itimestep * grid%dt
 
       if (DEBUG_LOCAL) call Print_message ('calling Prop_level_set...')
       call Prop_level_set (ifds, ifde, jfds, jfde, ifms, ifme, jfms, jfme, &

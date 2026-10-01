@@ -8,11 +8,14 @@ function(add_cfbm_unit_test)
     # status zero. Check the expected rejection diagnostic rather than use
     # WILL_FAIL, which requires a nonzero exit status.
     set_tests_properties(${test_NAME} PROPERTIES PASS_REGULAR_EXPRESSION "${test_EXPECT}")
+  else()
+    # An unexpected serial STOP must not count as successful completion.
+    set_tests_properties(${test_NAME} PROPERTIES FAIL_REGULAR_EXPRESSION "STOP:")
   endif()
 endfunction()
 
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
-                      namelist_validation_unit)
+                      namelist_validation_unit time_interval_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -65,3 +68,13 @@ add_cfbm_unit_test(NAME namelist_interior_time_unit
   COMMAND namelist_validation_unit interior_time LABELS namelist
   EXPECT "STOP:perimeter ignition time must align")
 
+add_cfbm_unit_test(NAME time_interval_unit COMMAND time_interval_unit first LABELS timing
+  EXPECT "advance behavior passed: first")
+add_cfbm_unit_test(NAME time_interval_invalid_unit
+  COMMAND time_interval_unit invalid LABELS timing
+  EXPECT "STOP:Fire advance requires itimestep >= 1")
+foreach(scenario IN ITEMS perimeter perimeter_above perimeter_below perimeter_fractional)
+  add_cfbm_unit_test(NAME ${scenario}_advance_unit
+    COMMAND time_interval_unit ${scenario} LABELS perimeter timing
+    EXPECT "advance behavior passed: ${scenario}")
+endforeach()
