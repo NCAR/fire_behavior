@@ -1,5 +1,6 @@
   module netcdf_mod
 
+    use netcdf, only : NF90_FILL_FLOAT
     use stderrout_mod, only : Stop_simulation, Print_message
     use mpi_mod, only : Gather_var2d, Distribute_global_var2d
 
@@ -8,8 +9,9 @@
     private
 
     character (len = 2), parameter :: NAME_DIM_X = 'nx', NAME_DIM_Y = 'ny'
-    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_att, &
-       Is_netcdf_file_present, Is_netcdf_var_present, Add_netcdf_var_mpi, Get_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
+    public :: Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, &
+       Add_netcdf_att, Is_netcdf_file_present, Is_netcdf_var_present, Add_netcdf_var_mpi, Get_netcdf_var_mpi, &
+       NAME_DIM_X, NAME_DIM_Y, NF90_FILL_FLOAT
 
     interface Add_netcdf_att
       module procedure Add_netcdf_att_int32
@@ -153,7 +155,7 @@
 
     end subroutine Add_netcdf_dim
 
-    subroutine Add_netcdf_var_real32_2d (file_name, name_dims, varname, var)
+    subroutine Add_netcdf_var_real32_2d (file_name, name_dims, varname, var, fill_value, units, long_name)
 
       use netcdf
 
@@ -162,6 +164,8 @@
       character (len = *), intent (in) :: file_name, varname
       character (len = *), dimension(:), intent (in) :: name_dims
       real, dimension(:, :), intent (in) :: var
+      real, intent (in), optional :: fill_value
+      character (len = *), intent (in), optional :: units, long_name
 
       integer, parameter :: N_DIMS = 2
       integer :: ncidout, status, varid, n
@@ -183,6 +187,18 @@
       if (status == NF90_ENOTVAR) then
         status = nf90_def_var (ncidout, varname, NF90_FLOAT, dimids, varid)
         call Check_status (status)
+        if (present (fill_value)) then
+          status = nf90_put_att (ncidout, varid, '_FillValue', fill_value)
+          call Check_status (status)
+        end if
+        if (present (units)) then
+          status = nf90_put_att (ncidout, varid, 'units', units)
+          call Check_status (status)
+        end if
+        if (present (long_name)) then
+          status = nf90_put_att (ncidout, varid, 'long_name', long_name)
+          call Check_status (status)
+        end if
       end if
 
       status = nf90_enddef (ncidout)
@@ -196,7 +212,8 @@
 
     end subroutine Add_netcdf_var_real32_2d
 
-    subroutine Add_netcdf_var_real32_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local)
+    subroutine Add_netcdf_var_real32_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local, &
+        fill_value, units, long_name)
 
 #ifdef DM_PARALLEL
       use mpi
@@ -206,6 +223,8 @@
       integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
       character (len = *), intent (in) :: file_name, var_name
       real, dimension(ifps:ifpe, jfps:jfpe), intent (in) :: var2d_local
+      real, intent (in), optional :: fill_value
+      character (len = *), intent (in), optional :: units, long_name
 
       real, dimension(nx, ny) :: var2d
       integer :: rank, ierr
@@ -226,10 +245,12 @@
       call Gather_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_local(ifps:ifpe, jfps:jfpe), var2d)
 
       if (rank == 0) then
-        call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d(1:nx, 1:ny))
+        call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d(1:nx, 1:ny), &
+            fill_value, units, long_name)
       end if
 #else
-      call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d_local(1:nx, 1:ny))
+      call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d_local(1:nx, 1:ny), &
+          fill_value, units, long_name)
 #endif
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Add_netcdf_var_real32_2d_mpi...')

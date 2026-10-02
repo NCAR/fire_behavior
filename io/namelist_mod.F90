@@ -62,7 +62,7 @@
       integer :: fire_upwinding_reinit = 4    ! "numerical scheme (space) for reinitialization PDE: 1=WENO3, 2=WENO5, 3=hybrid WENO3-ENO1, 4=hybrid WENO5-ENO1"
       integer :: fire_lsm_band_ngp = 4        ! "number of grid points around lfn=0 that WENO5/3 is used (ENO1 elsewhere),
                                               ! for fire_upwinding_reinit=4,5 and fire_upwinding=8,9 options"
-      real :: reinit_pseudot_coef = 0.01      ! Coefficient for the pseudo time
+      real :: reinit_pseudot_coef = 0.0001    ! Coefficient for the pseudo time
 
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
@@ -223,6 +223,7 @@
       call Broadcast_integer (this%restart_interval)
       call Broadcast_integer (this%fuel_opt)
       call Broadcast_integer (this%ros_opt)
+      call Broadcast_integer (this%fmc_opt)
       call Broadcast_integer (this%emis_opt)
       call Broadcast_integer (this%wind_vinterp_opt)
       call Broadcast_integer (this%hinterp_opt)
@@ -783,7 +784,7 @@
 
       namelist /time/ start_year, start_month, start_day, start_hour, start_minute, start_second, &
           end_year, end_month, end_day, end_hour, end_minute, end_second, dt, interval_output, &
-          restart, restart_interval, num_tiles
+          restart, restart_interval, num_tiles, tile_strategy
 
 
         ! Set default values

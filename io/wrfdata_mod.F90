@@ -546,6 +546,9 @@
         case ('rain')
           var_wrf = this%rain
 
+        case ('z0')
+          var_wrf = this%z0
+
         case ('ua')
           var_wrf = this%ua
 
@@ -606,10 +609,10 @@
       call this%Get_q2 (datetime_now)
       call this%Get_psfc (datetime_now)
       call this%Get_rain (datetime_now)
+      call this%Get_z0 (datetime_now)
 
       select case (config_flags%wind_vinterp_opt)
         case (VINTERP_WINDS_FROM_3D_WINDS)
-          call this%Get_z0 (datetime_now)
           call this%Get_u3d (datetime_now)
           call this%Get_v3d (datetime_now)
           call this%Get_phl (datetime_now)
@@ -617,20 +620,20 @@
             ! Set input (i) and output (o) indices
           iims = this%ids
           iime = this%ide - 1
-          jims = this%ids
-          jime = this%ide - 1
+          jims = this%jds
+          jime = this%jde - 1
           kims = this%kds
           kime = this%kde - 1
 
           ioms = this%ids
           iome = this%ide - 1
-          joms = this%ids
-          jome = this%ide - 1
+          joms = this%jds
+          jome = this%jde - 1
 
           iops = this%ids
           iope = this%ide - 1
-          jops = this%ids
-          jope = this%ide - 1
+          jops = this%jds
+          jope = this%jde - 1
                                                    ! For compatibility with nuopc couplings
                                                    ! pass z_at_w with vertical dim kde - 1 instead of kde
           call Calc_fire_wind (this%u3d, this%v3d, this%phl(iims:iime, jims:jime, kims:kime) / G, this%z0, &
@@ -641,8 +644,6 @@
           call this%Destroy_u3d ()
           call this%Destroy_v3d ()
           call this%Destroy_phl ()
-          call this%Destroy_z0 ()
-
         case (VINTERP_WINDS_FROM_10M_WINDS)
           call this%Get_u10 (datetime_now)
           call this%Get_v10 (datetime_now)

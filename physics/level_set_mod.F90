@@ -1974,22 +1974,31 @@
 
     pure function Select_eno (diff_lx, diff_rx) result (return_value)
 
-      ! 1st order ENO scheme: choose the smaller magnitude derivative
-      ! Both positive: pick smaller
-      ! Both negative: pick larger (less negative)
-      ! Mixed signs: zero (derivative crosses zero)
+      ! 1st order ENO scheme
 
       implicit none
 
-      real, intent(in) :: diff_lx, diff_rx
+      real, intent (in):: diff_lx, diff_rx
       real :: return_value
 
+      real :: diff2x
 
-      if (diff_lx * diff_rx > 0.0) then
-        return_value = sign(1.0, diff_lx) * min(abs(diff_lx), abs(diff_rx))
+
+      if (.not. diff_lx > 0.0 .and. .not. diff_rx > 0.0) then
+        diff2x = diff_rx
+      else if (.not. diff_lx < 0.0 .and. .not. diff_rx < 0.0) then
+        diff2x = diff_lx
+      else if (.not. diff_lx < 0.0 .and. .not. diff_rx > 0.0) then
+        if (.not. abs (diff_rx) < abs(diff_lx)) then
+          diff2x = diff_rx
+        else
+          diff2x = diff_lx
+        end if
       else
-        return_value = 0.0
+        diff2x = 0.0
       end if
+
+      return_value = diff2x
 
     end function Select_eno
 
