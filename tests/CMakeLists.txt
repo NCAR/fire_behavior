@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 enable_testing()
 
+add_subdirectory(unit)
+
 add_test(NAME test7
          COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test7.s
          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

@@ -93,7 +93,40 @@
         end if
       end if
 
+      if (num_tiles > 0) call Validate_tile_layout (spx, epx, spy, epy, num_tiles, i_start, i_end, j_start, j_end)
+
     end subroutine Calc_tiles_dims
+
+    subroutine Validate_tile_layout (spx, epx, spy, epy, num_tiles, i_start, i_end, j_start, j_end)
+
+      implicit none
+
+      integer, intent (in) :: spx, epx, spy, epy, num_tiles
+      integer, dimension(num_tiles), intent (in) :: i_start, i_end, j_start, j_end
+
+      integer, dimension(:, :), allocatable :: coverage
+      integer :: i, j, tile
+
+
+      allocate (coverage(spx:epx, spy:epy))
+      coverage = 0
+      do tile = 1, num_tiles
+        if (i_start(tile) > i_end(tile) .or. j_start(tile) > j_end(tile)) &
+            call Stop_simulation ('Tile layout contains an empty tile')
+        if (i_start(tile) < spx .or. i_end(tile) > epx .or. &
+            j_start(tile) < spy .or. j_end(tile) > epy) &
+            call Stop_simulation ('Tile layout extends outside the local patch')
+        do j = j_start(tile), j_end(tile)
+          do i = i_start(tile), i_end(tile)
+            coverage(i, j) = coverage(i, j) + 1
+          end do
+        end do
+      end do
+
+      if (any (coverage == 0)) call Stop_simulation ('Tile layout does not cover the complete local patch')
+      if (any (coverage > 1)) call Stop_simulation ('Tile layout contains overlapping tiles')
+
+    end subroutine Validate_tile_layout
 
     subroutine least_aspect (nparts, minparts_y, minparts_x, nparts_y, nparts_x)
 
