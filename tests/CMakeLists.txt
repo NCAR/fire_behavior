@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
 enable_testing()
 
+add_executable(humidity_unit humidity_unit.F90)
+target_link_libraries(humidity_unit PRIVATE firelib)
+add_test(NAME humidity_unit COMMAND humidity_unit)
+
 add_test(NAME test7
          COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test7.s
          WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

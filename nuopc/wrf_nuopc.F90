@@ -16,6 +16,7 @@ module wrf_nuopc
   use datetime_mod, only : datetime_t
   use initialize_mod, only: Init_atm_state
   use stderrout_mod, only : Print_message, Stop_simulation
+  use humidity_mod, only : Mixing_ratio_to_specific_humidity
 
   implicit none
 
@@ -968,7 +969,7 @@ module wrf_nuopc
       ! 2D vars
       ! convert z0 from [m] to [cm]
     ptr_z0(clb(1):cub(1),clb(2):cub(2)) = state%z0(igs:ige,jgs:jge) * 100.0
-    ptr_q2(clb(1):cub(1),clb(2):cub(2)) = state%q2(igs:ige, jgs:jge)
+    ptr_q2(clb(1):cub(1),clb(2):cub(2)) = Mixing_ratio_to_specific_humidity (state%q2(igs:ige, jgs:jge))
     ptr_psfc(clb(1):cub(1),clb(2):cub(2)) = state%psfc(igs:ige, jgs:jge)
     ptr_rain(clb(1):cub(1),clb(2):cub(2)) = state%rain(igs:ige, jgs:jge)
     ptr_t2(clb(1):cub(1),clb(2):cub(2)) = state%t2(igs:ige, jgs:jge)

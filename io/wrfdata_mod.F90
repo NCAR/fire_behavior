@@ -27,7 +27,7 @@
       procedure, public :: Destroy_phl => Destroy_geopotential_levels
       procedure, public :: Destroy_psfc => Destroy_surface_pressure
       procedure, public :: Destroy_rain => Destroy_rain
-      procedure, public :: Destroy_q2 => Destroy_specific_humidity_2m
+      procedure, public :: Destroy_q2 => Destroy_mixing_ratio_2m
       procedure, public :: Destroy_t2 => Destroy_temperature_2m
       procedure, public :: Destroy_u10 => Destroy_zonal_wind10
       procedure, public :: Destroy_v10 => Destroy_meridional_wind10
@@ -41,7 +41,7 @@
       procedure, public :: Get_projection => Get_projection
       procedure, public :: Get_rain => Get_rain
       procedure, public :: Get_psfc => Get_surface_pressure
-      procedure, public :: Get_q2 => Get_specific_humidity_2m
+      procedure, public :: Get_q2 => Get_mixing_ratio_2m
       procedure, public :: Get_t2 => Get_temperature_2m
       procedure, public :: Get_u10 => Get_zonal_wind10
       procedure, public :: Get_u3d => Get_zonal_wind_3d
@@ -111,7 +111,7 @@
 
     end subroutine Destroy_surface_pressure
 
-    subroutine Destroy_specific_humidity_2m (this)
+    subroutine Destroy_mixing_ratio_2m (this)
 
       implicit none
 
@@ -119,7 +119,7 @@
 
       if (allocated(this%q2)) deallocate (this%q2)
 
-    end subroutine Destroy_specific_humidity_2m
+    end subroutine Destroy_mixing_ratio_2m
 
     subroutine Destroy_temperature_2m (this)
 
@@ -370,7 +370,7 @@
 
     end function Get_projection
 
-    subroutine Get_specific_humidity_2m (this, datetime)
+    subroutine Get_mixing_ratio_2m (this, datetime)
 
       implicit none
 
@@ -385,7 +385,7 @@
       call Get_netcdf_var (trim (this%file_name), 'Q2', var3d)
       this%q2 = var3d(:, :, nt)
 
-    end subroutine Get_specific_humidity_2m
+    end subroutine Get_mixing_ratio_2m
 
     subroutine Get_rain (this, datetime)
 
