@@ -15,13 +15,24 @@
 
   contains
 
-    module procedure Build_restart_file_name
+    module function Build_restart_file_name (restart_datetime) result (file_restart)
+
+      implicit none
+
+      character (len = *), intent (in) :: restart_datetime
+      character (len = :), allocatable :: file_restart
 
       file_restart = 'fire_restart_'//trim (restart_datetime)//'.nc'
 
-    end procedure Build_restart_file_name
+    end function Build_restart_file_name
 
-    module procedure Handle_restart
+    module subroutine Handle_restart (this, config_flags, initialize)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      type (namelist_t), intent (in) :: config_flags
+      logical, intent (in), optional :: initialize
 
       real :: restart_interval_seconds, restart_interval_error
       character (len = 256) :: msg
@@ -54,9 +65,15 @@
         if (mod (this%itimestep, this%restart_step_interval) == 0) call this%Write_restart (config_flags)
       end if
 
-    end procedure Handle_restart
+    end subroutine Handle_restart
 
-    module procedure Init_restart_dimensions
+    module subroutine Init_restart_dimensions (this, restart_file, ids0, ide0, jds0, jde0, ips, ipe, jps, jpe)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      character (len = *), intent (in) :: restart_file
+      integer, intent (out) :: ids0, ide0, jds0, jde0, ips, ipe, jps, jpe
 
       integer :: restart_nx, restart_ny
       integer (kind = INT32) :: att_int32
@@ -112,9 +129,15 @@
       jpe = jde0
 #endif
 
-    end procedure Init_restart_dimensions
+    end subroutine Init_restart_dimensions
 
-    module procedure Init_restart_projection
+    module subroutine Init_restart_projection (this, restart_file, proj)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      character (len = *), intent (in) :: restart_file
+      type (proj_lc_t), intent (out) :: proj
 
       integer :: restart_map_proj, restart_sr_x, restart_sr_y
       integer (kind = INT32) :: att_int32
@@ -188,9 +211,14 @@
 
       call this%Init_latlons (proj, srx = restart_sr_x, sry = restart_sr_y)
 
-    end procedure Init_restart_projection
+    end subroutine Init_restart_projection
 
-    module procedure Read_restart_static_fields
+    module subroutine Read_restart_static_fields (this, restart_file)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      character (len = *), intent (in) :: restart_file
 
       call Read_restart_field_2d (trim (restart_file), 'zsf', this%nx, this%ny, &
           this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%cfbm_comm, this%zsf)
@@ -203,7 +231,7 @@
       call Read_restart_field_2d (trim (restart_file), 'fz0', this%nx, this%ny, &
           this%ifms, this%ifme, this%jfms, this%jfme, this%ifps, this%ifpe, this%jfps, this%jfpe, this%cfbm_comm, this%fz0)
 
-    end procedure Read_restart_static_fields
+    end subroutine Read_restart_static_fields
 
     subroutine Require_restart_mpi_comm (this)
 
@@ -293,7 +321,12 @@
 
     end subroutine Broadcast_restart_real
 
-    module procedure Read_restart
+    module subroutine Read_restart (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      type (namelist_t), intent (in) :: config_flags
 
       type (datetime_t) :: datetime_restart, datetime_check
       character (len = :), allocatable :: file_restart
@@ -640,7 +673,7 @@
 
       end subroutine Set_next_datetime_after_restart
 
-    end procedure Read_restart
+    end subroutine Read_restart
 
     subroutine Read_restart_field_2d (file_name, var_name, nx, ny, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, cfbm_comm, var)
 
@@ -695,7 +728,12 @@
 
     end subroutine Validate_restart_real
 
-    module procedure Write_restart
+    module subroutine Write_restart (this, config_flags)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+      type (namelist_t), intent (in) :: config_flags
 
       character (len = :), allocatable :: file_restart
       integer :: start_year, start_month, start_day, start_hour, start_minute, start_second, &
@@ -843,6 +881,6 @@
 
       end subroutine Add_restart_field
 
-    end procedure Write_restart
+    end subroutine Write_restart
 
   end submodule state_restart_submod
