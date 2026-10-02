@@ -10,7 +10,8 @@
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y, &
+        NF90_FILL_FLOAT
     use proj_lc_mod, only : proj_lc_t
     use ros_mod, only : ros_t
     use stderrout_mod, only : Stop_simulation, Print_message
@@ -23,6 +24,8 @@
     private
 
     public :: state_fire_t, N_POINTS_IN_HALO
+
+    integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
     logical, dimension(2), parameter :: PERIODS = [ .false., .false. ]
@@ -107,6 +110,8 @@
 
         ! Output
       integer :: output_level
+        ! Resolved initialization path; supplied grid data can override ideal_opt.
+      integer :: init_mode = INIT_MODE_NONE
 
         ! For MPI tasks
       integer :: cfbm_comm ! The MPI communicator before the domain decomposition
@@ -317,19 +322,18 @@
       real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
 
-      integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
-      integer :: ids0, ide0, jds0, jde0, i, j, init_mode, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
+      integer :: ids0, ide0, jds0, jde0, i, j, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
       integer, dimension(2) :: coords
       character (len = 300) :: msg
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Init_domain...')
 
-      init_mode = INIT_MODE_NONE
-      if (config_flags%ideal_opt == 1) init_mode = INIT_MODE_IDEAL
-      if (present (geogrid)) init_mode = INIT_MODE_GEOGRID
+      this%init_mode = INIT_MODE_NONE
+      if (config_flags%ideal_opt == 1) this%init_mode = INIT_MODE_IDEAL
+      if (present (geogrid)) this%init_mode = INIT_MODE_GEOGRID
       if (present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. present (ifps) .and. present (ifpe) .and. &
           present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
           present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
@@ -337,17 +341,17 @@
           present (cen_lat) .and. present (cen_lon) .and. present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. &
           present (dx) .and. present (dy) .and. present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. &
           present (dzdxf) .and. present (dzdyf)) &
-          init_mode = INIT_MODE_WRF
+          this%init_mode = INIT_MODE_WRF
 
-      if (init_mode == INIT_MODE_NONE) &
+      if (this%init_mode == INIT_MODE_NONE) &
           call Stop_simulation ('Not enough information to initialize domain')
 
         ! Set dimensions
       if (DEBUG_LOCAL) call Print_message ('  Setting dimensions...')
-      Set_dims: select case (init_mode)
+      Set_dims: select case (this%init_mode)
         case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL)
 
-          if (init_mode == INIT_MODE_GEOGRID) then
+          if (this%init_mode == INIT_MODE_GEOGRID) then
 
             ids0 = geogrid%ifds
             ide0 = geogrid%ifde
@@ -404,7 +408,7 @@
             jpe = jde0
 #endif
 
-          else if (init_mode == INIT_MODE_IDEAL) then
+          else if (this%init_mode == INIT_MODE_IDEAL) then
 
             ids0 = 1
             ide0 = config_flags%nx
@@ -528,7 +532,7 @@
 
         ! Set projection
       if (DEBUG_LOCAL) call Print_message ('  Setting projection...')
-      Set_proj: select case (init_mode)
+      Set_proj: select case (this%init_mode)
         case (INIT_MODE_GEOGRID)
           proj = geogrid%Get_atm_proj ()
           call this%Init_latlons (proj, srx = geogrid%sr_x, sry = geogrid%sr_y)
@@ -574,7 +578,7 @@
       call this%Set_vars_to_default (config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Setting topo and fuels...')
-      Set_topo_fuels: select case (init_mode)
+      Set_topo_fuels: select case (this%init_mode)
         case (INIT_MODE_GEOGRID)
           this%zsf(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%elevations
           this%dzdxf(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%dz_dxs
@@ -814,11 +818,11 @@
           call Stop_simulation ('Init lats/lons before calling hinterp atm variables')
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'ua', config_flags%hinterp_opt, this%uf)
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'va', config_flags%hinterp_opt, this%vf)
 
       if (config_flags%wind_vinterp_opt == 1) then
@@ -828,20 +832,26 @@
       end if
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           't2', config_flags%hinterp_opt, this%fire_t2)
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'q2', config_flags%hinterp_opt, this%fire_q2)
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'psfc', config_flags%hinterp_opt, this%fire_psfc)
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          config_flags%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'rain', config_flags%hinterp_opt, this%fire_rain)
+
+      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+          'z0', config_flags%hinterp_opt, this%fz0)
+
+      call wrf%Destroy_z0 ()
 
     end subroutine Interpolate_vars_atm_to_fire
 
@@ -925,68 +935,74 @@
 
       if (DEBUG_LOCAL) call Print_message ('  Saving variables...')
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lats', &
-          this%lats(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%lats(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'degrees_north', 'fire-grid cell-center latitude')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lons', &
-          this%lons(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%lons(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'degrees_east', 'fire-grid cell-center longitude')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fgrnhfx', &
-          this%fgrnhfx(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fgrnhfx(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'W m-2', 'ground fire sensible heat flux')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fgrnqfx', &
-          this%fgrnqfx(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fgrnqfx(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'W m-2', 'ground fire latent heat flux')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_area', &
-          this%fire_area(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fire_area(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'fire-area fraction within cell')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac_burnt_dt', &
-          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', &
+          'fuel fraction burned during current fire timestep')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac', &
-          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'remaining fuel fraction')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'emis_smoke', &
-          this%emis_smoke(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%emis_smoke(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'kg m-2', &
+          'fire particulate emissions per cell area during current timestep')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_t2', &
-          this%fire_t2(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fire_t2(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'K', 'air temperature at 2 m')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_q2', &
-          this%fire_q2(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fire_q2(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'kg kg-1', &
+          'water-vapor mixing ratio at 2 m (legacy variable name)')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_psfc', &
-          this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'Pa', 'surface air pressure')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fire_rain', &
-          this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe), fill_value=NF90_FILL_FLOAT, &
+          long_name='standalone accumulated precipitation; coupled-driver units unresolved')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fz0', &
-          this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm', 'surface roughness length')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fmc_g', &
-          this%fmc_g(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%fmc_g(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'kg kg-1', 'ground fuel moisture content')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'uf', &
-          this%uf(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%uf(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm s-1', 'eastward wind used by fire spread')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'vf', &
-          this%vf(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%vf(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm s-1', 'northward wind used by fire spread')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'zsf', &
-          this%zsf(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%zsf(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm', 'fire-grid terrain height')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'lfn', &
-          this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'm', 'signed level-set distance to fire perimeter')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'nfuel_cat', &
-          this%nfuel_cat(this%ifps:this%ifpe, this%jfps:this%jfpe))
+          this%nfuel_cat(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'fuel category identifier')
 
       if (this%output_level > 0) then
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_ls', &
-              this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', &
+              'level-set gradient norm used during propagation')
 
           call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'grad_norm_reinit', &
-              this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe))
+              this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', &
+              'level-set gradient norm used during reinitialization')
       end if
 
       if (DEBUG_LOCAL) call Print_message ('Leaving Save_state...')
@@ -1051,6 +1067,25 @@
 
       this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe) = 1.0
       this%fire_area(this%ifps:this%ifpe, this%jfps:this%jfpe) = 0.0
+      this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe) = 0.0
+      this%fgrnhfx(this%ifps:this%ifpe, this%jfps:this%jfpe) = 0.0
+      this%fgrnqfx(this%ifps:this%ifpe, this%jfps:this%jfpe) = 0.0
+      this%grad_norm_ls(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%grad_norm_reinit(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+
+      ! Fill values mark unavailable atmospheric output; they are not valid FMC inputs.
+      ! Atmospheric forcing must replace them before the moisture model advances.
+      this%fire_t2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%fire_q2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      if (this%init_mode == INIT_MODE_IDEAL) then
+        this%fire_t2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+        this%fire_q2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+        this%fire_psfc_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+        this%fire_rain_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      end if
 
       this%emis_smoke = 0.0
 
@@ -1060,4 +1095,3 @@
     end subroutine Set_vars_to_default
 
   end module state_mod
-

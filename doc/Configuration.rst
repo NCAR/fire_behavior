@@ -24,8 +24,9 @@ The options specific to the CFBM are controlled by a :term:`namelist` file
 v4.8.0, these options are read from ``namelist.cfbm``; WRF's ``namelist.input``
 enables the coupling (see :ref:`WRF`). This namelist file consists of three
 required sections (``&time``, ``&atm``, and ``&fire``) and an optional ``&ideal``
-section that is read only for idealized runs (see ``ideal_opt``). The available
-options in each section are described below.
+section. The ``ideal_opt`` option and ``&ideal`` section are available only for
+standalone runs, not for WRF-CFBM or NUOPC-coupled runs. The available options
+in each section are described below.
 
 Example namelists can be found in the various test subdirectories under the ``tests/`` directory.
 
@@ -229,7 +230,9 @@ Example namelists can be found in the various test subdirectories under the ``te
      -1 = Constant fuel moisture (only option currently implemented)
 
 ``ideal_opt``: *integer* (Default: ``0``)
-   Selects a real-world or an idealized simulation.
+   Available only for standalone runs. Selects a real-world or an idealized
+   standalone simulation; it does not configure idealized WRF-CFBM or
+   NUOPC-coupled simulations.
      0: Real-world run. The domain (grid, map projection, fuel, and topography) is read from ``geo_em.d01.nc`` and the fire is driven by external atmospheric data.
 
      1: Idealized run. The domain and a constant wind forcing are constructed from the ``&ideal`` section below instead of being read from input files. Idealized runs do not support the fuel moisture model (``fmoist_run`` must be ``.false.``).
@@ -272,7 +275,11 @@ Example namelists can be found in the various test subdirectories under the ``te
 &ideal
 ------
 
-This section is read only when ``ideal_opt = 1``. It defines an idealized domain (uniform fuel, a simple slope, and a constant wind) so the model can run without ``geo_em.d01.nc`` or external atmospheric data.
+This section is available only for standalone runs and is read when
+``ideal_opt = 1``. It is not available for WRF-CFBM or NUOPC-coupled runs.
+It defines an idealized domain (uniform fuel, a simple slope, and a constant
+wind) so the standalone model can run without ``geo_em.d01.nc`` or external
+atmospheric data.
 
 ``nx``: *integer* (Default: ``100``)
    Number of fire-grid points in the x (west-east) direction.
