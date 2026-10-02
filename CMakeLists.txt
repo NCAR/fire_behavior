@@ -59,6 +59,7 @@ endif()
 
 # State
 list(APPEND _state_files state/state_mod.F90
+                         state/state_restart_submod.F90
 			 state/ignition_line_mod.F90
 	                 state/tiles_mod.F90)
 

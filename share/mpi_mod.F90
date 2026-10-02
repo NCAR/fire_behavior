@@ -8,7 +8,7 @@
 
     public :: Calc_tasks_in_x_and_y, Calc_patch_dims, Gather_var2d, Do_halo_exchange, Do_halo_exchange_with_corners, &
         Max_across_mpi_tasks, Sum_across_mpi_tasks, Distribute_var2d, Min_across_mpi_tasks, Convert_mpi_comm_to_f08, &
-        Print_cart_info, topology_dim_order
+        Distribute_global_var2d, Print_cart_info, topology_dim_order
 
     ! --- Topology Ordering Flag ---
     ! 0 = Default (Fortran order: X is Dim 0, Y is Dim 1)
@@ -203,6 +203,74 @@
       if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) 'Leaving Distribute_var2d...'
 
     end subroutine Distribute_var2d
+
+    subroutine Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_global, var2d_local)
+
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+      implicit none
+
+      integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
+      real, dimension(:, :), allocatable, intent (in out) :: var2d_global
+      real, dimension(ifps:ifpe, jfps:jfpe), intent (out) :: var2d_local
+
+      integer :: i, ierr, j, kbuf, nprocs, nx_local, ny_local, r, rank
+      integer, dimension(:), allocatable :: all_ifps, all_ifpe, all_jfps, all_jfpe, displs, sendcounts
+      real, dimension(:), allocatable :: sendbuf
+
+
+#ifdef DM_PARALLEL
+      call Mpi_comm_rank (cfbm_comm, rank, ierr)
+      call Mpi_comm_size (cfbm_comm, nprocs, ierr)
+
+      nx_local = ifpe - ifps + 1
+      ny_local = jfpe - jfps + 1
+
+      if (rank == 0) then
+        allocate (all_ifps(nprocs), all_ifpe(nprocs), all_jfps(nprocs), all_jfpe(nprocs))
+      else
+        allocate (all_ifps(1), all_ifpe(1), all_jfps(1), all_jfpe(1))
+      end if
+
+      call MPI_Gather (ifps, 1, MPI_INTEGER, all_ifps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      call MPI_Gather (ifpe, 1, MPI_INTEGER, all_ifpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      call MPI_Gather (jfps, 1, MPI_INTEGER, all_jfps, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+      call MPI_Gather (jfpe, 1, MPI_INTEGER, all_jfpe, 1, MPI_INTEGER, 0, cfbm_comm, ierr)
+
+      if (rank == 0) then
+        allocate (sendcounts(nprocs), displs(nprocs))
+        do r = 1, nprocs
+          sendcounts(r) = (all_ifpe(r) - all_ifps(r) + 1) * (all_jfpe(r) - all_jfps(r) + 1)
+        end do
+
+        displs(1) = 0
+        do r = 2, nprocs
+          displs(r) = displs(r - 1) + sendcounts(r - 1)
+        end do
+
+        allocate (sendbuf(sum (sendcounts)))
+        kbuf = 0
+        do r = 1, nprocs
+          do j = all_jfps(r), all_jfpe(r)
+            do i = all_ifps(r), all_ifpe(r)
+              kbuf = kbuf + 1
+              sendbuf(kbuf) = var2d_global(i, j)
+            end do
+          end do
+        end do
+      else
+        allocate (sendcounts(1), displs(1), sendbuf(1))
+      end if
+
+      call MPI_Scatterv (sendbuf, sendcounts, displs, MPI_REAL, var2d_local, nx_local * ny_local, MPI_REAL, 0, cfbm_comm, ierr)
+
+      deallocate (all_ifps, all_ifpe, all_jfps, all_jfpe, sendcounts, displs, sendbuf)
+#else
+      var2d_local(1:nx, 1:ny) = var2d_global(1:nx, 1:ny)
+#endif
+
+    end subroutine Distribute_global_var2d
 
     subroutine Do_halo_exchange (patch, ims, ime, jms, jme, ips, ipe, jps, jpe, nghost, cart_comm)
 

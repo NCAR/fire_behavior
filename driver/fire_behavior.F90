@@ -8,6 +8,7 @@
     use initialize_mod, only : Init_fire_state, Init_atm_state
     use advance_mod, only : Advance_state
     use wrfdata_mod, only : wrfdata_t
+    use stderrout_mod, only : Print_message
     use, intrinsic :: iso_fortran_env, only : ERROR_UNIT, OUTPUT_UNIT
 
     implicit none
@@ -71,14 +72,23 @@
 
     end select
 
-    if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Saving fire state...'
-    call grid%Save_state ()
+    if (.not. config_flags%restart) then
+      if (DEBUG_LOCAL) call Print_message ('    Saving fire state')
+      call grid%Save_state ()
+    end if
+
+    call grid%Handle_restart (config_flags, initialize = .true.)
 
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Starting temporal loop...'
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
+
+      call grid%Check_model_clock ()
+
       call grid%Handle_output (config_flags)
       if (config_flags%ideal_opt == 0) call grid%Handle_wrfdata_update (atm_state, config_flags)
+
+      call grid%Handle_restart (config_flags)
     end do
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Completed temporal loop'
 

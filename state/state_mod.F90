@@ -10,8 +10,8 @@
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use namelist_mod, only : namelist_t
-    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y, &
-        NF90_FILL_FLOAT
+    use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, &
+        NAME_DIM_X, NAME_DIM_Y, NF90_FILL_FLOAT
     use proj_lc_mod, only : proj_lc_t
     use ros_mod, only : ros_t
     use stderrout_mod, only : Stop_simulation, Print_message
@@ -25,7 +25,7 @@
 
     public :: state_fire_t, N_POINTS_IN_HALO
 
-    integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3
+    integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3, INIT_MODE_RESTART = 4
 
     integer, parameter :: N_POINTS_IN_HALO = 5, N_DIMS = 2
     logical, dimension(2), parameter :: PERIODS = [ .false., .false. ]
@@ -110,6 +110,8 @@
 
         ! Output
       integer :: output_level
+      integer :: restart_step_interval = -1
+      logical :: is_restart_output_initialized = .false.
         ! Resolved initialization path; supplied grid data can override ideal_opt.
       integer :: init_mode = INIT_MODE_NONE
 
@@ -122,8 +124,10 @@
     contains
       procedure, public :: Allocate_vars => Allocate_vars
       procedure, public :: Apply_wafs => Apply_wafs
+      procedure, public :: Check_model_clock => Check_model_clock
       procedure, public :: Convert_sb_to_ander => Convert_scottburgan_to_anderson
       procedure, public :: Handle_output => Handle_output
+      procedure, public :: Handle_restart => Handle_restart
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
       procedure, public :: Init_fuel_vars => Init_fuel_vars
       procedure, public :: Initialization => Init_domain
@@ -134,11 +138,53 @@
       procedure :: Interpolate_vars_atm_to_fire => Interpolate_vars_atm_to_fire
       procedure, public :: Print => Print_domain ! private
       procedure, public :: Print_tiles => Print_tiles
+      procedure, public :: Read_restart => Read_restart
       procedure, public :: Save_state => Save_state
       procedure, public :: Set_vars_to_default => Set_vars_to_default
       procedure, public :: Set_mpi_comm_cfbm => Set_mpi_comm_cfbm
       procedure, public :: Set_time_stamps => Set_time_stamps
+      procedure, public :: Write_restart => Write_restart
     end type state_fire_t
+
+    interface
+      module function Build_restart_file_name (restart_datetime) result (file_restart)
+        character (len = *), intent (in) :: restart_datetime
+        character (len = :), allocatable :: file_restart
+      end function Build_restart_file_name
+
+      module subroutine Init_restart_dimensions (this, restart_file, ids0, ide0, jds0, jde0, ips, ipe, jps, jpe)
+        class (state_fire_t), intent (in out) :: this
+        character (len = *), intent (in) :: restart_file
+        integer, intent (out) :: ids0, ide0, jds0, jde0, ips, ipe, jps, jpe
+      end subroutine Init_restart_dimensions
+
+      module subroutine Init_restart_projection (this, restart_file, proj)
+        class (state_fire_t), intent (in out) :: this
+        character (len = *), intent (in) :: restart_file
+        type (proj_lc_t), intent (out) :: proj
+      end subroutine Init_restart_projection
+
+      module subroutine Read_restart_static_fields (this, restart_file)
+        class (state_fire_t), intent (in out) :: this
+        character (len = *), intent (in) :: restart_file
+      end subroutine Read_restart_static_fields
+
+      module subroutine Read_restart (this, config_flags)
+        class (state_fire_t), intent (in out) :: this
+        type (namelist_t), intent (in) :: config_flags
+      end subroutine Read_restart
+
+      module subroutine Handle_restart (this, config_flags, initialize)
+        class (state_fire_t), intent (in out) :: this
+        type (namelist_t), intent (in) :: config_flags
+        logical, intent (in), optional :: initialize
+      end subroutine Handle_restart
+
+      module subroutine Write_restart (this, config_flags)
+        class (state_fire_t), intent (in) :: this
+        type (namelist_t), intent (in) :: config_flags
+      end subroutine Write_restart
+    end interface
 
   contains
 
@@ -253,6 +299,21 @@
 
     end subroutine Convert_scottburgan_to_anderson
 
+    subroutine Check_model_clock (this)
+
+      implicit none
+
+      class (state_fire_t), intent (in) :: this
+
+      type (datetime_t) :: datetime_check
+
+
+      datetime_check = this%datetime_start
+      call datetime_check%Add_seconds (this%itimestep * this%dt)
+      if (datetime_check /= this%datetime_now) call Stop_simulation ('Model clock is inconsistent with itimestep and dt')
+
+    end subroutine Check_model_clock
+
     subroutine Handle_output (this, config_flags)
 
       implicit none
@@ -322,26 +383,40 @@
       real, intent (in), optional :: cen_lat, cen_lon, truelat1, truelat2, stand_lon, dx, dy
       real, dimension(:, :), intent (in), optional :: nfuel_cat, zsf, dzdxf, dzdyf
 
+      type (datetime_t) :: datetime_restart
       type (proj_lc_t) :: proj
       logical, parameter :: DEBUG_LOCAL = .false.
-      integer :: ids0, ide0, jds0, jde0, i, j, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, is_lfn_init_allocated
+      logical :: has_wrf_metadata
+      integer :: ids0, ide0, jds0, jde0, i, j, px, py, ntasks, ierr, cart_comm, rank, ips, ipe, jps, jpe, &
+          is_lfn_init_allocated
       integer, dimension(2) :: coords
       character (len = 300) :: msg
+      character (len = :), allocatable :: file_restart
 
 
       if (DEBUG_LOCAL) call Print_message ('Entering Init_domain...')
 
+      has_wrf_metadata = present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. &
+          present (ifps) .and. present (ifpe) .and. present (jfds) .and. present (jfde) .and. present (jfms) .and. &
+          present (jfme) .and. present (jfps) .and. present (jfpe) .and. present (kfds) .and. present (kfde) .and. &
+          present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. present (kfts) .and. &
+          present (kfte) .and. present (ide) .and. present (jde) .and. present (cen_lat) .and. present (cen_lon) .and. &
+          present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. present (dx) .and. present (dy) .and. &
+          present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. present (dzdxf) .and. &
+          present (dzdyf)
+
+      if (config_flags%ideal_opt == 0 .and. config_flags%restart .and. .not. present (geogrid) .and. &
+          .not. has_wrf_metadata) then
+        datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
+            config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
+        file_restart = Build_restart_file_name (datetime_restart%datetime)
+      end if
+
       this%init_mode = INIT_MODE_NONE
       if (config_flags%ideal_opt == 1) this%init_mode = INIT_MODE_IDEAL
       if (present (geogrid)) this%init_mode = INIT_MODE_GEOGRID
-      if (present (ifds) .and. present (ifde) .and. present (ifms) .and. present (ifme) .and. present (ifps) .and. present (ifpe) .and. &
-          present (jfds) .and. present (jfde) .and. present (jfms) .and. present (jfme) .and. present (jfps) .and. present (jfpe) .and. &
-          present (kfds) .and. present (kfde) .and. present (kfms) .and. present (kfme) .and. present (kfps) .and. present (kfpe) .and. &
-          present (kfts) .and. present (kfte) .and. present (ide) .and. present (jde) .and. &
-          present (cen_lat) .and. present (cen_lon) .and. present (truelat1) .and. present (truelat2) .and. present (stand_lon) .and. &
-          present (dx) .and. present (dy) .and. present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. &
-          present (dzdxf) .and. present (dzdyf)) &
-          this%init_mode = INIT_MODE_WRF
+      if (allocated (file_restart)) this%init_mode = INIT_MODE_RESTART
+      if (has_wrf_metadata) this%init_mode = INIT_MODE_WRF
 
       if (this%init_mode == INIT_MODE_NONE) &
           call Stop_simulation ('Not enough information to initialize domain')
@@ -349,7 +424,7 @@
         ! Set dimensions
       if (DEBUG_LOCAL) call Print_message ('  Setting dimensions...')
       Set_dims: select case (this%init_mode)
-        case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL)
+        case (INIT_MODE_GEOGRID, INIT_MODE_IDEAL, INIT_MODE_RESTART)
 
           if (this%init_mode == INIT_MODE_GEOGRID) then
 
@@ -444,6 +519,9 @@
             jps = jds0
             jpe = jde0
 #endif
+          else if (this%init_mode == INIT_MODE_RESTART) then
+
+            call Init_restart_dimensions (this, trim (file_restart), ids0, ide0, jds0, jde0, ips, ipe, jps, jpe)
           end if 
 
           this%ifds = ids0
@@ -567,6 +645,9 @@
 
           call this%Init_latlons (proj)
 
+        case (INIT_MODE_RESTART)
+          call Init_restart_projection (this, trim (file_restart), proj)
+
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 2')
 
@@ -617,12 +698,15 @@
           if (config_flags%fire_is_real_perim) &
               call Stop_simulation ('Not ready to initialize from fire perimeter in idealized mode')
 
+        case (INIT_MODE_RESTART)
+          call Read_restart_static_fields (this, trim (file_restart))
+
         case default
           call Stop_simulation ('Not ready to complete fire state initialization 3')
 
       end select Set_topo_fuels
 
-      if (config_flags%fuel_opt == FUEL_ANDERSON) call this%Convert_sb_to_ander ()
+      if (config_flags%fuel_opt == FUEL_ANDERSON .and. this%init_mode /= INIT_MODE_RESTART) call this%Convert_sb_to_ander ()
 
         ! Set clock
       if (DEBUG_LOCAL) call Print_message ('  Setting clock...')

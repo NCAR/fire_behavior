@@ -13,10 +13,10 @@
     ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
     ! 30%  Completely cured, treat as dead fuel
 
+    use, intrinsic :: iso_fortran_env, only : REAL32
     use stderrout_mod, only : Stop_simulation
+    use netcdf_mod, only : Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
     use ros_mod, only : ros_t
-    use state_mod, only: state_fire_t
-    use namelist_mod, only : namelist_t
     use fmc_mod, only : fmc_t
     use fuel_mod, only : fuel_t
 
@@ -24,10 +24,14 @@
 
     private
 
-    public :: fmc_wrffire_t
+    public :: fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME
 
     integer, parameter :: MOISTURE_CLASSES = 5, NUM_FMEP = 2
     real, parameter :: FMEP_DECAY_TLAG = 999999 ! time constant of assimilated adjustments of equilibria decay
+    character (len = *), parameter :: NAME_DIM_MOISTURE_CLASS = 'moisture_class'
+    character (len = *), parameter :: NAME_VAR_FMC_GC = 'fmc_gc'
+    character (len = *), parameter :: NAME_ATT_FMOIST_LASTTIME = 'fmc_fmoist_lasttime'
+    character (len = *), parameter :: NAME_ATT_FMOIST_NEXTTIME = 'fmc_fmoist_nexttime'
 
     type, extends(fmc_t) :: fmc_wrffire_t
       real :: fmoist_lasttime, fmoist_nexttime, dt_moisture
@@ -42,6 +46,7 @@
       procedure, public :: Advance_fmc_model => Advance_fmc_model
       procedure, public :: Advance_moisture_classes => Advance_moisture_classes
       procedure, public :: Average_moisture_classes => Average_moisture_classes
+      procedure, public :: Add_restart_vars => Add_restart_vars
       procedure, public :: Init => Init_fmc_wrffire
     end type fmc_wrffire_t
 
@@ -63,6 +68,50 @@
                                                        fmc_gc_initialization = [ 2, 2, 2, 2, 3 ]
 
   contains
+
+    subroutine Add_restart_vars (this, file_restart, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, rank)
+
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+      implicit none
+
+      class (fmc_wrffire_t), intent (in) :: this
+      character (len = *), intent (in) :: file_restart
+      integer, intent (in) :: cfbm_comm
+      integer, intent (in) :: nx
+      integer, intent (in) :: ny
+      integer, intent (in) :: ifps
+      integer, intent (in) :: ifpe
+      integer, intent (in) :: jfps
+      integer, intent (in) :: jfpe
+      integer, intent (in) :: rank
+
+      character (len = 32), dimension(3) :: dim_names_fmc_gc
+      integer :: ierr, n_moisture_classes
+
+
+      if (.not. allocated (this%fmc_gc)) call Stop_simulation ('FMC restart write requires allocated fmc_gc')
+
+      n_moisture_classes = size (this%fmc_gc, 2)
+      if (rank == 0) call Add_netcdf_dim (file_restart, NAME_DIM_MOISTURE_CLASS, n_moisture_classes)
+#ifdef DM_PARALLEL
+      call MPI_Barrier (cfbm_comm, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with MPI_Barrier for FMC restart write')
+#endif
+
+      dim_names_fmc_gc(1) = NAME_DIM_X
+      dim_names_fmc_gc(2) = NAME_DIM_MOISTURE_CLASS
+      dim_names_fmc_gc(3) = NAME_DIM_Y
+      call Add_netcdf_var_mpi (file_restart, dim_names_fmc_gc, cfbm_comm, nx, ny, n_moisture_classes, &
+          ifps, ifpe, jfps, jfpe, NAME_VAR_FMC_GC, this%fmc_gc(ifps:ifpe, 1:n_moisture_classes, jfps:jfpe))
+
+      if (rank == 0) then
+        call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_LASTTIME, real (this%fmoist_lasttime, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_NEXTTIME, real (this%fmoist_nexttime, kind = REAL32))
+      end if
+
+    end subroutine Add_restart_vars
 
     subroutine Init_fmc_wrffire (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
 
