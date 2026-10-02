@@ -20,6 +20,20 @@ foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
 
+# Atmospheric initialization validates timing without requiring an ignition.
+add_cfbm_unit_test(NAME namelist_atm_only_unit
+  COMMAND namelist_validation_unit atm_only LABELS namelist timing
+  EXPECT "namelist validation accepted: atm_only")
+add_cfbm_unit_test(NAME namelist_atm_nonmultiple_unit
+  COMMAND namelist_validation_unit atm_nonmultiple LABELS namelist timing
+  EXPECT "STOP:interval_atm must be an integer multiple of dt")
+add_cfbm_unit_test(NAME namelist_atm_missing_unit
+  COMMAND namelist_validation_unit atm_missing LABELS namelist timing
+  EXPECT "STOP:interval_atm must be positive")
+add_cfbm_unit_test(NAME namelist_atm_zero_dt_unit
+  COMMAND namelist_validation_unit atm_zero_dt LABELS namelist timing
+  EXPECT "STOP:dt must be finite and positive")
+
 add_cfbm_unit_test(NAME tiles_unit COMMAND tiles_unit LABELS tiles)
 add_cfbm_unit_test(NAME tile_namelist_unit COMMAND tile_namelist_unit LABELS tiles namelist)
 add_cfbm_unit_test(NAME observed_perimeter_unit COMMAND observed_perimeter_unit LABELS perimeter)

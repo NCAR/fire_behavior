@@ -22,6 +22,12 @@ program namelist_validation_unit
   require_atm = .true.
 
   select case (trim (scenario))
+    case ('atm_only', 'atm_nonmultiple', 'atm_missing', 'atm_zero_dt')
+      ! A partial atmospheric configuration has no fire ignition settings.
+      config%fire_num_ignitions = 0
+      if (scenario == 'atm_nonmultiple') config%interval_atm = 6
+      if (scenario == 'atm_missing') config%interval_atm = -1
+      if (scenario == 'atm_zero_dt') config%dt = 0.0
     case ('aligned')
     case ('reversed')
       config%dt = 8.0
@@ -61,7 +67,11 @@ program namelist_validation_unit
       error stop 'unknown namelist validation scenario'
   end select
 
-  call config%Check_nml (require_atm_interval = require_atm)
+  if (index (scenario, 'atm_') == 1) then
+    call config%Check_time_intervals (require_atm_interval = .true.)
+  else
+    call config%Check_nml (require_atm_interval = require_atm)
+  end if
   write (*, '(a)') 'namelist validation accepted: ' // trim (scenario)
 #ifdef DM_PARALLEL
   call MPI_Finalize (ierr)

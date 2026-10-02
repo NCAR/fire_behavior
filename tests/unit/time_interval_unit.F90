@@ -62,6 +62,8 @@ program time_interval_unit
     if (scenario == 'perimeter_below') config%fire_ignition_start_time1 = nearest (endpoint, -1.0)
   end if
 
+  ! This fixture assigns settings directly, bypassing Init_namelist validation.
+  call config%Check_nml ()
   call Init_fire_state (grid, config)
   ! Ideal initialization leaves unavailable forcing marked, including old fields.
   if (grid%fire_t2(20,20) /= NF90_FILL_FLOAT .or. grid%fire_t2_old(20,20) /= NF90_FILL_FLOAT) &

@@ -336,8 +336,6 @@
 
       if (DEBUG_LOCAL) call Print_message ('Entering Init_domain...')
 
-      ! Validate programmatic/coupled configurations before allocating state.
-      call config_flags%Check_nml ()
       this%init_mode = INIT_MODE_NONE
       if (config_flags%ideal_opt == 1) this%init_mode = INIT_MODE_IDEAL
       if (present (geogrid)) this%init_mode = INIT_MODE_GEOGRID
