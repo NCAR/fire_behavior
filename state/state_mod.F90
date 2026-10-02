@@ -23,7 +23,7 @@
 
     private
 
-    public :: state_fire_t, N_POINTS_IN_HALO, Build_restart_file_name
+    public :: state_fire_t, N_POINTS_IN_HALO
 
     integer, parameter :: INIT_MODE_NONE = 0, INIT_MODE_GEOGRID = 1, INIT_MODE_WRF = 2, INIT_MODE_IDEAL = 3, INIT_MODE_RESTART = 4
 
@@ -368,7 +368,7 @@
                             kfds, kfde, kfms, kfme, kfps, kfpe, &
                             kfts, kfte, ide, jde, &
                             cen_lat, cen_lon, truelat1, truelat2, stand_lon, &
-                            dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf, restart_file)
+                            dx, dy, sr_x, sr_y, nfuel_cat, zsf, dzdxf, dzdyf)
 
 
       implicit none
@@ -376,7 +376,6 @@
       class (state_fire_t), intent(in out) :: this
       type (namelist_t), intent (in) :: config_flags
       type (geogrid_t), intent (in out), optional :: geogrid
-      character (len = *), intent (in), optional :: restart_file
       integer, intent (in), optional :: ifds, ifde, ifms, ifme, ifps, ifpe, &
                                         jfds, jfde, jfms, jfme, jfps, jfpe, &
                                         kfds, kfde, kfms, kfme, kfps, kfpe, &
@@ -406,9 +405,8 @@
           present (sr_x) .and. present (sr_y) .and. present (nfuel_cat) .and. present (zsf) .and. present (dzdxf) .and. &
           present (dzdyf)
 
-      if (present (restart_file)) file_restart = restart_file
       if (config_flags%ideal_opt == 0 .and. config_flags%restart .and. .not. present (geogrid) .and. &
-          .not. has_wrf_metadata .and. .not. allocated (file_restart)) then
+          .not. has_wrf_metadata) then
         datetime_restart = datetime_t (config_flags%start_year, config_flags%start_month, config_flags%start_day, &
             config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
         file_restart = Build_restart_file_name (datetime_restart%datetime)
