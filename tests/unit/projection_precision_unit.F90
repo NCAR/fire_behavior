@@ -1,5 +1,10 @@
 program projection_precision_unit
 
+  ! Convert prescribed latitudes and longitudes to Lambert grid indices and
+  ! compare with independent reference values. Check both hemispheres,
+  ! coincident standard parallels, and longitude wrapping, allowing only the
+  ! rounding needed to return single-precision indices.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use proj_lc_mod, only : proj_lc_t
 

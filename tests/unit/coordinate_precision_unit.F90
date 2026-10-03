@@ -1,5 +1,10 @@
 program coordinate_precision_unit
 
+  ! Write small NetCDF coordinate fixtures in single and double precision, then
+  ! read them through the atmospheric reader. Check that double-precision
+  ! coordinates retain their detail and single-precision values are preserved
+  ! when promoted to the reader's double-precision storage.
+
   use, intrinsic :: iso_fortran_env, only : REAL32, REAL64, INT64
   use netcdf
   use wrfdata_mod, only : wrfdata_t

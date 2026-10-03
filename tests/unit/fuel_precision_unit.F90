@@ -1,5 +1,10 @@
 program fuel_precision_unit
 
+  ! Evaluate a uniformly burning cell against analytical exponential decay.
+  ! Check that double-precision storage preserves small consumption increments,
+  ! that accumulated consumption matches the loss of remaining fuel, and that
+  ! an unignited cell consumes no fuel.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use state_mod, only : state_fire_t
   use level_set_mod, only : Calc_fuel_left
