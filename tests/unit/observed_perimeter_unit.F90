@@ -1,5 +1,10 @@
 program observed_perimeter_unit
 
+  ! Install a small supplied perimeter immediately or at a delayed start time.
+  ! Check that a delayed perimeter remains inactive until explicitly ignited,
+  ! then restores the supplied level set and assigns the scheduled ignition
+  ! time to burned cells while preserving unburned-cell ignition markers.
+
   use state_mod, only : state_fire_t
 
   implicit none
