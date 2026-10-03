@@ -1,5 +1,11 @@
 program time_interval_unit
 
+  ! Advance a small idealized fire grid to check that the first interval includes
+  ! zero-time ignition and that an invalid timestep counter is rejected. Other
+  ! CTest scenarios check delayed perimeter installation at an interval endpoint
+  ! and propagation on the following interval, including roundoff-sized timing
+  ! offsets and a fractional-second timestep.
+
   use namelist_mod, only : namelist_t
   use state_mod, only : state_fire_t
   use initialize_mod, only : Init_fire_state
