@@ -1,5 +1,7 @@
   module level_set_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
+
   ! References:
   !
   ! Based on S. Osher and R. Fedkiw, Level set methods and dynamic implicit surfaces,
@@ -47,14 +49,17 @@
       integer, intent (in) :: its, ite, jts, jte, ims, ime, jms, jme, ifs, ife, jfs, jfe
       real, intent (in), dimension (ims:ime, jms:jme) :: lfn,tign, fuel_time
       real, intent (in) :: time_now
-      real, intent (in out), dimension (ims:ime, jms:jme) :: fuel_frac
-      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area, fuel_frac_burnt_dt
+      real(REAL64), intent (in out), dimension (ims:ime, jms:jme) :: fuel_frac
+      real(REAL64), intent (out), dimension (ims:ime, jms:jme) :: fuel_frac_burnt_dt
+      real, intent (out), dimension (ims:ime, jms:jme) :: fire_area
 
-      real, dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
+      real(REAL64), dimension (ifs:ife, jfs:jfe) :: fuel_frac_end
       integer :: i, j, ir, jr, icl, jcl, isubcl, jsubcl, i2, j2, ii, jj
-      real :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, rx, ry, tignf(2,2)
+      ! Promote before subcell interpolation and burning-curve evaluation;
+      ! promoting only the final subtraction cannot recover rounded fractions.
+      real(REAL64) :: fmax, frat, helpsum1, helpsum2, fuel_left_ff, fire_area_ff, rx, ry, tignf(2,2)
          ! help variables instead of arrays fuel_left_f and fire_area_f 
-      real :: lffij, lffi1j, lffij1, lffi1j1, tifij, tifi1j, tifij1, tifi1j1, tx, ty, txx, tyy
+      real(REAL64) :: lffij, lffi1j, lffij1, lffi1j1, tifij, tifi1j, tifij1, tifi1j1, tx, ty, txx, tyy
          ! variables for calculation instead of lff(i,j) and tif(i,j)is lffij,tifij etc..
       character (len = 128) :: msg
       integer :: m, omp_get_thread_num
@@ -172,7 +177,7 @@
                   + txx * tyy * tignf(1 + 1, 1 + 1)
  
              call Calc_fuel_left_at_grid_point (lffij, lffij1, lffi1j, lffi1j1, &
-                 tifij, tifij1, tifi1j, tifi1j1, time_now, fuel_time(icl,jcl), &
+                 tifij, tifij1, tifi1j, tifi1j1, real(time_now, REAL64), real(fuel_time(icl,jcl), REAL64), &
                  fuel_left_ff, fire_area_ff)
 
                 ! consistency check
@@ -237,11 +242,11 @@
 
       implicit none
 
-      real, intent (in) :: lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
+      real(REAL64), intent (in) :: lfn00, lfn01, lfn10, lfn11, tign00, tign01, tign10, tign11, &
           time_now, fuel_time_cell
-      real, intent (out) :: fuel_frac_left, fire_frac_area
+      real(REAL64), intent (out) :: fuel_frac_left, fire_frac_area
 
-      real :: ps, aps, ta, t00, t01, t10, t11
+      real(REAL64) :: ps, aps, ta, t00, t01, t10, t11
 
 
         ! minus time since ignition, 0 if no ignition yet
@@ -263,8 +268,8 @@
       aps = abs (lfn00) + abs (lfn01) + abs (lfn10) + abs (lfn11)
       aps = max (aps, tiny (aps))
       fire_frac_area = (-ps / aps + 1.0) / 2.0
-      fire_frac_area = max (fire_frac_area, 0.0)
-      fire_frac_area = min (fire_frac_area, 1.0)
+      fire_frac_area = max (fire_frac_area, 0.0_REAL64)
+      fire_frac_area = min (fire_frac_area, 1.0_REAL64)
     
         ! Calc remaining fuel fraction
       fuel_frac_left = 1.0

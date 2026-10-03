@@ -1,5 +1,7 @@
   module state_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL32, REAL64
+
 #ifdef DM_PARALLEL
     use mpi
 #endif
@@ -60,9 +62,10 @@
       real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
       real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
-      real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
+      ! Retain small consumption increments when subtracting nearly-one fractions.
+      real(REAL64), dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
       real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
-      real, dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
+      real(REAL64), dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
       real, dimension(:, :), allocatable :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fcanhfx ! "heat flux from crown fire" "W/m^2"
@@ -1005,11 +1008,11 @@
           this%fire_area(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'fire-area fraction within cell')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac_burnt_dt', &
-          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', &
+          real(this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe), REAL32), NF90_FILL_FLOAT, '1', &
           'fuel fraction burned during current fire timestep')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac', &
-          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'remaining fuel fraction')
+          real(this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe), REAL32), NF90_FILL_FLOAT, '1', 'remaining fuel fraction')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'emis_smoke', &
           this%emis_smoke(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'kg m-2', &
