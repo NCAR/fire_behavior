@@ -30,8 +30,7 @@ usage () {
   printf "  --verbose, -v\n"
   printf "      build with verbose output\n"
   printf "  --test[=TEST_NAME], -t[=TEST_NAME]\n"
-  printf "      run one exact test name, or the quick suite\n"
-  printf "  --test-suite=quick|pr|full|unit\n"
+  printf "      run tests\n"
   printf "  --clean\n"
   printf "      delete build and install directories\n"
   printf "\n"
@@ -73,17 +72,16 @@ SYSTEM=""
 ENV_AUTO=false
 ENV_DIR="${FIRE_DIR}/env"
 ENV_FILE=""
-BUILD_DIR="${FIRE_DIR}/../build-generated"
+BUILD_DIR="${FIRE_DIR}/build-legacy"
 BUILD_TYPE="release"
 BUILD_JOBS=""
-INSTALL_PREFIX="${FIRE_DIR}/../install-generated"
+INSTALL_PREFIX="${FIRE_DIR}/install-legacy"
 MPI=true
 NUOPC=false
 ESMX=false
 VERBOSE=false
 TEST=false
 TEST_NAME=""
-TEST_SUITE="quick"
 CLEAN=false
 OPENMP=false
 
@@ -130,7 +128,6 @@ while :; do
     --verbose|-v) VERBOSE=true ;;
     --verbose=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --verbose=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
-    --test-suite=?*) TEST=true; TEST_SUITE=${1#*=} ;;
     --test|-t) TEST=true ;;
     --test=?*|-t=?*) TEST=true; TEST_NAME=${1#*=} ;;
     --test=) TEST=true ;;
@@ -197,7 +194,7 @@ if [ "${CLEAN}" = true ]; then
 fi
 
 # generate
-CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated")
+CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=legacy")
 if [ ! -z "${BUILD_TYPE}" ]; then
   CMAKE_SETTINGS+=("-DCMAKE_BUILD_TYPE=${BUILD_TYPE}")
 fi
@@ -267,22 +264,19 @@ if [ "${ESMX}" = true ]; then
   fi
 fi
 
-# Run named CTest selections with the Python chosen during configuration.
+# test
+TEST_SETTINGS=("")
+if [ "${VERBOSE}" = true ]; then
+  TEST_SETTINGS=("--output-on-failure")
+  TEST_SETTINGS=("--verbose")
+fi
+if [ ! -z "${TEST_NAME}" ]; then
+  TEST_SETTINGS+=("--tests-regex ${TEST_NAME}")
+fi 
 if [ "${TEST}" = true ]; then
-  PYTHON_EXE=""
-  while IFS='=' read -r KEY VALUE; do
-    case "${KEY}" in
-      Python3_EXECUTABLE:FILEPATH|_Python3_EXECUTABLE:INTERNAL) PYTHON_EXE=${VALUE} ;;
-    esac
-  done < "${BUILD_DIR}/CMakeCache.txt"
-  if [ -z "${PYTHON_EXE}" ]; then
-    printf 'ERROR: CMake did not record a Python interpreter.\n'
-    exit 1
+  ctest --test-dir ${BUILD_DIR}/tests ${TEST_SETTINGS[@]} 
+  if [ "$?" !=  "0" ]; then
+    echo "$0 Failed: (ctest)"
+    exit -6
   fi
-  TEST_SETTINGS=(--suite "${TEST_SUITE}")
-  if [ -n "${TEST_NAME}" ]; then
-    TEST_SETTINGS+=(--test "${TEST_NAME}")
-  fi
-  "${PYTHON_EXE}" -B "${FIRE_DIR}/tests/regression/regression.py" suite \
-    --build-dir "${BUILD_DIR}" --run-root "${BUILD_DIR}/suite-runs" "${TEST_SETTINGS[@]}"
 fi

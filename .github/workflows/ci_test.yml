@@ -21,10 +21,15 @@ on:
           - RelWithDebInfo
         default: Release
       test_names:
-        description: 'Test Names (regex)'
+        description: 'One exact CTest name (optional)'
         required: false
         type: string
         default: ''
+      suite:
+        description: 'Named test suite'
+        type: choice
+        options: [quick, pr]
+        default: quick
       enable_nuopc:
         description: 'Enable NUOPC'
         type: boolean
@@ -33,27 +38,13 @@ on:
         description: 'Enable ESMX'
         type: boolean
         default: true
-      regression_suite:
-        description: 'Standalone CFBM regression suite'
-        required: true
-        type: choice
-        options:
-          - quick
-          - pr
-        default: quick
-      regression_cases:
-        description: 'all or comma-separated CFBM case identifiers'
-        required: true
-        type: string
-        default: 'all'
 
 env:
+  test_suite: ${{ inputs.suite || 'quick' }}
   build_type: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'Release' }}
   test_names: ${{ github.event_name == 'workflow_dispatch' && inputs.test_names || '' }}
-  enable_nuopc: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_nuopc || true }}
-  enable_esmx: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_esmx || true }}
-  regression_suite: ${{ github.event_name == 'workflow_dispatch' && inputs.regression_suite || 'quick' }}
-  regression_cases: ${{ github.event_name == 'workflow_dispatch' && inputs.regression_cases || 'all' }}
+  enable_nuopc: ${{ github.event_name != 'workflow_dispatch' || inputs.enable_nuopc }}
+  enable_esmx: ${{ github.event_name != 'workflow_dispatch' || inputs.enable_esmx }}
   openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
   hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
   netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
@@ -61,6 +52,19 @@ env:
   esmf-url: 'https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz'
 
 jobs:
+  python_format:
+    name: Python formatting
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Install the pinned formatter
+      run: python -m pip install -r tests/regression/requirements-style.txt
+    - name: Check harness formatting without changing files
+      run: python -m yapf --diff --recursive --style tests/regression/.style.yapf tests/regression
+
   fire_behavior_linux_test:
     name: Fire Behavior Test
     strategy:
@@ -75,7 +79,7 @@ jobs:
     steps:
     - name: Cache Dependencies
       id: cache-build-dependencies
-      uses: actions/cache@v5
+      uses: actions/cache@v4
       env:
         cache-name: cache-build-dependencies
       with:
@@ -168,53 +172,57 @@ jobs:
         echo "ESMFMKFILE=$STACK_DIR/lib/esmf.mk" >> $GITHUB_ENV
         echo "ESMF_ROOT=$STACK_DIR" >> $GITHUB_ENV
     - name: Checkout Repository
-      uses: actions/checkout@v5
+      uses: actions/checkout@v4
     - name: Set up regression Python
       uses: actions/setup-python@v6
       with:
         python-version: '3.14'
-        cache: pip
-        cache-dependency-path: tests/regression/requirements.txt
-    - name: Install regression Python dependencies
-      run: python -m pip install --requirement tests/regression/requirements.txt
-    - name: Prepare isolated regression source
-      run: |
-        git worktree add --detach "${RUNNER_TEMP}/cfbm-regression-source" HEAD
-    - name: Build coupled model and unit tests
+    - name: Install regression dependencies
+      run: python -m pip install -r tests/regression/requirements.txt
+    - name: Build each executable configuration once
       id: model_build
       run: |
-        OPTIONS=()
-        if [[ "${enable_nuopc}" == 'true' ]]; then
-          OPTIONS+=("--nuopc")
-        fi
-        if [[ "${enable_esmx}" == 'true' ]]; then
-          OPTIONS+=("--esmx")
-        fi
-        ./compile.sh --build-type="${build_type}" "${OPTIONS[@]}"
-    - name: Run CTest unit and legacy coupled tests
+        for variant in serial omp mpi hybrid; do
+          OPTIONS=()
+          case "$variant" in
+            serial) OPTIONS+=(--mpi-off) ;;
+            omp) OPTIONS+=(--mpi-off --openmp-on) ;;
+            hybrid) OPTIONS+=(--openmp-on) ;;
+          esac
+          if [[ "$variant" == mpi ]]; then
+            if [[ "$enable_nuopc" == true ]]; then OPTIONS+=(--nuopc); fi
+            if [[ "$enable_esmx" == true ]]; then OPTIONS+=(--esmx); fi
+          fi
+          ./compile.sh --build-type="$build_type" "${OPTIONS[@]}" \
+            --build-dir="$RUNNER_TEMP/cfbm/build/$variant" \
+            --prefix="$RUNNER_TEMP/cfbm/install/$variant"
+        done
+    - name: Run the selected CTest suite and compare executions
       run: |
         OPTIONS=()
-        if [ -n "${test_names}" ]; then
-          OPTIONS+=(--tests-regex "${test_names}")
-        fi
-        ctest --test-dir build/tests --output-on-failure "${OPTIONS[@]}"
-    - name: Run standalone CFBM regression matrix
-      # Legacy reference failures must not block the independent harness matrix.
+        for variant in serial omp mpi hybrid; do
+          OPTIONS+=(--build-dir "$RUNNER_TEMP/cfbm/build/$variant")
+        done
+        if [[ -n "$test_names" ]]; then OPTIONS+=(--test "$test_names"); fi
+        python -B tests/regression/regression.py suite "${OPTIONS[@]}" \
+          --suite "$test_suite" --run-root "$RUNNER_TEMP/cfbm/results"
+    - name: Run retained legacy comparisons
       if: ${{ !cancelled() && steps.model_build.outcome == 'success' }}
-      working-directory: ${{ runner.temp }}/cfbm-regression-source
       run: |
-        python -B tests/regression/regression.py all \
-          --suite "${regression_suite}" \
-          --cases "${regression_cases}" \
-          --variants serial,omp,mpi \
-          --platform tests/regression/platforms/github.yaml \
-          --work-root "${{ runner.temp }}/cfbm-regression-${{ github.run_id }}-${{ github.run_attempt }}"
-    - name: Archive Test Results
+        OPTIONS=()
+        if [[ "$enable_nuopc" == true ]]; then OPTIONS+=(--nuopc); fi
+        if [[ "$enable_esmx" == true ]]; then OPTIONS+=(--esmx); fi
+        # Change test registration after generated tests finish. Reuse the
+        # existing MPI objects and installation; no second model build is needed.
+        ./compile_legacy.sh --build-type="$build_type" "${OPTIONS[@]}" --test \
+          --build-dir="$RUNNER_TEMP/cfbm/build/mpi" \
+          --prefix="$RUNNER_TEMP/cfbm/install/mpi"
+    - name: Archive test evidence
       if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v4
       with:
         name: fire-behavior-test-${{matrix.os}}
         path: |
-          build/tests/Testing/Temporary/LastTest.log
-          ${{ runner.temp }}/cfbm-regression-${{ github.run_id }}-${{ github.run_attempt }}/summary.json
-          ${{ runner.temp }}/cfbm-regression-${{ github.run_id }}-${{ github.run_attempt }}/reports/
+          ${{ runner.temp }}/cfbm/results/
+          ${{ runner.temp }}/cfbm/build/mpi/legacy-runs/
+          ${{ runner.temp }}/cfbm/build/*/tests/Testing/Temporary/LastTest.log

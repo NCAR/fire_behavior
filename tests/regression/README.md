@@ -1,252 +1,303 @@
-# CFBM standalone regression harness
+# CFBM regression tests
 
-This directory contains the configuration, deterministic inputs, runner,
-NetCDF comparator, reports, CTest interface, and immutable baseline controls
-for the pre-PR39 standalone CFBM tests. `regression.py` is the only public
-command-line interface. Normal regression commands never create or approve a
-reference.
+Build the model once, then select tests by name. CTest runs each selected case;
+Python generates its inputs, checks the outputs, and compares executions with
+the same scientific settings. Serial, OpenMP, MPI, combined MPI/OpenMP, NUOPC,
+and ESMX builds use this interface.
 
-## Development provenance and source style
+## Run a suite
 
-The CFBM development team maintains this harness. Initial development included
-coding assistance from GPT-5.6-Sol and GPT-6-Astra. Git history records individual
-contributions and subsequent changes; this acknowledgement does not imply that
-both models assisted every file or revision.
+Use a Python environment with NumPy, netCDF4, and PyYAML. CI installs the
+versions pinned in `requirements.txt`. On NCAR HPC systems,
+run builds and model integrations in a PBS allocation. Use fresh build and
+installation directories outside the source checkout. For example:
 
-Harness Python headers retain the original creation date and use these lines:
+```bash
+./compile.sh --mpi-off --build-dir=/path/to/scratch/build/serial \
+  --prefix=/path/to/scratch/install/serial
+
+python -B tests/regression/regression.py suite --suite quick \
+  --build-dir=/path/to/scratch/build/serial \
+  --run-root=/path/to/scratch/results
+```
+
+Replace the scratch paths with your own paths. On Casper, the validated module
+combination is `ncarenv/25.10 intel/2025.2.1 openmpi/5.0.8 netcdf/4.9.3
+esmf-mpi/8.9.1`. This is a tested environment, not a portability requirement.
+
+The build/launch separation is the same as in the legacy suite. `compile.sh`
+chooses whether MPI and OpenMP are compiled in. The case runner launches the
+resulting executable with the rank count and `OMP_NUM_THREADS` from the
+`executions` section of `cases.yaml`. The model/coupler derives the MPI domain
+layout from its communicator; `num_tiles` and `tile_strategy` in the rendered
+namelist control the within-rank tiles. Compilation does not select rank counts
+or domain decomposition. CI now builds four configurations explicitly so each
+parallel mode is exercised.
+
+Build other configurations in separate directories:
+
+| Configuration | `compile.sh` options |
+| --- | --- |
+| Serial | `--mpi-off` |
+| OpenMP | `--mpi-off --openmp-on` |
+| MPI | Default |
+| MPI and OpenMP | `--openmp-on` |
+| NUOPC | `--nuopc` |
+| ESMX and NUOPC | `--esmx` |
+
+Pass `--build-dir` more than once to run a suite across those builds and compare
+the resulting layouts. Python does not configure or build executables. A build
+with NUOPC or ESMX also retains its standalone tests.
+
+Select a smaller set with plain names:
+
+```bash
+python -B tests/regression/regression.py suite --suite pr \
+  --case terrain_3d --driver nuopc --execution mpi4 \
+  --build-dir=/path/to/scratch/build/nuopc \
+  --run-root=/path/to/scratch/results
+```
+
+`--test` selects one exact CTest name. `--suite unit` runs focused tests. No
+selection accepts regex syntax. Internally, Python reads CTest's JSON listing
+and supplies a numeric list of selected tests to CTest.
+
+`quick` exercises each standalone case plus threaded and distributed terrain
+cases. `pr` adds the one-rank and one-thread configurations and checks all
+cases across layouts. Hybrid configurations reserve ranks times threads.
+The full experiments use 320 x 320 fire grids, 3600 s integrations, and method
+pairs `(9,4)` and `(2,4)`. Register them explicitly with
+`cmake -S . -B BUILD_DIR -DCFBM_FULL_TESTS=ON`, then select `--suite full` in
+an appropriately sized HPC allocation. They are absent from ordinary CTest
+registration so a plain `ctest` cannot accidentally start the large campaign.
+
+## Scientific cases and coupled checks
+
+| Case | Purpose |
+| --- | --- |
+| `circle_nowind` | Idealized point ignition and uniform Anderson fuel |
+| `fuel_strip_wind` | Line ignition, twelve fuel categories, nearest interpolation |
+| `terrain_10m` | Terrain, delayed observed perimeter, varying moisture, 10 m winds |
+| `terrain_3d` | Same terrain experiment with a prescribed vertical wind profile |
+
+The shared configuration uses a 72 x 72 fire grid, 100 m spacing, 4 s timesteps,
+and 60 s integrations. NUOPC and ESMX run both terrain cases with generated
+WRF-data forcing. All real-case forcing includes staggered U/V and PH/PHB,
+because the NUOPC WRF-data component reads both wind representations.
+
+The atmospheric grid extends beyond the fire grid. This makes every fire cell
+an interpolation target inside the forcing domain, avoiding unmapped coupled
+boundary cells. This extension changes the old harness's real-case forcing
+files, so earlier reference candidates do not certify this implementation.
+
+The 3D case samples a shear profile at 20 m, between mass levels at 10 and
+40 m. The analytic expected wind is `(12, 8)` m/s. The test checks those values
+across the fire domain, allowing float32 geopotential/interpolation roundoff
+within the existing relative tolerance. It does not equate this wind with the
+fuel-adjusted 10 m wind experiment or require their fire outputs to match.
+
+Each case requires the expected output timestamps, field schema and metadata,
+finite values, evolving level set, fuel consumption, positive fire fluxes,
+and the configured moisture/perimeter behavior, and nonzero surface winds with
+the prescribed direction on every fueled cell. Coupled cases also require
+the driver's completion marker. A zero process exit alone is insufficient.
+
+Standalone and the coupled drivers save atmospheric fields used during the
+completed fire interval. With 4 s fire and atmospheric intervals, output at
+60 s contains the 56 s forcing record. The forcing is refreshed for the next
+advance after output; the atmospheric checks use this shared convention.
+The humidity interpretation remains the separate scientific review tracked
+by PR #46. Restart, PR #39, and method `(4,5)` remain deferred. `testx` remains
+in the legacy route; generated tests exercise the WRF-data coupling, not the
+ESMX_Data feedback fixture.
+
+Generated atmospheric `XLAT` and `XLONG` use float64 and the model reader
+preserves them into the ESMF cell-centre grid. Physical fields and fire-grid
+coordinates retain their existing precision. Legacy float32 coordinates are
+still accepted, but conversion to float64 cannot recover lost precision.
+
+## Results and references
+
+Every execution gets a new directory with the resolved namelist, generated
+inputs, model log, outputs, and `result.json`. The resolved scientific settings,
+source revision, and local edits are recorded in that result. A suite writes
+one `summary.json` with case locations and cross-execution comparisons. CTest
+provides JUnit output in CI. Failed runs retain all files.
+
+Normal tests allow local edits. Reference creation requires a passing suite
+from the current clean source revision:
+
+```bash
+python -B tests/regression/regression.py reference-create \
+  --suite-root=/path/to/scratch/results/pr-UNIQUE \
+  --destination=/path/to/new/reference-candidate
+```
+
+This creates an **unapproved** reference and never activates it. Supply an
+explicit directory through `-DCFBM_REFERENCE=/path/to/reference` when configuring
+a build. Normal comparisons reject unapproved references; explicit directory
+selection does not replace recorded team approval. Without that option, tests check physical evolution and agreement
+among executions; they do not claim agreement with an approved historical
+baseline. The report records the supplied reference's approval status.
+
+SHA256 checksums are retained only for reference integrity. A checksum is a
+file fingerprint that detects changes to stored reference data; it does not
+establish scientific correctness. There are no automatic fallback directories
+or repeated source-tree inventories. Numerical comparisons retain the rule
+`abs(test - reference) <= 1e-4 * abs(reference)`, with zero absolute tolerance;
+static fields require identical stored bits within each driver.
+
+Suites also compare each NUOPC/ESMX run with the matching standalone run,
+preferentially serial when available. Only the spatially interpolated `fz0`
+field uses the same numerical tolerance across these drivers. Its value is
+constant in time, but the standalone Lambert and ESMF mapping weights differ.
+Fire coordinates, terrain, fuel categories, and same-driver static fields
+retain exact checks. Every comparison reports both drivers, the applied rule,
+and bitwise differences even when numerical tolerance governs acceptance.
+Reference comparisons retain their existing same-driver policy.
+
+Dimensions, metadata, masks,
+NaNs, and output inventories are checked separately.
+
+## Legacy compatibility
+
+`compile_legacy.sh` retains the old build/test interface and chooses the legacy
+CTest registrations. Give it separate build and installation directories:
+
+```bash
+./compile_legacy.sh --nuopc --test \
+  --build-dir=/path/to/scratch/build/legacy \
+  --prefix=/path/to/scratch/install/legacy
+```
+
+The seven original tests remain available according to build capabilities:
+`test7`, `test8`, their NUOPC/ESMX variants, and `testx`. Original fixture files,
+scripts, and reference text are unchanged. A small Bash wrapper runs a staged
+script in a private directory, replacing its cleanup commands with no-ops so
+diagnostics survive. Original comparison criteria remain intact.
+
+The generated 10 m wind tests cover the repaired local-to-global index mapping
+in the NUOPC cap, shared by ESMX. Both 10 m and 3D wind cases are compared
+across the registered layouts and against matching standalone cases.
+
+Existing legacy numerical failures caused by the prerequisite timing change
+are not repaired by this harness. Casper's existing production ESMX link issue
+is also separate; validation with an externally linked diagnostic executable
+must be identified as such. No model physics or legacy reference is changed.
+
+## Source organization and style
+
+| File | Responsibility |
+| --- | --- |
+| `regression.py` | Parse arguments and dispatch |
+| `run_case.py` | Stage inputs and execute one existing binary |
+| `run_suite.py` | Select CTests and compare equivalent executions |
+| `config.py`, `cases.yaml` | Defaults, named scientific cases, rank/thread policy |
+| `generate_inputs.py` | Write deterministic NetCDF inputs |
+| `render_namelist.py` | Fill one template with standard Python formatting |
+| `check_outputs.py` | Check completion and scientific behavior |
+| `compare_outputs.py` | Compare NetCDF fields |
+| `reports.py` | Save results and print their locations |
+| `reference.py` | Create and verify explicit reference directories |
+
+The CFBM development team maintains these files. Reused code retains its
+original creation date and coding-assistance attribution; institutional
+copyright remains at repository level. This convention replaces personal
+headers in personal script-style guidance. Preserve creation dates and use this
+header for the reused September scripts:
 
 ```python
-# Created on 2026-09-12.
-# Developed by the CFBM development team.
-# Initial harness development included coding assistance from
-# GPT-5.6-Sol and GPT-6-Astra.
+# Created on 2026-09-12 by the CFBM development team assisted by GPT-6-Astra.
 ```
 
-Institutional copyright information is maintained at the repository level.
-This project convention replaces the personal attribution and repeated
-copyright block in the local `script-style` guidance. Preserve existing
-creation dates when editing a file; use the actual date for new files and
-record coding assistance only when applicable.
+**Required Python style:** use Google-based YAPF formatting, with four-space
+indentation and an 80-column target, as configured in `.style.yapf`. Use
+snake_case names, type hints on public functions, and pathlib for paths.
+Comments must explain scientific or workflow decisions; blank lines must
+separate functions and logical operations. Review readability as well as the
+formatter result. YAPF does not enforce the entire Google Python style guide.
+Agents editing this subsystem must also read `AGENTS.md` in this directory.
 
-Give each module a brief description of its purpose, inputs, and outputs, and
-group its workflow with 80-dash comment separators and descriptive section
-titles. Omit empty sections. Header commands run from the repository root using
-the user's selected Python environment. Supporting modules are imported by
-`regression.py`; their examples should point to the public CLI or relevant
-unit tests rather than suggest that they implement a separate command line.
+YAPF is a Python package. Only developers formatting the code and the separate
+CI formatting job need it; model builds and regression execution do not. Install
+the pinned version into a writable development environment, not a shared NCAR
+environment:
 
-## Environment and execution
-
-Run the following commands from the repository root. Activate a Conda or
-virtual environment containing the packages pinned in
-`tests/regression/requirements.txt`, then invoke its Python interpreter:
-
-```text
-python -B tests/regression/regression.py all \
-  --suite quick --variants serial,omp,mpi \
-  --platform tests/regression/platforms/derecho.yaml \
-  --work-root /path/to/your/scratch/cfbm-regression/quick-001
+```bash
+python -m pip install -r tests/regression/requirements-style.txt
+python -m yapf --diff --recursive --style tests/regression/.style.yapf tests/regression
 ```
 
-Replace `/path/to/your/scratch` with a writable location on your system. To
-select Python without activating an environment, replace `python` with
-`/path/to/environment/bin/python`. For direct CMake/CTest use, configure with
-`-DPython3_EXECUTABLE=/path/to/environment/bin/python`. The harness uses the
-interpreter that launched it; no separate environment option is needed.
+The check prints differences and returns failure if formatting changes are
+needed. To apply those changes locally, replace `--diff` with `--in-place`.
+CI checks formatting without modifying files.
 
-The harness executes inside an existing PBS allocation and does not submit
-jobs. Select your account in your own submission, for example
-`qsub -A YOUR_ACCOUNT your_job.pbs`, replacing the account and script name with
-your own. Shared platform profiles contain resource recommendations and
-launcher settings; these do not allocate resources or select a billing account.
+`tests/python_harness_test.py` checks configuration, generated wind fields,
+exact test selection, reference integrity, and incomplete model execution.
+`tests/generator_comparator_test.py` checks input reproducibility and numerical
+comparison edge cases. Neither file launches the Fortran model. Test filenames
+end in `_test.py`, so discovery must include the pattern below.
 
-Load the current NCAR compiler, NetCDF, and MPI modules before invoking the
-outer command. The retained `env/derecho/gnu-12.2.0` file references an old
-module stack and is deliberately not used by the platform profiles.
+For a direct invocation, select an artifact directory outside the source tree:
 
-The work root must not exist. The outer command creates independent build,
-install, run, and report trees. Model integrations, including serial tests,
-must run within a PBS compute job on Casper or Derecho. Synthetic Python unit
-tests may run on a login node:
-
-```text
-python -B -m unittest discover -s tests/regression/tests -v
+```bash
+export CFBM_TEST_TMP=/path/to/scratch/python-test-artifacts
+python -B -m unittest discover -s tests/regression/tests -p '*_test.py' -v
 ```
 
-Unit tests default to `/tmp/cfbm-regression-unit`. Set `CFBM_TEST_TMP` to a
-writable scratch directory to override that location, for example
-`export CFBM_TEST_TMP=/path/to/your/scratch/cfbm-regression-unit`. Each test
-creates a unique directory, and artifacts are retained for inspection.
-This default applies only to unit tests. Model workflows still require an
-explicit new `--work-root`; candidate destinations remain explicit.
+Every test retains its files in a unique directory. No personal path or system
+`/tmp` default is embedded in these scripts. CTest sets `CFBM_TEST_TMP` to
+`BUILD_DIR/python-test-artifacts` automatically.
 
-The outer summary records each compile argument vector, the required CMake
-cache switches, installed executable hashes, exact model and harness commits,
-and tracked, untracked, and ignored inventories before and after execution.
-Candidate publication also records the hashes of the configuration, template,
-generator, resolved specification, rendered namelist, generated inputs,
-executable, run manifest, and every output. If an approved baseline is
-selected, the harness records and compares every baseline file hash as well.
-Any change to these source or baseline trees fails the invocation.
+## Shared Python on Casper and Derecho
 
-Direct CMake builds register the quick cases against
-`$<TARGET_FILE:fire_behavior.exe>`. Set the documented
-`CFBM_REGRESSION_EXECUTABLE` CMake cache variable when CTest must exercise a
-specific installed executable. `CFBM_REGRESSION_BASELINE` selects an approved
-immutable reference, and `CFBM_REGRESSION_ATTEMPT_ROOT` places isolated rerun
-artifacts outside the build tree when required.
+Both systems provide the centrally maintained `npl-2026a` environment:
 
-## Scientific case policy
-
-All numerical values are defined in `cases.yaml`. Values resolve in this
-order: defaults, case, suite, named numerical method, named feature, and
-execution. Execution definitions contain only rank, thread, affinity,
-timeout, and environment policy. Lists replace earlier lists; mappings merge
-recursively.
-
-| Case | Grid in quick/pr | Fuel and forcing | Ignition and interpolation |
-| --- | --- | --- | --- |
-| `circle_nowind` | 72 × 72 at 100 m | Anderson category 3; U=V=0 | 500 m point/circle; bilinear horizontal; 10 m winds |
-| `fuel_strip_wind` | 72 × 72 at 100 m | Anderson categories 7, 3, 6, 5, 1, 13, 2, 12, 10, 11, 9, 8; U=10 m s⁻¹, V=0 | vertical ignition line at 35% of domain width; nearest-neighbor horizontal; 10 m winds |
-| `terrain_fuel_fmc_wind` | 72 × 72 at 100 m | sinusoidal 150 m terrain; same 12-category strips as `fuel_strip_wind`; U=V=10 m s⁻¹; changing T2 and water-vapor mixing ratio | 500 m observed perimeter; bilinear horizontal; 10 m winds; moisture updated every timestep |
-
-“Stacked vertically” is represented by horizontal strips whose category
-changes with the NetCDF `south_north` index. The 12-category order is the
-head-rate-of-spread ranking used by the reference strip generator at
-U10=10 m s⁻¹, with Anderson chaparral category 4 excluded by the documented
-2026-08-30 scientific decision. This is why the categories are not 1 through
-12. The source script SHA-256 values are recorded in `cases.yaml`.
-
-The point ignition follows the reference circle radius of 500 m. The complex
-case uses the identical `NFUEL_CAT` strip field on a smooth analytic terrain,
-so `ZSF`, `DZDXF`, and `DZDYF` are mutually consistent while fuel coverage is
-shared between the two cases. Its generated relative-humidity forcing changes
-during the run.
-`fmoist_freq=1` follows `physics/fmc_wrffire_mod.F90`: moisture advances when
-`mod(itimestep,fmoist_freq)==0`. Successful validation requires `fmc_g` to
-change between the initialization and final output.
-
-The line ignition remains in the western half of the domain at 35% of its
-width and extends from 25% to 75% of its height. These bounds provide enough
-clearance for the required 60 s integration; the earlier line from 8% to 92%
-of domain height reached a boundary before the final output.
-
-Every case requests four internal tiles and `tile_strategy=3`. This gives the
-OpenMP-4 configuration one nonempty tile per thread and keeps serial, OpenMP,
-and MPI tile policy explicit in the resolved namelist.
-
-Observed-perimeter runs set `fire_num_ignitions=1` for compatibility with the
-established namelist convention. `fire_ignition_start_time1` supplies the
-perimeter activation time; the remaining line-ignition fields in record 1 are
-ignored. The complex case schedules activation at 8 s, verifies that the
-perimeter is absent from the 0 s output, and requires subsequent propagation
-and fuel consumption.
-
-Quick and PR use dt=4 s for 60 s and require initialization plus the 60 s
-output. Full uses dt=2 s for 3600 s on a 320 × 320 grid at 25 m and requires
-initialization plus 900, 1800, 2700, and 3600 s. The two allowed numerical
-methods are `(9,4)` and `(2,4)`. Restart settings and `(4,5)` are rejected.
-
-## Generated NetCDF schema
-
-NetCDF dimensions are written in Python/C order below. The netCDF Fortran API
-reverses those dimensions when reading into arrays, yielding the model's
-`(west_east,south_north)` layout.
-
-| File | Variables | NetCDF dimensions | Type and units |
-| --- | --- | --- | --- |
-| `geo_em.d01.nc` | `XLAT_M`, `XLONG_M` | `(Time,south_north,west_east)` | float32; degrees |
-| `geo_em.d01.nc` | `XLAT_C`, `XLONG_C` | `(Time,south_north_stag,west_east_stag)` | float32; degrees |
-| `geo_em.d01.nc` | `ZSF`, `DZDXF`, `DZDYF`, `NFUEL_CAT` | `(Time,south_north_subgrid,west_east_subgrid)` | float32; m, 1, 1, category |
-| `geo_em.d01.nc` | `lfn_init` for the perimeter case | `(south_north_subgrid,west_east_subgrid)` | float32; m |
-| `wrf.nc` | `Times` | `(Time,DateStrLen=19)` | char; `YYYY-MM-DD_HH:MM:SS` |
-| `wrf.nc` | `XLAT`, `XLONG`, `T2`, `Q2`, `ZNT`, `PSFC`, `RAINC`, `RAINNC`, `U10`, `V10` | `(Time,south_north,west_east)` | float32; standard WRF surface units; `Q2` is water-vapor mixing ratio and `ZNT` is m |
-
-The real-case mass grid is one cell smaller than the staggered/fire grid in
-each horizontal direction, following the current readers and reference
-generator. WRF forcing includes the initial record and every configured
-atmospheric update through the final time. Identical resolved configurations
-produce identical field values and, in the pinned environment, identical file
-hashes.
-
-## Stages and evidence
-
-`prepare` writes resolved YAML, the namelist, generated inputs, file hashes,
-and `run_manifest.json` in a new directory. `run` verifies those identities,
-refuses stale output, records the exact argument vector and executable hash,
-captures both process streams, detects source-derived fatal prefixes, and
-validates the independently expected output inventory. `compare` accepts an
-approved immutable baseline or an explicit diagnostic result and creates a
-new report directory. `case` composes these stages. Repeated CTest runs use a
-new `attempt-NNNNNN` directory.
-
-Dynamic finite floating-point values pass only when
-`abs(test-reference) <= 1.0e-4*abs(reference)`, using the reference in the
-denominator and no absolute tolerance. Static float fields `lats`, `lons`,
-`zsf`, `nfuel_cat`, and `fz0` require equal element storage bits. Integers,
-strings, and categories are exact. Masks, NaN locations, infinity signs,
-dimensions, dtypes, variables, and non-volatile metadata are checked
-separately. Reports distinguish decoded numerical agreement from storage-bit
-agreement and use JSON `null` for undefined or infinite metrics.
-
-## Baselines
-
-Candidate creation consumes a complete, passing matrix summary and requires
-clean committed model and harness repositories. The immutable identifier must
-contain the model commit abbreviation:
-
-```text
-python -B tests/regression/regression.py baseline-create \
-  --candidate-root /path/to/your/scratch/cfbm-candidates \
-  --identifier pre-pr39-6ae8078-candidate001 \
-  --work-root /path/to/your/scratch/cfbm-regression/quick-001 \
-  --model-repository /path/to/clean/model-checkout
+```bash
+module load conda
+conda activate npl-2026a
 ```
 
-`baseline-accept` requires an approver and decision string. It records the
-decision and selects the exact identifier without changing reference NetCDF
-payloads. Acceptance is an explicit team action and is never performed by
-candidate generation.
+This supplies Python 3.13.11, NumPy 2.3.5, netCDF4 1.7.4, and PyYAML 6.0.3.
+The three harness dependencies match the pinned CI versions. No personal Conda
+installation or package installation into the shared environment is needed.
 
-## Baseline gate
+For Python-only checks, keep this environment active. For model builds and
+integrations, capture its interpreter and deactivate it first: NPL also ships
+MPI wrappers and a launcher, which must not replace the model's module-provided
+MPI installation. With the model's compiler/MPI/NetCDF/ESMF modules loaded:
 
-Candidate production requires the deterministic-output, initialization/time,
-and parallel repairs in PRs #45, #47, and #48, followed by complete passing PBS
-quick and PR matrices. PR #46 is a separate scientific correction and is not
-a prerequisite for the harness or its candidate references.
+```bash
+module load conda
+conda activate npl-2026a
+CFBM_PYTHON=$(command -v python)
+conda deactivate
 
-The terrain case retains dynamic fuel moisture and WRF-compatible `Q2`
-mixing-ratio inputs. Until PR #46 is adopted, the inherited moisture routine
-uses those inputs in a vapor-pressure equation for specific humidity. This
-known discrepancy biases relative humidity and can change fuel moisture and
-fire propagation. A candidate produced without PR #46 records that existing
-behavior; reproducibility does not establish thermodynamic correctness.
-Evaluate the correction against this documented behavior in its own review,
-and create a new provenance-matched candidate when the source changes.
+cmake -S . -B /path/to/scratch/build/mpi -DPython3_EXECUTABLE="$CFBM_PYTHON"
+./compile.sh --nuopc --build-dir=/path/to/scratch/build/mpi \
+  --prefix=/path/to/scratch/install/mpi
+"$CFBM_PYTHON" -B tests/regression/regression.py suite --suite quick \
+  --build-dir=/path/to/scratch/build/mpi --run-root=/path/to/scratch/results
+```
 
-The timestep correction remains gated on Pedro's confirmation that the first
-physics call represents `[0,dt]` while physics receives `itimestep=1`. That
-confirmation is a merge condition, separate from executing candidate
-validation. Candidate activation still requires explicit team approval of
-the exact identifier and checksums, including the documented humidity limit.
+Use fresh build directories when changing MPI installations. The CMake cache
+must identify the model's MPI wrappers/libraries and launcher, with only
+`Python3_EXECUTABLE` pointing into NPL. CTest records that Python path for its
+generated cases and Python tests.
 
-### Reviewed perimeter timing and source stack
+YAPF is not installed in this shared environment and is not needed for these
+tests. The separate CI formatting job installs it from `requirements-style.txt`.
 
-The Pedro review reconstruction orders source changes as PR1 -> PR4 -> PR3,
-followed by this harness. A supplied perimeter must ignite at a fire-step
-boundary. It is present in output at that inclusive endpoint and propagates
-from the following interval; the initial output includes a zero-time perimeter.
-Point/line ignition uses its separate elapsed-time prescription. The harness
-rejects partial-step perimeter schedules before building or launching.
+The shared netCDF4 package uses MPI-enabled libraries that can initialize MPI
+on import. Run harness Python checks, CMake configuration, and model cases
+inside a PBS allocation when using this environment. Do not combine the shared
+Python libraries with a personal Conda `LD_LIBRARY_PATH`. The Python subprocess
+exits before CTest launches each model process; retain the model's matching
+compiler, MPI, NetCDF, and ESMF module stack for its executable.
 
-The model retains the equality-based atmospheric update trigger and validates
-that active exchange intervals are integer multiples of the fire timestep.
-Output follows any due forcing update; this does not change the forcing used
-by the completed advance. Intentional record skipping, general output/restart
-scheduling, partial-step perimeter propagation, and boundary-extrapolation bounds
-remain separate reviews described in `doc/Configuration.rst`.
-
-Original component initialization is retained. Post-ignition corner exchanges
-and physical-boundary refreshes precede fuel consumption. Any revised source
-requires a new immutable candidate; previously validated candidates do not
-certify this reconstruction. Humidity PR46 remains deferred.
+All 27 Python tests passed through CTest on 2026-10-02 in this shared environment:
+Casper PBS `6122111.casper-pbs` and Derecho PBS `7690077.desched1`, both exit 0.
+These checks verified Python imports, CMake/CTest registration, discovery of both
+test files, and build-tree artifact paths. They did not run the Fortran model.
+The earlier coupled model runs used a different Python interpreter; these Python
+checks do not certify full model execution with the shared environment.

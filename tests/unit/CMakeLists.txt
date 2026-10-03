@@ -2,7 +2,7 @@
 function(add_cfbm_unit_test)
   cmake_parse_arguments(PARSE_ARGV 0 test "" "NAME;EXPECT" "COMMAND;LABELS")
   add_test(NAME ${test_NAME} COMMAND ${test_COMMAND})
-  set_tests_properties(${test_NAME} PROPERTIES LABELS "unit;${test_LABELS}")
+  set_tests_properties(${test_NAME} PROPERTIES LABELS "unit;quick;pr;full;${test_LABELS}")
   if(test_EXPECT)
     # Serial Stop_simulation uses a plain Fortran STOP, which can exit with
     # status zero. Check the expected rejection diagnostic rather than use
