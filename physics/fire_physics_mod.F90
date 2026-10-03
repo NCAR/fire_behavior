@@ -1,6 +1,8 @@
 
   module fire_physics_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
+
     use constants_mod, only : XLV, CMBCNST
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
@@ -24,11 +26,13 @@
       type (state_fire_t), target :: grid
       real, intent(in) :: dt
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme, iffs, iffe, jffs, jffe
-      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_load_g, fuel_frac_burnt_dt
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_load_g
+      real(REAL64), dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_frac_burnt_dt
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: grnhft, grnqft
 
       integer :: i, j
-      real :: dmass, bmst
+      real(REAL64) :: dmass
+      real :: bmst
 
 
       do j = jfts, jfte
