@@ -24,6 +24,11 @@ python -B tests/regression/regression.py suite --suite quick \
 Replace the scratch paths with your own paths. On Casper, the validated module
 combination is `ncarenv/25.10 intel/2025.2.1 openmpi/5.0.8 netcdf/4.9.3
 esmf-mpi/8.9.1`. This is a tested environment, not a portability requirement.
+For the complete Derecho build, including ESMX, use `ncarenv/25.10
+intel/2025.2.1 ncarcompilers/1.2.0 cray-mpich/8.1.32 netcdf-mpi/4.9.3
+esmf-mpi/8.9.1 cmake/3.31.8`. The parallel NetCDF module loads matching
+parallel HDF5 libraries. Mixing serial NetCDF/HDF5 with this MPI ESMF can
+cause unresolved HDF5 symbols when linking ESMX.
 
 The build/launch separation is the same as in the legacy suite. `compile.sh`
 chooses whether MPI and OpenMP are compiled in. The case runner launches the
@@ -131,8 +136,10 @@ in the legacy route; generated tests exercise the WRF-data coupling, not the
 ESMX_Data feedback fixture.
 
 Generated atmospheric `XLAT` and `XLONG` use float64 and the model reader
-preserves them into the ESMF cell-centre grid. Physical fields and fire-grid
-coordinates retain their existing precision. Legacy float32 coordinates are
+preserves them into the ESMF cell-centre grid. Forcing fields, saved model fields,
+and fire-grid coordinates retain their existing storage precision. The model's
+remaining-fuel and timestep-consumption arithmetic uses float64 internally.
+Legacy float32 coordinates are
 still accepted, but conversion to float64 cannot recover lost precision.
 
 ## Results and references
@@ -175,6 +182,15 @@ retain exact checks. Every comparison reports both drivers, the applied rule,
 and bitwise differences even when numerical tolerance governs acceptance.
 Reference comparisons retain their existing same-driver policy.
 
+Passing the 60 s cases does not establish agreement over longer integrations.
+A separate 600 s terrain experiment, with output every 60 s, first exceeded the
+same cross-driver tolerance at 180 s. All integrations completed, and NUOPC and
+ESMX agreed with each other. Their differences from standalone included local
+timestep-consumption and heat-flux discrepancies despite small integrated
+burned-area and fuel differences. These longer-run failures remain unresolved;
+the ordinary CI duration and numerical tolerance have not been adjusted to
+accept them.
+
 Dimensions, metadata, masks,
 NaNs, and output inventories are checked separately.
 
@@ -200,9 +216,11 @@ in the NUOPC cap, shared by ESMX. Both 10 m and 3D wind cases are compared
 across the registered layouts and against matching standalone cases.
 
 Existing legacy numerical failures caused by the prerequisite timing change
-are not repaired by this harness. Casper's existing production ESMX link issue
-is also separate; validation with an externally linked diagnostic executable
-must be identified as such. No model physics or legacy reference is changed.
+are not repaired by this harness. The ESMX build now lists the model archive
+explicitly and uses the Python interpreter selected during CMake configuration.
+With matching parallel NetCDF/HDF5 modules, the normal Derecho build and
+generated coupled cases pass without an external linking workaround.
+No model physics or legacy reference is changed by these harness/build fixes.
 
 ## Source organization and style
 
@@ -314,9 +332,11 @@ Python libraries with a personal Conda `LD_LIBRARY_PATH`. The Python subprocess
 exits before CTest launches each model process; retain the model's matching
 compiler, MPI, NetCDF, and ESMF module stack for its executable.
 
-All 27 Python tests passed through CTest on 2026-10-02 in this shared environment:
-Casper PBS `6122111.casper-pbs` and Derecho PBS `7690077.desched1`, both exit 0.
-These checks verified Python imports, CMake/CTest registration, discovery of both
-test files, and build-tree artifact paths. They did not run the Fortran model.
-The earlier coupled model runs used a different Python interpreter; these Python
-checks do not certify full model execution with the shared environment.
+The shared environment was checked on Casper and Derecho on 2026-10-02.
+Derecho PBS `7702254.desched1` subsequently validated commit `1426bed` on
+2026-10-03: all four builds and focused CTests passed, including all 34 Python
+checks. The generated quick suite passed 14 runs and 10 comparisons; the PR
+suite passed 32 runs and 32 comparisons. Same-driver layouts were bitwise
+identical. NUOPC and ESMX used the normal build route. All seven retained legacy
+tests still failed their original comparisons. This validates the 60 s generated
+cases, not the separate 600 s experiment described above.
