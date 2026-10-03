@@ -75,7 +75,12 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``interval_output``: *integer* (**Required**)
    [Units: s]
-   Specifies the time interval (in seconds) for writing to the history output files
+   Specifies the time interval (in seconds) for writing to the history output files.
+   The timestamp describes the completed fire state. In standalone and NUOPC
+   runs, the saved atmospheric fields are the forcing used during the completed
+   fire interval, before the next atmospheric refresh. For example, with 4 s
+   fire and atmospheric intervals, output at 60 s contains the 56 s forcing.
+   This output ordering does not change the forcing used for fire integration.
 
 ``num_tiles``: *integer* (Default: ``1``)
    Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
@@ -198,7 +203,12 @@ Example namelists can be found in the various test subdirectories under the ``te
    Height of uah,vah wind in fire spread formula
 
 ``fire_is_real_perim``: *logical* (Default: ``.false.``)
-   Determines if perimeter represents a real fire boundary.
+   Determines if the supplied perimeter represents an observed fire boundary.
+   When this option is true, set ``fire_num_ignitions=1`` and use
+   ``fire_ignition_start_time1`` for the perimeter activation time.  The line
+   coordinates, radius, rate of spread, and end time in ignition record 1 are
+   ignored.
+
      .true. = observed perimeter
 
      .false. = point/line ignition
@@ -335,3 +345,31 @@ atmospheric data.
 ``true_lat_2``: *real* (Default: ``40.363``)
    [Units: degrees]
    Second true latitude of the map projection.
+
+Timing and perimeter validation
+===============================
+
+``interval_atm`` must be a positive integer multiple of ``dt`` when using the
+standalone forcing reader or NUOPC exchange schedule. For example, a 4 s fire
+step and 60 s atmospheric interval are aligned. An 8 s fire step with a 4 s
+atmospheric interval is not: the equality-based update trigger would miss the
+first update and retain its expired schedule. The interval is an exchange
+cadence, not necessarily the atmospheric solver timestep. Direct WRF stepping
+and unforced ideal runs may leave ``interval_atm`` unset. Supplied positive
+intervals are checked; file-driven and NUOPC entry points also require that the
+interval is supplied. Programmatically constructed configurations are checked
+before state allocation.
+
+For a supplied perimeter, ``fire_ignition_start_time1`` must be nonnegative
+and align with a fire timestep. Roundoff-sized offsets are normalized to that
+boundary; the requested and effective times are printed when they differ.
+Validation uses four default-real roundoff units in the dimensionless step
+count, capped at 0.0001 timestep. Clearly interior times are rejected, not
+rounded. Prescribed line/circle times do not have this restriction: their
+elapsed-time expansion is distinct from level-set propagation.
+
+A perimeter at zero is installed before initial output. A delayed perimeter
+is installed at the inclusive end of its scheduled interval and propagates
+from the next interval. The former mid-step path could account for elapsed
+burning time without propagating for that partial interval; supporting that
+case consistently requires a separately reviewed split advance.

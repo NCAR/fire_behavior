@@ -28,6 +28,8 @@
 
       if (DEBUG_LOCAL) call Print_message ('  Entering subroutine Init_atm_state')
 
+      ! The atmospheric component reads only the time and atm namelist blocks.
+      call config_flags%Check_time_intervals (require_atm_interval = .true.)
       atm_state = wrfdata_t ('wrf.nc', config_flags)
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving subroutine Init_atm_state')

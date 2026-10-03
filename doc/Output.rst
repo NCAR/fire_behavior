@@ -138,3 +138,12 @@ identifies its inputs by the established WRF variable names and dimensions.
 
 This limited metadata contract does not declare CF compliance and does not
 assign a CF ``standard_name`` to ``fire_q2``.
+
+Standalone output timing
+------------------------
+
+The standalone driver advances the fire, loads any atmospheric forcing due at
+the updated clock, and then writes output. The saved atmospheric fields match
+a due forcing record at that timestamp. Between updates they retain the last
+loaded forcing; no temporal interpolation is performed. This ordering does
+not change the atmospheric fields used by the completed fire advance.
