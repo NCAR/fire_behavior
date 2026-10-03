@@ -75,7 +75,12 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``interval_output``: *integer* (**Required**)
    [Units: s]
-   Specifies the time interval (in seconds) for writing to the history output files
+   Specifies the time interval (in seconds) for writing to the history output files.
+   The timestamp describes the completed fire state. In standalone and NUOPC
+   runs, the saved atmospheric fields are the forcing used during the completed
+   fire interval, before the next atmospheric refresh. For example, with 4 s
+   fire and atmospheric intervals, output at 60 s contains the 56 s forcing.
+   This output ordering does not change the forcing used for fire integration.
 
 ``num_tiles``: *integer* (Default: ``1``)
    Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
@@ -95,6 +100,35 @@ Example namelists can be found in the various test subdirectories under the ``te
    so it may be left at its default. NUOPC runs require a positive atmospheric
    coupling interval. Direct WRF-CFBM coupling uses WRF's time stepping instead
    and does not use this option (see :ref:`WRF`).
+
+
+Numerical precision
+-------------------
+
+Atmospheric coordinates
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The WRF-data reader accepts single- or double-precision ``XLAT`` and ``XLONG``
+and retains cell-centre coordinates in double precision when constructing the
+NUOPC atmospheric grid. Existing single-precision WRF files remain supported;
+promoting their stored values cannot recover coordinate precision already lost.
+
+The standalone inverse Lambert transform evaluates its geometry in double
+precision before returning grid indices at the existing precision. This avoids
+loss of interpolation detail when subtracting large pole and radius terms.
+The forward transform and stored fire-grid coordinates retain their existing
+precision, so this change does not relocate the fire grid or change its spacing.
+
+Fuel accounting
+~~~~~~~~~~~~~~~
+
+Remaining fuel and the fraction consumed during each fire timestep are calculated
+and stored internally in double precision. Subcell interpolation, burning-curve
+evaluation, and accumulation retain that precision before successive remaining
+fractions are subtracted. This preserves small consumption increments when most
+of the fuel is still present. The burning law and fractional accounting are
+unchanged. Heat and emission calculations use the more precise increments;
+output fields retain their existing single-precision NetCDF representation.
 
 
 &fire
@@ -368,29 +402,3 @@ is installed at the inclusive end of its scheduled interval and propagates
 from the next interval. The former mid-step path could account for elapsed
 burning time without propagating for that partial interval; supporting that
 case consistently requires a separately reviewed split advance.
-
-Deferred scheduling and boundary reviews
----------------------------------------
-
-A future ``Validate_time_intervals`` design should address forcing selection,
-coupled subcycling, clock precision, output, final time, and restart together.
-Output and restart intervals need not divide one another when both are
-reachable on the fire clock. Deliberately skipping input records requires a
-selection policy that advances missed events; disabling validation alone does
-not implement it. No bypass option or restart behavior is introduced here.
-
-After ignition, both level set and ignition time are exchanged with corners
-and refreshed at physical boundaries before subcell fuel consumption. With
-finite positive level set throughout a boundary stencil, ignition ages there
-do not contribute to consumption. The boundary guard precedes later ignition,
-so validity of newly supplied boundary geometry requires separate review.
-Changes to extrapolation bounds must consider all callers, overlapping OpenMP
-writes, and MPI exchange ordering. The y exchange includes x halos and can
-transmit existing physical-boundary values. A halo read alone does not prove
-a combustion effect, and no isolated failure established that the additional
-component-initialization exchanges were necessary. Those initialization edits
-are omitted; the bounds-extension algorithm remains unchanged.
-
-Fuel-moisture first-update scheduling and the inherited humidity-convention
-discrepancy remain separate scientific reviews. Atmospheric fill values mark
-unavailable output and must not reach the active moisture calculation.

@@ -154,8 +154,9 @@ module fire_behavior_nuopc
     call grid%Set_mpi_comm_cfbm (mpi_comm_cfbm)
 #endif
 
-    ! NUOPC uses interval_atm for exchange and flux accumulation.
-    call config_flags%Check_nml (require_atm_interval = .true.)
+    ! Init_namelist checked the fire settings. NUOPC additionally requires
+    ! interval_atm for exchange and flux accumulation.
+    call config_flags%Check_time_intervals (require_atm_interval = .true.)
     call Init_fire_state (grid, config_flags)
 
     ! Import/ Export Variables -----------------------------------------------------
@@ -973,10 +974,15 @@ module fire_behavior_nuopc
           ioms, iome, joms, jome, iops, iope, jops, jope, grid%uf, grid%vf, cap_winds = .true.)
 
       case (VINTERP_WINDS_FROM_10M_WINDS)
+        ! Map local ESMF fields onto the global indices of this fire patch.
+        grid%uf(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_u10(clb(1):cub(1),clb(2):cub(2))
+        grid%vf(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_v10(clb(1):cub(1),clb(2):cub(2))
+
+        ! Apply the fuel wind adjustment after both arrays use fire-grid indices.
         do j = grid%jfps, grid%jfpe
           do i = grid%ifps, grid%ifpe
-            grid%uf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * ptr_u10(i,j) 
-            grid%vf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * ptr_v10(i,j)
+            grid%uf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * grid%uf(i,j)
+            grid%vf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * grid%vf(i,j)
           end do
         end do
       case default
@@ -1154,4 +1160,3 @@ module fire_behavior_nuopc
   end subroutine Check_fire_grid_cells
 
 end module
-

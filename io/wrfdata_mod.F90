@@ -1,5 +1,7 @@
   module wrfdata_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
+
     use datetime_mod, only : datetime_t
     use namelist_mod, only : namelist_t
     use netcdf_mod, only : Get_netcdf_var, Get_netcdf_att, Get_netcdf_dim, Is_netcdf_file_present
@@ -20,7 +22,9 @@
     type :: wrfdata_t
       character (len = 300) :: file_name
       real, dimension(:, :, :), allocatable :: u3d, v3d, phl
-      real, dimension(:, :), allocatable :: lats, lons, lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, u10, v10
+      ! Retain atmospheric cell-centre coordinates through the ESMF grid assignment.
+      real(kind=REAL64), dimension(:, :), allocatable :: lats, lons
+      real, dimension(:, :), allocatable :: lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, u10, v10
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
@@ -252,7 +256,7 @@
 
       class (wrfdata_t), intent (in out) :: this
 
-      real, dimension(:, :, :), allocatable :: var3d
+      real(kind=REAL64), dimension(:, :, :), allocatable :: var3d
 
 
       call Get_netcdf_var (trim (this%file_name), 'XLAT', var3d)
