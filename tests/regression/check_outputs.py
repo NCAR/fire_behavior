@@ -270,6 +270,8 @@ def check_wind_profile(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
     target_height = spec["interpolation"]["fire_wind_height_m"]
     fraction = np.log(target_height / heights[0]) / np.log(
         heights[1] / heights[0])
+    terrain_variation = (forcing["wind_terrain_gradient_per_m"] *
+                         spec["terrain"]["amplitude_m"])
     evidence = {"pass": True, "target_height_m": target_height, "fields": {}}
     with netCDF4.Dataset(path) as dataset:
         for name, profile in (("uf", "u_profile_m_s"), ("vf", "v_profile_m_s")):
@@ -280,6 +282,19 @@ def check_wind_profile(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
             # roundoff than the final interpolation. Keep the regression bound.
             passed = bool(values.size and
                           np.allclose(values, expected, rtol=1.0e-4, atol=0.0))
+            if terrain_variation:
+                # With spatially varying profiles there is no single exact
+                # wind over the domain. Positive interpolation weights keep
+                # the result within the prescribed terrain-scaled range.
+                # Keep the constant-profile check above for the uniform
+                # control; cross-driver comparisons still use rtol=1e-4.
+                bounds = sorted((expected * (1.0 - terrain_variation),
+                                 expected * (1.0 + terrain_variation)))
+                margin = 1.0e-4 * abs(expected)
+                passed = bool(values.size and
+                              np.all(values >= bounds[0] - margin) and
+                              np.all(values <= bounds[1] + margin) and
+                              (expected == 0 or np.ptp(values) > 0))
             evidence["fields"][name] = {
                 "expected_m_s":
                     float(expected),
@@ -287,6 +302,14 @@ def check_wind_profile(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
                     float(np.max(abs(values -
                                      expected))) if values.size else None
             }
+            if terrain_variation:
+                evidence["fields"][name].update(
+                    check="terrain_scaled_bounds_and_spatial_variation",
+                    prescribed_bounds_m_s=bounds,
+                    observed_range_m_s=[
+                        float(values.min()),
+                        float(values.max())
+                    ] if values.size else None)
             evidence["pass"] = evidence["pass"] and passed
     return evidence
 
@@ -295,11 +318,13 @@ def check_surface_wind(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
     """Require surface wind direction and attenuation on every fueled cell.
 
     All selected Anderson fuels have a positive adjustment factor below one.
-    Thus nonzero uniform forcing must remain nonzero with the same direction;
+    Thus nonzero forcing must remain nonzero with the same direction;
     an initially zero component must remain zero. Cross-execution comparisons
     separately check the exact numerical values.
     """
     evidence = {"pass": True, "invalid_cells": {}}
+    maximum_factor = (1.0 + spec["forcing"]["wind_terrain_gradient_per_m"] *
+                      spec["terrain"]["amplitude_m"])
     with netCDF4.Dataset(path) as dataset:
         for name, forcing_name in (("uf", "u10_m_s"), ("vf", "v10_m_s")):
             values = np.ma.asarray(dataset[name][:]).compressed()
@@ -308,7 +333,7 @@ def check_surface_wind(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
                 invalid = values != 0
             else:
                 ratio = values / prescribed
-                invalid = (ratio <= 0) | (ratio > 1)
+                invalid = (ratio <= 0) | (ratio > maximum_factor)
             count = int(np.count_nonzero(invalid))
             evidence["invalid_cells"][name] = count
             evidence["pass"] = bool(evidence["pass"] and values.size and

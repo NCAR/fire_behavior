@@ -127,6 +127,7 @@ class PythonHarnessTests(unittest.TestCase):
     def test_generated_wind_staggering_and_heights(self) -> None:
         """Confirm staggered U/V and the prescribed terrain-relative interfaces."""
         spec = resolve_spec(self.document, "terrain_3d")
+        spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             # WRF U/V stagger on different horizontal axes. Heights are
@@ -143,6 +144,7 @@ class PythonHarnessTests(unittest.TestCase):
     def test_wind_check_rejects_10m_values_in_3d_run(self) -> None:
         """A successful process must not pass with the wrong wind representation."""
         spec = resolve_spec(self.document, "terrain_3d")
+        spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
         path = self.root / "wind.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 2)
@@ -154,6 +156,66 @@ class PythonHarnessTests(unittest.TestCase):
         with netCDF4.Dataset(path, "a") as dataset:
             dataset["uf"][:] = 10.
         self.assertFalse(check_wind_profile(path, spec)["pass"])
+
+    def test_terrain_winds_increase_at_each_field_location(self) -> None:
+        """Detect face offsets using an independent sinusoidal terrain sample."""
+        spec = resolve_spec(self.document, "terrain_3d")
+        generate_inputs(spec, self.root)
+        with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
+            # Check an interior sample away from terrain extrema, where a
+            # half-cell offset changes the expected component appreciably.
+            j, i = 17, 23
+            terrain = spec["terrain"]
+
+            def height(x: float, y: float) -> float:
+                """Evaluate the configured surface independently of generation."""
+                return terrain["base_elevation_m"] + terrain["amplitude_m"] * (
+                    np.sin(2 * np.pi * x / terrain["wavelength_x_m"]) *
+                    np.sin(2 * np.pi * y / terrain["wavelength_y_m"]))
+
+            x = (i + 0.5 - 2) * spec["grid"]["dx_m"]
+            y = (j + 0.5 - 2) * spec["grid"]["dy_m"]
+            dx, dy = spec["grid"]["dx_m"], spec["grid"]["dy_m"]
+            z00, z10 = height(x, y), height(x + dx, y)
+            z01, z11 = height(x, y + dy), height(x + dx, y + dy)
+            samples = {
+                "U": (z00 + z01) / 2,
+                "V": (z00 + z10) / 2,
+                "U10": (z00 + z10 + z01 + z11) / 4
+            }
+            for name, elevation in samples.items():
+                field = dataset[name][0]
+                if field.ndim == 3:
+                    field = field[0]
+                factor = 1 + 0.001 * (elevation - 1600)
+                self.assertAlmostEqual(float(field[j, i]),
+                                       10 * factor,
+                                       places=5)
+                self.assertGreater(float(np.ptp(field)), 2.0)
+
+    def test_terrain_wind_check_rejects_uniform_or_excessive_winds(
+            self) -> None:
+        """Require variability without claiming one exact interpolation method."""
+        spec = resolve_spec(self.document, "terrain_3d")
+        path = self.root / "variable_wind.nc"
+        with netCDF4.Dataset(path, "w") as dataset:
+            dataset.createDimension("x", 3)
+            dataset.createVariable("uf", "f4", ("x",))[:] = [11., 12., 13.]
+            dataset.createVariable("vf", "f4", ("x",))[:] = [7.5, 8., 8.5]
+        self.assertTrue(check_wind_profile(path, spec)["pass"])
+        with netCDF4.Dataset(path, "a") as dataset:
+            dataset["uf"][:] = 12.
+        self.assertFalse(check_wind_profile(path, spec)["pass"])
+        with netCDF4.Dataset(path, "a") as dataset:
+            dataset["uf"][:] = [11., 12., 20.]
+        self.assertFalse(check_wind_profile(path, spec)["pass"])
+
+    def test_terrain_scaling_cannot_reverse_winds(self) -> None:
+        """Reject an excessive gradient before constructing synthetic forcing."""
+        self.document["cases"]["terrain_3d"]["forcing"][
+            "wind_terrain_gradient_per_m"] = 0.01
+        with self.assertRaises(ValueError):
+            resolve_spec(self.document, "terrain_3d")
 
     def test_surface_wind_cannot_vanish_in_a_patch(self) -> None:
         """Reject partial loss of a prescribed nonzero wind component."""

@@ -199,6 +199,10 @@ def validate_spec(spec: dict[str, Any]) -> None:
     for name in ("dx_m", "dy_m"):
         _require_number(grid, name, 1.0e-12, "grid")
     forcing = spec["forcing"]
+    gradient = _require_number(forcing, "wind_terrain_gradient_per_m", 0.0,
+                               "forcing")
+    if gradient * spec["terrain"]["amplitude_m"] >= 1.0:
+        raise ValueError("Terrain wind scaling must remain positive")
     for name in ("mixing_ratio_start_kg_kg", "mixing_ratio_end_kg_kg"):
         _require_number(forcing, name, 0.0, "forcing")
     z0_min = _require_number(forcing, "roughness_length_min_m", 0.0, "forcing")

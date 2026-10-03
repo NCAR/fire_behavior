@@ -22,6 +22,8 @@ defaults:
     true_lat_2: 60.0
     map_proj: 1
   forcing:
+    # Fractional wind increase per metre above terrain.base_elevation_m.
+    wind_terrain_gradient_per_m: 0.0
     u10_m_s: 0.0
     v10_m_s: 0.0
     temperature_start_k: 300.0
@@ -157,6 +159,7 @@ cases:
     model:
       ideal_opt: 0
     forcing:
+      wind_terrain_gradient_per_m: 0.001
       u10_m_s: 10.0
       v10_m_s: 10.0
       temperature_start_k: 300.0
@@ -200,6 +203,7 @@ cases:
     model:
       ideal_opt: 0
     forcing:
+      wind_terrain_gradient_per_m: 0.001
       u10_m_s: 10.0
       v10_m_s: 10.0
       temperature_start_k: 300.0

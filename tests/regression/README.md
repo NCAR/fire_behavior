@@ -77,8 +77,8 @@ registration so a plain `ctest` cannot accidentally start the large campaign.
 | --- | --- |
 | `circle_nowind` | Idealized point ignition and uniform Anderson fuel |
 | `fuel_strip_wind` | Line ignition, twelve fuel categories, nearest interpolation |
-| `terrain_10m` | Terrain, delayed observed perimeter, varying moisture, 10 m winds |
-| `terrain_3d` | Same terrain experiment with a prescribed vertical wind profile |
+| `terrain_10m` | Terrain, delayed observed perimeter, varying moisture, terrain-dependent 10 m winds |
+| `terrain_3d` | Same terrain experiment with a terrain-dependent vertical wind profile |
 
 The shared configuration uses a 72 x 72 fire grid, 100 m spacing, 4 s timesteps,
 and 60 s integrations. NUOPC and ESMX run both terrain cases with generated
@@ -90,11 +90,30 @@ an interpolation target inside the forcing domain, avoiding unmapped coupled
 boundary cells. This extension changes the old harness's real-case forcing
 files, so earlier reference candidates do not certify this implementation.
 
-The 3D case samples a shear profile at 20 m, between mass levels at 10 and
-40 m. The analytic expected wind is `(12, 8)` m/s. The test checks those values
-across the fire domain, allowing float32 geopotential/interpolation roundoff
-within the existing relative tolerance. It does not equate this wind with the
-fuel-adjusted 10 m wind experiment or require their fire outputs to match.
+Both terrain cases multiply prescribed winds by
+`1 + wind_terrain_gradient_per_m * (height - terrain.base_elevation_m)`.
+The gradient is 0.001 per metre, giving approximately 15% weaker winds in
+valleys and 15% stronger winds on hills around the 1600 m reference elevation.
+This is deterministic synthetic forcing, not a terrain-flow parameterization.
+Terrain is averaged onto mass centres for U10/V10 and onto the respective
+U/V faces for 3D winds. The same factor multiplies all vertical levels.
+
+The 3D case samples the shear profile at 20 m, between mass levels at 10 and
+40 m. Its unscaled analytical wind is `(12, 8)` m/s. Spatial interpolation
+and destaggering affect the terrain-dependent result, so the variable-wind
+case checks its prescribed component bounds and nonzero spatial variation.
+Those checks do not establish the accuracy of the horizontal interpolation.
+Cross-execution and cross-driver comparisons retain their numerical tolerance.
+Setting the gradient to zero restores the exact uniform-profile check at
+rtol=1e-4, atol=0; Python tests retain that control. Neither experiment equates
+the 3D wind with the fuel-adjusted 10 m wind or requires their fire outputs
+to match. Existing uniform-wind reference candidates do not certify these cases.
+
+Staggering is a property of the atmospheric host: this WRF-data fixture uses
+native WRF staggering, while UFS can supply mass-centred winds. Both current
+WRF-data readers destagger before subsequent processing. These tests do not
+validate UFS imports or establish one staggering convention as universally
+preferable.
 
 Each case requires the expected output timestamps, field schema and metadata,
 finite values, evolving level set, fuel consumption, positive fire fluxes,

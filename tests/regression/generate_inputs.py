@@ -345,6 +345,17 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
     lat, lon = _grid_latlon(spec, double_precision=True)
     fraction = np.linspace(0.0, 1.0, count, dtype=np.float32)[:, None, None]
     shape = (count, grid["ny"] - 1, grid["nx"] - 1)
+    # Sample the same terrain at mass centres and each component's faces.
+    # Increasing both components by this factor preserves the prescribed
+    # profile direction at a given location. This is synthetic forcing,
+    # not a diagnostic model of terrain-induced flow acceleration.
+    zsf = _fields(spec, offset_cells=2.0)["ZSF"]
+    terrain_u = 0.5 * (zsf[:-1, :] + zsf[1:, :])
+    terrain_v = 0.5 * (zsf[:, :-1] + zsf[:, 1:])
+    terrain = 0.25 * (zsf[:-1, :-1] + zsf[1:, :-1] + zsf[:-1, 1:] + zsf[1:, 1:])
+    gradient = forcing["wind_terrain_gradient_per_m"]
+    base_height = spec["terrain"]["base_elevation_m"]
+    mass_factor = 1.0 + gradient * (terrain - base_height)
     with netCDF4.Dataset(path, "w", format="NETCDF4_CLASSIC") as dataset:
         for name, length in (
             ("Time", None),
@@ -396,9 +407,9 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
             "RAINNC":
                 np.zeros(shape),
             "U10":
-                np.full(shape, forcing["u10_m_s"]),
+                np.broadcast_to(forcing["u10_m_s"] * mass_factor, shape),
             "V10":
-                np.full(shape, forcing["v10_m_s"]),
+                np.broadcast_to(forcing["v10_m_s"] * mass_factor, shape),
         }
         units = {
             "XLAT": "degree_north",
@@ -415,20 +426,19 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
         # NUOPC advertises both wind representations, even in the 10 m case.
         # Stagger U in x and V in y as required by the WRF data reader.
         nz = forcing["vertical_levels_stag"]
-        for name, profile, horizontal in (
-            ("U", "u_profile_m_s", (grid["ny"] - 1, grid["nx"])),
-            ("V", "v_profile_m_s", (grid["ny"], grid["nx"] - 1)),
+        for name, profile, face_terrain in (
+            ("U", "u_profile_m_s", terrain_u),
+            ("V", "v_profile_m_s", terrain_v),
         ):
+            face_factor = 1.0 + gradient * (face_terrain - base_height)
             values[name] = np.broadcast_to(
-                np.asarray(forcing[profile])[None, :, None, None],
-                (count, nz - 1, *horizontal))
+                np.asarray(forcing[profile])[None, :, None, None] *
+                face_factor[None, None, :, :],
+                (count, nz - 1, *face_terrain.shape))
             units[name] = "m s-1"
         # PH + PHB represents terrain-following interface geopotential.
         # Both wrfdata_mod and the NUOPC cap convert geopotential with 9.81.
         gravity = 9.81
-        zsf = _fields(spec, offset_cells=2.0)["ZSF"]
-        terrain = 0.25 * (zsf[:-1, :-1] + zsf[1:, :-1] + zsf[:-1, 1:] +
-                          zsf[1:, 1:])
         shape_3d = (count, nz, grid["ny"] - 1, grid["nx"] - 1)
         values["PH"] = np.broadcast_to(
             gravity *
