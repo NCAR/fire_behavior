@@ -1,5 +1,9 @@
 program tile_namelist_unit
 
+  ! Write a small time namelist and read it through the model's time-block
+  ! reader. Check that both the requested tile count and tile strategy are
+  ! retained, rather than leaving either setting at its default value.
+
   use namelist_mod, only : namelist_t
 
   implicit none
