@@ -75,7 +75,12 @@ Example namelists can be found in the various test subdirectories under the ``te
 
 ``interval_output``: *integer* (**Required**)
    [Units: s]
-   Specifies the time interval (in seconds) for writing to the history output files
+   Specifies the time interval (in seconds) for writing to the history output files.
+   The timestamp describes the completed fire state. In standalone and NUOPC
+   runs, the saved atmospheric fields are the forcing used during the completed
+   fire interval, before the next atmospheric refresh. For example, with 4 s
+   fire and atmospheric intervals, output at 60 s contains the 56 s forcing.
+   This output ordering does not change the forcing used for fire integration.
 
 ``num_tiles``: *integer* (Default: ``1``)
    Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/`` use ``num_tiles = 16``.
