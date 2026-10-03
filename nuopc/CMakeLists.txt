@@ -30,6 +30,9 @@ if (ESMX)
   if(ESMF_VERSION VERSION_LESS "8.5.0")
     message(FATAL_ERROR "ESMX requires ESMF version 8.5.0 or greater")
   endif (ESMF_VERSION VERSION_LESS "8.5.0")
+  # The separate ESMX project parses YAML during configuration. Use the same
+  # interpreter as the harness, including when Conda is no longer active.
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
   include(ExternalProject)
   ExternalProject_Add(esmx
     BINARY_DIR ${CMAKE_BINARY_DIR}/esmx
@@ -37,6 +40,8 @@ if (ESMX)
     CMAKE_ARGS -DESMX_BUILD_FILE=${CMAKE_CURRENT_SOURCE_DIR}/esmxBuild.yaml
                -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+               -DPython_EXECUTABLE=${Python3_EXECUTABLE}
+               -DESMFMKFILE=${ESMFMKFILE}
     BUILD_ALWAYS TRUE
     DEPENDS fire_behavior_nuopc fire_behavior_wrfnuopc
     EXCLUDE_FROM_ALL TRUE
