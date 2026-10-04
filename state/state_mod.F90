@@ -875,15 +875,24 @@
       if (.not. allocated (this%lats) .or. .not. allocated (this%lons)) &
           call Stop_simulation ('Init lats/lons before calling hinterp atm variables')
 
+      ! The vertical wind profile uses roughness interpolated to the fire grid.
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'ua', config_flags%hinterp_opt, this%uf)
+          'z0', config_flags%hinterp_opt, this%fz0)
 
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'va', config_flags%hinterp_opt, this%vf)
+      if (config_flags%wind_vinterp_opt == 0) then
+        call wrf%Interp_winds2grid (this%lats, this%lons, this%fz0, this%ifms, this%ifme, this%jfms, this%jfme, &
+            this%ifps, this%ifpe, this%jfps, this%jfpe, this%num_tiles, &
+            this%i_start, this%i_end, this%j_start, this%j_end, config_flags, this%uf, this%vf)
+      else
+        call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+            this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+            'ua', config_flags%hinterp_opt, this%uf)
 
-      if (config_flags%wind_vinterp_opt == 1) then
+        call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+            this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+            'va', config_flags%hinterp_opt, this%vf)
+
         call this%Apply_wafs ()
         call wrf%Destroy_u10 ()
         call wrf%Destroy_v10 ()
@@ -904,10 +913,6 @@
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'rain', config_flags%hinterp_opt, this%fire_rain)
-
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'z0', config_flags%hinterp_opt, this%fz0)
 
       call wrf%Destroy_z0 ()
 
