@@ -9,9 +9,6 @@ Separate logical operations with blank lines. Explain scientific choices and
 synthetic test substitutions in comments. A formatter pass does not replace
 review for readability.
 
-Preserve creation dates. The reused September scripts have this header:
-# Created on 2026-09-12 by the CFBM development team assisted by GPT-6-Astra.
-
 Do not add personal filesystem paths or require a developer's Conda installation.
 Use the module-provided environment documented in README.md on NCAR systems.
 CFBM_TEST_TMP is required for direct Python tests; CTest supplies a build-tree
