@@ -39,7 +39,7 @@ namelist control the within-rank tiles. Compilation does not select rank counts
 or domain decomposition. CI now builds four configurations explicitly so each
 parallel mode is exercised.
 
-Build other configurations in separate directories:
+### Build other configurations in separate directories:
 
 | Configuration | `compile.sh` options |
 | --- | --- |
@@ -54,7 +54,7 @@ Pass `--build-dir` more than once to run a suite across those builds and compare
 the resulting layouts. Python does not configure or build executables. A build
 with NUOPC or ESMX also retains its standalone tests.
 
-Select a smaller set with plain names:
+### Select a smaller set with plain names:
 
 ```bash
 python -B tests/regression/regression.py suite --suite pr \
@@ -62,10 +62,6 @@ python -B tests/regression/regression.py suite --suite pr \
   --build-dir=/path/to/scratch/build/nuopc \
   --run-root=/path/to/scratch/results
 ```
-
-`--test` selects one exact CTest name. `--suite unit` runs focused tests. No
-selection accepts regex syntax. Internally, Python reads CTest's JSON listing
-and supplies a numeric list of selected tests to CTest.
 
 `quick` exercises each standalone case plus threaded and distributed terrain
 cases. `pr` adds the one-rank and one-thread configurations and checks all
@@ -75,6 +71,95 @@ pairs `(9,4)` and `(2,4)`. Register them explicitly with
 `cmake -S . -B BUILD_DIR -DCFBM_FULL_TESTS=ON`, then select `--suite full` in
 an appropriately sized HPC allocation. They are absent from ordinary CTest
 registration so a plain `ctest` cannot accidentally start the large campaign.
+
+
+`--test` selects one exact CTest name. `--suite unit` runs focused tests. No
+selection accepts regex syntax. Internally, Python reads CTest's JSON listing
+and supplies a numeric list of selected tests to CTest.
+
+`--suite` accepts **five values**. `--test` accepts **any exact CTest name registered in the selected build**, so its available names depend on the build configuration.
+
+The suite options are defined in [regression.py]:
+
+| Option | Tests selected |
+|---|---|
+| `quick` | Default. Focused tests plus the four standard cases in serial, and both terrain cases with `omp4`, `mpi4`, or `hybrid4`, where supported. |
+| `pr` | Focused tests plus all four standard cases across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
+| `full` | Focused tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
+| `unit` | Focused Fortran tests and the Python harness tests. No generated fire-case integrations. |
+| `legacy` | Original tests registered by the legacy build route. |
+
+These selections follow [cases.yaml]. Each build contributes only the executions it supports (e.g. Serial or MPI). **`full` selects the larger experiments; it does not also select the standard experiments.**
+
+For `--test`, list every available name in a particular build without running tests:
+
+```bash
+ctest --test-dir /path/to/build/tests -N
+```
+
+To list only its focused tests:
+
+```bash
+ctest --test-dir /path/to/build/tests -N -L '^unit$'
+```
+
+The valid names for `--test` fall into three groups:
+
+** 1. Generated model tests** follow this naming convention:
+
+```text
+<driver>_<case>_<scale>_<method>_<execution>
+```
+
+| Component | Values |
+|---|---|
+| Driver | `standalone`, `nuopc`, `esmx` |
+| Case | `circle_nowind`, `fuel_strip_wind`, `terrain_10m`, `terrain_3d` |
+| Scale and method | `standard_ref94`, `full_ref94`, `full_ref24` |
+| Execution | `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, `mpi8`, `hybrid4` |
+
+NUOPC and ESMX register only the two terrain cases. `mpi8` is available only for full experiments. Execution choices must match the build: serial, OpenMP, MPI, or hybrid. These rules are implemented in [config.py].
+
+Examples:
+
+```text
+standalone_circle_nowind_standard_ref94_serial
+standalone_terrain_3d_standard_ref94_omp4
+nuopc_terrain_10m_standard_ref94_mpi4
+esmx_terrain_3d_full_ref24_mpi8
+```
+
+** 2. Focused tests** are unit tests for an existing Fortran program or Python script. They have exact names, as registered in [unit/CMakeLists.txt] and [regression/CMakeLists.txt]:
+
+```text
+regression_python
+*_unit
+namelist_broadcast_mpi
+
+```
+`regression_python` tests **the Python regression harness**: input generation, configuration, output checks, comparisons, and reporting. It currently contains **34 Python tests** across two files and does not launch the Fortran model.
+
+| Area | What it checks |
+|---|---|
+| Configuration | Rejects misspelled settings, duplicate YAML keys, unsupported method pairs, misaligned output times, and scientific overrides hidden in execution settings. |
+| Namelist and ESMX configuration | Checks template substitution, wind interpolation selection, MPI PET assignments, and simulation stop time. |
+| Generated inputs | Checks reproducibility, fuel categories, perimeter initialization, terrain, forcing records, required NetCDF fields, and double-precision atmospheric coordinates. |
+| Wind fields | Checks WRF staggering and vertical heights, terrain-dependent wind scaling, and rejection of incorrect, uniform, excessive, or locally missing winds. |
+| Test selection and resources | Checks exact-name selection and CPU accounting for ranks × threads. |
+| Numerical comparisons | Exercises relative tolerance, zero references, tolerance boundaries, bitwise static-field checks, NaNs, infinities, missing-data masks, and empty valid-data sets. |
+| Comparison policy | Checks cross-driver roughness tolerance, exact fuel categories, comparisons across execution layouts, and rejection of incompatible scientific settings. |
+| Failure detection and reporting | Checks rejection of corrupted or unapproved references, extra output files, and a successful process exit with no outputs; also exercises JSON reporting. |
+
+The implementation is in [python_harness_test.py] (18 tests) and [generator_comparator_test.py] (16 tests).
+
+These tests use generated inputs and small synthetic output files. Passing them supports confidence in the testing infrastructure; validating model integration and scientific output requires the generated model tests.
+
+
+`namelist_broadcast_mpi` requires an MPI build. `regression_python` is registered by the generated test system and runs both Python test files.
+
+** 3. Legacy tests** are `test7`, `test8`, `test7esmf`, `test8esmf`, `test7esmx`, `test8esmx`, and `testx`, subject to the enabled coupling capabilities. They require the legacy test system. See [tests/CMakeLists.txt].
+
+Finally, **`--test` overrides the suite-label selection**. For example, `--test regression_python` selects that test even if `--suite` remains at its default, `quick`. Any supplied `--case`, `--driver`, or `--execution` filters still apply. See [run_suite.py].
 
 ## Scientific cases and coupled checks
 
@@ -92,12 +177,11 @@ because the NUOPC WRF-data component reads both wind representations.
 
 The atmospheric grid extends beyond the fire grid. This makes every fire cell
 an interpolation target inside the forcing domain, avoiding unmapped coupled
-boundary cells. This extension changes the old harness's real-case forcing
-files, so earlier reference candidates do not certify this implementation.
+boundary cells. 
 
 Both terrain cases multiply prescribed winds by
 `1 + wind_terrain_gradient_per_m * (height - terrain.base_elevation_m)`.
-The gradient is 0.001 per metre, giving approximately 15% weaker winds in
+The gradient is 0.001 per meter, giving approximately 15% weaker winds in
 valleys and 15% stronger winds on hills around the 1600 m reference elevation.
 This is deterministic synthetic forcing, not a terrain-flow parameterization.
 Terrain is averaged onto mass centres for U10/V10 and onto the respective
@@ -107,7 +191,6 @@ The 3D case samples the shear profile at 20 m, between mass levels at 10 and
 40 m. Its unscaled analytical wind is `(12, 8)` m/s. Spatial interpolation
 and destaggering affect the terrain-dependent result, so the variable-wind
 case checks its prescribed component bounds and nonzero spatial variation.
-Those checks do not establish the accuracy of the horizontal interpolation.
 Cross-execution and cross-driver comparisons retain their numerical tolerance.
 Setting the gradient to zero restores the exact uniform-profile check at
 rtol=1e-4, atol=0; Python tests retain that control. Neither experiment equates
@@ -130,10 +213,6 @@ Standalone and the coupled drivers save atmospheric fields used during the
 completed fire interval. With 4 s fire and atmospheric intervals, output at
 60 s contains the 56 s forcing record. The forcing is refreshed for the next
 advance after output; the atmospheric checks use this shared convention.
-The humidity interpretation remains the separate scientific review tracked
-by PR #46. Restart, PR #39, and method `(4,5)` remain deferred. `testx` remains
-in the legacy route; generated tests exercise the WRF-data coupling, not the
-ESMX_Data feedback fixture.
 
 Generated atmospheric `XLAT` and `XLONG` use float64 and the model reader
 preserves them into the ESMF cell-centre grid. Forcing fields, saved model fields,
@@ -141,6 +220,14 @@ and fire-grid coordinates retain their existing storage precision. The model's
 remaining-fuel and timestep-consumption arithmetic uses float64 internally.
 Legacy float32 coordinates are
 still accepted, but conversion to float64 cannot recover lost precision.
+
+### Deferred
+
+The humidity interpretation remains the separate scientific review tracked
+by PR #46. Restart, PR #39, and method `(4,5)` remain deferred. `testx` remains
+in the legacy route; generated tests exercise the WRF-data coupling, not the
+ESMX_Data feedback fixture.
+
 
 ## Results and references
 
@@ -186,8 +273,8 @@ Passing the 60 s cases does not establish agreement over longer integrations.
 A separate 600 s terrain experiment, with output every 60 s, first exceeded the
 same cross-driver tolerance at 180 s. All integrations completed, and NUOPC and
 ESMX agreed with each other. Their differences from standalone included local
-timestep-consumption and heat-flux discrepancies despite small integrated
-burned-area and fuel differences. These longer-run failures remain unresolved;
+timestep fuel consumption and heat-flux discrepancies despite small integrated
+burned-area and fuel differences. These longer-run discrepancies remain unresolved;
 the ordinary CI duration and numerical tolerance have not been adjusted to
 accept them.
 
@@ -210,10 +297,6 @@ The seven original tests remain available according to build capabilities:
 scripts, and reference text are unchanged. A small Bash wrapper runs a staged
 script in a private directory, replacing its cleanup commands with no-ops so
 diagnostics survive. Original comparison criteria remain intact.
-
-The generated 10 m wind tests cover the repaired local-to-global index mapping
-in the NUOPC cap, shared by ESMX. Both 10 m and 3D wind cases are compared
-across the registered layouts and against matching standalone cases.
 
 Existing legacy numerical failures caused by the prerequisite timing change
 are not repaired by this harness. The ESMX build now lists the model archive
