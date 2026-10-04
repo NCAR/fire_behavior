@@ -24,3 +24,8 @@ and confirm that both Python test files are collected after any rename.
 Keep compile.sh responsible for build options, CTest responsible for test
 invocation, and cases.yaml responsible for the scientific cases and executions.
 Do not change scientific tolerances or legacy references to conceal failures.
+
+Documentation lives in doc/. Keep README.md as the entry point. Update the
+case figures and comparison table when scientific settings or outputs change.
+Read doc/contributing.md and doc/pr-checklist.md before extending the cases.
+Keep historical fixtures in ../legacy/ and preserve their reference data.

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Created on 2026-10-02. Developed by the CFBM development team.
-# run tests/run_legacy.sh test7 /path/to/install /path/to/scratch/legacy
+# run tests/legacy/run_legacy.sh test7 /path/to/install /path/to/scratch/legacy
 # Preserve the original comparisons while isolating their working files.
 set -euo pipefail
 

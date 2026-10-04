@@ -67,11 +67,11 @@ class PythonHarnessTests(unittest.TestCase):
         """Reject scientific overrides hidden in a rank/thread definition."""
         self.document["executions"]["mpi4"]["grid"] = {"nx": 8}
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_10m", execution="mpi4")
+            resolve_spec(self.document, "terrain_u10m", execution="mpi4")
 
     def test_case_and_full_scale_precedence(self) -> None:
         """Retain case physics when changing domain size and simulation length."""
-        spec = resolve_spec(self.document, "terrain_3d", "full", "ref24",
+        spec = resolve_spec(self.document, "terrain_u3d", "full", "ref24",
                             "mpi8")
         self.assertEqual(spec["grid"]["nx"], 320)
         self.assertEqual(spec["interpolation"]["vertical"], 0)
@@ -80,9 +80,9 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_misspelled_option_is_rejected(self) -> None:
         """Reject an option that would otherwise silently use its default."""
-        self.document["cases"]["terrain_10m"]["interpolation"]["vertcal"] = 0
+        self.document["cases"]["terrain_u10m"]["interpolation"]["vertcal"] = 0
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_10m")
+            resolve_spec(self.document, "terrain_u10m")
 
     def test_output_schedule_is_aligned(self) -> None:
         """Reject output times that cannot coincide with the 4 s timestep."""
@@ -112,7 +112,7 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_plain_namelist_and_esmx_clock(self) -> None:
         """Use one resolved clock for both namelist and ESMX configuration."""
-        spec = resolve_spec(self.document, "terrain_3d", execution="mpi4")
+        spec = resolve_spec(self.document, "terrain_u3d", execution="mpi4")
         text = render_template(MODULE_ROOT / "templates/namelist.fire.in",
                                namelist_values(spec))
         self.assertIn("wind_vinterp_opt=0", text)
@@ -126,7 +126,7 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_generated_wind_staggering_and_heights(self) -> None:
         """Confirm staggered U/V and the prescribed terrain-relative interfaces."""
-        spec = resolve_spec(self.document, "terrain_3d")
+        spec = resolve_spec(self.document, "terrain_u3d")
         spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
@@ -143,7 +143,7 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_wind_check_rejects_10m_values_in_3d_run(self) -> None:
         """A successful process must not pass with the wrong wind representation."""
-        spec = resolve_spec(self.document, "terrain_3d")
+        spec = resolve_spec(self.document, "terrain_u3d")
         spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
         path = self.root / "wind.nc"
         with netCDF4.Dataset(path, "w") as dataset:
@@ -159,7 +159,7 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_terrain_winds_increase_at_each_field_location(self) -> None:
         """Detect face offsets using an independent sinusoidal terrain sample."""
-        spec = resolve_spec(self.document, "terrain_3d")
+        spec = resolve_spec(self.document, "terrain_u3d")
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             # Check an interior sample away from terrain extrema, where a
@@ -196,7 +196,7 @@ class PythonHarnessTests(unittest.TestCase):
     def test_terrain_wind_check_rejects_uniform_or_excessive_winds(
             self) -> None:
         """Require variability without claiming one exact interpolation method."""
-        spec = resolve_spec(self.document, "terrain_3d")
+        spec = resolve_spec(self.document, "terrain_u3d")
         path = self.root / "variable_wind.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 3)
@@ -212,14 +212,14 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_terrain_scaling_cannot_reverse_winds(self) -> None:
         """Reject an excessive gradient before constructing synthetic forcing."""
-        self.document["cases"]["terrain_3d"]["forcing"][
+        self.document["cases"]["terrain_u3d"]["forcing"][
             "wind_terrain_gradient_per_m"] = 0.01
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_3d")
+            resolve_spec(self.document, "terrain_u3d")
 
     def test_surface_wind_cannot_vanish_in_a_patch(self) -> None:
         """Reject partial loss of a prescribed nonzero wind component."""
-        spec = resolve_spec(self.document, "terrain_10m")
+        spec = resolve_spec(self.document, "terrain_u10m")
         path = self.root / "surface.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 4)
@@ -250,12 +250,12 @@ class PythonHarnessTests(unittest.TestCase):
                 "terrain[3d]",
             "properties": [{
                 "name": "LABELS",
-                "value": ["quick", "case:terrain_3d"]
+                "value": ["quick", "case:terrain_u3d"]
             }]
         }]
         args = SimpleNamespace(test="terrain[3d]",
                                suite="quick",
-                               case="terrain_3d",
+                               case="terrain_u3d",
                                execution=None,
                                driver=None)
         self.assertEqual(select_tests(tests, args), [1])

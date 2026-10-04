@@ -117,7 +117,7 @@ def run_case(args: Any) -> dict[str, Any]:
         command = [str(executable)]
         if args.driver != "standalone":
             for filename in ("esmfRun.config", "fd_fire.yaml"):
-                shutil.copy2(SOURCE_ROOT / "tests" / filename,
+                shutil.copy2(SOURCE_ROOT / "tests" / "legacy" / filename,
                              directory / filename)
         if args.driver == "esmx":
             write_esmx_config(directory / "esmxRun.yaml", spec)

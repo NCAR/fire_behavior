@@ -155,7 +155,7 @@ cases:
     interpolation:
       horizontal: 1
       vertical: 1
-  terrain_10m:
+  terrain_u10m:
     model:
       ideal_opt: 0
     forcing:
@@ -199,7 +199,7 @@ cases:
     interpolation:
       horizontal: 2
       vertical: 1
-  terrain_3d:
+  terrain_u3d:
     model:
       ideal_opt: 0
     forcing:
@@ -307,12 +307,12 @@ suites:
     - serial
     fuel_strip_wind:
     - serial
-    terrain_10m:
+    terrain_u10m:
     - serial
     - omp4
     - mpi4
     - hybrid4
-    terrain_3d:
+    terrain_u3d:
     - serial
     - omp4
     - mpi4
@@ -332,14 +332,14 @@ suites:
     - mpi1
     - mpi4
     - hybrid4
-    terrain_10m:
+    terrain_u10m:
     - serial
     - omp1
     - omp4
     - mpi1
     - mpi4
     - hybrid4
-    terrain_3d:
+    terrain_u3d:
     - serial
     - omp1
     - omp4
@@ -363,7 +363,7 @@ suites:
     - mpi4
     - mpi8
     - hybrid4
-    terrain_10m:
+    terrain_u10m:
     - serial
     - omp1
     - omp4
@@ -371,7 +371,7 @@ suites:
     - mpi4
     - mpi8
     - hybrid4
-    terrain_3d:
+    terrain_u3d:
     - serial
     - omp1
     - omp4
@@ -380,8 +380,8 @@ suites:
     - mpi8
     - hybrid4
 coupled_cases:
-- terrain_10m
-- terrain_3d
+- terrain_u10m
+- terrain_u3d
 static_fields:
 - lats
 - lons

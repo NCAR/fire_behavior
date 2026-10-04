@@ -113,7 +113,7 @@ class GeneratorTests(unittest.TestCase):
     def test_complex_inputs_include_perimeter_and_forcing_records(self) -> None:
         """Require shared fuel strips, observed perimeter, and forcing through final time."""
         document = load_yaml(REGRESSION_DIR / "cases.yaml")
-        spec = resolve_spec(document, "terrain_10m", "standard", "ref94",
+        spec = resolve_spec(document, "terrain_u10m", "standard", "ref94",
                             "serial")
         strip_spec = resolve_spec(document, "fuel_strip_wind", "standard",
                                   "ref94", "serial")
@@ -151,7 +151,7 @@ class GeneratorTests(unittest.TestCase):
     def test_atmospheric_coordinates_preserve_double_precision(self) -> None:
         """Keep geographic rounding below the precision used by ESMF mapping."""
         spec = resolve_spec(load_yaml(REGRESSION_DIR / "cases.yaml"),
-                            "terrain_10m")
+                            "terrain_u10m")
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             for name in ("XLAT", "XLONG"):
@@ -303,7 +303,7 @@ class ComparatorTests(unittest.TestCase):
             for field, value in (("fz0", roughness), ("nfuel_cat", fuel)):
                 dataset.createVariable(field, "f8", ("x",))[:] = value
         spec = resolve_spec(load_yaml(REGRESSION_DIR / "cases.yaml"),
-                            "terrain_10m",
+                            "terrain_u10m",
                             execution=execution)
         return {
             "directory": str(directory),
