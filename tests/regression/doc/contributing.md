@@ -48,25 +48,26 @@ needed. Use the [run guide](running.md) for exact test-name selection.
 
 ## Extend an existing case
 
-Keep the case name when its scientific purpose is unchanged. Add a separate
-case when both old and new behaviors need ongoing coverage, such as 10 m versus
-3D wind imports. Record which inputs changed and why. A duration change can
-also change forcing history: temperature and humidity endpoints are spread
-across the configured duration by the generator.
+Keep the case name when its scientific purpose is unchanged. Add a separate case
+when both old and new behaviors need ongoing coverage, such as 10 m versus 3D
+wind imports. Record which inputs changed and why. A duration change can also
+change forcing history: temperature and humidity endpoints are spread across the
+configured duration by the generator.
 
 Update checks and figures with the settings. Re-run all affected execution
 layouts and driver comparisons. Old outputs do not validate a revised case.
 Changing only a case identifier also changes exact CTest names and reference
-keys. The rename from `terrain_10m`/`terrain_3d` to
-`terrain_u10m`/`terrain_u3d` does not alter physical settings, but old names are
-no longer accepted. Preserve historical artifacts with their original names.
-Do not rename data within an immutable approved reference to make it match.
+keys. The rename from `terrain_10m`/`terrain_3d` to `terrain_u10m`/`terrain_u3d`
+does not alter physical settings, but old names are no longer accepted. Preserve
+historical artifacts with their original names. Do not rename data within an
+immutable approved reference to make it match.
 
 ## Add a namelist option
 
-Document the option in the model's [Configuration.rst](../../../doc/Configuration.rst),
-including meaning, units, valid values, and driver applicability. Implement and
-test the model behavior first. Then:
+Document the option in the model's
+[Configuration.rst](../../../doc/Configuration.rst), including meaning, units,
+valid values, and driver applicability. Implement and test the model behavior
+first. Then:
 
 1. Add a scientific default under the appropriate section in `cases.yaml`.
 2. Add type/range/combination checks in `config.py`. The default keys participate
@@ -81,12 +82,13 @@ test the model behavior first. Then:
 
 ## Add a validated output
 
-Follow the steps under [the comparison inventory](comparison.md#when-the-model-gains-an-output).
-Update the writer's metadata, YAML inventory, Python metadata and applicability
-checks, a targeted failing comparison, and the documentation together.
-Diagnostic output levels may add fields, so ensure the inventory matches the
-selected output level. Preserve exact category and coordinate checks.
-A new scientific acceptance threshold requires rationale and review.
+Follow the steps under [the comparison
+inventory](comparison.md#when-the-model-gains-an-output). Update the writer's
+metadata, YAML inventory, Python metadata and applicability checks, a targeted
+failing comparison, and the documentation together. Diagnostic output levels may
+add fields, so ensure the inventory matches the selected output level. Preserve
+exact category and coordinate checks. A new scientific acceptance threshold
+requires rationale and review.
 
 ## Add an execution layout or driver
 
@@ -104,8 +106,8 @@ WRF-data forcing. UFS mass-centred winds require a separate host-specific test.
 ## Style and Python checks
 
 Use Google-based YAPF, four spaces, an 80-column target, descriptive snake_case,
-`pathlib.Path`, and public-function type hints. Separate logical operations
-with blank lines. Explain physical assumptions and synthetic substitutions in
+`pathlib.Path`, and public-function type hints. Separate logical operations with
+blank lines. Explain physical assumptions and synthetic substitutions in
 comments. YAPF controls formatting, not scientific clarity or the full Google
 style guide. Preserve existing creation dates and the repository's CFBM header:
 
@@ -130,17 +132,17 @@ python -B -m unittest discover \
     -s tests/regression/tests -p '*_test.py' -v
 ```
 
-Replace `--diff` with `--in-place` to apply formatting. The two Python test files
-exercise the infrastructure using small synthetic data, without running the
-model. Both are collected by the `_test.py` pattern. CTest supplies
+Replace `--diff` with `--in-place` to apply formatting. The two Python test
+files exercise the infrastructure using small synthetic data, without running
+the model. Both are collected by the `_test.py` pattern. CTest supplies
 `CFBM_TEST_TMP` automatically. Use PBS for the shared NPL environment because
 its netCDF4 library can initialize MPI. A serial-NetCDF development environment
 can run these small Python tests on a login node.
 
 ## Regenerate case figures
 
-[plot_cases.py](plot_cases.py) reads the same YAML and generator functions as the
-tests. It creates configuration figures, not simulated fire-spread results.
+[plot_cases.py](plot_cases.py) reads the same YAML and generator functions as
+the tests. It creates configuration figures, not simulated fire-spread results.
 Matplotlib is needed only to regenerate the committed figures, not to run tests.
 Use a development environment with Matplotlib and the runtime packages, or NPL
 inside PBS. From the repository root:
@@ -153,13 +155,13 @@ python -B tests/regression/doc/plot_cases.py \
 ```
 
 Review each PNG for labels, units, and consistency with `cases.yaml`. Update
-captions and commit the script and figures together. The structure diagrams
-are Mermaid blocks in [structure.md](structure.md), rendered by GitHub.
+captions and commit the script and figures together. The structure diagrams are
+Mermaid blocks in [structure.md](structure.md), rendered by GitHub.
 
 ## Prepare review evidence
 
 Use the [PR checklist](pr-checklist.md). Report incomplete or failing selections
 and distinguish same-driver layout comparisons, cross-driver comparisons, and
-historical reference comparisons. Preserve failed runs. A new candidate may
-be created only from a passing suite at a clean current revision, with a new
+historical reference comparisons. Preserve failed runs. A new candidate may be
+created only from a passing suite at a clean current revision, with a new
 identifier. Team approval and activation remain separate steps.

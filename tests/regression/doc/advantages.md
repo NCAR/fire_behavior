@@ -31,8 +31,8 @@ original references remain available for historical diagnosis.
 The legacy duration and text rules are visible in
 [test7.s](../../legacy/test7.s), [test8.s](../../legacy/test8.s), and their
 [namelists](../../legacy/test8/namelist.fire). The new settings and field
-inventory are in [cases.yaml](../cases.yaml). The
-[comparison table](comparison.md) documents the implemented acceptance rules.
+inventory are in [cases.yaml](../cases.yaml). The [comparison
+table](comparison.md) documents the implemented acceptance rules.
 
 ## Evidence that printed agreement is insufficient
 
@@ -50,15 +50,16 @@ identical printed fire diagnostics. Rounded aggregate values therefore did not
 establish field equality.
 
 Aligning current diagnostics by 0.5 s with the old references gave 26/35 passing
-original comparisons over 19 overlapping records. Test8 still passed only two
-of its five criteria. This reconstruction omitted unmatched endpoints and is
-not a passing result for the unchanged full legacy tests. The integration
-interval changed, so shifting timestamps alone does not align all model state.
+original comparisons over 19 overlapping records. Test8 still passed only two of
+its five criteria. This reconstruction omitted unmatched endpoints and is not a
+passing result for the unchanged full legacy tests. The integration interval
+changed, so shifting timestamps alone does not align all model state.
 
 Evidence: the audit recorded in
-`/glade/derecho/scratch/frediani/tmp/cfbm-pr49-final-20261003/compacted-context-202610041111.md`,
-using outputs from Derecho job `7702254.desched1`. This historical location is
-provenance, not a runtime dependency or a path other contributors must use.
+`cfbm-pr49-final-20261003/compacted-context-202610041111.md` in the validation
+submitter's scratch archive, using outputs from Derecho job `7702254.desched1`.
+The archive name records provenance. Contributors use their own scratch root and
+do not need this archive to run the tests.
 
 ## Coverage that is still needed
 
@@ -66,10 +67,10 @@ The generated cases do not replace `testx` feedback, restart tests, WRF/UFS host
 integration, or scientific evaluation of the humidity formulation. Coupled
 OpenMP/hybrid coverage has not been established by the standard four-build
 validation. The 60 s tests do not establish long-duration agreement: a separate
-600 s experiment exceeded the unchanged standalone/coupled tolerance from
-180 s onward. See [validation history](validation.md).
+600 s experiment exceeded the unchanged standalone/coupled tolerance from 180 s
+onward. See [validation history](validation.md).
 
-Without an explicitly approved reference, these tests evaluate physical
-behavior and agreement among selected executions. Two drivers can agree while
-sharing a defect. Historical reference comparisons and independent physical
-checks remain complementary requirements.
+Without an explicitly approved reference, these tests evaluate physical behavior
+and agreement among selected executions. Two drivers can agree while sharing a
+defect. Historical reference comparisons and independent physical checks remain
+complementary requirements.

@@ -45,7 +45,8 @@ A suite additionally compares successful matching runs. It prefers standalone
 serial as the reference when available, then the smallest available rank/thread
 layout. A partial selection tests only that selection. For example, selecting
 only NUOPC cannot establish agreement with standalone. Failed cases remain
-failures and are not converted to passes because a dependent comparison is absent.
+failures and are not converted to passes because a dependent comparison is
+absent.
 
 ## Files and responsibilities
 
@@ -69,3 +70,9 @@ The model or coupler selects MPI decomposition from its communicator. Runtime
 rank/thread settings are separate from compilation. Namelist `num_tiles` and
 `tile_strategy` control within-rank tiling. CTest reserves ranks × threads and
 the PBS template runs CTest cases sequentially within the allocation.
+
+The generated coupled runs currently reuse `esmfRun.config` and `fd_fire.yaml`
+from `tests/legacy/`. `run_case.py` copies those files into each private run
+directory. ESMX's clock and run sequence are generated from the resolved case,
+so changing their location requires updating that staging path as well as the
+legacy CMake registration.

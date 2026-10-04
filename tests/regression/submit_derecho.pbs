@@ -63,7 +63,7 @@ printf '%s\n' "${SOURCE_COMMIT}" > "${RUN_ROOT}/source.txt"
 module --force purge
 module load ncarenv/25.10 \
             intel/2025.2.1 \
-            ncarcompilers/1.1.0 \
+            ncarcompilers/1.2.0 \
             cray-mpich/8.1.32 \
             netcdf-mpi/4.9.3 \
             esmf-mpi/8.9.1 \
