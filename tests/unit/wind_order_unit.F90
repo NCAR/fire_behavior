@@ -30,8 +30,8 @@ program wind_order_unit
   atmosphere%dy = 100.0
   allocate(atmosphere%lats(2,2), atmosphere%lons(2,2))
   allocate(atmosphere%u3d(2,2,4), atmosphere%v3d(2,2,4), atmosphere%phl(2,2,5))
-  atmosphere%u3d(1,:,:) = 8.0
-  atmosphere%u3d(2,:,:) = 12.0
+  atmosphere%u3d(1,:,:) = 4.0
+  atmosphere%u3d(2,:,:) = 16.0
   atmosphere%v3d = -2.0
   do k = 1, 5
     atmosphere%phl(:,:,k) = G * interfaces(k)
@@ -50,8 +50,8 @@ program wind_order_unit
   ! Vertical-first sampling with source z0=0.05/0.25 m gives a different wind.
   factor = log(6.096_REAL64 / 0.15_REAL64) / log(10.0_REAL64 / 0.15_REAL64)
   expected = 10.0_REAL64 * factor
-  old_order = 0.5_REAL64 * (8.0_REAL64 * log(6.096_REAL64 / 0.05_REAL64) / log(10.0_REAL64 / 0.05_REAL64) + &
-      12.0_REAL64 * log(6.096_REAL64 / 0.25_REAL64) / log(10.0_REAL64 / 0.25_REAL64))
+  old_order = 0.5_REAL64 * (4.0_REAL64 * log(6.096_REAL64 / 0.05_REAL64) / log(10.0_REAL64 / 0.05_REAL64) + &
+      16.0_REAL64 * log(6.096_REAL64 / 0.25_REAL64) / log(10.0_REAL64 / 0.25_REAL64))
   if (maxval(abs(real(u,REAL64) - expected)) > 2.0e-6_REAL64) error stop 'horizontal-first U differs'
   if (maxval(abs(real(v,REAL64) + 2.0_REAL64 * factor)) > 1.0e-6_REAL64) error stop 'horizontal-first V differs'
   if (abs(expected - old_order) < 0.01_REAL64) error stop 'fixture does not distinguish interpolation order'
