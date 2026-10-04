@@ -95,8 +95,7 @@ class GeneratorTests(unittest.TestCase):
     def test_repeat_generation_has_equal_file_hashes(self) -> None:
         """Require byte-identical files in the pinned Python environment."""
         document = load_yaml(REGRESSION_DIR / "cases.yaml")
-        spec = resolve_spec(document, "fuel_strip_wind", "standard", "ref94",
-                            "serial")
+        spec = resolve_spec(document, "fuels", "small", "base", "serial")
         first = self.root / "first"
         second = self.root / "second"
         first.mkdir()
@@ -113,10 +112,8 @@ class GeneratorTests(unittest.TestCase):
     def test_complex_inputs_include_perimeter_and_forcing_records(self) -> None:
         """Require shared fuel strips, observed perimeter, and forcing through final time."""
         document = load_yaml(REGRESSION_DIR / "cases.yaml")
-        spec = resolve_spec(document, "terrain_u10m", "standard", "ref94",
-                            "serial")
-        strip_spec = resolve_spec(document, "fuel_strip_wind", "standard",
-                                  "ref94", "serial")
+        spec = resolve_spec(document, "terrain", "small", "u10m", "serial")
+        strip_spec = resolve_spec(document, "fuels", "small", "base", "serial")
         complex_root = self.root / "complex"
         strip_root = self.root / "strips"
         complex_root.mkdir()
@@ -150,8 +147,7 @@ class GeneratorTests(unittest.TestCase):
 
     def test_atmospheric_coordinates_preserve_double_precision(self) -> None:
         """Keep geographic rounding below the precision used by ESMF mapping."""
-        spec = resolve_spec(load_yaml(REGRESSION_DIR / "cases.yaml"),
-                            "terrain_u10m")
+        spec = resolve_spec(load_yaml(REGRESSION_DIR / "cases.yaml"), "terrain")
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             for name in ("XLAT", "XLONG"):
@@ -303,7 +299,7 @@ class ComparatorTests(unittest.TestCase):
             for field, value in (("fz0", roughness), ("nfuel_cat", fuel)):
                 dataset.createVariable(field, "f8", ("x",))[:] = value
         spec = resolve_spec(load_yaml(REGRESSION_DIR / "cases.yaml"),
-                            "terrain_u10m",
+                            "terrain",
                             execution=execution)
         return {
             "directory": str(directory),
@@ -349,10 +345,17 @@ class ComparatorTests(unittest.TestCase):
         self.assertEqual(
             sum(item["comparison_kind"] == "cross_driver"
                 for item in comparisons), 3)
-        results[1]["spec"]["grid"]["dx_m"] = 200.0
+        results[1]["spec"]["inputs"]["grid"]["dx_m"] = 200.0
         self.assertTrue(
             any(not item["pass"]
                 for item in compare_executions(results, {"fz0", "nfuel_cat"})))
+
+    def test_different_configurations_are_not_compared(self) -> None:
+        """Keep wind and numerical-option experiments in separate comparison groups."""
+        first = self.run_fixture("surface", "standalone", "serial", 0.1)
+        second = self.run_fixture("profile", "nuopc", "mpi4", 0.1)
+        second["spec"]["identity"]["configuration"] = "u3d"
+        self.assertEqual(compare_executions([first, second], {"fz0"}), [])
 
     def test_reports_are_strict_json(self) -> None:
         """Serialize undefined metrics as null in the result report."""

@@ -16,7 +16,7 @@ flowchart TD
     E --> F[run_suite.py: select exact names and labels]
     D --> F
     F --> G[CTest]
-    G --> H[Focused Fortran and Python tests]
+    G --> H[Unit Fortran and Python tests]
     G --> I[regression.py case]
     I --> J[One isolated model run]
     J --> K[result.json]
@@ -28,7 +28,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[Resolve defaults, case, scale, method, execution] --> B[Validate settings]
+    A[Resolve defaults, case, configuration, scale] --> B[Validate settings]
     B --> C[Create a new run directory]
     C --> D[Generate inputs and render namelist]
     D --> E[Launch selected standalone, NUOPC, or ESMX binary]
@@ -41,7 +41,9 @@ flowchart TD
     J --> K
 ```
 
-A suite additionally compares successful matching runs. It prefers standalone
+A suite additionally compares successful runs with the same case, configuration,
+and scale. It never compares `u10m` against `u3d` or WENO against Godunov.
+Execution settings are recorded separately and cannot alter science. It prefers standalone
 serial as the reference when available, then the smallest available rank/thread
 layout. A partial selection tests only that selection. For example, selecting
 only NUOPC cannot establish agreement with standalone. Failed cases remain
@@ -57,7 +59,7 @@ absent.
 | [CMakeLists.txt](../CMakeLists.txt) | Choose executables, launcher, labels, timeouts, processor counts |
 | [run_case.py](../run_case.py) | Stage and execute one existing binary |
 | [generate_inputs.py](../generate_inputs.py) | Construct deterministic NetCDF input fields |
-| [render_namelist.py](../render_namelist.py) | Map settings into one Fortran namelist template |
+| [render_namelist.py](../render_namelist.py) | Write exact namelist options; derive dates and input geometry |
 | [check_outputs.py](../check_outputs.py) | Check output inventory, metadata, forcing, and fire evolution |
 | [compare_outputs.py](../compare_outputs.py) | Compare every saved field and report spatial errors |
 | [run_suite.py](../run_suite.py) | Select CTests and compare equivalent completed cases |

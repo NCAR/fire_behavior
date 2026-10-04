@@ -27,8 +27,10 @@ def build_parser() -> argparse.ArgumentParser:
                       choices=("standalone", "nuopc", "esmx"),
                       default="standalone")
     case.add_argument("--execution", default="serial")
-    case.add_argument("--scale", default="standard")
-    case.add_argument("--method", default="ref94")
+    case.add_argument("--scale", choices=("small", "large"), default="small")
+    case.add_argument(
+        "--configuration",
+        help="Named configuration; defaults to the first entry for the case")
     case.add_argument("--executable", type=Path, required=True)
     case.add_argument("--run-root", type=Path, required=True)
     case.add_argument("--launcher", default="mpiexec")
@@ -45,6 +47,8 @@ def build_parser() -> argparse.ArgumentParser:
     suite.add_argument("--case")
     suite.add_argument("--driver", choices=("standalone", "nuopc", "esmx"))
     suite.add_argument("--execution")
+    suite.add_argument("--configuration")
+    suite.add_argument("--scale", choices=("small", "large"))
     suite.add_argument("--test", help="One exact CTest name")
     suite.add_argument("--run-root", type=Path, required=True)
     register = commands.add_parser("registrations",
@@ -72,7 +76,7 @@ def main() -> int:
                                 args.driver)
         if not args.include_full:
             records = [
-                record for record in records if record["scale"] != "full"
+                record for record in records if record["scale"] != "large"
             ]
         print(json.dumps(records))
         return 0

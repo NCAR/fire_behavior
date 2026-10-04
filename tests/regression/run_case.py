@@ -22,7 +22,7 @@ import yaml
 from check_outputs import expected_output_names, validate_outputs
 from config import load_yaml, resolve_spec
 from generate_inputs import generate_inputs
-from render_namelist import namelist_values, render_template
+from render_namelist import render_namelist
 from reports import print_result, write_result
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -50,7 +50,7 @@ def source_identity() -> dict[str, Any]:
 
 def write_esmx_config(path: Path, spec: dict[str, Any]) -> None:
     """Use the same forcing clock and ranks for both coupled components."""
-    clock = spec["time"]
+    clock = spec
     component = {"petList": list(range(spec["execution"]["ranks"]))}
     config = {
         "ESMX": {
@@ -63,7 +63,7 @@ def write_esmx_config(path: Path, spec: dict[str, Any]) -> None:
             "Driver": {
                 "componentList": ["FIRE", "WRF"],
                 "runSequence":
-                    (f"@{clock['atmosphere_interval_seconds']}\n"
+                    (f"@{spec['namelist']['atm']['interval_atm']}\n"
                      "  WRF -> FIRE\n  FIRE -> WRF\n  FIRE\n  WRF\n@")
             }
         },
@@ -85,17 +85,17 @@ def run_case(args: Any) -> dict[str, Any]:
         raise RuntimeError(
             "On NCAR HPC, run model cases inside a PBS allocation")
     document = load_yaml(args.config)
-    spec = resolve_spec(document, args.case, args.scale, args.method,
+    spec = resolve_spec(document, args.case, args.scale, args.configuration,
                         args.execution)
-    if args.driver != "standalone" and args.case not in document[
-            "coupled_cases"]:
+    if args.driver not in document["cases"][args.case]["drivers"]:
         raise ValueError(f"No coupled configuration for {args.case}")
     executable = args.executable.resolve(strict=True)
     root = Path(os.environ.get("CFBM_RUN_ROOT", str(args.run_root))).resolve()
     if root.is_relative_to(SOURCE_ROOT):
         raise ValueError("Keep generated runs outside the source worktree")
     root.mkdir(parents=True, exist_ok=True)
-    name = f"{args.driver}_{args.case}_{args.scale}_{args.method}_{args.execution}"
+    name = (f"{args.driver}_{args.case}_{spec['identity']['configuration']}_"
+            f"{args.scale}_{args.execution}")
     directory = Path(tempfile.mkdtemp(prefix=name + "-", dir=root))
     result = {
         "name": name,
@@ -111,9 +111,7 @@ def run_case(args: Any) -> dict[str, Any]:
         result["spec"] = spec
         result["expected_outputs"] = expected_output_names(spec)
         result["expected_fields"] = document["expected_output_fields"]
-        (directory / "namelist.fire").write_text(
-            render_template(SCRIPT_DIR / "templates/namelist.fire.in",
-                            namelist_values(spec)))
+        (directory / "namelist.fire").write_text(render_namelist(spec))
         command = [str(executable)]
         if args.driver != "standalone":
             for filename in ("esmfRun.config", "fd_fire.yaml"):
@@ -123,7 +121,7 @@ def run_case(args: Any) -> dict[str, Any]:
             write_esmx_config(directory / "esmxRun.yaml", spec)
             command.append("esmxRun.yaml")
         execution = spec["execution"]
-        if execution["variant"] in ("mpi", "hybrid"):
+        if execution["build"] in ("mpi", "hybrid"):
             command = [
                 args.launcher, *args.launcher_arg, args.process_flag,
                 str(execution["ranks"]), command[0], *args.launcher_post_arg,

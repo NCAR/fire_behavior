@@ -1,387 +1,371 @@
-# Scientific defaults and named cases. Execution settings cannot override science.
+# Shared inputs and exact Fortran namelist names. See doc/configuration.md.
+# Merge order: defaults, case, configuration, scale. Lists replace lists.
 defaults:
-  time:
-    start: 2020-01-01_00:00:00
-    duration_seconds: 60
-    dt_seconds: 4
-    output_interval_seconds: 60
-    atmosphere_interval_seconds: 4
-  grid:
-    nx: 72
-    ny: 72
-    dx_m: 100.0
-    dy_m: 100.0
-    sr_x: 1
-    sr_y: 1
-    axis_order: NetCDF (Time,south_north,west_east); Fortran (west_east,south_north)
-  projection:
-    cen_lat: 40.0
-    cen_lon: -105.0
-    stand_lon: -105.0
-    true_lat_1: 30.0
-    true_lat_2: 60.0
-    map_proj: 1
-  forcing:
-    # Fractional wind increase per metre above terrain.base_elevation_m.
-    wind_terrain_gradient_per_m: 0.0
-    u10_m_s: 0.0
-    v10_m_s: 0.0
-    temperature_start_k: 300.0
-    temperature_end_k: 300.0
-    mixing_ratio_start_kg_kg: 0.006
-    mixing_ratio_end_kg_kg: 0.006
-    surface_pressure_pa: 90000.0
-    accumulated_rain_start_mm: 0.0
-    accumulated_rain_end_mm: 0.0
-    vertical_levels_stag: 5
-    roughness_length_min_m: 0.05
-    roughness_length_max_m: 0.25
-    height_interfaces_m:
-    - 0.0
-    - 20.0
-    - 60.0
-    - 120.0
-    - 200.0
-    u_profile_m_s:
-    - 10.0
-    - 14.0
-    - 18.0
-    - 22.0
-    v_profile_m_s:
-    - 10.0
-    - 6.0
-    - 2.0
-    - -2.0
-  fuel:
-    family: Anderson13
-    family_id: 1
-    uniform_category: 3
-    categories:
-    - 3
-    strip_axis: south_north
-  terrain:
-    kind: flat
-    base_elevation_m: 1600.0
-    amplitude_m: 0.0
-    wavelength_x_m: 6000.0
-    wavelength_y_m: 6000.0
-    ideal_dz_dx: 0.0
-    ideal_dz_dy: 0.0
-  ignition:
-    kind: point
-    count: 1
-    center_x_fraction: 0.5
-    center_y_fraction: 0.5
-    line_x_fraction: 0.35
-    line_y_start_fraction: 0.25
-    line_y_end_fraction: 0.75
-    radius_m: 500.0
-    ros_m_s: 250.0
-    start_time_s: 0.0
-    end_time_s: 2.0
-    start_lat: 40.0
-    start_lon: -105.0
-    end_lat: 40.0
-    end_lon: -105.0
-  moisture:
-    run: false
-    frequency_timesteps: 0
-    dt_seconds: 600.0
-    initial_dead: 0.08
-    initial_live: 0.3
-    model_id: -1
-  interpolation:
-    horizontal: 2
-    vertical: 1
-    fire_wind_height_m: 6.096
-  model:
-    ideal_opt: 1
-    devel_opt: 1
-    fire_lsm_reinit: true
-    reinit_pseudot_coef: 0.0001
-    num_tiles: 4
-    tile_strategy: 3
-  output:
-    level: 0
-    check_isolated_neg_lfn: 2
-cases:
-  circle_nowind:
-    model:
+  start: 2020-01-01_00:00:00
+  duration_seconds: 60
+  namelist:
+    time:
+      dt: 4
+      interval_output: 60
+      num_tiles: 4
+      tile_strategy: 3
+    atm:
+      interval_atm: 4
+    fire:
+      fire_num_ignitions: 1
+      fire_ignition_ros1: 250.0
+      fire_ignition_radius1: 500.0
+      fire_ignition_start_time1: 0.0
+      fire_ignition_end_time1: 2.0
+      fire_is_real_perim: false
+      fire_upwinding: 9
+      fire_upwinding_reinit: 4
+      fire_lsm_reinit: true
+      fire_lsm_reinit_iter: 1
+      reinit_pseudot_coef: 0.0001
+      fire_wind_height: 6.096
+      wind_vinterp_opt: 1
+      hinterp_opt: 2
+      fmoist_run: false
+      fmoist_freq: 0
+      fmoist_dt: 600.0
+      fuelmc_g: 0.08
+      fuelmc_g_live: 0.3
       ideal_opt: 1
-    forcing:
-      u10_m_s: 0.0
-      v10_m_s: 0.0
+      devel_opt: 1
+      fuel_opt: 1
+      fmc_opt: -1
+    devel:
+      check_isolated_neg_lfn: 2
+      output_level: 0
+  inputs:
+    grid:
+      nx: 72
+      ny: 72
+      dx_m: 100.0
+      dy_m: 100.0
+      sr_x: 1
+      sr_y: 1
+      axis_order: NetCDF (Time,south_north,west_east); Fortran (west_east,south_north)
+    projection:
+      cen_lat: 40.0
+      cen_lon: -105.0
+      stand_lon: -105.0
+      true_lat_1: 30.0
+      true_lat_2: 60.0
+      map_proj: 1
+    terrain:
+      kind: flat
+      base_elevation_m: 1600.0
+      amplitude_m: 0.0
+      wavelength_x_m: 6000.0
+      wavelength_y_m: 6000.0
+      ideal_dz_dx: 0.0
+      ideal_dz_dy: 0.0
     fuel:
+      family: Anderson13
       uniform_category: 3
       categories:
       - 3
-    terrain:
-      kind: flat
-      base_elevation_m: 0.0
+      strip_axis: south_north
     ignition:
       kind: point
-      radius_m: 500.0
-    interpolation:
-      horizontal: 2
-      vertical: 1
-  fuel_strip_wind:
-    model:
-      ideal_opt: 0
-    forcing:
-      u10_m_s: 10.0
+      center_x_fraction: 0.5
+      center_y_fraction: 0.5
+      line_x_fraction: 0.35
+      line_y_start_fraction: 0.25
+      line_y_end_fraction: 0.75
+    atmosphere:
+      wind_terrain_gradient_per_m: 0.0
+      u10_m_s: 0.0
       v10_m_s: 0.0
-    fuel:
-      categories:
-      - 7
-      - 3
-      - 6
-      - 5
-      - 1
-      - 13
-      - 2
-      - 12
-      - 10
-      - 11
-      - 9
-      - 8
-      strip_axis: south_north
-    terrain:
-      kind: flat
-      base_elevation_m: 0.0
-    ignition:
-      kind: line
-      radius_m: 100.0
-      ros_m_s: 100.0
-    interpolation:
-      horizontal: 1
-      vertical: 1
-  terrain_u10m:
-    model:
-      ideal_opt: 0
-    forcing:
-      wind_terrain_gradient_per_m: 0.001
-      u10_m_s: 10.0
-      v10_m_s: 10.0
       temperature_start_k: 300.0
-      temperature_end_k: 302.0
-      mixing_ratio_start_kg_kg: 0.008
-      mixing_ratio_end_kg_kg: 0.004
-    fuel:
-      categories:
-      - 7
-      - 3
-      - 6
-      - 5
-      - 1
-      - 13
-      - 2
-      - 12
-      - 10
-      - 11
-      - 9
-      - 8
-      strip_axis: south_north
-    terrain:
-      kind: sinusoidal
-      base_elevation_m: 1600.0
-      amplitude_m: 150.0
-      wavelength_x_m: 6000.0
-      wavelength_y_m: 6000.0
-    ignition:
-      kind: perimeter
-      radius_m: 500.0
-      count: 1
-      start_time_s: 8.0
-    moisture:
-      run: true
-      frequency_timesteps: 1
-      dt_seconds: 4.0
-    interpolation:
-      horizontal: 2
-      vertical: 1
-  terrain_u3d:
-    model:
-      ideal_opt: 0
-    forcing:
-      wind_terrain_gradient_per_m: 0.001
-      u10_m_s: 10.0
-      v10_m_s: 10.0
-      temperature_start_k: 300.0
-      temperature_end_k: 302.0
-      mixing_ratio_start_kg_kg: 0.008
-      mixing_ratio_end_kg_kg: 0.004
+      temperature_end_k: 300.0
+      mixing_ratio_start_kg_kg: 0.006
+      mixing_ratio_end_kg_kg: 0.006
+      surface_pressure_pa: 90000.0
+      accumulated_rain_start_mm: 0.0
+      accumulated_rain_end_mm: 0.0
       vertical_levels_stag: 5
-    fuel:
-      categories:
-      - 7
-      - 3
-      - 6
-      - 5
-      - 1
-      - 13
-      - 2
-      - 12
-      - 10
-      - 11
-      - 9
-      - 8
-      strip_axis: south_north
-    terrain:
-      kind: sinusoidal
-      base_elevation_m: 1600.0
-      amplitude_m: 150.0
-      wavelength_x_m: 6000.0
-      wavelength_y_m: 6000.0
-    ignition:
-      kind: perimeter
-      radius_m: 500.0
-      count: 1
-      start_time_s: 8.0
-    moisture:
-      run: true
-      frequency_timesteps: 1
-      dt_seconds: 4.0
-    interpolation:
-      horizontal: 2
-      vertical: 0
-      fire_wind_height_m: 20.0
+      roughness_length_min_m: 0.05
+      roughness_length_max_m: 0.25
+      height_interfaces_m:
+      - 0.0
+      - 20.0
+      - 60.0
+      - 120.0
+      - 200.0
+      u_profile_m_s:
+      - 10.0
+      - 14.0
+      - 18.0
+      - 22.0
+      v_profile_m_s:
+      - 10.0
+      - 6.0
+      - 2.0
+      - -2.0
+cases:
+  circle:
+    description: Idealized circular ignition in uniform Anderson fuel without wind.
+    drivers:
+    - standalone
+    inputs:
+      terrain:
+        base_elevation_m: 0.0
+    configurations:
+      base: {}
+      godunov:
+        namelist:
+          fire:
+            fire_upwinding: 2
+  fuels:
+    description: Line ignition across Anderson fuel strips with 10 m winds.
+    drivers:
+    - standalone
+    namelist:
+      fire:
+        fire_ignition_ros1: 100.0
+        fire_ignition_radius1: 100.0
+        hinterp_opt: 1
+        ideal_opt: 0
+    inputs:
+      terrain:
+        base_elevation_m: 0.0
+      fuel:
+        categories:
+        - 7
+        - 3
+        - 6
+        - 5
+        - 1
+        - 13
+        - 2
+        - 12
+        - 10
+        - 11
+        - 9
+        - 8
+      ignition:
+        kind: line
+      atmosphere:
+        u10_m_s: 10.0
+    configurations:
+      base: {}
+      godunov:
+        namelist:
+          fire:
+            fire_upwinding: 2
+  terrain:
+    description: Delayed observed perimeter over sinusoidal terrain and fuel strips.
+    drivers:
+    - standalone
+    - nuopc
+    - esmx
+    namelist:
+      fire:
+        fire_ignition_start_time1: 8.0
+        fire_is_real_perim: true
+        fmoist_run: true
+        fmoist_freq: 1
+        fmoist_dt: 4.0
+        ideal_opt: 0
+    inputs:
+      terrain:
+        kind: sinusoidal
+        amplitude_m: 150.0
+      fuel:
+        categories:
+        - 7
+        - 3
+        - 6
+        - 5
+        - 1
+        - 13
+        - 2
+        - 12
+        - 10
+        - 11
+        - 9
+        - 8
+      ignition:
+        kind: perimeter
+      atmosphere:
+        wind_terrain_gradient_per_m: 0.001
+        u10_m_s: 10.0
+        v10_m_s: 10.0
+        temperature_end_k: 302.0
+        mixing_ratio_start_kg_kg: 0.008
+        mixing_ratio_end_kg_kg: 0.004
+    configurations:
+      u10m:
+        namelist:
+          fire:
+            wind_vinterp_opt: 1
+      u3d:
+        namelist:
+          fire:
+            wind_vinterp_opt: 0
+      godunov10m:
+        namelist:
+          fire:
+            wind_vinterp_opt: 1
+            fire_upwinding: 2
+      godunov3d:
+        namelist:
+          fire:
+            wind_vinterp_opt: 0
+            fire_upwinding: 2
 scales:
-  standard: {}
-  full:
-    time:
-      duration_seconds: 3600
-      dt_seconds: 2
-      output_interval_seconds: 900
-      atmosphere_interval_seconds: 60
-    grid:
-      nx: 320
-      ny: 320
-      dx_m: 25.0
-      dy_m: 25.0
-methods:
-  ref94:
-    fire_upwinding: 9
-    fire_upwinding_reinit: 4
-  ref24:
-    fire_upwinding: 2
-    fire_upwinding_reinit: 4
+  small: {}
+  large:
+    duration_seconds: 3600
+    inputs:
+      grid:
+        nx: 320
+        ny: 320
+        dx_m: 25.0
+        dy_m: 25.0
+    namelist:
+      time:
+        dt: 2
+        interval_output: 900
+      atm:
+        interval_atm: 60
 executions:
   hybrid4:
-    variant: hybrid
     ranks: 4
     threads: 4
     timeout_seconds: 1200
+    build: hybrid
   serial:
-    variant: serial
     ranks: 1
     threads: 1
     timeout_seconds: 900
+    build: serial
   omp1:
-    variant: omp
     ranks: 1
     threads: 1
     timeout_seconds: 900
+    build: omp
   omp4:
-    variant: omp
     ranks: 1
     threads: 4
     timeout_seconds: 900
+    build: omp
   mpi1:
-    variant: mpi
     ranks: 1
     threads: 1
     timeout_seconds: 900
+    build: mpi
   mpi4:
-    variant: mpi
     ranks: 4
     threads: 1
     timeout_seconds: 900
+    build: mpi
   mpi8:
-    variant: mpi
     ranks: 8
     threads: 1
     timeout_seconds: 1800
+    build: mpi
 suites:
   quick:
-    circle_nowind:
-    - serial
-    fuel_strip_wind:
-    - serial
-    terrain_u10m:
-    - serial
-    - omp4
-    - mpi4
-    - hybrid4
-    terrain_u3d:
-    - serial
-    - omp4
-    - mpi4
-    - hybrid4
+    scale: small
+    cases:
+      circle:
+        configurations:
+        - base
+        executions:
+        - serial
+      fuels:
+        configurations:
+        - base
+        executions:
+        - serial
+      terrain:
+        configurations:
+        - u10m
+        - u3d
+        executions:
+        - serial
+        - omp4
+        - mpi4
+        - hybrid4
   pr:
-    circle_nowind:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - hybrid4
-    fuel_strip_wind:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - hybrid4
-    terrain_u10m:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - hybrid4
-    terrain_u3d:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - hybrid4
+    scale: small
+    cases:
+      circle:
+        configurations:
+        - base
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - hybrid4
+      fuels:
+        configurations:
+        - base
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - hybrid4
+      terrain:
+        configurations:
+        - u10m
+        - u3d
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - hybrid4
   full:
-    circle_nowind:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - mpi8
-    - hybrid4
-    fuel_strip_wind:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - mpi8
-    - hybrid4
-    terrain_u10m:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - mpi8
-    - hybrid4
-    terrain_u3d:
-    - serial
-    - omp1
-    - omp4
-    - mpi1
-    - mpi4
-    - mpi8
-    - hybrid4
-coupled_cases:
-- terrain_u10m
-- terrain_u3d
+    scale: large
+    cases:
+      circle:
+        configurations:
+        - base
+        - godunov
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - mpi8
+        - hybrid4
+      fuels:
+        configurations:
+        - base
+        - godunov
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - mpi8
+        - hybrid4
+      terrain:
+        configurations:
+        - u10m
+        - u3d
+        - godunov10m
+        - godunov3d
+        executions:
+        - serial
+        - omp1
+        - omp4
+        - mpi1
+        - mpi4
+        - mpi8
+        - hybrid4
 static_fields:
 - lats
 - lons

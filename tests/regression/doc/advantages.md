@@ -14,19 +14,19 @@ original references remain available for historical diagnosis.
 | Quantities compared | Five printed diagnostics and their timestamps: fire area, heat output, latent heat output, maximum heat flux, maximum latent heat flux | Every field in the expected NetCDF inventory, at every scheduled output time |
 | Spatial information | Domain summaries, including maxima, can hide cell-by-cell differences | Per-field cell counts, first differing index and values, maximum absolute/percentage errors, RMS error, and bitwise differences |
 | Numerical acceptance | `grep`/`awk` extraction followed by a required count of `diff` lines, sometimes exactly nonzero | Explicit bitwise or relative-tolerance rules documented for each field |
-| Standard duration | 10 s | 60 s, six times longer, with 4 s timesteps |
-| Temporal sampling | Text every 0.5 s and saved NetCDF every 1 s, but NetCDF fields were not compared | Standard NetCDF checks at 0 and 60 s. Longer duration does not mean more frequent sampling |
-| Wind checks | Wind diagnostics were printed but were not among the five comparisons | Both 10 m and 3D terrain cases, component bounds/direction, spatial variation, and field comparisons |
+| Default duration | 10 s | 60 s, six times longer, with 4 s timesteps |
+| Temporal sampling | Text every 0.5 s and saved NetCDF every 1 s, but NetCDF fields were not compared | Default NetCDF checks at 0 and 60 s. Longer duration does not mean more frequent sampling |
+| Wind checks | Wind diagnostics were printed but were not among the five comparisons | Both 10 m and 3D terrain configurations, component bounds/direction, spatial variation, and field comparisons |
 | Forcing | Archived WRF/geogrid fixtures | Deterministic generated terrain, fuels, roughness, time-varying temperature/humidity, and terrain-dependent winds |
 | Domain coverage | Saved legacy coupled fields include small-wind boundary regions | Atmospheric domain extends beyond the fire grid, and final real-case fields must contain no missing cells |
 | Parallel coverage | CI compiled MPI on and OpenMP off. Legacy model executables ran directly as one process. A separate MPI unit test used multiple ranks | Four explicit builds, with one/four-thread and one/four-rank checks and a four-rank × four-thread standalone hybrid check |
 | Coupling coverage | NUOPC/ESMX fixtures and ESMX_Data `testx` | Both terrain wind representations through NUOPC and ESMX, with one/four MPI ranks and comparison to standalone |
 | Completion | Text comparisons | Exit status, fatal diagnostics, required coupled completion marker, exact file/field inventory, and physical evolution checks |
 | Isolation | Historical scripts used shared working paths and cleanup commands | New directories for each attempt, preserved inputs/outputs/logs, safe reruns |
-| Selection | Individual shell scripts | Plain case, driver, execution, and exact CTest names, plus `quick`, `pr`, `full`, `unit`, and `legacy` suites |
+| Selection | Individual shell scripts | Plain case, configuration, scale, driver, execution, and exact CTest names, plus `quick`, `pr`, `full`, `unit`, and `legacy` suites |
 | Reports | Console text | `result.json`, suite `summary.json`, and CI CTest JUnit reports with artifact locations |
 | Historical references | Shared text solutions | Explicit immutable reference directories, recorded approval, and file-integrity checks |
-| Maintainability | Repeated case scripts and implicit settings | Separate Python responsibilities, one scientific YAML file, one namelist template, and focused Python tests |
+| Maintainability | Repeated case scripts and implicit settings | Separate Python responsibilities, one scientific YAML file, exact namelist names, and unit Python tests |
 
 The legacy duration and text rules are visible in
 [test7.s](../../legacy/test7.s), [test8.s](../../legacy/test8.s), and their
@@ -63,12 +63,8 @@ do not need this archive to run the tests.
 
 ## Coverage that is still needed
 
-The generated cases do not replace `testx` feedback, restart tests, WRF/UFS host
-integration, or scientific evaluation of the humidity formulation. Coupled
-OpenMP/hybrid coverage has not been established by the standard four-build
-validation. The 60 s tests do not establish long-duration agreement: a separate
-600 s experiment exceeded the unchanged standalone/coupled tolerance from 180 s
-onward. See [validation history](validation.md).
+See [deferred work](deferred.md) for the complete list of missing coverage
+and longer-run investigations.
 
 Without an explicitly approved reference, these tests evaluate physical behavior
 and agreement among selected executions. Two drivers can agree while sharing a

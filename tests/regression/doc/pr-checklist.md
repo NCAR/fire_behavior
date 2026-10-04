@@ -22,7 +22,7 @@ template or a claim that any existing PR has met every item.
 - [ ] Add new outputs to the field inventory, metadata checks, comparison table,
       and applicable scientific behavior checks.
 - [ ] State each field's bitwise/tolerance policy with physical rationale.
-- [ ] Add focused tests that would fail for the reported defect or missing behavior.
+- [ ] Add unit tests that would fail for the reported defect or missing behavior.
 - [ ] Exercise affected serial, MPI, OpenMP, hybrid, NUOPC, and ESMX configurations,
       or explain which are inapplicable or still untested.
 - [ ] Preserve legacy tests and references, including coverage not yet reproduced

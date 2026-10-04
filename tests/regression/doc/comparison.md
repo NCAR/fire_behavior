@@ -111,7 +111,7 @@ followed by the field comparisons above.
 3. Decide whether exact comparison or tolerance is scientifically appropriate.
    Add static fields to `static_fields`. Do not infer that a categorical field
    permits tolerance just because it is stored as a real number.
-4. Add a focused test that changes the field and demonstrates the intended
+4. Add a unit test that changes the field and demonstrates the intended
    failure. Exercise the feature in at least one generated model case.
 5. Update this table and model documentation. Validate before creating a new
    reference candidate. Never silently replace an approved reference.

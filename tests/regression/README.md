@@ -33,6 +33,7 @@ only the serial build. For all four builds, including NUOPC and ESMX, use the
 | Task | Guide |
 | --- | --- |
 | Build, submit a PBS job, select suites or exact names | [Running tests](doc/running.md) |
+| Select exact namelist options and named configurations | [YAML configuration](doc/configuration.md) |
 | Understand terrain, fuel, ignition, winds, and timing | [Case configurations and figures](doc/cases.md) |
 | Understand which script does what | [Structure and execution diagrams](doc/structure.md) |
 | Find every compared field and its acceptance rule | [Variable comparison table](doc/comparison.md) |
@@ -40,13 +41,17 @@ only the serial build. For all four builds, including NUOPC and ESMX, use the
 | Find outputs or prepare an unapproved reference | [Results and references](doc/references.md) |
 | Add or extend a case, namelist option, or output | [Contributor guide](doc/contributing.md) |
 | Prepare a model or regression change for review | [PR checklist](doc/pr-checklist.md) |
+| Find postponed investigations and unsupported coverage | [Deferred work](doc/deferred.md) |
 | Interpret existing passes, failures, and coverage limits | [Validation history](doc/validation.md) |
 
 ## Scope and acceptance
 
-The four standard cases are `circle_nowind`, `fuel_strip_wind`, `terrain_u10m`,
-and `terrain_u3d`. They integrate for 60 s on a 72 × 72 fire grid with 100 m
-spacing and a 4 s timestep. Both terrain cases also run through NUOPC and ESMX.
+The three cases are `circle`, `fuels`, and `terrain`. Terrain has `u10m` and
+`u3d` configurations, with both wind representations in its generated inputs.
+The `small` scale integrates for 60 s on a 72 × 72 fire grid at 100 m spacing
+with a 4 s timestep. Terrain also runs through NUOPC and ESMX. See the
+[YAML configuration guide](doc/configuration.md) for exact namelist options,
+configuration names, and the `large` scale.
 The [comparison table](doc/comparison.md) separates bitwise checks from numerical
 tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical
@@ -55,8 +60,8 @@ regression acceptance.
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated
 cases. Use `compile_legacy.sh` with separate build/install directories.
-The 600 s standalone/coupled differences remain unresolved. Restart, PR #39,
-method `(4,5)`, and the PR #46 humidity correction remain outside this work.
+Coverage limits and postponed investigations are recorded in
+[deferred work](doc/deferred.md).
 
 ## Python style
 

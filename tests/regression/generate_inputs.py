@@ -152,11 +152,11 @@ def _grid_latlon(
         corners: bool = False,
         double_precision: bool = False) -> tuple[np.ndarray, np.ndarray]:
     """Generate mass-point or corner latitude and longitude arrays."""
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     nx = grid["nx"] if corners else grid["nx"] - 1
     ny = grid["ny"] if corners else grid["ny"] - 1
     proj = LambertProjection(grid["nx"] - 1, grid["ny"] - 1, grid["dx_m"],
-                             grid["dy_m"], spec["projection"])
+                             grid["dy_m"], spec["inputs"]["projection"])
     dtype = np.float64 if double_precision else np.float32
     lat = np.empty((ny, nx), dtype=dtype)
     lon = np.empty_like(lat)
@@ -170,9 +170,9 @@ def _grid_latlon(
 def _fire_latlon(spec: dict[str, Any], x_fraction: float,
                  y_fraction: float) -> tuple[float, float]:
     """Convert a fractional fire-domain point to geographic coordinates."""
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     proj = LambertProjection(grid["nx"] - 1, grid["ny"] - 1, grid["dx_m"],
-                             grid["dy_m"], spec["projection"])
+                             grid["dy_m"], spec["inputs"]["projection"])
     return proj.latlon(0.5 + x_fraction * grid["nx"],
                        0.5 + y_fraction * grid["ny"])
 
@@ -180,12 +180,12 @@ def _fire_latlon(spec: dict[str, Any], x_fraction: float,
 def _fields(spec: dict[str, Any],
             offset_cells: float = 0.0) -> dict[str, np.ndarray]:
     """Construct terrain, slopes, fuel categories, and optional perimeter level set."""
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     ny, nx = grid["ny"], grid["nx"]
     y, x = np.indices((ny, nx), dtype=np.float64)
     xm = (x + 0.5 - offset_cells) * grid["dx_m"]
     ym = (y + 0.5 - offset_cells) * grid["dy_m"]
-    terrain = spec["terrain"]
+    terrain = spec["inputs"]["terrain"]
     if terrain["kind"] == "sinusoidal":
         phase_x = 2.0 * math.pi * xm / terrain["wavelength_x_m"]
         phase_y = 2.0 * math.pi * ym / terrain["wavelength_y_m"]
@@ -202,8 +202,7 @@ def _fields(spec: dict[str, Any],
         dzdx = np.zeros((ny, nx))
         dzdy = np.zeros((ny, nx))
 
-    fuel = spec["fuel"]
-    case = spec["identity"]["case"]
+    fuel = spec["inputs"]["fuel"]
     if len(fuel["categories"]) > 1:
         categories = np.asarray(fuel["categories"], dtype=np.float32)
         strip_index = np.minimum((np.arange(ny) * len(categories)) // ny,
@@ -218,11 +217,12 @@ def _fields(spec: dict[str, Any],
         "DZDYF": dzdy.astype("f4"),
         "NFUEL_CAT": nfuel
     }
-    if (spec["ignition"]["kind"] == "perimeter"):
+    if (spec["inputs"]["ignition"]["kind"] == "perimeter"):
         cx = 0.5 * nx * grid["dx_m"]
         cy = 0.5 * ny * grid["dy_m"]
-        fields["lfn_init"] = (np.hypot(xm - cx, ym - cy) -
-                              spec["ignition"]["radius_m"]).astype("f4")
+        fields["lfn_init"] = (
+            np.hypot(xm - cx, ym - cy) -
+            spec["namelist"]["fire"]["fire_ignition_radius1"]).astype("f4")
     return fields
 
 
@@ -248,11 +248,11 @@ def _write_times(variable: netCDF4.Variable, times: list[dt.datetime]) -> None:
 
 def _common_attrs(spec: dict[str, Any], title: str) -> dict[str, Any]:
     """Return projection and grid attributes used by both generated files."""
-    grid = spec["grid"]
-    projection = spec["projection"]
+    grid = spec["inputs"]["grid"]
+    projection = spec["inputs"]["projection"]
     return {
         "TITLE": title,
-        "SIMULATION_START_DATE": spec["time"]["start"],
+        "SIMULATION_START_DATE": spec["start"],
         "DX": np.float32(grid["dx_m"]),
         "DY": np.float32(grid["dy_m"]),
         "CEN_LAT": np.float32(projection["cen_lat"]),
@@ -269,7 +269,7 @@ def _common_attrs(spec: dict[str, Any], title: str) -> dict[str, Any]:
 def _write_geo(path: Path, spec: dict[str, Any],
                fields: dict[str, np.ndarray]) -> None:
     """Write the exact geogrid fields read by the standalone initialization path."""
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     mass_lat, mass_lon = _grid_latlon(spec)
     corner_lat, corner_lon = _grid_latlon(spec, corners=True)
     with netCDF4.Dataset(path, "w", format="NETCDF4_CLASSIC") as dataset:
@@ -289,7 +289,7 @@ def _write_geo(path: Path, spec: dict[str, Any],
             _common_attrs(spec, "DETERMINISTIC CFBM REGRESSION GEOGRID INPUT"))
         _write_times(
             dataset.createVariable("Times", "S1", ("Time", "DateStrLen")),
-            [dt.datetime.strptime(spec["time"]["start"], DATE_FORMAT)])
+            [dt.datetime.strptime(spec["start"], DATE_FORMAT)])
         for name, values, dimensions, units in (
             ("XLAT_M", mass_lat, ("Time", "south_north", "west_east"),
              "degrees_north"),
@@ -327,18 +327,18 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
     # Extend it by two cells on each side, preserving spacing and grid centre.
     # This avoids relying on different driver boundary-extrapolation rules.
     spec = copy.deepcopy(spec)
-    spec["grid"]["nx"] += 4
-    spec["grid"]["ny"] += 4
-    grid = spec["grid"]
-    time = spec["time"]
-    forcing = spec["forcing"]
+    spec["inputs"]["grid"]["nx"] += 4
+    spec["inputs"]["grid"]["ny"] += 4
+    grid = spec["inputs"]["grid"]
+    time = spec
+    forcing = spec["inputs"]["atmosphere"]
     start = dt.datetime.strptime(time["start"], DATE_FORMAT)
     count = int(
-        round(
-            time["duration_seconds"] / time["atmosphere_interval_seconds"])) + 1
+        round(time["duration_seconds"] /
+              spec["namelist"]["atm"]["interval_atm"])) + 1
     times = [
         start +
-        dt.timedelta(seconds=index * time["atmosphere_interval_seconds"])
+        dt.timedelta(seconds=index * spec["namelist"]["atm"]["interval_atm"])
         for index in range(count)
     ]
     # Isolate source-coordinate rounding while retaining the original fire grid.
@@ -354,7 +354,7 @@ def _write_wrf(path: Path, spec: dict[str, Any]) -> None:
     terrain_v = 0.5 * (zsf[:, :-1] + zsf[:, 1:])
     terrain = 0.25 * (zsf[:-1, :-1] + zsf[1:, :-1] + zsf[:-1, 1:] + zsf[1:, 1:])
     gradient = forcing["wind_terrain_gradient_per_m"]
-    base_height = spec["terrain"]["base_elevation_m"]
+    base_height = spec["inputs"]["terrain"]["base_elevation_m"]
     mass_factor = 1.0 + gradient * (terrain - base_height)
     with netCDF4.Dataset(path, "w", format="NETCDF4_CLASSIC") as dataset:
         for name, length in (
@@ -496,15 +496,22 @@ def generate_inputs(
         run_dir: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Generate required inputs, derive ignition coordinates, and return provenance."""
     resolved = copy.deepcopy(spec)
-    if resolved["model"]["ideal_opt"] == 1:
-        lat, lon = _fire_latlon(resolved,
-                                resolved["ignition"]["center_x_fraction"],
-                                resolved["ignition"]["center_y_fraction"])
-        resolved["ignition"].update({
-            "start_lat": lat,
-            "start_lon": lon,
-            "end_lat": lat,
-            "end_lon": lon
+    # Perimeter initialization reads lfn_init instead of these endpoints.
+    # Keep explicit geographic defaults for a complete, readable namelist.
+    projection = resolved["inputs"]["projection"]
+    for endpoint in ("start", "end"):
+        for axis in ("lat", "lon"):
+            resolved["namelist"]["fire"][
+                f"fire_ignition_{endpoint}_{axis}1"] = projection[f"cen_{axis}"]
+    if resolved["namelist"]["fire"]["ideal_opt"] == 1:
+        lat, lon = _fire_latlon(
+            resolved, resolved["inputs"]["ignition"]["center_x_fraction"],
+            resolved["inputs"]["ignition"]["center_y_fraction"])
+        resolved["namelist"]["fire"].update({
+            "fire_ignition_start_lat1": lat,
+            "fire_ignition_start_lon1": lon,
+            "fire_ignition_end_lat1": lat,
+            "fire_ignition_end_lon1": lon
         })
         return resolved, []
     fields = _fields(resolved)
@@ -512,18 +519,18 @@ def generate_inputs(
     wrf_path = run_dir / "wrf.nc"
     _write_geo(geo_path, resolved, fields)
     _write_wrf(wrf_path, resolved)
-    if resolved["ignition"]["kind"] == "line":
+    if resolved["inputs"]["ignition"]["kind"] == "line":
         start_lat, start_lon = _fire_latlon(
-            resolved, resolved["ignition"]["line_x_fraction"],
-            resolved["ignition"]["line_y_start_fraction"])
+            resolved, resolved["inputs"]["ignition"]["line_x_fraction"],
+            resolved["inputs"]["ignition"]["line_y_start_fraction"])
         end_lat, end_lon = _fire_latlon(
-            resolved, resolved["ignition"]["line_x_fraction"],
-            resolved["ignition"]["line_y_end_fraction"])
-        resolved["ignition"].update({
-            "start_lat": start_lat,
-            "start_lon": start_lon,
-            "end_lat": end_lat,
-            "end_lon": end_lon
+            resolved, resolved["inputs"]["ignition"]["line_x_fraction"],
+            resolved["inputs"]["ignition"]["line_y_end_fraction"])
+        resolved["namelist"]["fire"].update({
+            "fire_ignition_start_lat1": start_lat,
+            "fire_ignition_start_lon1": start_lon,
+            "fire_ignition_end_lat1": end_lat,
+            "fire_ignition_end_lon1": end_lon
         })
     geo_schema = dict(GEO_VARIABLES)
     if "lfn_init" in fields:

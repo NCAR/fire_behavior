@@ -80,7 +80,7 @@ plt.rcParams.update({
 
 def domain_axes(spec: dict[str, Any], title: str) -> tuple[Figure, Axes]:
     """Draw the horizontal fire domain with projected distances in kilometres."""
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     width = grid["nx"] * grid["dx_m"] / 1000
     height = grid["ny"] * grid["dy_m"] / 1000
     fig, ax = plt.subplots(figsize=FIGSIZE, constrained_layout=True)
@@ -95,7 +95,7 @@ def domain_axes(spec: dict[str, Any], title: str) -> tuple[Figure, Axes]:
 
 def ignition_overlay(ax: Axes, spec: dict[str, Any]) -> None:
     """Mark prescribed ignition geometry rather than a simulated perimeter."""
-    grid, ignition = spec["grid"], spec["ignition"]
+    grid, ignition = spec["inputs"]["grid"], spec["inputs"]["ignition"]
     width = grid["nx"] * grid["dx_m"] / 1000
     height = grid["ny"] * grid["dy_m"] / 1000
     if ignition["kind"] == "line":
@@ -116,7 +116,7 @@ def ignition_overlay(ax: Axes, spec: dict[str, Any]) -> None:
     else:
         x = ignition["center_x_fraction"] * width
         y = ignition["center_y_fraction"] * height
-        radius = ignition["radius_m"] / 1000
+        radius = spec["namelist"]["fire"]["fire_ignition_radius1"] / 1000
         ax.add_patch(
             Circle((x, y),
                    radius,
@@ -126,8 +126,10 @@ def ignition_overlay(ax: Axes, spec: dict[str, Any]) -> None:
                    linestyle="--"))
         if ignition["kind"] == "point":
             ax.plot(x, y, marker="+", color="black", markersize=12)
-        label = (f"{ignition['radius_m']:g} m radius\n"
-                 f"active from {ignition['start_time_s']:g} s")
+        label = (
+            f"{spec['namelist']['fire']['fire_ignition_radius1']:g} m radius\n"
+            f"active from {spec['namelist']['fire']['fire_ignition_start_time1']:g} s"
+        )
         ax.text(x,
                 y - radius - 0.35,
                 label,
@@ -164,7 +166,7 @@ def plot_fuels(spec: dict[str, Any], destination: Path) -> None:
     fig, ax = domain_axes(spec, case)
     fields = _fields(spec)
     fuel = fields["NFUEL_CAT"][:, 0]
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     width = grid["nx"] * grid["dx_m"] / 1000
     starts = np.r_[0, np.flatnonzero(np.diff(fuel)) + 1, len(fuel)]
     for index, (start, stop) in enumerate(zip(starts[:-1], starts[1:])):
@@ -190,7 +192,7 @@ def plot_fuels(spec: dict[str, Any], destination: Path) -> None:
 def plot_terrain(spec: dict[str, Any], destination: Path) -> None:
     """Show the actual generated terrain and supplied observed perimeter."""
     fig, ax = domain_axes(spec, "Shared terrain\nand observed perimeter")
-    grid = spec["grid"]
+    grid = spec["inputs"]["grid"]
     x = (np.arange(grid["nx"]) + 0.5) * grid["dx_m"] / 1000
     y = (np.arange(grid["ny"]) + 0.5) * grid["dy_m"] / 1000
     field = _fields(spec)["ZSF"]
@@ -208,17 +210,32 @@ def plot_terrain(spec: dict[str, Any], destination: Path) -> None:
 
 def plot_profiles(spec: dict[str, Any], destination: Path) -> None:
     """Plot the unscaled vertical profile and its logarithmic sampling height."""
-    forcing = spec["forcing"]
+    forcing = spec["inputs"]["atmosphere"]
     interfaces = np.asarray(forcing["height_interfaces_m"])
     heights = 0.5 * (interfaces[:-1] + interfaces[1:])
-    target = spec["interpolation"]["fire_wind_height_m"]
+    target = spec["namelist"]["fire"]["fire_wind_height"]
     fig, ax = plt.subplots(figsize=PROFILE_FIGSIZE, constrained_layout=True)
-    # Log-height axes make the interpolation used by the reader explicit.
+    # Include the surface branch down to a representative z0. The configured
+    # range of roughness produces a range of target winds, shown as a band.
+    roughness = [
+        forcing["roughness_length_min_m"], forcing["roughness_length_max_m"]
+    ]
     for component in ("u", "v"):
-        ax.plot(forcing[f"{component}_profile_m_s"],
-                heights,
+        profile = forcing[f"{component}_profile_m_s"]
+        ax.plot([0, *profile], [0.1, *heights],
                 label=component.upper(),
                 **ITEM_STYLES[component])
+    surface_heights = np.geomspace(max(roughness), heights[0], 80)
+    lowest_wind = forcing["u_profile_m_s"][0]
+    bounds = [
+        lowest_wind * np.log(surface_heights / z0) / np.log(heights[0] / z0)
+        for z0 in roughness
+    ]
+    ax.fill_betweenx(surface_heights,
+                     bounds[0],
+                     bounds[1],
+                     color="#777777",
+                     alpha=0.25)
     ax.axhline(target,
                color="black",
                linestyle=":",
@@ -227,9 +244,9 @@ def plot_profiles(spec: dict[str, Any], destination: Path) -> None:
     ax.set(yscale="log",
            xlabel="Wind component (m/s)",
            ylabel="Height AGL (m)",
-           title="terrain_u3d: unscaled profile",
-           yticks=heights)
-    ax.set_yticklabels([f"{height:g}" for height in heights])
+           title="terrain / u3d: unscaled profile",
+           yticks=[0.1, target, *heights])
+    ax.set_yticklabels([f"{height:g}" for height in [0.1, target, *heights]])
     ax.minorticks_off()
     ax.text(forcing["u_profile_m_s"][-1] - 1.0,
             heights[-1],
@@ -254,18 +271,18 @@ def plot_profiles(spec: dict[str, Any], destination: Path) -> None:
 
 
 def main() -> None:
-    """Generate documentation figures directly from the current standard cases."""
+    """Generate documentation figures directly from the current small cases."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
     args.output_dir.mkdir(parents=True, exist_ok=True)
     document = load_yaml(MODULE_ROOT / "cases.yaml")
-    for case in ("circle_nowind", "fuel_strip_wind", "terrain_u10m"):
+    for case in ("circle", "fuels", "terrain"):
         spec = resolve_spec(document, case)
         plot_fuels(spec, args.output_dir / f"{case}_fuels.png")
-    spec = resolve_spec(document, "terrain_u3d")
+    spec = resolve_spec(document, "terrain", configuration="u3d")
     plot_terrain(spec, args.output_dir / "terrain.png")
-    plot_profiles(spec, args.output_dir / "terrain_u3d_profile.png")
+    plot_profiles(spec, args.output_dir / "terrain_profile.png")
 
 
 if __name__ == "__main__":

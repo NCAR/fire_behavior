@@ -10,13 +10,13 @@ later source, documentation examples, renamed registrations, or new cases.
 Derecho PBS `7709881.desched1` tested commit `42d7700` on 2026-10-04 using
 [submit_derecho.pbs](../submit_derecho.pbs), one node in `develop` (routed to
 `cpudev`), and a one-hour request. All four builds passed. The PR suite passed
-32 generated runs and 32 comparisons, including NUOPC and ESMX. Focused CTests
+32 generated runs and 32 comparisons, including NUOPC and ESMX. Unit CTests
 passed in every build, with 34 Python checks in each generated test system.
 Same-driver fields remained bitwise identical. Maximum cross-driver relative
 error was 0.00157165%, below the unchanged 0.01% threshold.
 
-The case names are now `terrain_u10m` and `terrain_u3d`. Their scientific
-settings are unchanged. All 30 relocated legacy files were checked against
+At that revision the case names were `terrain_u10m` and `terrain_u3d`;
+the rename preserved their settings, including the former 20 m 3D target. All 30 relocated legacy files were checked against
 their previous contents. Only the isolation wrapper's usage comment changed.
 The normal coupled runners also successfully staged the two shared
 configuration files from their new location.
@@ -39,7 +39,7 @@ clarifications do not change the validated model or comparison settings.
 
 Derecho PBS `7702254.desched1` validated model/harness commit `1426bed` on
 2026-10-03 using the normal build route, including ESMX without an external
-linking workaround. All four builds and focused CTests passed, including 34
+linking workaround. All four builds and unit CTests passed, including 34
 Python tests. Quick passed 14 runs and 10 comparisons. PR passed 32 runs and 32
 comparisons. Maximum cross-driver relative error was approximately 0.001572%,
 below 0.01%.
@@ -94,4 +94,4 @@ archive. They are provenance, not required contributor paths:
 - Aligned test8 audit: `cfbm-test8-aligned-audit-20261004/`.
 
 No new approved baseline or full 3600 s campaign is implied by these records.
-Restart, PR #39, method `(4,5)`, and humidity PR #46 remain deferred.
+See [deferred work](deferred.md) for the current follow-up list.

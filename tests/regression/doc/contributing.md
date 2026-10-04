@@ -9,76 +9,59 @@ itself test the behavior.
 
 ## Add a new case
 
-1. Read [cases.yaml](../cases.yaml) and [case configurations](cases.md). Add a
-   descriptive key under `cases`, overriding only settings that differ from
-   `defaults`. Resolution order is defaults, case, scale, then named method.
-   Execution settings contain rank/thread/timeout choices only.
-2. Use supported generator settings where possible. If a new terrain, forcing,
-   fuel, or ignition pattern is required, implement it in
-   [generate_inputs.py](../generate_inputs.py), update input schema checks, and
-   add a small deterministic Python test. State units and staggering explicitly.
-3. Add the case to the intended `suites` maps with explicit execution names.
-   Include serial and the relevant parallel layouts. Add it to `coupled_cases`
-   only when the WRF-data forcing and NUOPC/ESMX paths support it. Coupled entry
-   alone does not create a new atmospheric host implementation.
-4. Add checks in [check_outputs.py](../check_outputs.py) that establish the new
-   physical behavior. Confirm that the existing fire-evolution checks are
-   appropriate. For example, a deliberately non-burning case needs explicitly
-   designed checks rather than disabling failures after the fact.
-5. Add Python tests for new configuration and generation behavior, and focused
-   Fortran tests if model logic changed. Document the configuration and add or
-   regenerate its figures.
-6. Reconfigure each affected CMake build to register the new name. Inspect the
-   listing with `ctest --test-dir "$TEST/build/mpi/tests" -N`. Run the smallest
-   relevant case first, then the affected `quick` and `pr` selections through PBS.
-   Save the source commit, commands, logs, and numerical errors.
+Choose a short case name that describes a different physical setup. Define its
+`description`, supported `drivers`, shared `inputs` and `namelist` overrides,
+and at least one named `configuration` in `cases.yaml`. Use `base: {}` when no
+configuration-specific overrides are needed. See the complete
+[configuration example](configuration.md).
 
-Example selection after adding `new_case` and configuring the serial build:
-
-```bash
-TEST="/glade/derecho/scratch/$USER/tmp"
-python -B tests/regression/regression.py suite --suite pr \
-    --case new_case \
-    --build-dir="$TEST/build/serial" \
-    --run-root="$TEST/results"
-```
-
-This command is illustrative until the case is added. No regular expression is
-needed. Use the [run guide](running.md) for exact test-name selection.
+1. Generate physically meaningful terrain, fuel, forcing, and ignition inputs.
+   Extend `generate_inputs.py` only if the new geometry or forcing needs it.
+2. Validate the new input settings and supported combinations in `config.py`.
+3. Add checks in `check_outputs.py` showing that the intended model path ran.
+4. Select configurations and executions explicitly in `quick`, `pr`, or `full`.
+   Listing a configuration alone does not add it to a suite.
+5. Add an independent Python unit test, document the purpose and acceptance,
+   regenerate relevant figures, and run the affected model layouts/drivers.
 
 ## Extend an existing case
 
-Keep the case name when its scientific purpose is unchanged. Add a separate case
-when both old and new behaviors need ongoing coverage, such as 10 m versus 3D
-wind imports. Record which inputs changed and why. A duration change can also
-change forcing history: temperature and humidity endpoints are spread across the
-configured duration by the generator.
+Use another configuration when geometry and purpose remain shared but a
+namelist choice needs separate coverage. For example, terrain's `u3d` sets
+`namelist.fire.wind_vinterp_opt: 0`; `godunov3d` additionally sets
+`fire_upwinding: 2`. A configuration can also override inputs if necessary.
+There are no automatically multiplied option categories or generated names.
 
-Update checks and figures with the settings. Re-run all affected execution
-layouts and driver comparisons. Old outputs do not validate a revised case.
-Changing only a case identifier also changes exact CTest names and reference
-keys. The rename from `terrain_10m`/`terrain_3d` to `terrain_u10m`/`terrain_u3d`
-does not alter physical settings, but old names are no longer accepted. Preserve
-historical artifacts with their original names. Do not rename data within an
-immutable approved reference to make it match.
+Give each configuration a meaningful name and select it explicitly in the
+suite tables. New fuel families or host-specific wind representations belong
+here once the model and generator support them. Do not infer an SB40 `fuel_opt`
+value from the existing crosswalk table. Current native coverage is Anderson.
+
+Extend a shared case setting only when it should change every configuration
+that inherits it. Changing duration also changes the generated temperature and
+humidity evolution because their endpoints span that duration. Revalidate all
+affected runs and update the figures. Existing references remain immutable;
+renaming cases, configurations, or scales changes their keys and does not
+validate or migrate an old reference automatically.
 
 ## Add a namelist option
 
-Document the option in the model's
-[Configuration.rst](../../../doc/Configuration.rst), including meaning, units,
-valid values, and driver applicability. Implement and test the model behavior
-first. Then:
+Document meaning, units, valid values, and driver applicability in the model's
+[Configuration.rst](../../../doc/Configuration.rst). Implement and unit-test
+the behavior first, then:
 
-1. Add a scientific default under the appropriate section in `cases.yaml`.
-2. Add type/range/combination checks in `config.py`. The default keys participate
-   in typo detection, while some sections also have explicit allowed-key lists.
-3. Map the option in `namelist_values()` in `render_namelist.py` and add its
-   substitution to `templates/namelist.fire.in`.
-4. Set it in a case that exercises a meaningful value. Check the rendered
-   namelist and a consequence in the outputs. A setting that never affects a
-   tested run is not covered.
-5. For MPI, update/test the model's namelist broadcast if the option requires it.
-   For coupled runs, verify the component that reads the relevant namelist block.
+1. Add the exact block/option name under `defaults.namelist` in `cases.yaml`.
+2. Add its type to `NAMELIST_TYPES` and any scientific range or combination
+   checks in `config.py`.
+3. Set a meaningful alternative in a named configuration. The renderer writes
+   this exact name directly; no alias or template substitution is needed.
+4. Check the rendered namelist and an observable consequence in model output.
+5. Verify MPI broadcast and which coupled component reads the relevant block.
+
+Dates, `atm.kde`, ignition coordinates, and the `ideal` grid block are derived
+from the clock and generated geometry. Extend these derivations only when the
+input format requires it, avoiding two independently configurable sources for
+the same dimension or coordinate.
 
 ## Add a validated output
 
@@ -92,7 +75,7 @@ requires rationale and review.
 
 ## Add an execution layout or driver
 
-For an existing driver, add an `executions` entry with `variant`, `ranks`,
+For an existing driver, add an `executions` entry with `build`, `ranks`,
 `threads`, and `timeout_seconds`, then select it in the suite maps. Ensure the
 PBS allocation covers ranks × threads and the requested layout is supported by
 the model. Do not change domain size or physics to make a parallel comparison
@@ -109,14 +92,7 @@ Use Google-based YAPF, four spaces, an 80-column target, descriptive snake_case,
 `pathlib.Path`, and public-function type hints. Separate logical operations with
 blank lines. Explain physical assumptions and synthetic substitutions in
 comments. YAPF controls formatting, not scientific clarity or the full Google
-style guide. Preserve existing creation dates and the repository's CFBM header:
-
-```python
-# Created on 2026-09-12 by the CFBM development team assisted by GPT-6-Astra.
-```
-
-New scripts use their actual creation date. Institutional copyright remains at
-repository level. This overrides personal headers in local script-style advice.
+style guide. There is no required creation or assistance header.
 
 Install YAPF only in a writable development environment. CI uses the pinned
 version in `requirements-style.txt`, independently of model execution:

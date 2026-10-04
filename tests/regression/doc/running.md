@@ -58,14 +58,18 @@ with NUOPC or ESMX also retains its standalone tests.
 
 ## Select tests by name
 
+Configurations select explicit scientific settings; scales select the domain and
+schedule. These are distinct from the compiled build and runtime execution.
+See [configuration.md](configuration.md) for resolution order and examples.
+
 ```bash
 python -B tests/regression/regression.py suite --suite pr \
-    --case terrain_u3d --driver nuopc --execution mpi4 \
+    --case terrain --configuration u3d --driver nuopc --execution mpi4 \
     --build-dir="$TEST/build/nuopc" \
     --run-root="$TEST/results"
 ```
 
-`--test` selects one exact CTest name. `--suite unit` runs focused tests. No
+`--test` selects one exact CTest name. `--suite unit` runs unit tests. No
 selection accepts regex syntax. Internally, Python reads CTest's JSON listing
 and supplies a numeric list of selected tests to CTest.
 
@@ -77,10 +81,10 @@ The suite options are defined in [regression.py](../regression.py):
 
 | Option | Tests selected |
 |---|---|
-| `quick` | Default. Focused tests plus the four standard cases in serial, and both terrain cases with `omp4`, `mpi4`, or `hybrid4`, where supported. |
-| `pr` | Focused tests plus all four standard cases across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
-| `full` | Focused tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
-| `unit` | Focused Fortran tests and the Python harness tests. No generated fire-case integrations. |
+| `quick` | Default. Unit tests plus the four default case/configuration combinations in serial, and both terrain wind configurations with `omp4`, `mpi4`, or `hybrid4`, where supported. |
+| `pr` | Unit tests plus all four default case/configuration combinations across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
+| `full` | Unit tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
+| `unit` | Unit Fortran tests and the Python harness tests. No generated fire-case integrations. |
 | `legacy` | Original tests registered by the legacy build route. |
 
 These selections follow [cases.yaml](../cases.yaml). Each build contributes only
@@ -93,7 +97,7 @@ Enable their registration in an appropriately sized allocation:
 cmake -S . -B "$TEST/build/mpi" -DCFBM_FULL_TESTS=ON
 ```
 
-Full tests are absent from ordinary registration. The one-hour PBS template is sized for standard cases,
+Full tests are absent from ordinary registration. The one-hour PBS template is sized for small-scale configurations,
 not the full campaign.
 
 For `--test`, list every available name in a particular build without running
@@ -110,30 +114,31 @@ The valid names for `--test` fall into three groups:
 Names follow this convention:
 
 ```text
-<driver>_<case>_<scale>_<method>_<execution>
+<driver>_<case>_<configuration>_<scale>_<execution>
 ```
 
 | Component | Values |
 |---|---|
 | Driver | `standalone`, `nuopc`, `esmx` |
-| Case | `circle_nowind`, `fuel_strip_wind`, `terrain_u10m`, `terrain_u3d` |
-| Scale and method | `standard_ref94`, `full_ref94`, `full_ref24` |
+| Case | `circle`, `fuels`, `terrain` |
+| Configuration | `base`, `godunov` for circle/fuels; `u10m`, `u3d`, `godunov10m`, `godunov3d` for terrain |
+| Scale | `small`, `large` |
 | Execution | `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, `mpi8`, `hybrid4` |
 
-NUOPC and ESMX register only the two terrain cases. `mpi8` is available only for
+NUOPC and ESMX register only the terrain case with its selected configurations. `mpi8` is available only for
 full experiments. Execution choices must match the build: serial, OpenMP, MPI,
 or hybrid. These rules are implemented in [config.py](../config.py).
 
 Examples:
 
 ```text
-standalone_circle_nowind_standard_ref94_serial
-standalone_terrain_u3d_standard_ref94_omp4
-nuopc_terrain_u10m_standard_ref94_mpi4
-esmx_terrain_u3d_full_ref24_mpi8
+standalone_circle_base_small_serial
+standalone_terrain_u3d_small_omp4
+nuopc_terrain_u10m_small_mpi4
+esmx_terrain_godunov3d_large_mpi8
 ```
 
-### Focused tests
+### Unit tests
 
 These are unit tests for an existing Fortran program or Python script. They have
 exact names, as registered in [unit/CMakeLists.txt](../../unit/CMakeLists.txt)
@@ -148,13 +153,13 @@ namelist_broadcast_mpi
 Here `*_unit` describes a naming pattern, not a literal selector. Copy the
 complete name from the CTest listing when using `--test`. `regression_python`
 tests **the Python regression harness**: input generation, configuration, output
-checks, comparisons, and reporting. It currently contains **34 Python tests**
+checks, comparisons, and reporting. It currently contains **39 Python tests**
 across two files and does not launch the Fortran model.
 
 | Area | What it checks |
 |---|---|
 | Configuration | Rejects misspelled settings, duplicate YAML keys, unsupported method pairs, misaligned output times, and scientific overrides hidden in execution settings. |
-| Namelist and ESMX configuration | Checks template substitution, wind interpolation selection, MPI PET assignments, and simulation stop time. |
+| Namelist and ESMX configuration | Checks exact namelist rendering, wind interpolation selection, MPI PET assignments, and simulation stop time. |
 | Generated inputs | Checks reproducibility, fuel categories, perimeter initialization, terrain, forcing records, required NetCDF fields, and double-precision atmospheric coordinates. |
 | Wind fields | Checks WRF staggering and vertical heights, terrain-dependent wind scaling, and rejection of incorrect, uniform, excessive, or locally missing winds. |
 | Test selection and resources | Checks exact-name selection and CPU accounting for ranks × threads. |
@@ -163,8 +168,8 @@ across two files and does not launch the Fortran model.
 | Failure detection and reporting | Checks rejection of corrupted or unapproved references, extra output files, and a successful process exit with no outputs; also exercises JSON reporting. |
 
 The implementation is in
-[python_harness_test.py](../tests/python_harness_test.py) (18 tests) and
-[generator_comparator_test.py](../tests/generator_comparator_test.py) (16
+[python_harness_test.py](../tests/python_harness_test.py) (22 tests) and
+[generator_comparator_test.py](../tests/generator_comparator_test.py) (17
 tests).
 
 These tests use generated inputs and small synthetic output files. Passing them
@@ -185,7 +190,7 @@ instructions](../../legacy/README.md).
 
 **`--test` overrides the suite-label selection**. For example, `--test
 regression_python` selects that test even if `--suite` remains at its default,
-`quick`. Any supplied `--case`, `--driver`, or `--execution` filters still
+`quick`. Any supplied `--case`, `--configuration`, `--scale`, `--driver`, or `--execution` filters still
 apply. See [run_suite.py](../run_suite.py).
 
 ## Shared Python on Casper and Derecho
@@ -257,14 +262,14 @@ the same commit on the same date, rename the previous directory without deleting
 it, then resubmit. Avoid concurrent submissions of the same commit/date.
 
 The job clones the local repository, checks out the revision present when the
-job starts, builds four configurations, runs `pr` (including focused checks and
+job starts, builds four configurations, runs `pr` (including unit checks and
 quick coverage), then runs legacy tests. Settings are grouped near the top of
 the template. `SUITES=(quick pr)` can explicitly run both when separate reports
 are needed. `RUN_LEGACY=false` skips historical cases. The default keeps them
 enabled.
 
 The requested queue is `develop`, which routes CPU jobs to `cpudev`. The
-one-node, one-hour allocation covers the sequential standard-case workflow,
+one-node, one-hour allocation covers the sequential small-scale workflow,
 including four MPI ranks × four OpenMP threads. This template is for Derecho.
 Casper needs its own queue/resource directives and OpenMPI module stack.
 

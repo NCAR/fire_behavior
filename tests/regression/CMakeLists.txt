@@ -38,7 +38,7 @@ if(NOT _status EQUAL 0)
 endif()
 
 function(add_cfbm_test record)
-  foreach(_field name case scale method execution driver processors)
+  foreach(_field name case scale configuration execution driver processors)
     string(JSON _${_field} GET "${record}" ${_field})
   endforeach()
   if(_driver STREQUAL standalone)
@@ -63,10 +63,10 @@ function(add_cfbm_test record)
     list(APPEND _arguments --reference "${CFBM_REFERENCE}")
   endif()
   add_test(NAME ${_name} COMMAND "${Python3_EXECUTABLE}" -B "${_runner}" case
-    --case ${_case} --scale ${_scale} --method ${_method}
+    --case ${_case} --scale ${_scale} --configuration ${_configuration}
     --driver ${_driver} --execution ${_execution} --executable "${_exe}"
     --run-root "${CFBM_RUN_ROOT}" ${_arguments})
-  set(_labels "regression;case:${_case};driver:${_driver};execution:${_execution}")
+  set(_labels "regression;case:${_case};driver:${_driver};execution:${_execution};configuration:${_configuration};scale:${_scale}")
   string(JSON _count LENGTH "${record}" labels)
   math(EXPR _last "${_count} - 1")
   foreach(_index RANGE ${_last})

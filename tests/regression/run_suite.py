@@ -35,7 +35,9 @@ def select_tests(tests: list[dict[str, Any]], args: Any) -> list[int]:
             continue
         if any(value and f"{key}:{value}" not in labels
                for key, value in (("case", args.case), ("driver", args.driver),
-                                  ("execution", args.execution))):
+                                  ("execution", args.execution),
+                                  ("configuration",
+                                   args.configuration), ("scale", args.scale))):
             continue
         indices.append(index)
     return indices
@@ -92,12 +94,12 @@ def compare_executions(results: list[dict[str, Any]],
             continue
         spec = result["spec"]
         key = (result["driver"], spec["identity"]["case"],
-               spec["identity"]["scale"], spec["identity"]["method"])
+               spec["identity"]["scale"], spec["identity"]["configuration"])
         groups.setdefault(key, []).append(result)
     for group in groups.values():
         # Prefer serial, then the smallest rank/thread layout available.
         group.sort(key=lambda item: (item["spec"]["execution"][
-            "variant"] != "serial", item["spec"]["execution"]["ranks"], item[
+            "build"] != "serial", item["spec"]["execution"]["ranks"], item[
                 "spec"]["execution"]["threads"]))
         comparisons.extend(
             compare_pair(group[0], test, static_fields) for test in group[1:])

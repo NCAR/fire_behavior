@@ -52,12 +52,12 @@ FORCING_CHECK_RTOL = 8.0 * np.finfo(np.float32).eps
 
 def expected_output_names(spec: dict[str, Any]) -> list[str]:
     """Enumerate initialization and scheduled output names from configured time semantics."""
-    time_cfg = spec["time"]
+    time_cfg = spec
     start = dt.datetime.strptime(time_cfg["start"], "%Y-%m-%d_%H:%M:%S")
     seconds = [0] + list(
-        range(int(time_cfg["output_interval_seconds"]),
+        range(int(spec["namelist"]["time"]["interval_output"]),
               int(time_cfg["duration_seconds"]) + 1,
-              int(time_cfg["output_interval_seconds"])))
+              int(spec["namelist"]["time"]["interval_output"])))
     return [
         f"fire_output_{(start + dt.timedelta(seconds=value)).strftime('%Y-%m-%d_%H:%M:%S')}.nc"
         for value in seconds
@@ -128,7 +128,7 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         with netCDF4.Dataset(first) as first_ds, netCDF4.Dataset(
                 last) as last_ds:
             for name, variable in last_ds.variables.items():
-                if spec["model"][
+                if spec["namelist"]["fire"][
                         "ideal_opt"] == 1 and name in ATMOSPHERIC_FIELDS:
                     continue
                 if np.ma.count_masked(variable[:]):
@@ -158,7 +158,7 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
             if not active_flux:
                 validation["reasons"].append(
                     "no positive sensible or latent fire flux was produced")
-            if spec["moisture"]["run"]:
+            if spec["namelist"]["fire"]["fmoist_run"]:
                 moisture_changed = bool(
                     np.any(first_ds.variables["fmc_g"][:] !=
                            last_ds.variables["fmc_g"][:]))
@@ -168,7 +168,7 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
                         "fmc_g did not change between initialization and final output"
                     )
 
-            if spec["model"]["ideal_opt"] == 1:
+            if spec["namelist"]["fire"]["ideal_opt"] == 1:
                 unmasked = [
                     name for name in ATMOSPHERIC_FIELDS
                     if np.ma.count(last_ds.variables[name][:])
@@ -178,12 +178,13 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
                         f"ideal output contains applicable values in {sorted(unmasked)}"
                     )
             else:
-                forcing = spec["forcing"]
+                forcing = spec["inputs"]["atmosphere"]
                 # Both drivers save the forcing used during the completed
                 # interval, before refreshing it for the next fire advance.
-                time = spec["time"]
-                last_step_start = time["duration_seconds"] - time["dt_seconds"]
-                interval = time["atmosphere_interval_seconds"]
+                time = spec
+                last_step_start = time["duration_seconds"] - spec["namelist"][
+                    "time"]["dt"]
+                interval = spec["namelist"]["atm"]["interval_atm"]
                 forcing_time = (last_step_start // interval) * interval
                 fraction = forcing_time / time["duration_seconds"]
                 temperature = forcing["temperature_start_k"] + fraction * (
@@ -213,7 +214,7 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
                         "fz0 does not retain the spatially varying WRF ZNT field"
                     )
 
-            if (spec["ignition"]["kind"] == "perimeter"):
+            if (spec["inputs"]["ignition"]["kind"] == "perimeter"):
                 geo_path = run_dir / "geo_em.d01.nc"
                 with netCDF4.Dataset(geo_path) as geo:
                     supplied = np.asarray(geo.variables["lfn_init"][:])
@@ -222,7 +223,8 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
                     initial, supplied)
                 if not matches and initial.shape == supplied.T.shape:
                     matches = np.array_equal(initial, supplied.T)
-                activation_time = float(spec["ignition"]["start_time_s"])
+                activation_time = float(
+                    spec["namelist"]["fire"]["fire_ignition_start_time1"])
                 validation[
                     "observed_perimeter_activation_time_s"] = activation_time
                 if activation_time <= 0.0:
@@ -240,13 +242,13 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
                         validation["reasons"].append(
                             "delayed perimeter is active before its scheduled time"
                         )
-    if spec["interpolation"]["vertical"] == 0 and expected <= actual:
+    if spec["namelist"]["fire"]["wind_vinterp_opt"] == 0 and expected <= actual:
         validation["wind_profile"] = check_wind_profile(
             run_dir / sorted(expected)[-1], spec)
         if not validation["wind_profile"]["pass"]:
             validation["reasons"].append(
                 "Fire winds differ from the prescribed 3D profile")
-    elif spec["model"]["ideal_opt"] == 0 and expected <= actual:
+    elif spec["namelist"]["fire"]["ideal_opt"] == 0 and expected <= actual:
         validation["surface_wind"] = check_surface_wind(
             run_dir / sorted(expected)[-1], spec)
         if not validation["surface_wind"]["pass"]:
@@ -258,59 +260,75 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def check_wind_profile(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
-    """Check log-height interpolation of the prescribed shear profile.
+    """Check the prescribed profile, including the surface logarithmic layer.
 
-    The target lies between the first two mass levels, avoiding a roughness
-    extrapolation. Both model entry points use 9.81 for geopotential conversion,
-    matching the generated forcing file.
+    Below the first mass level, wind is zero at z0 and increases logarithmically
+    to the first supplied wind. At 6.096 m the expected wind therefore depends
+    on each cell's saved roughness. Between mass levels use log-height weights.
+    The uppermost mass level is excluded by Interp_profile's kfde-2 bound.
     """
-    forcing = spec["forcing"]
+    forcing = spec["inputs"]["atmosphere"]
     interfaces = np.asarray(forcing["height_interfaces_m"])
-    heights = 0.5 * (interfaces[:-1] + interfaces[1:])
-    target_height = spec["interpolation"]["fire_wind_height_m"]
-    fraction = np.log(target_height / heights[0]) / np.log(
-        heights[1] / heights[0])
-    terrain_variation = (forcing["wind_terrain_gradient_per_m"] *
-                         spec["terrain"]["amplitude_m"])
-    evidence = {"pass": True, "target_height_m": target_height, "fields": {}}
+    heights = 0.5 * (interfaces[:-2] + interfaces[1:-1])
+    target = spec["namelist"]["fire"]["fire_wind_height"]
+    variation = (forcing["wind_terrain_gradient_per_m"] *
+                 spec["inputs"]["terrain"]["amplitude_m"])
+    evidence = {"pass": True, "target_height_m": target, "fields": {}}
     with netCDF4.Dataset(path) as dataset:
-        for name, profile in (("uf", "u_profile_m_s"), ("vf", "v_profile_m_s")):
-            lower, upper = forcing[profile][:2]
-            expected = lower + (upper - lower) * fraction
-            values = np.ma.asarray(dataset.variables[name][:]).compressed()
-            # Float32 geopotential subtraction over terrain contributes more
-            # roundoff than the final interpolation. Keep the regression bound.
-            passed = bool(values.size and
-                          np.allclose(values, expected, rtol=1.0e-4, atol=0.0))
-            if terrain_variation:
-                # With spatially varying profiles there is no single exact
-                # wind over the domain. Positive interpolation weights keep
-                # the result within the prescribed terrain-scaled range.
-                # Keep the constant-profile check above for the uniform
-                # control; cross-driver comparisons still use rtol=1e-4.
-                bounds = sorted((expected * (1.0 - terrain_variation),
-                                 expected * (1.0 + terrain_variation)))
-                margin = 1.0e-4 * abs(expected)
-                passed = bool(values.size and
-                              np.all(values >= bounds[0] - margin) and
-                              np.all(values <= bounds[1] + margin) and
-                              (expected == 0 or np.ptp(values) > 0))
-            evidence["fields"][name] = {
-                "expected_m_s":
-                    float(expected),
-                "maximum_error_m_s":
-                    float(np.max(abs(values -
-                                     expected))) if values.size else None
+        z0 = np.ma.asarray(dataset["fz0"][:], dtype=float)
+        if (np.ma.count_masked(z0) or not z0.size or
+                not np.isfinite(z0).all() or np.any(z0 <= 0) or
+                np.any(z0 >= heights[0])):
+            return {
+                **evidence, "pass": False,
+                "reason": "Invalid surface roughness"
             }
-            if terrain_variation:
-                evidence["fields"][name].update(
-                    check="terrain_scaled_bounds_and_spatial_variation",
-                    prescribed_bounds_m_s=bounds,
-                    observed_range_m_s=[
-                        float(values.min()),
-                        float(values.max())
-                    ] if values.size else None)
-            evidence["pass"] = evidence["pass"] and passed
+        z0 = np.asarray(z0)
+        for name, profile in (("uf", "u_profile_m_s"), ("vf", "v_profile_m_s")):
+            wind = forcing[profile][:len(heights)]
+            if target <= heights[0]:
+                expected = wind[0] * np.maximum(0, np.log(
+                    target / z0)) / np.log(heights[0] / z0)
+            else:
+                expected = np.full(
+                    z0.shape, np.interp(np.log(target), np.log(heights), wind))
+                expected = np.where(target <= z0, 0, expected)
+            values = np.ma.asarray(dataset[name][:])
+            valid = bool(values.shape == expected.shape and values.size and
+                         not np.ma.count_masked(values) and
+                         np.isfinite(values).all())
+            passed = valid and bool(
+                np.allclose(values, expected, rtol=1.0e-4, atol=0))
+            if variation and valid:
+                # Horizontal mapping may sample different terrain elevations.
+                # Bound it with the prescribed amplitude, retaining the local
+                # z0 dependence. Cross-driver field tolerances are unchanged.
+                lower = np.minimum(expected * (1 - variation),
+                                   expected * (1 + variation))
+                upper = np.maximum(expected * (1 - variation),
+                                   expected * (1 + variation))
+                margin = 1.0e-4 * np.abs(expected)
+                passed = bool(
+                    np.all(values >= lower - margin) and
+                    np.all(values <= upper + margin) and
+                    (np.all(expected == 0) or np.ptp(values) > 0))
+            evidence["fields"][name] = {
+                "check":
+                    "terrain_scaled_bounds"
+                    if variation else "analytic_profile",
+                "expected_unscaled_range_m_s": [
+                    float(expected.min()),
+                    float(expected.max())
+                ],
+                "maximum_error_from_unscaled_m_s":
+                    float(np.max(abs(values - expected))) if valid else None,
+                "observed_range_m_s":
+                    [float(values.min()),
+                     float(values.max())] if valid else None,
+                "pass":
+                    passed,
+            }
+            evidence["pass"] = bool(evidence["pass"] and passed)
     return evidence
 
 
@@ -323,12 +341,13 @@ def check_surface_wind(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
     separately check the exact numerical values.
     """
     evidence = {"pass": True, "invalid_cells": {}}
-    maximum_factor = (1.0 + spec["forcing"]["wind_terrain_gradient_per_m"] *
-                      spec["terrain"]["amplitude_m"])
+    maximum_factor = (
+        1.0 + spec["inputs"]["atmosphere"]["wind_terrain_gradient_per_m"] *
+        spec["inputs"]["terrain"]["amplitude_m"])
     with netCDF4.Dataset(path) as dataset:
         for name, forcing_name in (("uf", "u10_m_s"), ("vf", "v10_m_s")):
             values = np.ma.asarray(dataset[name][:]).compressed()
-            prescribed = spec["forcing"][forcing_name]
+            prescribed = spec["inputs"]["atmosphere"][forcing_name]
             if prescribed == 0:
                 invalid = values != 0
             else:

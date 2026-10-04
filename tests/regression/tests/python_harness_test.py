@@ -32,7 +32,7 @@ from check_outputs import check_surface_wind, check_wind_profile, expected_outpu
 from config import load_yaml, registrations, resolve_spec
 from generate_inputs import generate_inputs
 from reference import compare_reference, verify_reference
-from render_namelist import namelist_values, render_template
+from render_namelist import render_namelist
 from run_case import run_case, write_esmx_config
 from run_suite import select_tests
 
@@ -65,39 +65,44 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_execution_cannot_change_science(self) -> None:
         """Reject scientific overrides hidden in a rank/thread definition."""
-        self.document["executions"]["mpi4"]["grid"] = {"nx": 8}
+        self.document["executions"]["mpi4"]["inputs"] = {"grid": {"nx": 8}}
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_u10m", execution="mpi4")
+            resolve_spec(self.document, "terrain", execution="mpi4")
 
-    def test_case_and_full_scale_precedence(self) -> None:
+    def test_case_configuration_and_large_scale_precedence(self) -> None:
         """Retain case physics when changing domain size and simulation length."""
-        spec = resolve_spec(self.document, "terrain_u3d", "full", "ref24",
+        spec = resolve_spec(self.document, "terrain", "large", "godunov3d",
                             "mpi8")
-        self.assertEqual(spec["grid"]["nx"], 320)
-        self.assertEqual(spec["interpolation"]["vertical"], 0)
-        self.assertEqual(spec["method"]["fire_upwinding"], 2)
+        self.assertEqual(spec["inputs"]["grid"]["nx"], 320)
+        self.assertEqual(spec["namelist"]["fire"]["wind_vinterp_opt"], 0)
+        self.assertEqual(spec["namelist"]["fire"]["fire_upwinding"], 2)
         self.assertEqual(len(expected_output_names(spec)), 5)
 
     def test_misspelled_option_is_rejected(self) -> None:
         """Reject an option that would otherwise silently use its default."""
-        self.document["cases"]["terrain_u10m"]["interpolation"]["vertcal"] = 0
+        self.document["cases"]["terrain"]["namelist"]["fire"][
+            "wind_vinter_opt"] = 0
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_u10m")
+            resolve_spec(self.document, "terrain")
 
     def test_output_schedule_is_aligned(self) -> None:
         """Reject output times that cannot coincide with the 4 s timestep."""
-        self.document["defaults"]["time"]["output_interval_seconds"] = 7
+        self.document["defaults"]["namelist"]["time"]["interval_output"] = 7
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "circle_nowind")
+            resolve_spec(self.document, "circle")
 
     def test_deferred_method_is_rejected(self) -> None:
         """Keep method (4,5) outside the currently reviewed experiments."""
-        self.document["methods"]["ref94"] = {
-            "fire_upwinding": 4,
-            "fire_upwinding_reinit": 5
+        self.document["cases"]["circle"]["configurations"]["base"] = {
+            "namelist": {
+                "fire": {
+                    "fire_upwinding": 4,
+                    "fire_upwinding_reinit": 5
+                }
+            }
         }
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "circle_nowind")
+            resolve_spec(self.document, "circle")
 
     def test_duplicate_yaml_key_is_rejected(self) -> None:
         """Do not silently overwrite a repeated scientific setting."""
@@ -112,9 +117,11 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_plain_namelist_and_esmx_clock(self) -> None:
         """Use one resolved clock for both namelist and ESMX configuration."""
-        spec = resolve_spec(self.document, "terrain_u3d", execution="mpi4")
-        text = render_template(MODULE_ROOT / "templates/namelist.fire.in",
-                               namelist_values(spec))
+        spec = resolve_spec(self.document,
+                            "terrain",
+                            configuration="u3d",
+                            execution="mpi4")
+        text = render_namelist(spec)
         self.assertIn("wind_vinterp_opt=0", text)
         self.assertNotIn("{", text)
         path = self.root / "esmxRun.yaml"
@@ -126,8 +133,8 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_generated_wind_staggering_and_heights(self) -> None:
         """Confirm staggered U/V and the prescribed terrain-relative interfaces."""
-        spec = resolve_spec(self.document, "terrain_u3d")
-        spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
+        spec = resolve_spec(self.document, "terrain", configuration="u3d")
+        spec["inputs"]["atmosphere"]["wind_terrain_gradient_per_m"] = 0.0
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             # WRF U/V stagger on different horizontal axes. Heights are
@@ -143,11 +150,13 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_wind_check_rejects_10m_values_in_3d_run(self) -> None:
         """A successful process must not pass with the wrong wind representation."""
-        spec = resolve_spec(self.document, "terrain_u3d")
-        spec["forcing"]["wind_terrain_gradient_per_m"] = 0.0
+        spec = resolve_spec(self.document, "terrain", configuration="u3d")
+        spec["inputs"]["atmosphere"]["wind_terrain_gradient_per_m"] = 0.0
+        spec["namelist"]["fire"]["fire_wind_height"] = 20.0
         path = self.root / "wind.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 2)
+            dataset.createVariable("fz0", "f4", ("x",))[:] = [0.05, 0.25]
             for name, value in (("uf", 12.), ("vf", 8.)):
                 dataset.createVariable(name, "f4", ("x",))[:] = value
         self.assertTrue(check_wind_profile(path, spec)["pass"])
@@ -157,15 +166,111 @@ class PythonHarnessTests(unittest.TestCase):
             dataset["uf"][:] = 10.
         self.assertFalse(check_wind_profile(path, spec)["pass"])
 
+    def test_surface_log_profile_uses_cell_roughness(self) -> None:
+        """Distinguish 6.096 m winds from raw 10 m and 20 m controls."""
+        spec = resolve_spec(self.document, "terrain", configuration="u3d")
+        spec["inputs"]["atmosphere"]["wind_terrain_gradient_per_m"] = 0.0
+        self.assertEqual(spec["namelist"]["fire"]["fire_wind_height"], 6.096)
+        path = self.root / "surface_profile.nc"
+        roughness = np.array([0.05, 0.10, 0.25])
+        # This closed-form solution tests the surface branch independently
+        # of the generator and uses deliberately different roughness cells.
+        wind = 10 * np.log(6.096 / roughness) / np.log(10 / roughness)
+        with netCDF4.Dataset(path, "w") as dataset:
+            dataset.createDimension("x", 3)
+            dataset.createVariable("fz0", "f4", ("x",))[:] = roughness
+            for name in ("uf", "vf"):
+                dataset.createVariable(name, "f4", ("x",))[:] = wind
+        self.assertTrue(check_wind_profile(path, spec)["pass"])
+        for incorrect in (10.0, 12.0, 4.0):
+            with netCDF4.Dataset(path, "a") as dataset:
+                dataset["uf"][:] = incorrect
+            self.assertFalse(check_wind_profile(path, spec)["pass"])
+        with netCDF4.Dataset(path, "a") as dataset:
+            dataset["uf"][:] = wind
+            dataset["fz0"][0] = 0.0
+        self.assertFalse(check_wind_profile(path, spec)["pass"])
+
+    def test_terrain_configurations_share_generated_winds(self) -> None:
+        """Both wind choices read the same fixture containing U10/V10 and U/V."""
+        contents = []
+        for configuration in ("u10m", "u3d"):
+            directory = self.root / configuration
+            directory.mkdir()
+            spec = resolve_spec(self.document,
+                                "terrain",
+                                configuration=configuration)
+            generate_inputs(spec, directory)
+            contents.append((directory / "wrf.nc").read_bytes())
+        self.assertEqual(*contents)
+
+    def test_explicit_suites_preserve_execution_coverage(self) -> None:
+        """Keep all four builds and both coupled entry points in the matrices."""
+        records = []
+        for build in ("serial", "omp", "mpi", "hybrid"):
+            drivers = ["standalone", "nuopc", "esmx"
+                      ] if build == "mpi" else ["standalone"]
+            records.extend(registrations(self.document, build, drivers))
+        for suite, count in (("quick", 14), ("pr", 32), ("full", 80)):
+            selected = [r for r in records if suite in r["labels"]]
+            self.assertEqual(len(selected), count)
+            self.assertEqual({r["case"] for r in selected},
+                             {"circle", "fuels", "terrain"})
+        args = SimpleNamespace(test=None,
+                               suite="pr",
+                               case="terrain",
+                               execution=None,
+                               driver=None,
+                               configuration="u3d",
+                               scale="small")
+        tests = [{
+            "name":
+                "u10m",
+            "properties": [{
+                "name":
+                    "LABELS",
+                "value": [
+                    "pr", "case:terrain", "configuration:u10m", "scale:small"
+                ]
+            }]
+        }, {
+            "name":
+                "u3d",
+            "properties": [{
+                "name":
+                    "LABELS",
+                "value": [
+                    "pr", "case:terrain", "configuration:u3d", "scale:small"
+                ]
+            }]
+        }]
+        self.assertEqual(select_tests(tests, args), [2])
+
+    def test_invalid_configuration_and_option_types_are_rejected(self) -> None:
+        """Fail on bad suite selections and exact-option misspellings or types."""
+        self.document["suites"]["pr"]["cases"]["terrain"]["configurations"] = [
+            "typo"
+        ]
+        with self.assertRaises(ValueError):
+            registrations(self.document, "serial", ["standalone"])
+        self.document = load_yaml(MODULE_ROOT / "cases.yaml")
+        self.document["defaults"]["namelist"]["fire"]["wind_vinterp_opt"] = "0"
+        with self.assertRaises(ValueError):
+            resolve_spec(self.document, "terrain")
+        self.document = load_yaml(MODULE_ROOT / "cases.yaml")
+        self.document["defaults"]["namelist"]["fire"]["wind_vinter_opt"] = 0
+        with self.assertRaises(ValueError):
+            resolve_spec(self.document, "terrain")
+
     def test_terrain_winds_increase_at_each_field_location(self) -> None:
         """Detect face offsets using an independent sinusoidal terrain sample."""
-        spec = resolve_spec(self.document, "terrain_u3d")
+        spec = resolve_spec(self.document, "terrain", configuration="u3d")
         generate_inputs(spec, self.root)
         with netCDF4.Dataset(self.root / "wrf.nc") as dataset:
             # Check an interior sample away from terrain extrema, where a
             # half-cell offset changes the expected component appreciably.
             j, i = 17, 23
-            terrain = spec["terrain"]
+            terrain = spec["inputs"]["terrain"]
 
             def height(x: float, y: float) -> float:
                 """Evaluate the configured surface independently of generation."""
@@ -173,9 +278,10 @@ class PythonHarnessTests(unittest.TestCase):
                     np.sin(2 * np.pi * x / terrain["wavelength_x_m"]) *
                     np.sin(2 * np.pi * y / terrain["wavelength_y_m"]))
 
-            x = (i + 0.5 - 2) * spec["grid"]["dx_m"]
-            y = (j + 0.5 - 2) * spec["grid"]["dy_m"]
-            dx, dy = spec["grid"]["dx_m"], spec["grid"]["dy_m"]
+            x = (i + 0.5 - 2) * spec["inputs"]["grid"]["dx_m"]
+            y = (j + 0.5 - 2) * spec["inputs"]["grid"]["dy_m"]
+            dx, dy = spec["inputs"]["grid"]["dx_m"], spec["inputs"]["grid"][
+                "dy_m"]
             z00, z10 = height(x, y), height(x + dx, y)
             z01, z11 = height(x, y + dy), height(x + dx, y + dy)
             samples = {
@@ -196,10 +302,12 @@ class PythonHarnessTests(unittest.TestCase):
     def test_terrain_wind_check_rejects_uniform_or_excessive_winds(
             self) -> None:
         """Require variability without claiming one exact interpolation method."""
-        spec = resolve_spec(self.document, "terrain_u3d")
+        spec = resolve_spec(self.document, "terrain", configuration="u3d")
+        spec["namelist"]["fire"]["fire_wind_height"] = 20.0
         path = self.root / "variable_wind.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 3)
+            dataset.createVariable("fz0", "f4", ("x",))[:] = 0.1
             dataset.createVariable("uf", "f4", ("x",))[:] = [11., 12., 13.]
             dataset.createVariable("vf", "f4", ("x",))[:] = [7.5, 8., 8.5]
         self.assertTrue(check_wind_profile(path, spec)["pass"])
@@ -212,14 +320,14 @@ class PythonHarnessTests(unittest.TestCase):
 
     def test_terrain_scaling_cannot_reverse_winds(self) -> None:
         """Reject an excessive gradient before constructing synthetic forcing."""
-        self.document["cases"]["terrain_u3d"]["forcing"][
+        self.document["cases"]["terrain"]["inputs"]["atmosphere"][
             "wind_terrain_gradient_per_m"] = 0.01
         with self.assertRaises(ValueError):
-            resolve_spec(self.document, "terrain_u3d")
+            resolve_spec(self.document, "terrain", configuration="u3d")
 
     def test_surface_wind_cannot_vanish_in_a_patch(self) -> None:
         """Reject partial loss of a prescribed nonzero wind component."""
-        spec = resolve_spec(self.document, "terrain_u10m")
+        spec = resolve_spec(self.document, "terrain")
         path = self.root / "surface.nc"
         with netCDF4.Dataset(path, "w") as dataset:
             dataset.createDimension("x", 4)
@@ -250,14 +358,16 @@ class PythonHarnessTests(unittest.TestCase):
                 "terrain[3d]",
             "properties": [{
                 "name": "LABELS",
-                "value": ["quick", "case:terrain_u3d"]
+                "value": ["quick", "case:terrain"]
             }]
         }]
         args = SimpleNamespace(test="terrain[3d]",
                                suite="quick",
-                               case="terrain_u3d",
+                               case="terrain",
                                execution=None,
-                               driver=None)
+                               driver=None,
+                               configuration=None,
+                               scale=None)
         self.assertEqual(select_tests(tests, args), [1])
         args.test = "terrain.*"
         self.assertEqual(select_tests(tests, args), [])
@@ -294,9 +404,9 @@ class PythonHarnessTests(unittest.TestCase):
     def test_zero_exit_without_outputs_fails(self) -> None:
         """Catch Fortran STOP paths that return zero before producing results."""
         args = SimpleNamespace(config=MODULE_ROOT / "cases.yaml",
-                               case="circle_nowind",
-                               scale="standard",
-                               method="ref94",
+                               case="circle",
+                               scale="small",
+                               configuration="base",
                                execution="serial",
                                driver="standalone",
                                executable=Path(sys.executable),
