@@ -8,6 +8,7 @@ artifacts until replacement coverage is validated.
 
 | Item | What remains to be established |
 | --- | --- |
+| Short-run 3D standalone/coupled agreement | At 6.096 m, four comparisons fail at 60 s in six fields across two cells; maximum relative error 0.01434025% exceeds 0.01%. The 20 m control passes. Isolate the physical/numerical source without relaxing acceptance. See [validation history](validation.md). |
 | Longer standalone/coupled agreement | A previous 600 s terrain experiment exceeded the unchanged tolerance from 180 s. Its 3D target was 20 m. Reassess longer runs at 6.096 m after the short matrix; see [validation history](validation.md). |
 | Humidity interpretation | Scientific review associated with PR #46 is independent of reproducibility; current moisture remains enabled. |
 | Restart | Restart continuity, restart inputs, and segmented-run comparisons. |

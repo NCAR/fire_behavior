@@ -57,6 +57,11 @@ tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical
 regression acceptance.
 
+The current 6.096 m 3D terrain configuration fails four standalone/coupled
+comparisons at 60 s; within-driver comparisons pass. See the
+[validation record](doc/validation.md#explicit-configurations-and-6096-m-winds)
+for affected fields, exact outputs, and the passing 20 m control.
+
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated
 cases. Use `compile_legacy.sh` with separate build/install directories.

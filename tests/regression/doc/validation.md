@@ -5,6 +5,80 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Explicit configurations and 6.096 m winds
+
+Derecho PBS `7710945.desched1` tested code revision `32428ed` on 2026-10-04
+through the normal [PBS template](../submit_derecho.pbs). All four builds and
+unit CTests passed, including 40 Python tests per build. The revised cases are
+`circle`, `fuels`, and `terrain`, with explicit named configurations and
+`small`/`large` scales. An earlier run of `c709b00` in job `7710923.desched1`
+produced the same numerical results; the follow-up restored fractional-timestep
+support without changing any selected experiment.
+
+| Check at 60 s | Result |
+| --- | --- |
+| Individual generated integrations and physical checks | 32/32 pass |
+| Same-driver execution-layout comparisons | 24/24 pass; all stored fields bitwise identical |
+| Standalone/coupled `terrain / u10m` comparisons | 4/4 pass |
+| Standalone/coupled `terrain / u3d` comparisons | 0/4 pass |
+| All cross-execution comparisons | 28/32 pass; PR suite fails |
+
+The four failures compare standalone serial against NUOPC/ESMX with one/four
+ranks. At the requested **6.096 m** sampling height, each comparison exceeds
+the unchanged **0.01%** threshold in six fields at 60 s. Each field has one
+violating cell. The maximum relative error is **0.01434025%**.
+
+Indices below are zero-based `(y, x)` in the saved `(ny, nx)` arrays. The field
+values are representative of all four failed comparisons.
+
+| Field | Cell | Standalone | Coupled | Relative difference |
+| --- | --- | --- | --- | --- |
+| `fuel_frac_burnt_dt` | `(37, 43)` | 0.00091175473 | 0.00091188541 | 0.0143324% |
+| `fire_area` | `(37, 43)` | 0.0046392241 | 0.0046398705 | 0.0139320% |
+| `fgrnhfx` (W m-2) | `(37, 43)` | 3208.1943 | 3208.6543 | 0.0143371% |
+| `fgrnqfx` (W m-2) | `(37, 43)` | 308.14972 | 308.19391 | 0.0143403% |
+| `emis_smoke` (kg m-2) | `(37, 43)` | 0.000016338645 | 0.000016340988 | 0.0143394% |
+| `lfn` (m) | `(33, 40)` | 0.49328893 | 0.49322414 | 0.0131343% |
+
+The first cell has Anderson fuel category 2; the level-set cell has category
+13. Coordinates, terrain, and categories remain bitwise identical. Wind and
+roughness comparisons pass: maximum wind-component error is
+`3.33786e-5 m/s` (0.00035565%), and maximum roughness error is `4.47035e-8 m`.
+Small remapping differences are present, but these output comparisons alone do
+not isolate which difference causes the fire-field threshold crossings.
+
+All seven legacy integrations completed with eleven outputs each and retained
+all 100 checked diagnostic rows per case exactly relative to the previous
+validation. Their 35 original comparison failures remain unchanged. The final
+job exited **1** after 8 min 28 s, with `pr 1` and `legacy 8` in
+`suite-status.txt`. This is a failed regression suite, despite all individual
+generated integrations and unit tests completing successfully.
+
+### Controlled attribution
+
+A configuration audit against `c070f82` found byte-identical generated NetCDF
+inputs and identical namelist values except the requested 3D sampling-height
+change from 20 to 6.096 m. Derecho PBS `7710983.desched1` then reused the
+`32428ed` executables and changed only that height back to 20 m in an external
+configuration file. The control exited 0 after 32 s. All three integrations and both standalone/coupled
+comparisons passed, with maximum relative error 0.00157165%. All saved fields
+for each driver were bitwise identical to its earlier 20 m outputs from
+`42d7700`. This attributes the newly failing acceptance to the revised physical
+configuration, not the YAML/renderer refactor. It does not establish a complete
+physical cause or justify changing the requested height back.
+
+The production configuration retains 6.096 m. No tolerance, model physics,
+legacy reference, or approved baseline was changed. The short 3D cross-driver
+failure remains visible and requires scientific follow-up.
+
+Artifacts, beneath the validation submitter's scratch `tmp` directory:
+
+- `cfbm_32428ed_20261004/results/pr-nv0td689/summary.json`: all 32 runs and comparisons.
+- The case directories listed there contain the full NetCDF outputs and logs.
+- `cfbm_32428ed_20261004/u3d-failure-audit.json`: exact failing cells and nearby diagnostics.
+- `cfbm_32428ed_20261004/control20m/`: configuration, outputs, comparison report, prior-output audit, and PBS status.
+- `pr49-config-audit/report.json`: input-byte and namelist audit against the preceding configuration.
+
 ## Folder and case-name changes
 
 Derecho PBS `7709881.desched1` tested commit `42d7700` on 2026-10-04 using
