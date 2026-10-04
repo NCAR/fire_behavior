@@ -91,6 +91,14 @@ class PythonHarnessTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             resolve_spec(self.document, "circle")
 
+    def test_fractional_model_timestep_remains_supported(self) -> None:
+        """Allow subsecond integration steps when saved times align exactly."""
+        self.document["cases"]["circle"]["namelist"] = {"time": {"dt": 0.5}}
+        spec = resolve_spec(self.document, "circle")
+        self.assertEqual(spec["namelist"]["time"]["dt"], 0.5)
+        self.assertEqual(len(expected_output_names(spec)), 2)
+        self.assertIn("dt=0.5", render_namelist(spec))
+
     def test_deferred_method_is_rejected(self) -> None:
         """Keep method (4,5) outside the currently reviewed experiments."""
         self.document["cases"]["circle"]["configurations"]["base"] = {

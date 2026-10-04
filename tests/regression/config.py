@@ -311,15 +311,19 @@ def validate_spec(spec: dict[str, Any]) -> None:
     nml, inputs = spec["namelist"], spec["inputs"]
     time, fire, grid = nml["time"], nml["fire"], inputs["grid"]
     duration = _require_number(spec, "duration_seconds", 1, "spec")
-    step = _require_number(time, "dt", 1, "time")
+    step = _require_number(time, "dt", 1.0e-12, "time")
     output = _require_number(time, "interval_output", step, "time")
     forcing_interval = _require_number(nml["atm"], "interval_atm", step, "atm")
     for value in (duration, step, output, forcing_interval):
-        if value != int(value):
-            raise ValueError("Harness timestamps require integer seconds")
         if abs(value / step - round(value / step)) > 1.0e-10:
             raise ValueError(
                 "Schedule must be an integer number of model timesteps")
+    # Output names and forcing Times have whole-second precision; the model
+    # timestep may be fractional provided every scheduled time aligns with it.
+    if any(value != int(value)
+           for value in (duration, output, forcing_interval)):
+        raise ValueError(
+            "Output and forcing timestamps require integer seconds")
     for interval in (output, forcing_interval):
         if abs(duration / interval - round(duration / interval)) > 1.0e-10:
             raise ValueError(
