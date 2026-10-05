@@ -24,7 +24,7 @@
       real, dimension(:, :, :), allocatable :: u3d, v3d, phl
       ! Retain atmospheric cell-centre coordinates through the ESMF grid assignment.
       real(kind=REAL64), dimension(:, :), allocatable :: lats, lons
-      real, dimension(:, :), allocatable :: lats_c, lons_c, t2, q2, z0, psfc, rain, ua, va, u10, v10
+      real, dimension(:, :), allocatable :: lats_c, lons_c, t2, q2, z0, psfc, rain, u10, v10
       integer :: ids, ide, jds, jde, kds, kde, ims, ime, jms, jme, kms, kme, its, ite, jts, jte, kts, kte
       real :: cen_lat, cen_lon, dx, dy, truelat1, truelat2, stand_lon
     contains
@@ -554,11 +554,11 @@
         case ('z0')
           var_wrf = this%z0
 
-        case ('ua')
-          var_wrf = this%ua
+        case ('u10')
+          var_wrf = this%u10
 
-        case ('va')
-          var_wrf = this%va
+        case ('v10')
+          var_wrf = this%v10
 
         case default
           call Stop_simulation ('Unknown variable name to interpolate')
@@ -673,9 +673,6 @@
           call this%Get_u10 (datetime_now)
           call this%Get_v10 (datetime_now)
 
-          this%ua = this%u10
-          this%va = this%v10
-
         case default
           call Stop_simulation ('Error: wrong wind_vinterp_opt')
 
@@ -777,12 +774,6 @@
 
       allocate (return_value%psfc(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1))
       return_value%psfc = DEFAULT_PSFC
-
-      allocate (return_value%ua(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1))
-      return_value%ua = 0.0
-
-      allocate (return_value%va(return_value%ids:return_value%ide - 1, return_value%jds:return_value%jde - 1))
-      return_value%va = 0.0
 
       if (DEBUG_LOCAL) Call Print_message ('Leaving wrfdata_t constructor')
 
