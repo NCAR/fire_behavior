@@ -57,10 +57,11 @@ tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical
 regression acceptance.
 
-The current 6.096 m 3D terrain configuration fails four standalone/coupled
-comparisons at 60 s; within-driver comparisons pass. See the
-[validation record](doc/validation.md#explicit-configurations-and-6096-m-winds)
-for affected fields, exact outputs, and the passing 20 m control.
+PR #57 aligns the standalone and coupled 3D wind-interpolation order. Its
+60 s terrain comparisons pass at the requested 6.096 m height, but a separate
+every-4-second diagnostic still exceeds tolerance in one level-set cell at
+20 s. See the [validation record](doc/validation.md#wind-interpolation-order)
+for the combined harness results and remaining limits.
 
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated

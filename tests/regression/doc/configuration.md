@@ -49,7 +49,7 @@ defaults:
       interval_atm: 4
     fire:
       fuel_opt: 1              # Anderson fuels supported by the model.
-      fire_upwinding: 9        # WENO propagation.
+      fire_upwinding: 9        # Hybrid WENO5/ENO1 propagation.
       fire_upwinding_reinit: 4
       wind_vinterp_opt: 1      # Fuel-adjusted 10 m winds.
       hinterp_opt: 2           # Bilinear horizontal interpolation.

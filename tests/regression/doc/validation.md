@@ -5,6 +5,93 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Wind interpolation order
+
+PR #57 (`1bb49f9`) changes the standalone 3D pathway to remap wind and
+geopotential levels horizontally before vertical sampling, using mapped
+roughness, consistently with NUOPC. The sampling height remains 6.096 m and
+the comparison tolerance remains 0.01%. Inputs and the vertical formula are
+unchanged. This resolves the four configured 60 s comparison failures recorded
+below, without establishing agreement at every intermediate timestep.
+
+The combined harness revision is `4e71058`, which merges #57 `1bb49f9` into
+the explicit-configuration harness. Derecho PBS `7715106.desched1` uses the
+normal [submission template](../submit_derecho.pbs), account NERP0002, one
+node, and a one-hour request in `develop` (routed to `cpudev`). Submit from
+the clean repository root with the allocation set in `PBS_ACCOUNT`:
+
+```bash
+qsub -A "$PBS_ACCOUNT" tests/regression/submit_derecho.pbs
+```
+
+The template records the exact source, modules, commands, and isolated outputs
+under `cfbm_4e71058_20261004/`. The compiler/library stack is Intel 2025.2.1,
+Cray MPICH 8.1.32, parallel NetCDF 4.9.3, ESMF 8.9.1, CMake 3.31.8, and the
+module-provided `npl-2026a` Python environment. Model launches use the module
+MPI after Conda is deactivated.
+
+| Combined validation | Result |
+| --- | --- |
+| Serial, OpenMP, MPI/NUOPC/ESMX, hybrid builds | 4/4 pass |
+| Unit CTest invocations across the four builds | 142/142 pass, including 40 Python tests per build |
+| Generated integrations and physical/output checks | 32/32 pass |
+| Same-driver comparisons | 24/24 pass; all stored fields bitwise identical |
+| Standalone/coupled comparisons | 8/8 pass, including both wind configurations and one/four ranks |
+| All generated comparisons | 32/32 pass; PR suite status 0 |
+| Maximum cross-driver relative error | 0.0079873469%, below 0.01% |
+
+This combined run rebuilds ESMX through the normal build path and tests the
+corrected analytical wind-order fixture in all four builds. The source snapshot
+is clean at `4e71058b8b9cb9171b96542ae5ea4ca9d3972f0d`; subsequent documentation
+edits do not change the tested code or configuration. Unit CTest
+counts are 35 serial, 35 OpenMP, 36 MPI, and 36 hybrid. The 40 Python checks
+are collected by one of those CTests in each build.
+
+Artifacts include `results/pr-e8bx92_b/summary.json`, `suite-pr.log`,
+`validation-audit.json`, per-build configuration/build logs, and the individual
+run directories listed in the summary. Local YAPF, shell-syntax, and relative
+documentation-link checks pass. No GitHub CI run or baseline approval is
+claimed for these unpublished commits.
+
+All seven legacy integrations completed, with eleven NetCDF outputs per case.
+All 35 original text comparisons still fail. An audit against `32428ed` found
+the same 100 checked diagnostic values and timestamps in every case, with zero
+changed rows. This audit does not assert equality of the untested legacy NetCDF
+fields. `legacy-preservation-audit.json` records the comparison and output paths.
+The final statuses are `pr 0` and `legacy 8`; PBS correctly exited **1** after
+8 min 21 s. The full job is therefore not an all-tests pass.
+
+### Intermediate-time diagnostic and remaining limits
+
+The separate every-4-second diagnostic retained in the #57 investigation
+fails at 20 s in one `lfn` cell, zero-based `(y, x) = (40, 33)`:
+
+| Quantity | Value |
+| --- | --- |
+| Standalone level set | 0.3912063241004944 m |
+| Four-rank NUOPC level set | 0.3912506699562073 m |
+| Absolute difference | 4.4345855712890625e-5 m |
+| Relative difference | 0.0113356694% |
+| Relative tolerance | 0.01% |
+
+All other saved times through 60 s pass in that diagnostic. Maximum wind
+discrepancy increases after order alignment, from `3.33786e-5` to
+`7.82013e-5 m/s`. Profile recording and wind-replay controls support a remaining
+contribution from absolute-geopotential remapping and conversion to height above
+ground. Order alignment therefore does not eliminate numerical differences.
+
+The default `fire_upwinding=9` is hybrid WENO5/ENO1, with fifth-order
+reconstruction near the front. Its sensitivity is a reason for a controlled
+method comparison, not an established explanation of the failing cell. No
+method change or tolerance relaxation is included here. The earlier 600 s
+failures and the untested 3600 s suite remain separate limitations.
+
+Diagnostic evidence is in `cfbm-u3d-order-20261004/diagnostic/`, including
+`summary.json`, per-run outputs, and recorded profiles. The exact prerequisite
+was validated separately in PBS `7712874.desched1`: four builds, 138 model unit
+CTest invocations, 16 terrain integrations, and 16 comparisons passed. That
+prerequisite-only job did not rebuild ESMX with the complete harness.
+
 ## Explicit configurations and 6.096 m winds
 
 Derecho PBS `7710945.desched1` tested code revision `32428ed` on 2026-10-04
@@ -68,8 +155,9 @@ configuration, not the YAML/renderer refactor. It does not establish a complete
 physical cause or justify changing the requested height back.
 
 The production configuration retains 6.096 m. No tolerance, model physics,
-legacy reference, or approved baseline was changed. The short 3D cross-driver
-failure remains visible and requires scientific follow-up.
+legacy reference, or approved baseline was changed. This revision retained the short 3D cross-driver
+failure; the subsequent [wind-order correction](#wind-interpolation-order)
+addresses the configured 60 s comparison.
 
 Artifacts, beneath the validation submitter's scratch `tmp` directory:
 

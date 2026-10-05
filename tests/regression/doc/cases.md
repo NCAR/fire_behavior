@@ -41,6 +41,13 @@ spatial variation. A uniform-profile control checks the analytical value with
 rtol=1e-4, atol=0. The separate 20 m unit-test control exercises interpolation
 between mass levels, where unscaled (U, V) = (12, 8) m/s.
 
+For 3D winds, both drivers first remap the wind and geopotential profiles
+horizontally to the fire grid, then sample vertically using mapped roughness.
+PR #57 applies this order to standalone; previously it sampled vertically on
+the atmospheric grid first. The logarithmic surface calculation is nonlinear,
+so reversing these operations can change the result. Matching the order does
+not make the two horizontal interpolation implementations bitwise identical.
+
 Neither configuration equates 3D winds with fuel-adjusted 10 m winds. Their
 fire outputs are not expected to match each other. Cross-execution and
 cross-driver tolerances are unchanged. Earlier 20 m outputs do not validate
@@ -132,6 +139,13 @@ the terrain factor and applies fuel-dependent wind adjustment in the model.
 | Atmospheric interval | 4 s | 60 s |
 | Suites selecting this scale | `quick`, `pr` | `full` |
 | Selected numerical pairs | `(9,4)` | `(9,4)` and `(2,4)` |
+
+The default `fire_upwinding=9` selects hybrid WENO5/ENO1, with fifth-order
+reconstruction near the front. Small forcing differences can affect the level
+set and subsequent consumption. A controlled comparison with the existing
+Godunov configuration remains planned; its effect on the residual
+standalone/coupled discrepancy has not been isolated. The short-suite method
+is unchanged.
 
 The terrain forcing warms from 300 to 302 K and dries from mixing ratio 0.008 to
 0.004 kg/kg across the configured duration. Surface pressure is 90000 Pa and
