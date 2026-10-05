@@ -55,6 +55,7 @@
       procedure, public :: Get_v3d_stag => Get_meridional_wind_stag_3d
       procedure, public :: Get_z0 => Get_z0
       procedure, public :: Interp_var2grid => Interp_var2grid
+      procedure, public :: Interp_winds2grid => Interp_winds2grid
       procedure, public :: Print_domain => Print_domain
       procedure, public :: Update_atm_state => Update_atm_state
     end type wrfdata_t
@@ -574,6 +575,54 @@
 
     end subroutine Interp_var2grid
 
+    subroutine Interp_winds2grid (this, lats_out, lons_out, z0_out, ifms, ifme, jfms, jfme, &
+        ifps, ifpe, jfps, jfpe, num_tiles, i_start, i_end, j_start, j_end, config_flags, u_out, v_out)
+
+      implicit none
+
+      class (wrfdata_t), intent(in out) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, num_tiles
+      integer, dimension (num_tiles), intent (in) :: i_start, i_end, j_start, j_end
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lats_out, lons_out, z0_out
+      type (namelist_t), intent (in) :: config_flags
+      real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: u_out, v_out
+
+      real, dimension(:, :, :), allocatable :: u_fire, v_fire, ph_fire
+      type (proj_lc_t) :: proj
+      integer :: k
+
+
+      proj = this%Get_projection ()
+      allocate (u_fire(ifms:ifme, jfms:jfme, this%kds:this%kde - 1))
+      allocate (v_fire(ifms:ifme, jfms:jfme, this%kds:this%kde - 1))
+      allocate (ph_fire(ifms:ifme, jfms:jfme, this%kds:this%kde - 1))
+      u_fire = 0.0
+      v_fire = 0.0
+      ph_fire = 0.0
+
+      ! Remap profiles before converting geopotential to height, as in NUOPC.
+      do k = this%kds, this%kde - 1
+        call Interp_horizontal (this%u3d(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
+            lats_out, lons_out, u_fire(:, :, k))
+        call Interp_horizontal (this%v3d(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
+            lats_out, lons_out, v_fire(:, :, k))
+        call Interp_horizontal (this%phl(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
+            lats_out, lons_out, ph_fire(:, :, k))
+      end do
+
+      call Calc_fire_wind (u_fire, v_fire, ph_fire / G, z0_out, ifms, ifme, jfms, jfme, this%kds, this%kde - 1, &
+          config_flags%fire_lsm_zcoupling, config_flags%fire_lsm_zcoupling_ref, config_flags%fire_wind_height, &
+          ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, u_out, v_out)
+
+      call this%Destroy_u3d ()
+      call this%Destroy_v3d ()
+      call this%Destroy_phl ()
+
+    end subroutine Interp_winds2grid
+
     subroutine Print_domain (this)
 
       use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
@@ -606,9 +655,6 @@
       type (datetime_t), intent (in) :: datetime_now
       type (namelist_t), intent (in) :: config_flags
 
-      integer :: iims, iime, jims, jime, kims, kime, ioms, iome, joms, jome, iops, iope, jops, jope
-
-
       call this%Get_t2 (datetime_now)
       call this%Get_q2 (datetime_now)
       call this%Get_psfc (datetime_now)
@@ -621,33 +667,8 @@
           call this%Get_v3d (datetime_now)
           call this%Get_phl (datetime_now)
 
-            ! Set input (i) and output (o) indices
-          iims = this%ids
-          iime = this%ide - 1
-          jims = this%jds
-          jime = this%jde - 1
-          kims = this%kds
-          kime = this%kde - 1
-
-          ioms = this%ids
-          iome = this%ide - 1
-          joms = this%jds
-          jome = this%jde - 1
-
-          iops = this%ids
-          iope = this%ide - 1
-          jops = this%jds
-          jope = this%jde - 1
-                                                   ! For compatibility with nuopc couplings
-                                                   ! pass z_at_w with vertical dim kde - 1 instead of kde
-          call Calc_fire_wind (this%u3d, this%v3d, this%phl(iims:iime, jims:jime, kims:kime) / G, this%z0, &
-              iims, iime, jims, jime, kims, kime, config_flags%fire_lsm_zcoupling, config_flags%fire_lsm_zcoupling_ref, &
-              config_flags%fire_wind_height, ioms, iome, joms, jome, iops, &
-              iope, jops, jope, this%ua, this%va)
-
-          call this%Destroy_u3d ()
-          call this%Destroy_v3d ()
-          call this%Destroy_phl ()
+          ! Retain the profiles until horizontal interpolation to the fire grid.
+          ! Apply vertical interpolation there, in the same order as the NUOPC cap.
         case (VINTERP_WINDS_FROM_10M_WINDS)
           call this%Get_u10 (datetime_now)
           call this%Get_v10 (datetime_now)
