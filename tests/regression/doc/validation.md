@@ -5,6 +5,42 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Derecho automatic Python selection
+
+Pedro's reported six MPI case failures and Python-test failure occurred before
+model launch: the Derecho profile selected `npl-2022b` Python 3.8. The harness
+uses newer Python features, and its pinned NumPy requires Python 3.11 or newer.
+The profile now supplies the shared `npl-2026a` interpreter explicitly without
+activating its Conda environment. Both compile scripts pass `CFBM_PYTHON` to
+CMake on every configure; generated tests require Python 3.11 or newer.
+
+Derecho PBS `7724276.desched1` tests clean revision `8956a34` with one node,
+four CPUs/four MPI ranks, and the profile's GNU 12.2.0/Cray MPICH 8.1.25 stack.
+An explicit Python 3.8 override is rejected during CMake configuration.
+`./compile.sh -t -x --clean --env-auto` then passes all 44 selected CTests:
+38 unit CTests (including all 40 Python checks) and six terrain integrations
+covering standalone, NUOPC, and ESMX with four MPI ranks and both wind modes.
+All four cross-driver comparisons pass, maximum relative error 0.0075489133%.
+The test uses isolated build/install paths and four build jobs.
+
+A second run deliberately caches Python 3.8 again, confirms rejection, and
+then repeats the automatic build without `--clean`. It recovers the supported
+interpreter and passes the same tests and comparisons. Both parent CMake and
+the ESMX child select Python 3.13.11; the model retains the module-provided MPI.
+The rejected build's evidence is preserved before the requested clean rebuild.
+
+The same job also builds and installs the legacy ESMX route successfully through
+`compile_legacy.sh -x --env-auto`, using isolated build/install paths and the
+same Python selection. Legacy integrations are not repeated in this check.
+PBS exits 0 after 3 min 16 s.
+
+Artifacts: `/glade/derecho/scratch/frediani/tmp/cfbm-pr49-python-fix-20261005/`.
+The two summaries are `build/suite-runs/quick-kc74pyvg/summary.json` and
+`build/suite-runs/quick-je3t002h/summary.json`. This checks the default MPI quick
+selection, not the complete four-build PR matrix. No scientific setting,
+tolerance, reference, or model source changed. Prior intermediate-time,
+longer-run, and legacy comparison limitations remain.
+
 ## Explicit wind modes and atmospheric-array cleanup
 
 The follow-up to Pedro's #57 review replaces the numeric wind-option branch
