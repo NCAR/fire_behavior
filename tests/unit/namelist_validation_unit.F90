@@ -1,5 +1,10 @@
 program namelist_validation_unit
 
+  ! Exercise configuration checks for atmospheric intervals, ignition counts,
+  ! and perimeter activation times. CTest selects valid or invalid scenarios
+  ! and checks the expected rejection diagnostics. Atmospheric-only scenarios
+  ! validate their timing without requiring the fire component's settings.
+
   use namelist_mod, only : namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
 #ifdef DM_PARALLEL
   use mpi

@@ -37,6 +37,6 @@ To compile the code on Derecho, run:
 
 See :ref:`building` for the full set of build options. If the compilation is successful, the model can be run using ``fire_behavior.exe`` located in the ``build`` directory.
 
-An example is provided in the ``tests/test7/`` directory with the ``namelist.fire``.
+An example is provided in the ``tests/legacy/test7/`` directory with the ``namelist.fire``.
 
 If the simulation is successful, the model outputs are written to files named ``fire_output_*``, and diagnostic messages are printed to standard output (redirect them to keep a copy, for example ``fire_behavior.exe > log 2>&1``).

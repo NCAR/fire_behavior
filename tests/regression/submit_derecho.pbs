@@ -1,0 +1,179 @@
+#!/bin/bash -l
+#PBS -N cfbm-regression
+#PBS -q develop
+#PBS -l select=1:ncpus=128:mpiprocs=4:ompthreads=4
+#PBS -l walltime=01:00:00
+#PBS -j oe
+set -euo pipefail
+# Created on 2026-10-04 by the CFBM development team assisted by GPT-6-Astra.
+# From the repository root, with PBS_ACCOUNT set to your allocation:
+# run qsub -A "$PBS_ACCOUNT" tests/regression/submit_derecho.pbs
+# Build four configurations and preserve generated and legacy test results.
+
+#--------------------------------------------------------------------------------
+# Paths and run settings
+#--------------------------------------------------------------------------------
+# qsub records the submission directory in PBS_O_WORKDIR. Submit from the
+# repository root. PBS directives do not expand $USER or $PBS_ACCOUNT.
+: "${PBS_JOBID:?Submit this script with qsub from the repository root}"
+: "${PBS_O_WORKDIR:?PBS must supply the submission directory}"
+: "${USER:?USER must identify the scratch owner}"
+TEST="/glade/derecho/scratch/$USER/tmp"
+CHECKOUT="${PBS_O_WORKDIR}"
+SOURCE_COMMIT=$(git -C "${CHECKOUT}" rev-parse HEAD)
+SHORT_COMMIT=$(git -C "${CHECKOUT}" rev-parse --short HEAD)
+RUN_DATE=$(date +%Y%m%d)
+RUN_ROOT="${TEST}/cfbm_${SHORT_COMMIT}_${RUN_DATE}"
+SOURCE_ROOT="${RUN_ROOT}/source"
+BUILD_JOBS=8
+# PR includes quick coverage, so the template avoids running quick twice.
+SUITES=(pr)
+RUN_LEGACY=true
+
+#--------------------------------------------------------------------------------
+# Preserve a committed source snapshot and refuse reused run directories
+#--------------------------------------------------------------------------------
+if [[ -n "$(git -C "${CHECKOUT}" status --porcelain)" ]]; then
+    echo "Commit the intended changes before submitting this template."
+    exit 1
+fi
+mkdir -p "${TEST}"
+if ! mkdir "${RUN_ROOT}"; then
+    echo "Run directory already exists: ${RUN_ROOT}"
+    echo "Preserve it under another name before resubmitting the same commit today."
+    exit 1
+fi
+# Preserve Git identity for case reports without sharing a mutable worktree.
+# A local clone creates no network dependency and keeps the source available
+# even if the contributor continues editing the original checkout.
+git clone --quiet --no-hardlinks "${CHECKOUT}" "${SOURCE_ROOT}"
+git -C "${SOURCE_ROOT}" checkout --quiet --detach "${SOURCE_COMMIT}"
+exec > >(tee "${RUN_ROOT}/validate.log") 2>&1
+trap 'echo "end_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"' EXIT
+
+echo "job_id=${PBS_JOBID}"
+echo "case_dir=${RUN_ROOT}"
+echo "host=$(hostname)"
+echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+printf '%s\n' "${SOURCE_COMMIT}" > "${RUN_ROOT}/source.txt"
+
+#--------------------------------------------------------------------------------
+# Load one compatible compiler, MPI, NetCDF, HDF5, and ESMF installation
+#--------------------------------------------------------------------------------
+module --force purge
+module load ncarenv/25.10 \
+            intel/2025.2.1 \
+            ncarcompilers/1.2.0 \
+            cray-mpich/8.1.32 \
+            netcdf-mpi/4.9.3 \
+            esmf-mpi/8.9.1 \
+            conda
+
+# Save model MPI tools before activating NPL, which supplies its own MPI tools.
+MODEL_MPIEXEC=$(command -v mpiexec)
+MODEL_MPIFC=$(command -v mpif90)
+MODEL_MPICC=$(command -v mpicc)
+MODEL_MPICXX=$(command -v mpicxx)
+conda activate npl-2026a
+PYTHON_EXE=$(command -v python)
+conda deactivate
+module load cmake/3.31.8
+module -t list
+
+export FC=ifx CC=icx CXX=icpx
+export NetCDF_ROOT="${NETCDF}"
+export PYTHONDONTWRITEBYTECODE=1
+export OMP_NUM_THREADS=1 OMP_DYNAMIC=FALSE OPENBLAS_NUM_THREADS=1
+# Run CTest cases sequentially. Each hybrid case requests 4 ranks x 4 threads.
+export CTEST_PARALLEL_LEVEL=1
+
+#--------------------------------------------------------------------------------
+# Build standalone serial, OpenMP, MPI with coupling, and hybrid configurations
+#--------------------------------------------------------------------------------
+BUILDS=()
+for VARIANT in serial omp mpi hybrid; do
+    OPTIONS=()
+    SETTINGS=()
+    case "${VARIANT}" in
+        serial)
+            OPTIONS=(--mpi-off)
+            SETTINGS=(-DDM_PARALLEL=OFF -DOPENMP=OFF)
+            ;;
+        omp)
+            OPTIONS=(--mpi-off --openmp-on)
+            SETTINGS=(-DDM_PARALLEL=OFF -DOPENMP=ON)
+            ;;
+        mpi)
+            OPTIONS=(--esmx)
+            SETTINGS=(-DDM_PARALLEL=ON -DOPENMP=OFF -DNUOPC=ON -DESMX=ON)
+            ;;
+        hybrid)
+            OPTIONS=(--openmp-on)
+            SETTINGS=(-DDM_PARALLEL=ON -DOPENMP=ON)
+            ;;
+    esac
+
+    cmake -S "${SOURCE_ROOT}" \
+          -B "${RUN_ROOT}/build/${VARIANT}" \
+          "${SETTINGS[@]}" \
+          -DCMAKE_INSTALL_PREFIX="${RUN_ROOT}/install/${VARIANT}" \
+          -DPython3_EXECUTABLE="${PYTHON_EXE}" \
+          -DMPI_Fortran_COMPILER="${MODEL_MPIFC}" \
+          -DMPI_C_COMPILER="${MODEL_MPICC}" \
+          -DMPI_CXX_COMPILER="${MODEL_MPICXX}" \
+          -DMPIEXEC_EXECUTABLE="${MODEL_MPIEXEC}" \
+          '-DMPIEXEC_PREFLAGS=--cpu-bind;none' \
+          > "${RUN_ROOT}/configure-${VARIANT}.log" 2>&1
+
+    "${SOURCE_ROOT}/compile.sh" "${OPTIONS[@]}" \
+        --build-jobs="${BUILD_JOBS}" \
+        --build-dir="${RUN_ROOT}/build/${VARIANT}" \
+        --prefix="${RUN_ROOT}/install/${VARIANT}" \
+        > "${RUN_ROOT}/build-${VARIANT}.log" 2>&1
+
+    BUILDS+=(--build-dir="${RUN_ROOT}/build/${VARIANT}")
+    echo "build_${VARIANT}=passed"
+done
+
+#--------------------------------------------------------------------------------
+# Run generated cases and compare the selected builds
+#--------------------------------------------------------------------------------
+# Continue collecting independent suites after a failure, but return nonzero
+# at the end. A completed PBS job must not imply that all comparisons passed.
+FINAL_STATUS=0
+for SUITE in "${SUITES[@]}"; do
+    STATUS=0
+    "${PYTHON_EXE}" -B "${SOURCE_ROOT}/tests/regression/regression.py" suite \
+        --suite "${SUITE}" \
+        "${BUILDS[@]}" \
+        --run-root="${RUN_ROOT}/results" \
+        > "${RUN_ROOT}/suite-${SUITE}.log" 2>&1 || STATUS=$?
+
+    echo "${SUITE} ${STATUS}" | tee -a "${RUN_ROOT}/suite-status.txt"
+    if (( STATUS != 0 )); then
+        FINAL_STATUS=1
+    fi
+done
+
+#--------------------------------------------------------------------------------
+# Run legacy cases after saving all generated results
+#--------------------------------------------------------------------------------
+# Reconfigure only after generated suites finish. This changes registrations,
+# not model compile options. The original legacy criteria can still fail.
+if [[ "${RUN_LEGACY}" == true ]]; then
+    STATUS=0
+    "${SOURCE_ROOT}/compile_legacy.sh" --esmx --test \
+        --build-jobs="${BUILD_JOBS}" \
+        --build-dir="${RUN_ROOT}/build/mpi" \
+        --prefix="${RUN_ROOT}/install/mpi" \
+        > "${RUN_ROOT}/legacy.log" 2>&1 || STATUS=$?
+
+    echo "legacy ${STATUS}" | tee -a "${RUN_ROOT}/suite-status.txt"
+    if (( STATUS != 0 )); then
+        FINAL_STATUS=1
+    fi
+fi
+
+echo "Results: ${RUN_ROOT}/results"
+echo "Legacy outputs: ${RUN_ROOT}/build/mpi/legacy-runs"
+exit "${FINAL_STATUS}"
