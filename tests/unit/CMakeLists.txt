@@ -16,7 +16,7 @@ endfunction()
 
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
                       namelist_validation_unit time_interval_unit
-                      coordinate_precision_unit projection_precision_unit fuel_precision_unit)
+                      coordinate_precision_unit projection_precision_unit fuel_precision_unit wind_order_unit wind_state_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -103,3 +103,11 @@ add_cfbm_unit_test(NAME projection_precision_unit COMMAND projection_precision_u
 
 add_cfbm_unit_test(NAME fuel_precision_unit COMMAND fuel_precision_unit
   LABELS fuel EXPECT "fuel precision checks passed")
+
+add_cfbm_unit_test(NAME wind_order_unit COMMAND wind_order_unit
+  LABELS wind interpolation EXPECT "horizontal-first wind checks passed")
+
+add_cfbm_unit_test(NAME wind_state_10m_unit COMMAND wind_state_unit u10m
+  LABELS wind interpolation EXPECT "state wind checks passed")
+add_cfbm_unit_test(NAME wind_state_invalid_unit COMMAND wind_state_unit invalid
+  LABELS wind interpolation EXPECT "STOP:Error: wrong wind_vinterp_opt")

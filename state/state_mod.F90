@@ -11,6 +11,7 @@
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
+    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
     use namelist_mod, only : namelist_t
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y, &
         NF90_FILL_FLOAT
@@ -875,19 +876,35 @@
       if (.not. allocated (this%lats) .or. .not. allocated (this%lons)) &
           call Stop_simulation ('Init lats/lons before calling hinterp atm variables')
 
+      ! The vertical wind profile uses roughness interpolated to the fire grid.
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'ua', config_flags%hinterp_opt, this%uf)
+          'z0', config_flags%hinterp_opt, this%fz0)
 
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'va', config_flags%hinterp_opt, this%vf)
+      select case (config_flags%wind_vinterp_opt)
+        case (VINTERP_WINDS_FROM_3D_WINDS)
+          call wrf%Interp_winds2grid (this%lats, this%lons, this%fz0, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%ifps, this%ifpe, this%jfps, this%jfpe, this%num_tiles, &
+              this%i_start, this%i_end, this%j_start, this%j_end, config_flags, this%uf, this%vf)
 
-      if (config_flags%wind_vinterp_opt == 1) then
-        call this%Apply_wafs ()
-        call wrf%Destroy_u10 ()
-        call wrf%Destroy_v10 ()
-      end if
+        case (VINTERP_WINDS_FROM_10M_WINDS)
+          ! Map the loaded 10 m winds directly, then apply fuel wind adjustment.
+          call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+              'u10', config_flags%hinterp_opt, this%uf)
+
+          call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+              'v10', config_flags%hinterp_opt, this%vf)
+
+          call this%Apply_wafs ()
+          call wrf%Destroy_u10 ()
+          call wrf%Destroy_v10 ()
+
+        case default
+          call Stop_simulation ('Error: wrong wind_vinterp_opt')
+
+      end select
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
@@ -904,10 +921,6 @@
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'rain', config_flags%hinterp_opt, this%fire_rain)
-
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'z0', config_flags%hinterp_opt, this%fz0)
 
       call wrf%Destroy_z0 ()
 
