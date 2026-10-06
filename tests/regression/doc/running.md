@@ -195,6 +195,26 @@ apply. See [run_suite.py](../run_suite.py).
 
 ## Shared Python on Casper and Derecho
 
+The harness requires Python 3.11 or newer, matching the pinned NumPy requirement.
+CMake rejects older interpreters before building or running tests.
+
+On Derecho, `--env-auto` selects the shared `npl-2026a` Python explicitly,
+while retaining the profile's GNU compiler and Cray MPI modules. It does not
+activate NPL or add its MPI wrappers to `PATH`. In a compute allocation:
+
+```bash
+./compile.sh -t -x --clean --env-auto
+```
+
+`--clean` removes the selected build directory and configures it again. The
+Python selection is supplied on every configure, so it survives `--clean`
+and replaces an older interpreter cached by a previous run. Omit `--clean`
+to keep existing build artifacts.
+
+To choose another compatible interpreter, export `CFBM_PYTHON` before running
+`compile.sh` or `compile_legacy.sh`. This overrides the Derecho default and
+is also honored without `--env-auto`.
+
 Both systems provide the centrally maintained `npl-2026a` environment:
 
 ```bash
@@ -214,10 +234,9 @@ MPI installation. With the model's compiler/MPI/NetCDF/ESMF modules loaded:
 ```bash
 module load conda
 conda activate npl-2026a
-CFBM_PYTHON=$(command -v python)
+export CFBM_PYTHON=$(command -v python)
 conda deactivate
 
-cmake -S . -B "$TEST/build/mpi" -DPython3_EXECUTABLE="$CFBM_PYTHON"
 ./compile.sh --nuopc --build-dir="$TEST/build/mpi" \
     --prefix="$TEST/install/mpi"
 "$CFBM_PYTHON" -B tests/regression/regression.py suite --suite quick \

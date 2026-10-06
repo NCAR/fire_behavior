@@ -1,5 +1,6 @@
 # Scientific case settings stay in YAML; CMake owns executable selection.
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
+# The pinned NumPy version requires Python 3.11 or newer.
+find_package(Python3 3.11 REQUIRED COMPONENTS Interpreter)
 execute_process(COMMAND "${Python3_EXECUTABLE}" -c "import numpy, netCDF4, yaml"
   RESULT_VARIABLE _imports ERROR_VARIABLE _error)
 if(NOT _imports EQUAL 0)

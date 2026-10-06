@@ -8,7 +8,7 @@ use the same interface.
 ## Start here
 
 Run these commands from the repository root, in a compute allocation on NCAR
-systems. Select a Python interpreter with NumPy, netCDF4, and PyYAML. The
+systems. Select Python 3.11 or newer with NumPy, netCDF4, and PyYAML. The
 [run guide](doc/running.md) explains the shared NCAR environment and MPI setup.
 
 ```bash

@@ -198,6 +198,9 @@ fi
 
 # generate
 CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated")
+if [ -n "${CFBM_PYTHON:-}" ]; then
+  CMAKE_SETTINGS+=("-DPython3_EXECUTABLE:FILEPATH=${CFBM_PYTHON}")
+fi
 if [ ! -z "${BUILD_TYPE}" ]; then
   CMAKE_SETTINGS+=("-DCMAKE_BUILD_TYPE=${BUILD_TYPE}")
 fi
@@ -225,7 +228,7 @@ if [ "${OPENMP}" = true ]; then
 else
   CMAKE_SETTINGS+=("-DOPENMP=OFF")
 fi
-cmake -S${FIRE_DIR} -B${BUILD_DIR} ${CMAKE_SETTINGS[@]}
+cmake -S "${FIRE_DIR}" -B "${BUILD_DIR}" "${CMAKE_SETTINGS[@]}"
 if [ "$?" !=  "0" ]; then
   echo "$0 Failed: (cmake)"
   exit -1
