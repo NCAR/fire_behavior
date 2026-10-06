@@ -48,6 +48,11 @@ the atmospheric grid first. The logarithmic surface calculation is nonlinear,
 so reversing these operations can change the result. Matching the order does
 not make the two horizontal interpolation implementations bitwise identical.
 
+Both wind paths retain their final values in the fire-state `uf`/`vf` arrays.
+The 10 m path maps `u10`/`v10` directly before applying WAF; it no longer
+copies them into atmospheric `ua`/`va` arrays. Named interpolation constants
+select the two supported paths, and unsupported values are rejected.
+
 Neither configuration equates 3D winds with fuel-adjusted 10 m winds. Their
 fire outputs are not expected to match each other. Cross-execution and
 cross-driver tolerances are unchanged. Earlier 20 m outputs do not validate

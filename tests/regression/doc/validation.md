@@ -5,6 +5,42 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Explicit wind modes and atmospheric-array cleanup
+
+The follow-up to Pedro's #57 review replaces the numeric wind-option branch
+with named constants and an explicit invalid-option diagnostic. It also removes
+the atmospheric `ua`/`va` duplicates: the 10 m path maps `u10`/`v10` directly,
+then applies WAF. Both wind paths retain their final values in `uf`/`vf`.
+
+Derecho PBS `7723710.desched1` tests combined revision `f3e78f8`, containing
+#57 code `028fc8b`, through the normal submission template. All four builds,
+including NUOPC/ESMX, pass. All 150 unit CTest invocations pass (37 serial,
+37 OpenMP, 38 MPI, 38 hybrid), including 40 Python checks per build and the new
+10 m state-mapping and invalid-option tests. All 32 generated runs and all
+32 comparisons pass. The 24 within-driver comparisons remain bitwise equal;
+maximum cross-driver relative error remains 0.0079873469%.
+
+A separate before-and-after audit against `4e71058` compares all 19 variables
+in all 64 generated output files. Every stored field is bitwise identical,
+including masks; schema and metadata match, and generated inputs and namelists
+are byte-identical. This establishes unchanged output for the tested cases.
+No interpolation formula, scientific setting, or tolerance changed.
+
+All seven legacy runs complete and retain their 35 original comparison failures.
+Their 77 NetCDF outputs are bitwise identical to the preceding validation, with
+matching schema and metadata. All 100 checked diagnostic values/timestamps per
+case also match. `before-after-legacy.json` records this separate audit. The
+job correctly exits 1 after 8 min 24 s, with generated PR status 0 and legacy
+status 8. Passing the generated suite does not imply a legacy reference pass.
+
+Evidence is under `cfbm_f3e78f8_20261005/`: `results/pr-pm3srp1g/summary.json`,
+`before-after-generated.json`, `validation-audit.json`, `suite-pr.log`, and
+`pr57-source-equivalence.json`. The last file confirms that the modified model
+files and new unit test match the prerequisite PR source exactly. The compiler,
+MPI, library, and Python environment is the same as the run below. Subsequent
+commits add documentation only. No new intermediate-time or longer integration
+is implied; the previously recorded limitations remain.
+
 ## Wind interpolation order
 
 PR #57 (`1bb49f9`) changes the standalone 3D pathway to remap wind and
