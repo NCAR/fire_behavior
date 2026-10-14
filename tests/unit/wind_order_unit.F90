@@ -1,5 +1,9 @@
 program wind_order_unit
 
+  ! Verify that atmospheric profiles are mapped horizontally before vertical
+  ! wind sampling. Also check that every row of the fire patch is accessible
+  ! and that temporary atmospheric profiles are released after interpolation.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use wrfdata_mod, only : wrfdata_t, G
   use namelist_mod, only : namelist_t

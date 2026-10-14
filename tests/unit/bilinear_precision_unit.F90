@@ -1,5 +1,9 @@
 program bilinear_precision_unit
 
+  ! Check that horizontal interpolation preserves atmospheric forcing values.
+  ! Uniform fields test preservation of constants; a planar field tests the
+  ! mapped value when the forcing varies in both horizontal directions.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use proj_lc_mod, only : proj_lc_t
   use interp_mod, only : Interp_horizontal_bilinear
@@ -14,9 +18,10 @@ program bilinear_precision_unit
 
   projection = proj_lc_t(40.0, -105.0, 100.0, 100.0, -105.0, 30.0, 60.0, 75, 75)
 
-  ! Spatially uniform atmospheric fields must remain uniform after mapping.
-  ! Off-centre locations exercise fractional weights for temperature, humidity,
-  ! pressure and terrain magnitudes without relying on a particular rounding error.
+  ! Test 1: a uniform input must give exactly the same value at every output
+  ! location. Fractional weights previously introduced small artificial changes
+  ! in otherwise uniform temperature, humidity and pressure fields, which can
+  ! affect fuel moisture and spread. Terrain magnitudes are also checked.
   do j = 1, 5
     do i = 1, 7
       lat(i,j) = 40.0 + real(i - 4) / 512.0
@@ -30,10 +35,11 @@ program bilinear_precision_unit
     if (any(mapped /= value)) error stop 'bilinear mapping changed a constant field'
   end do
 
-  ! A planar field has an analytical value at any fractional grid location.
-  ! These independent Lambert indices also appear in projection_precision_unit.
-  ! Round the indices to the existing projection interface before evaluating
-  ! the plane, then allow only the final rounding into the output field.
+  ! Test 2: a field with constant slopes in x and y must map to the analytical
+  ! value of that plane. This checks nonuniform interpolation and detects extra
+  ! rounding in its weighted sum. The independent Lambert indices also appear
+  ! in projection_precision_unit. Round those indices to the existing interface,
+  ! then allow only the final rounding into the output field.
   do j = 1, 75
     do i = 1, 75
       field(i,j) = 16000.0 + 4.0 * (i - 1) + 8.0 * (j - 1)

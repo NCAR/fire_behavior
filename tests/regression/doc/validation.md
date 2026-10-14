@@ -5,6 +5,47 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Bilinear precision and wind output bounds (2026-10-14)
+
+Revision `f9e178e` evaluates standalone bilinear weights and summation in
+double precision, retaining the existing field storage and projection interface.
+It also corrects the second output-array upper bound in `Calc_fire_wind` from
+`joms` to `jome`. The PR suite retains `fire_upwinding=9`, the 60 s endpoint,
+and all existing comparison tolerances.
+
+Derecho PBS `7821494.desched1` passes all four Release builds, 154 unit CTests
+(including 40 Python checks per build), 32 integrations, and 32 comparisons.
+All 24 within-driver comparisons are bitwise equal. Maximum cross-driver
+relative error is 0.00186100875%, in `lfn`, below the unchanged 0.01% limit.
+The environment is Intel 2025.2.1, Cray MPICH 8.1.32, ESMF 8.9.1, and shared
+`npl-2026a` Python. Later changes add comments and documentation only.
+
+The new bilinear unit test checks preservation of constant fields and the
+analytical value of a planar field. The existing wind-order test now compiles
+the production wind routine with bounds checking, including Release builds.
+Both tests pass in all four builds. An isolated negative control restores the
+two original model files while retaining the tests: the constant-field check
+fails, and the wind test reports an attempt to write row 2 of an output array
+declared with upper bound 1. Thus the checks detect the intended defects.
+
+Controlled 60 s runs do not justify changing the propagation method to 2:
+original arithmetic with method 2 fails at 0.0140402%, while double-precision
+bilinear arithmetic passes with both method 9 (0.00186101%) and method 2
+(0.00147927%). Inputs and reinitialization are held fixed in this comparison.
+
+The earlier isolated bilinear experiment passed the complete GitHub suite in
+[run 38604392305](https://github.com/NCAR/fire_behavior/actions/runs/38604392305),
+with maximum cross-driver error 0.000636871%. Its every-4-second diagnostic
+also passed through 60 s; the 600 s diagnostic still exceeded tolerance.
+These diagnostics are not additional PR acceptance gates. The combined final
+revision still needs its GitHub run and a reviewed, approved baseline; no
+reference is activated by this validation.
+
+Evidence: `cfbm_f9e178e_20261014/results/pr-f1usqnud/summary.json`,
+`cfbm_f9e178e_20261014/validation-audit.json`, and
+`cfbm-pr49-fix-20261014/negative-tests.log` under the validation submitter's
+Derecho scratch `tmp/`. Legacy integrations are not repeated.
+
 ## PR-suite baseline preparation and GitHub numerical failure (2026-10-14)
 
 CI now uses the complete `pr` suite across four Release builds, with legacy

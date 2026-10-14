@@ -2,14 +2,15 @@
 
 [Documentation index](../README.md)
 
-These items are outside the current generated matrix. A passing 60 s suite does
-not establish their behavior. Keep the relevant legacy tests and failure
-artifacts until replacement coverage is validated.
+These items are outside the current generated matrix. PR acceptance uses the
+60 s endpoint; intermediate-time and longer-run agreement are not additional
+gates. Keep the relevant legacy tests and diagnostic artifacts as evidence of
+coverage limits.
 
 | Item | What remains to be established |
 | --- | --- |
-| Intermediate-time 3D standalone/coupled agreement | PR #57 resolves the configured 60 s failures. An every-4-second diagnostic still fails at 20 s in one `lfn` cell: 0.0113357% versus 0.01%. Investigate geopotential-to-AGL precision and compare numerical methods under controlled conditions; retain the present tolerances. See [validation history](validation.md#wind-interpolation-order). |
-| Longer standalone/coupled agreement | A previous 600 s terrain experiment exceeded the unchanged tolerance from 180 s. Its 3D target was 20 m. Reassess longer runs at 6.096 m after the short matrix; see [validation history](validation.md). |
+| Intermediate-time 3D standalone/coupled agreement | Earlier diagnostics exceeded tolerance between saved PR endpoints. The bilinear-precision experiment passed an every-4-second GitHub comparison through 60 s. These are diagnostic results, not an extension of the PR acceptance schedule. See [validation history](validation.md). |
+| Longer standalone/coupled agreement | The 600 s terrain diagnostics still exceed the short-run comparison tolerance, including at 6.096 m with double-precision bilinear arithmetic. A longer-duration acceptance policy would need separate scientific review; it is not required for this PR. See [validation history](validation.md). |
 | Humidity interpretation | Scientific review associated with PR #46 is independent of reproducibility; current moisture remains enabled. |
 | Restart | Restart continuity, restart inputs, and segmented-run comparisons. |
 | PR #39 changes and method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
