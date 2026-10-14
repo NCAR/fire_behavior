@@ -5,6 +5,40 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Strict GNU flags and baseline provenance (2026-10-14)
+
+Revision `6cefd15` adds the GNU-only `Strict` build type with `-fno-fast-math -ffp-contract=off -fprotect-parens
+-frounding-math` to GNU Fortran compilation, including the separate ESMX driver.
+Strict uses `-O2`. Release, Debug, and RelWithDebInfo retain their prior flags.
+Intel rejects Strict with a clear configure error. Intel flags,
+model equations, cases, inputs, output times and tolerances are unchanged.
+
+GitHub [normal run 38644053759](https://github.com/NCAR/fire_behavior/actions/runs/38644053759)
+passes formatting, four builds, 154 unit CTests, 32 integrations, 32 internal
+comparisons and all 32 approved-reference comparisons. Every compared field
+matches the previous baseline bitwise. Strict-flags
+[generation run 38644049156](https://github.com/NCAR/fire_behavior/actions/runs/38644049156)
+also passes and produces all 64 NetCDF outputs and 32 settings files byte-identical
+to the approved reference. All 96 checksums were verified. At Maria Frediani's
+request, the baseline source/environment records now describe this generation;
+the numerical payload and its prior approval are retained.
+
+Derecho PBS `7823418.desched1` validates the exact `6cefd15` revision with
+native GNU 12.2, Cray MPICH 8.1.27, NetCDF 4.9.2 and ESMF 8.5.0. All four
+Strict builds, 154 unit CTests, 32 runs, 32 internal comparisons and 32
+GitHub-reference comparisons pass. All 1,216 compared fields are bitwise
+identical to GitHub; NetCDF file bytes differ, including internal library
+version metadata. All 84 generated inputs and namelists match GitHub exactly.
+Evidence is under `cfbm-pr49-strict-type-20261014/` in the validation submitter's
+Derecho scratch `tmp/`, including `gnu_final/comparison-github.json`.
+
+The preceding controlled GNU experiment passed within tolerance with existing
+flags, but Strict removed the remaining field differences. The tested strict
+Intel flags did not change Intel outputs and still failed the GitHub reference;
+Intel's existing flags therefore remain unchanged.
+This evidence covers the 60 s PR suite and does not establish longer-run or
+arbitrary cross-compiler agreement.
+
 ## GitHub baseline approval (2026-10-14)
 
 Maria Frediani approved the candidate from
