@@ -15,7 +15,7 @@ coverage limits.
 | Restart | Restart continuity, restart inputs, and segmented-run comparisons. |
 | PR #39 changes and method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
 | ESMX_Data feedback | The generated coupled cases use WRF-data forcing. Legacy `testx` still exercises a distinct feedback fixture. |
-| Coupled OpenMP/hybrid | The four-build validation covers standalone OpenMP/hybrid and MPI NUOPC/ESMX. It does not establish coupled OpenMP/hybrid behavior. |
+| Coupled OpenMP-only | MPI and hybrid NUOPC/ESMX are included in the PR matrix. Coupled runs using an OpenMP-only build remain outside this selection. |
 | Atmospheric hosts | WRF/UFS host integrations, including UFS mass-centred winds and any future staggered interpolation option. |
 | SB40 fuels | Native model support, documented option value, input generation, and physical output checks. A crosswalk table alone is insufficient. |
 | Diagnostic output levels | The default inventory has 19 fields; higher-level diagnostics need explicit inventory and behavior checks. |

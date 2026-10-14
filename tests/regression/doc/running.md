@@ -15,7 +15,7 @@ For example, inside a Derecho compute allocation:
 
 ```bash
 ./compile.sh --env-auto --build-type=Strict --esmx --test-suite=pr \
-    --reference=tests/regression/baselines/github-pr
+    --reference=tests/regression/baselines/github-pr-hybrid
 ```
 
 This command tests the MPI build, including NUOPC and ESMX. The full matrix
@@ -24,6 +24,24 @@ also requires separate serial, OpenMP, and hybrid builds. Use the same
 Release environment; `Strict` requires GNU Fortran and does not change modules
 automatically. Agreement with the GitHub baseline was demonstrated for the
 tested GNU environments, not for every compiler or library combination.
+
+### Coupled hybrid runs
+
+For standalone, NUOPC, and ESMX with four MPI ranks and four OpenMP threads
+per rank, use at least 16 allocated CPUs and a separate build directory:
+
+```bash
+./compile.sh --env-auto --build-type=strict --openmp-on --esmx \
+    --test-suite=pr \
+    --build-dir="$PWD/build/hybrid-strict" \
+    --prefix="$PWD/install/hybrid-strict" \
+    --reference=tests/regression/baselines/github-pr-hybrid
+```
+
+This selects eight model runs: four standalone cases and four coupled terrain
+cases. The complete four-build PR matrix has 36 runs and 40 cross-execution
+comparisons. The expanded reference includes the four coupled hybrid names;
+the older `github-pr` reference covers only the previous 32-run selection.
 
 ## Run a suite
 

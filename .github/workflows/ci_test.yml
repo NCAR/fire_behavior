@@ -19,7 +19,7 @@ on:
 env:
   # Normal PR checks require this committed reference. Candidate generation is
   # manual and never approves or activates the generated files.
-  CFBM_CI_REFERENCE: tests/regression/baselines/github-pr
+  CFBM_CI_REFERENCE: tests/regression/baselines/github-pr-hybrid
   openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
   hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
   netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
@@ -166,9 +166,9 @@ jobs:
           case "$variant" in
             serial) OPTIONS+=(--mpi-off) ;;
             omp) OPTIONS+=(--mpi-off --openmp-on) ;;
-            hybrid) OPTIONS+=(--openmp-on) ;;
+            mpi) OPTIONS+=(--esmx) ;;
+            hybrid) OPTIONS+=(--openmp-on --esmx) ;;
           esac
-          if [[ "$variant" == mpi ]]; then OPTIONS+=(--esmx); fi
           if [[ "$CREATE_REFERENCE" != true ]]; then
             OPTIONS+=(--reference="$GITHUB_WORKSPACE/$CFBM_CI_REFERENCE")
           fi

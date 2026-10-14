@@ -42,11 +42,11 @@ history](validation.md).
 ## GitHub review and activation
 
 CI uses the fixed `pr` suite with all four GNU Strict builds: serial, OpenMP,
-MPI including NUOPC/ESMX, and hybrid. Its 32 generated runs produce 32
+MPI and hybrid, both including NUOPC/ESMX. Its 36 generated runs produce 40
 cross-execution comparisons. Unit checks run in each build. PRs targeting
 prerequisite branches are included, so a merge into `develop` is not needed.
 
-Normal checks use the [approved GitHub reference](../baselines/github-pr/README.md)
+Normal checks use the [approved GitHub reference](../baselines/github-pr-hybrid/README.md)
 committed for the complete PR suite. A missing or unapproved reference fails
 the check. To generate a future candidate, select **Run workflow** for
 **Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.

@@ -51,7 +51,8 @@ only the serial build. For all four builds, including NUOPC and ESMX, use the
 The three cases are `circle`, `fuels`, and `terrain`. Terrain has `u10m` and
 `u3d` configurations, with both wind representations in its generated inputs.
 The `small` scale integrates for 60 s on a 72 × 72 fire grid at 100 m spacing
-with a 4 s timestep. Terrain also runs through NUOPC and ESMX. See the
+with a 4 s timestep. Terrain also runs through NUOPC and ESMX with MPI and
+hybrid MPI/OpenMP. The complete PR matrix has 36 runs and 40 comparisons. See the
 [YAML configuration guide](doc/configuration.md) for exact namelist options,
 configuration names, and the `large` scale.
 The [comparison table](doc/comparison.md) separates bitwise checks from numerical

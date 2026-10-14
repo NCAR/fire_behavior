@@ -89,7 +89,7 @@ export OMP_NUM_THREADS=1 OMP_DYNAMIC=FALSE OPENBLAS_NUM_THREADS=1
 export CTEST_PARALLEL_LEVEL=1
 
 #--------------------------------------------------------------------------------
-# Build standalone serial, OpenMP, MPI with coupling, and hybrid configurations
+# Build serial, OpenMP, and MPI/hybrid configurations with coupling
 #--------------------------------------------------------------------------------
 BUILDS=()
 for VARIANT in serial omp mpi hybrid; do
@@ -109,8 +109,8 @@ for VARIANT in serial omp mpi hybrid; do
             SETTINGS=(-DDM_PARALLEL=ON -DOPENMP=OFF -DNUOPC=ON -DESMX=ON)
             ;;
         hybrid)
-            OPTIONS=(--openmp-on)
-            SETTINGS=(-DDM_PARALLEL=ON -DOPENMP=ON)
+            OPTIONS=(--openmp-on --esmx)
+            SETTINGS=(-DDM_PARALLEL=ON -DOPENMP=ON -DNUOPC=ON -DESMX=ON)
             ;;
     esac
 

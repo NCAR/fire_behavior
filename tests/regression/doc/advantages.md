@@ -19,7 +19,7 @@ original references remain available for historical diagnosis.
 | Wind checks | Wind diagnostics were printed but were not among the five comparisons | Both 10 m and 3D terrain configurations, component bounds/direction, spatial variation, and field comparisons |
 | Forcing | Archived WRF/geogrid fixtures | Deterministic generated terrain, fuels, roughness, time-varying temperature/humidity, and terrain-dependent winds |
 | Domain coverage | Saved legacy coupled fields include small-wind boundary regions | Atmospheric domain extends beyond the fire grid, and final real-case fields must contain no missing cells |
-| Parallel coverage | CI compiled MPI on and OpenMP off. Legacy model executables ran directly as one process. A separate MPI unit test used multiple ranks | Four explicit builds, with one/four-thread and one/four-rank checks and a four-rank × four-thread standalone hybrid check |
+| Parallel coverage | CI compiled MPI on and OpenMP off. Legacy model executables ran directly as one process. A separate MPI unit test used multiple ranks | Four explicit builds, with one/four-thread and one/four-rank checks and four-rank × four-thread hybrid checks for standalone, NUOPC, and ESMX |
 | Coupling coverage | NUOPC/ESMX fixtures and ESMX_Data `testx` | Both terrain wind representations through NUOPC and ESMX, with one/four MPI ranks and comparison to standalone |
 | Completion | Text comparisons | Exit status, fatal diagnostics, required coupled completion marker, exact file/field inventory, and physical evolution checks |
 | Isolation | Historical scripts used shared working paths and cleanup commands | New directories for each attempt, preserved inputs/outputs/logs, safe reruns |
