@@ -5,6 +5,23 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## GitHub baseline approval (2026-10-14)
+
+Maria Frediani approved the candidate from
+[run 38612379390](https://github.com/NCAR/fire_behavior/actions/runs/38612379390)
+for PR49. That run tests clean `cac21ad` and passes formatting, four builds,
+154 unit CTests, 32 integrations, and all 32 cross-execution comparisons.
+All 24 within-driver comparisons are bitwise equal; maximum cross-driver
+relative error is 0.000636870574%, in `vf`, below the unchanged 0.01% limit.
+
+The approved files are committed under
+[baselines/github-pr/](../baselines/github-pr/README.md). All 96 checksums were
+verified after download and again during installation. The 64 NetCDF outputs,
+32 settings files, and environment record are unchanged. The manifest records
+approval and retains the generating source revision. This activates the stored
+reference for normal GitHub checks; the final PR check must pass against it
+before merging. No HPC reference is approved by this decision.
+
 ## Bilinear precision and wind output bounds (2026-10-14)
 
 Revision `f9e178e` evaluates standalone bilinear weights and summation in

@@ -1,8 +1,9 @@
 # Approved regression baselines
 
-The GitHub workflow expects its reviewed PR-suite reference in `github-pr/`.
-That directory is intentionally absent until the team approves a candidate.
-Normal PR checks fail when the reference is missing; they never generate it.
+The GitHub workflow uses the approved PR-suite reference in [github-pr/](github-pr/README.md).
+Maria Frediani approved the candidate from GitHub run `38612379390` on
+2026-10-14. Normal PR checks compare against this committed reference; they
+never generate or refresh it.
 
 Use the manual workflow's `create_reference` input to build all four Release
 configurations and generate an unapproved candidate after the PR suite passes.

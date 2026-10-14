@@ -46,9 +46,9 @@ MPI including NUOPC/ESMX, and hybrid. Its 32 generated runs produce 32
 cross-execution comparisons. Unit checks run in each build. PRs targeting
 prerequisite branches are included, so a merge into `develop` is not needed.
 
-Normal checks require the explicitly selected committed reference. Until the
-first candidate is approved, the missing reference deliberately prevents a green
-normal PR check. To generate the candidate, select **Run workflow** for
+Normal checks use the [approved GitHub reference](../baselines/github-pr/README.md)
+committed for the complete PR suite. A missing or unapproved reference fails
+the check. To generate a future candidate, select **Run workflow** for
 **Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.
 That run checks the same complete PR selection without a reference, then
 uploads an unapproved baseline only if all checks and comparisons pass.
