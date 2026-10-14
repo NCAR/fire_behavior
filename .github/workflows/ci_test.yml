@@ -202,19 +202,27 @@ jobs:
           python -m pip freeze
           cat "$STACK_DIR/lib/esmf.mk"
         } > "$GITHUB_WORKSPACE/build/candidate/environment.txt"
+        # NetCDF timestamps contain colons, which artifact upload rejects.
+        tar -czf "$RUNNER_TEMP/baseline-candidate.tar.gz" -C build/candidate .
     - name: Upload the candidate for team review
       if: ${{ inputs.create_reference }}
       uses: actions/upload-artifact@v4
       with:
         name: baseline-candidate-${{ github.sha }}
-        path: build/candidate/
+        path: ${{ runner.temp }}/baseline-candidate.tar.gz
         if-no-files-found: error
+    - name: Package test evidence with original NetCDF filenames
+      if: ${{ !cancelled() }}
+      run: |
+        shopt -s nullglob
+        files=(build/*/tests/Testing/Temporary/LastTest.log build/*/CMakeCache.txt)
+        if [[ -d build/results ]]; then files+=(build/results); fi
+        if (( ${#files[@]} )); then
+          tar -czf "$RUNNER_TEMP/test-evidence.tar.gz" "${files[@]}"
+        fi
     - name: Archive test evidence
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: fire-behavior-test-${{matrix.os}}
-        path: |
-          build/results/
-          build/*/tests/Testing/Temporary/LastTest.log
-          build/*/CMakeCache.txt
+        path: ${{ runner.temp }}/test-evidence.tar.gz
