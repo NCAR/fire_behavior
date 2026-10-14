@@ -4,3 +4,5 @@
 *.exe
 /build/
 /install/
+/cfbm-regression.o*
+/cfbm-regression.e*

@@ -53,7 +53,9 @@ normal PR check. To generate the candidate, select **Run workflow** for
 That run checks the same complete PR selection without a reference, then
 uploads an unapproved baseline only if all checks and comparisons pass.
 
-Download both the candidate and test-evidence artifacts. Review the source and
+Download and extract both `.tar.gz` artifacts (candidate and test evidence).
+Archiving preserves the colons in NetCDF timestamp filenames, which GitHub's
+artifact uploader rejects as individual files. Review the source and
 environment, all case mappings, NetCDF fields, scientific behavior, and comparison
 reports. Check the corresponding HPC results before deciding whether a separate
 HPC reference is necessary. A GitHub reference is not automatically portable

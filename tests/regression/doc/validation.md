@@ -5,6 +5,56 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## PR-suite baseline preparation and GitHub numerical failure (2026-10-14)
+
+CI now uses the complete `pr` suite across four Release builds, with legacy
+comparisons removed from the workflow. Normal checks require a committed,
+approved reference; manual candidate generation first requires the same suite
+to pass without a reference. No GitHub reference has been generated or approved.
+
+[GitHub run 38600413234](https://github.com/NCAR/fire_behavior/actions/runs/38600413234)
+tests `3a629a1` with GNU 11.4.0. All four builds, 150 unit CTests (including
+40 Python checks per build), and 32 model integrations pass. Of 32
+cross-execution comparisons, 28 pass; all 24 within-driver comparisons are
+bitwise identical. The four failures compare standalone terrain/u3d with
+NUOPC/ESMX at one/four ranks, at 60 s. Each has one violating cell, zero-based
+`(y,x)=(37,43)`, in `fuel_frac_burnt_dt`, `fire_area`, `fgrnhfx`, `fgrnqfx`, and
+`emis_smoke`. Maximum relative error is 0.0147656%, above the unchanged 0.01%
+limit. Winds, roughness, and level set pass their cross-driver rules.
+
+Candidate creation is correctly skipped. The evidence artifact uploads
+successfully as a tar archive, preserving colons in NetCDF timestamp filenames.
+The preceding attempt, run 38599877713 at `ecace6a`, also failed comparison and
+could not upload individual NetCDF files because of those colons.
+
+Derecho PBS `7820957.desched1` tests `ecace6a` with build/install trees inside
+the checkout, Intel 2025.2.1, Cray MPICH 8.1.32, and ESMF 8.9.1. All four builds,
+150 unit CTests, 32 integrations, and 32 comparisons pass; all 24 within-driver
+comparisons are bitwise equal. Maximum relative error remains 0.0079873469%.
+The job exits 0 after 7 min 20 s and creates an **unapproved** HPC candidate
+with 32 mappings and 96 checksums. No legacy integrations run. Initial job
+7820928 stopped before building because its PBS output made the checkout dirty;
+the rerun writes that log outside the checkout. PBS log ignore rules now also
+support the template's documented default submission command.
+
+At the GitHub failing cell, the fuel-consumption relative difference is
+0.00109793% in this Intel environment, versus 0.00754148% in the saved Derecho
+GNU 12.2 run and 0.01476276% on GitHub. Model source and scientific configuration
+are unchanged. These observations establish environment sensitivity without
+isolating the compiler, MPI, or library contribution.
+
+A direct comparison of corresponding GitHub and fresh Derecho runs fails the
+historical-reference rules for all 32 executions, including bitwise latitude
+differences. Separate environment references are therefore needed under the
+current policy. They would not fix the within-GitHub standalone/coupled failure.
+
+Evidence: `cfbm-pr49-baseline-20261014/` and `cfbm_ecace6a_20261014/` under the
+validation submitter's Derecho scratch `tmp/`. The GitHub summary is in
+`github-evidence/build/results/pr-z93djlka/summary.json`; the Derecho summary is
+`results/pr-meadu9l8/summary.json`. Numerical diagnosis must precede GitHub
+candidate creation, approval, and the final green reference check. No model,
+scientific settings, tolerance, or approved reference was changed.
+
 ## Derecho automatic Python selection
 
 Pedro's reported six MPI case failures and Python-test failure occurred before
