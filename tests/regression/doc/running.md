@@ -2,6 +2,29 @@
 
 [Documentation index](../README.md)
 
+## GNU Strict builds
+
+Use `--build-type=Strict` (or `--build-type=strict`) for the GNU configuration
+used by GitHub regression checks. Direct CMake builds use
+`-DCMAKE_BUILD_TYPE=Strict`. This selects `-O2` with
+`-fno-fast-math -ffp-contract=off -fprotect-parens -frounding-math` for Fortran,
+including the external ESMX driver. Release remains the default; Release,
+Debug, and RelWithDebInfo retain their existing flags.
+
+For example, inside a Derecho compute allocation:
+
+```bash
+./compile.sh --env-auto --build-type=Strict --esmx --test-suite=pr \
+    --reference=tests/regression/baselines/github-pr
+```
+
+This command tests the MPI build, including NUOPC and ESMX. The full matrix
+also requires separate serial, OpenMP, and hybrid builds. Use the same
+`--build-type=Strict` for each. The supplied PBS template retains its Intel
+Release environment; `Strict` requires GNU Fortran and does not change modules
+automatically. Agreement with the GitHub baseline was demonstrated for the
+tested GNU environments, not for every compiler or library combination.
+
 ## Run a suite
 
 All commands below start at the repository root. Define the scratch root once:

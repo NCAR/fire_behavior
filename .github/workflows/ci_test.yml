@@ -172,7 +172,7 @@ jobs:
           if [[ "$CREATE_REFERENCE" != true ]]; then
             OPTIONS+=(--reference="$GITHUB_WORKSPACE/$CFBM_CI_REFERENCE")
           fi
-          ./compile.sh --build-type=Release "${OPTIONS[@]}" \
+          ./compile.sh --build-type=Strict "${OPTIONS[@]}" \
             --build-dir="$GITHUB_WORKSPACE/build/$variant" \
             --prefix="$GITHUB_WORKSPACE/install/$variant"
         done

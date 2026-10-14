@@ -34,10 +34,13 @@ if (ESMX)
   # interpreter as the harness, including when Conda is no longer active.
   find_package(Python3 REQUIRED COMPONENTS Interpreter)
   include(ExternalProject)
-  # The external GNU driver must use the model's floating-point settings.
+  # ESMX uses the same Strict configuration. Clear global flags left by the
+  # earlier all-build-types setting so switching back to Release is safe.
   set(_esmx_fortran_flags)
   if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-    list(APPEND _esmx_fortran_flags "-DCMAKE_Fortran_FLAGS:STRING=${CMAKE_Fortran_FLAGS}")
+    list(APPEND _esmx_fortran_flags
+         "-DCMAKE_Fortran_FLAGS:STRING="
+         "-DCMAKE_Fortran_FLAGS_STRICT:STRING=${CMAKE_Fortran_FLAGS_STRICT}")
   endif()
   ExternalProject_Add(esmx
     BINARY_DIR ${CMAKE_BINARY_DIR}/esmx

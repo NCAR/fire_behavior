@@ -41,7 +41,7 @@ history](validation.md).
 
 ## GitHub review and activation
 
-CI uses the fixed `pr` suite with all four Release builds: serial, OpenMP,
+CI uses the fixed `pr` suite with all four GNU Strict builds: serial, OpenMP,
 MPI including NUOPC/ESMX, and hybrid. Its 32 generated runs produce 32
 cross-execution comparisons. Unit checks run in each build. PRs targeting
 prerequisite branches are included, so a merge into `develop` is not needed.

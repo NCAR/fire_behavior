@@ -14,7 +14,7 @@ usage () {
   printf "      build directory\n"
   printf "  --build-type=BUILD_TYPE\n"
   printf "      build type; valid options are 'debug', 'release',\n"
-  printf "      'relWithDebInfo'\n"
+  printf "      'relWithDebInfo', 'strict' (GNU Fortran only)\n"
   printf "  --build-jobs=BUILD_JOBS\n"
   printf "      number of jobs used for building esmx and components\n"
   printf "  --mpi-off\n"
