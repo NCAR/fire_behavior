@@ -73,8 +73,7 @@ rank/thread settings are separate from compilation. Namelist `num_tiles` and
 `tile_strategy` control within-rank tiling. CTest reserves ranks × threads and
 the PBS template runs CTest cases sequentially within the allocation.
 
-The generated coupled runs currently reuse `esmfRun.config` and `fd_fire.yaml`
-from `tests/legacy/`. `run_case.py` copies those files into each private run
-directory. ESMX's clock and run sequence are generated from the resolved case,
-so changing their location requires updating that staging path as well as the
-legacy CMake registration.
+Generated coupled runs use `esmfRun.config` and `fd_fire.yaml` from
+`tests/regression/templates/`. `run_case.py` copies them into each private run
+directory. ESMX's clock and run sequence come from the resolved case.
+The archived legacy files and registration are independent of this path.

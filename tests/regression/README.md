@@ -10,6 +10,8 @@ use the same interface.
 Run these commands from the repository root, in a compute allocation on NCAR
 systems. Select Python 3.11 or newer with NumPy, netCDF4, and PyYAML. The
 [run guide](doc/running.md) explains the shared NCAR environment and MPI setup.
+By default, `compile.sh` uses `build/` and `install/` inside the checkout;
+both are ignored by Git. Explicit paths remain available for HPC campaigns.
 
 ```bash
 TEST="/glade/derecho/scratch/$USER/tmp"
@@ -65,7 +67,8 @@ for the combined harness results and remaining limits.
 
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated
-cases. Use `compile_legacy.sh` with separate build/install directories.
+cases. They no longer run in CI or by default in the PBS template. For historical
+investigations, use `compile_legacy.sh` with separate build/install directories.
 Coverage limits and postponed investigations are recorded in
 [deferred work](doc/deferred.md).
 

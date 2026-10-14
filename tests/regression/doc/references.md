@@ -22,8 +22,8 @@ python -B tests/regression/regression.py reference-create \
 ```
 
 This creates an **unapproved** reference and never activates it. Supply an
-explicit directory through `-DCFBM_REFERENCE="$TEST/references/APPROVED_ID"`
-when configuring a build. Normal comparisons reject unapproved references;
+explicit directory through `./compile.sh --reference="$TEST/references/APPROVED_ID"`
+(or `-DCFBM_REFERENCE` with direct CMake). Normal comparisons reject unapproved references;
 explicit directory selection does not replace recorded team approval. Without
 that option, tests check physical evolution and agreement among executions; they
 do not claim agreement with an approved historical baseline. The report records
@@ -38,3 +38,29 @@ immutable reference.
 
 For the limits of current 60 s and 600 s evidence, see [validation
 history](validation.md).
+
+## GitHub review and activation
+
+CI uses the fixed `pr` suite with all four Release builds: serial, OpenMP,
+MPI including NUOPC/ESMX, and hybrid. Its 32 generated runs produce 32
+cross-execution comparisons. Unit checks run in each build. PRs targeting
+prerequisite branches are included, so a merge into `develop` is not needed.
+
+Normal checks require the explicitly selected committed reference. Until the
+first candidate is approved, the missing reference deliberately prevents a green
+normal PR check. To generate the candidate, select **Run workflow** for
+**Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.
+That run checks the same complete PR selection without a reference, then
+uploads an unapproved baseline only if all checks and comparisons pass.
+
+Download both the candidate and test-evidence artifacts. Review the source and
+environment, all case mappings, NetCDF fields, scientific behavior, and comparison
+reports. Check the corresponding HPC results before deciding whether a separate
+HPC reference is necessary. A GitHub reference is not automatically portable
+across compilers and libraries.
+
+After explicit team approval, commit the candidate under the workflow's selected
+baseline directory, record the approval, and rerun the normal workflow on the
+final PR revision. The candidate-generation run alone is not reference acceptance.
+See [baseline storage](../baselines/README.md). The larger `full` suite remains available through the local CLI and PBS template, with references covering
+those selections when historical comparisons are required.

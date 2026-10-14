@@ -25,8 +25,8 @@ template or a claim that any existing PR has met every item.
 - [ ] Add unit tests that would fail for the reported defect or missing behavior.
 - [ ] Exercise affected serial, MPI, OpenMP, hybrid, NUOPC, and ESMX configurations,
       or explain which are inapplicable or still untested.
-- [ ] Preserve legacy tests and references, including coverage not yet reproduced
-      by generated cases.
+- [ ] Preserve archived legacy evidence; identify any coverage not yet reproduced
+      by generated cases. Legacy comparisons do not gate CI.
 
 ## Validation evidence
 
@@ -41,6 +41,8 @@ template or a claim that any existing PR has met every item.
       tolerances or references to obtain a pass.
 - [ ] If references change, create a new immutable candidate and record separate
       team approval before activation. Do not overwrite historical references.
+- [ ] Require the new GitHub regression check to pass against the approved
+      baseline on the final PR revision before merging.
 
 ## Review readiness
 

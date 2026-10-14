@@ -32,6 +32,8 @@ usage () {
   printf "  --test[=TEST_NAME], -t[=TEST_NAME]\n"
   printf "      run one exact test name, or the quick suite\n"
   printf "  --test-suite=quick|pr|full|unit\n"
+  printf "  --reference=DIRECTORY\n"
+  printf "      compare generated outputs with an approved reference\n"
   printf "  --clean\n"
   printf "      delete build and install directories\n"
   printf "\n"
@@ -73,10 +75,11 @@ SYSTEM=""
 ENV_AUTO=false
 ENV_DIR="${FIRE_DIR}/env"
 ENV_FILE=""
-BUILD_DIR="${FIRE_DIR}/../build-generated"
+BUILD_DIR="${FIRE_DIR}/build"
 BUILD_TYPE="release"
 BUILD_JOBS=""
-INSTALL_PREFIX="${FIRE_DIR}/../install-generated"
+INSTALL_PREFIX="${FIRE_DIR}/install"
+REFERENCE=""
 MPI=true
 NUOPC=false
 ESMX=false
@@ -131,6 +134,8 @@ while :; do
     --verbose=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --verbose=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --test-suite=?*) TEST=true; TEST_SUITE=${1#*=} ;;
+    --reference=?*) REFERENCE=${1#*=} ;;
+    --reference|--reference=) printf "ERROR: $1 requires a directory.\n"; exit 1 ;;
     --test|-t) TEST=true ;;
     --test=?*|-t=?*) TEST=true; TEST_NAME=${1#*=} ;;
     --test=) TEST=true ;;
@@ -198,6 +203,9 @@ fi
 
 # generate
 CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated")
+if [ -n "${REFERENCE}" ]; then
+  CMAKE_SETTINGS+=("-DCFBM_REFERENCE:PATH=$(realpath "${REFERENCE}")")
+fi
 if [ -n "${CFBM_PYTHON:-}" ]; then
   CMAKE_SETTINGS+=("-DPython3_EXECUTABLE:FILEPATH=${CFBM_PYTHON}")
 fi

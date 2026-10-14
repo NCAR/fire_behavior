@@ -51,9 +51,11 @@ class PythonHarnessTests(unittest.TestCase):
                 "Set CFBM_TEST_TMP to an artifact directory outside the source tree"
             )
         root = Path(SCRATCH).expanduser().resolve()
-        if root.is_relative_to(MODULE_ROOT.parents[1]):
+        if root.is_relative_to(
+                MODULE_ROOT.parents[1]) and not root.is_relative_to(
+                    MODULE_ROOT.parents[1] / "build"):
             raise ValueError(
-                "Keep Python test artifacts outside the source tree")
+                "Keep Python test artifacts in build/ or outside the checkout")
         root.mkdir(parents=True, exist_ok=True)
         self.root = Path(
             tempfile.mkdtemp(prefix=self._testMethodName + "-", dir=root))
@@ -425,7 +427,7 @@ class PythonHarnessTests(unittest.TestCase):
         # The PBS marker permits this synthetic test on an HPC login node.
         environment = {
             "PBS_JOBID": "unit-fixture",
-            "CFBM_RUN_ROOT": str(self.root)
+            "CFBM_RUN_ROOT": str(self.root / "build" / "runs")
         }
         successful_exit = SimpleNamespace(returncode=0)
         source = {"revision": "fixture", "changes": "local edits"}
@@ -433,8 +435,14 @@ class PythonHarnessTests(unittest.TestCase):
                 patch.dict(os.environ, environment),
                 patch("run_case.subprocess.run", return_value=successful_exit),
                 patch("run_case.source_identity", return_value=source),
+                patch("run_case.SOURCE_ROOT", self.root),
         ):
+            # The default build tree may hold results, but source directories
+            # must still be rejected before creating any model files.
             result = run_case(args)
+            with patch.dict(os.environ, {"CFBM_RUN_ROOT": str(self.root)}):
+                with self.assertRaises(ValueError):
+                    run_case(args)
         # Process success alone must never certify a completed integration.
         self.assertFalse(result["pass"])
         self.assertTrue(

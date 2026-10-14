@@ -2,3 +2,5 @@
 *.o
 *.f90
 *.exe
+/build/
+/install/

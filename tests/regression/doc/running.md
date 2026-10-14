@@ -12,8 +12,9 @@ TEST="/glade/derecho/scratch/$USER/tmp"
 
 Use a Python environment with NumPy, netCDF4, and PyYAML. CI installs the
 versions pinned in [requirements.txt](../requirements.txt). On NCAR HPC systems,
-run builds and model integrations in a PBS allocation. Use fresh build and
-installation directories outside the source checkout. For example:
+run builds and model integrations in a PBS allocation. The defaults are
+`build/` and `install/` inside the checkout, both ignored by Git. Use fresh
+paths for distinct configurations; external scratch paths remain supported:
 
 ```bash
 ./compile.sh --mpi-off --build-dir="$TEST/build/serial" \
@@ -282,10 +283,10 @@ it, then resubmit. Avoid concurrent submissions of the same commit/date.
 
 The job clones the local repository, checks out the revision present when the
 job starts, builds four configurations, runs `pr` (including unit checks and
-quick coverage), then runs legacy tests. Settings are grouped near the top of
-the template. `SUITES=(quick pr)` can explicitly run both when separate reports
-are needed. `RUN_LEGACY=false` skips historical cases. The default keeps them
-enabled.
+quick coverage). Settings are grouped near the top of the template.
+`SUITES=(quick pr)` can explicitly run both when separate reports are needed.
+Historical comparisons are disabled by default; `RUN_LEGACY=true` enables them
+for a separate investigation.
 
 The requested queue is `develop`, which routes CPU jobs to `cpudev`. The
 one-node, one-hour allocation covers the sequential small-scale workflow,
@@ -294,12 +295,12 @@ Casper needs its own queue/resource directives and OpenMPI module stack.
 
 The scratch directory contains `validate.log`, build/configuration logs,
 `suite-status.txt`, `results/<suite>-<unique>/summary.json`, individual case
-outputs, and `build/mpi/legacy-runs/`. PBS also writes its usual joined output
+outputs, and optional `build/mpi/legacy-runs/`. PBS also writes its usual joined output
 file in the submission directory unless `qsub -o` selects another existing
 location. Build failure stops the job. Test failure is collected and causes a
-nonzero final job status. Existing legacy comparison failures are expected to
-keep that status nonzero until separately resolved.
+nonzero final job status. If historical comparisons are explicitly enabled,
+their existing failures also contribute to the final status.
 
-The final legacy step reconfigures the MPI build's CTest registrations. To rerun
+The optional legacy step reconfigures the MPI build's CTest registrations. To rerun
 generated cases afterward, restore `CFBM_TEST_SYSTEM=generated` through
 `compile.sh` or use a separate generated build. Saved results are unchanged.

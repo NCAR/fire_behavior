@@ -12,7 +12,8 @@ review for readability.
 Do not add personal filesystem paths or require a developer's Conda installation.
 Use the module-provided environment documented in README.md on NCAR systems.
 CFBM_TEST_TMP is required for direct Python tests; CTest supplies a build-tree
-artifact directory. Keep generated files outside the source tree and retain
+artifact directory. Keep generated files in the ignored build/ directory or
+outside the checkout, and retain
 failure evidence. Use PBS for model/MPI runs and for the shared MPI-enabled
 Python environment.
 

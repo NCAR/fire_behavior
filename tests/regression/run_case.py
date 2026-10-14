@@ -91,8 +91,10 @@ def run_case(args: Any) -> dict[str, Any]:
         raise ValueError(f"No coupled configuration for {args.case}")
     executable = args.executable.resolve(strict=True)
     root = Path(os.environ.get("CFBM_RUN_ROOT", str(args.run_root))).resolve()
-    if root.is_relative_to(SOURCE_ROOT):
-        raise ValueError("Keep generated runs outside the source worktree")
+    if root.is_relative_to(SOURCE_ROOT) and not root.is_relative_to(
+            SOURCE_ROOT / "build"):
+        raise ValueError(
+            "Keep generated runs in build/ or outside the checkout")
     root.mkdir(parents=True, exist_ok=True)
     name = (f"{args.driver}_{args.case}_{spec['identity']['configuration']}_"
             f"{args.scale}_{args.execution}")
@@ -115,7 +117,7 @@ def run_case(args: Any) -> dict[str, Any]:
         command = [str(executable)]
         if args.driver != "standalone":
             for filename in ("esmfRun.config", "fd_fire.yaml"):
-                shutil.copy2(SOURCE_ROOT / "tests" / "legacy" / filename,
+                shutil.copy2(SCRIPT_DIR / "templates" / filename,
                              directory / filename)
         if args.driver == "esmx":
             write_esmx_config(directory / "esmxRun.yaml", spec)

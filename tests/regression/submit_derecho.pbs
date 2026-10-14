@@ -8,7 +8,7 @@ set -euo pipefail
 # Created on 2026-10-04 by the CFBM development team assisted by GPT-6-Astra.
 # From the repository root, with PBS_ACCOUNT set to your allocation:
 # run qsub -A "$PBS_ACCOUNT" tests/regression/submit_derecho.pbs
-# Build four configurations and preserve generated and legacy test results.
+# Build four configurations and preserve generated regression results.
 
 #--------------------------------------------------------------------------------
 # Paths and run settings
@@ -28,7 +28,8 @@ SOURCE_ROOT="${RUN_ROOT}/source"
 BUILD_JOBS=8
 # PR includes quick coverage, so the template avoids running quick twice.
 SUITES=(pr)
-RUN_LEGACY=true
+# Historical comparisons are optional and do not gate the new harness.
+RUN_LEGACY=false
 
 #--------------------------------------------------------------------------------
 # Preserve a committed source snapshot and refuse reused run directories

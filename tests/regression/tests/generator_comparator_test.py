@@ -86,9 +86,11 @@ class GeneratorTests(unittest.TestCase):
                 "Set CFBM_TEST_TMP to an artifact directory outside the source tree"
             )
         root = Path(SCRATCH_ROOT).expanduser().resolve()
-        if root.is_relative_to(REGRESSION_DIR.parents[1]):
+        if root.is_relative_to(
+                REGRESSION_DIR.parents[1]) and not root.is_relative_to(
+                    REGRESSION_DIR.parents[1] / "build"):
             raise ValueError(
-                "Keep Python test artifacts outside the source tree")
+                "Keep Python test artifacts in build/ or outside the checkout")
         self.root = root / str(uuid.uuid4())
         self.root.mkdir(parents=True)
 
@@ -182,9 +184,11 @@ class ComparatorTests(unittest.TestCase):
                 "Set CFBM_TEST_TMP to an artifact directory outside the source tree"
             )
         root = Path(SCRATCH_ROOT).expanduser().resolve()
-        if root.is_relative_to(REGRESSION_DIR.parents[1]):
+        if root.is_relative_to(
+                REGRESSION_DIR.parents[1]) and not root.is_relative_to(
+                    REGRESSION_DIR.parents[1] / "build"):
             raise ValueError(
-                "Keep Python test artifacts outside the source tree")
+                "Keep Python test artifacts in build/ or outside the checkout")
         self.root = root / str(uuid.uuid4())
         self.root.mkdir(parents=True)
 

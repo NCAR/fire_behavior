@@ -5,46 +5,21 @@ on:
     - cron: '0 10 * * 4'
   push:
     branches: [ main, develop ]
+  # Test prerequisite branches before anything is merged into develop.
   pull_request:
-    branches: [ main, develop ]
   release:
     types: [ published ]
   workflow_dispatch:
     inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        type: choice
-        options:
-          - Release
-          - Debug
-          - RelWithDebInfo
-        default: Release
-      test_names:
-        description: 'One exact CTest name (optional)'
-        required: false
-        type: string
-        default: ''
-      suite:
-        description: 'Named test suite'
-        type: choice
-        options: [quick, pr]
-        default: quick
-      enable_nuopc:
-        description: 'Enable NUOPC'
+      create_reference:
+        description: 'Generate an unapproved PR-suite reference for review'
         type: boolean
-        default: true
-      enable_esmx:
-        description: 'Enable ESMX'
-        type: boolean
-        default: true
+        default: false
 
 env:
-  test_suite: ${{ inputs.suite || 'quick' }}
-  build_type: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'Release' }}
-  test_names: ${{ github.event_name == 'workflow_dispatch' && inputs.test_names || '' }}
-  enable_nuopc: ${{ github.event_name != 'workflow_dispatch' || inputs.enable_nuopc }}
-  enable_esmx: ${{ github.event_name != 'workflow_dispatch' || inputs.enable_esmx }}
+  # Normal PR checks require this committed reference. Candidate generation is
+  # manual and never approves or activates the generated files.
+  CFBM_CI_REFERENCE: tests/regression/baselines/github-pr
   openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
   hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
   netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
@@ -66,7 +41,7 @@ jobs:
       run: python -m yapf --diff --recursive --style tests/regression/.style.yapf tests/regression
 
   fire_behavior_linux_test:
-    name: Fire Behavior Test
+    name: New regression harness
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -77,6 +52,11 @@ jobs:
       CTEST_OUTPUT_ON_FAILURE: '1'
 
     steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    - name: Require the approved baseline for normal checks
+      if: ${{ !inputs.create_reference }}
+      run: test -f "$CFBM_CI_REFERENCE/reference.json"
     - name: Cache Dependencies
       id: cache-build-dependencies
       uses: actions/cache@v4
@@ -171,8 +151,6 @@ jobs:
         fi
         echo "ESMFMKFILE=$STACK_DIR/lib/esmf.mk" >> $GITHUB_ENV
         echo "ESMF_ROOT=$STACK_DIR" >> $GITHUB_ENV
-    - name: Checkout Repository
-      uses: actions/checkout@v4
     - name: Set up regression Python
       uses: actions/setup-python@v6
       with:
@@ -180,7 +158,8 @@ jobs:
     - name: Install regression dependencies
       run: python -m pip install -r tests/regression/requirements.txt
     - name: Build each executable configuration once
-      id: model_build
+      env:
+        CREATE_REFERENCE: ${{ inputs.create_reference }}
       run: |
         for variant in serial omp mpi hybrid; do
           OPTIONS=()
@@ -189,40 +168,53 @@ jobs:
             omp) OPTIONS+=(--mpi-off --openmp-on) ;;
             hybrid) OPTIONS+=(--openmp-on) ;;
           esac
-          if [[ "$variant" == mpi ]]; then
-            if [[ "$enable_nuopc" == true ]]; then OPTIONS+=(--nuopc); fi
-            if [[ "$enable_esmx" == true ]]; then OPTIONS+=(--esmx); fi
+          if [[ "$variant" == mpi ]]; then OPTIONS+=(--esmx); fi
+          if [[ "$CREATE_REFERENCE" != true ]]; then
+            OPTIONS+=(--reference="$GITHUB_WORKSPACE/$CFBM_CI_REFERENCE")
           fi
-          ./compile.sh --build-type="$build_type" "${OPTIONS[@]}" \
-            --build-dir="$RUNNER_TEMP/cfbm/build/$variant" \
-            --prefix="$RUNNER_TEMP/cfbm/install/$variant"
+          ./compile.sh --build-type=Release "${OPTIONS[@]}" \
+            --build-dir="$GITHUB_WORKSPACE/build/$variant" \
+            --prefix="$GITHUB_WORKSPACE/install/$variant"
         done
     - name: Run the selected CTest suite and compare executions
       run: |
         OPTIONS=()
         for variant in serial omp mpi hybrid; do
-          OPTIONS+=(--build-dir "$RUNNER_TEMP/cfbm/build/$variant")
+          OPTIONS+=(--build-dir "$GITHUB_WORKSPACE/build/$variant")
         done
-        if [[ -n "$test_names" ]]; then OPTIONS+=(--test "$test_names"); fi
         python -B tests/regression/regression.py suite "${OPTIONS[@]}" \
-          --suite "$test_suite" --run-root "$RUNNER_TEMP/cfbm/results"
-    - name: Run retained legacy comparisons
-      if: ${{ !cancelled() && steps.model_build.outcome == 'success' }}
+          --suite pr --run-root "$GITHUB_WORKSPACE/build/results"
+    - name: Save an unapproved reference from the passing suite
+      if: ${{ inputs.create_reference }}
       run: |
-        OPTIONS=()
-        if [[ "$enable_nuopc" == true ]]; then OPTIONS+=(--nuopc); fi
-        if [[ "$enable_esmx" == true ]]; then OPTIONS+=(--esmx); fi
-        # Change test registration after generated tests finish. Reuse the
-        # existing MPI objects and installation; no second model build is needed.
-        ./compile_legacy.sh --build-type="$build_type" "${OPTIONS[@]}" --test \
-          --build-dir="$RUNNER_TEMP/cfbm/build/mpi" \
-          --prefix="$RUNNER_TEMP/cfbm/install/mpi"
+        # A fresh runner produces exactly one PR-suite directory.
+        suites=("$GITHUB_WORKSPACE"/build/results/pr-*)
+        test "${#suites[@]}" -eq 1
+        python -B tests/regression/regression.py reference-create \
+          --suite-root "${suites[0]}" \
+          --destination "$GITHUB_WORKSPACE/build/candidate"
+        {
+          git rev-parse HEAD
+          gfortran --version
+          mpiexec --version
+          nc-config --all
+          python --version
+          python -m pip freeze
+          cat "$STACK_DIR/lib/esmf.mk"
+        } > "$GITHUB_WORKSPACE/build/candidate/environment.txt"
+    - name: Upload the candidate for team review
+      if: ${{ inputs.create_reference }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: baseline-candidate-${{ github.sha }}
+        path: build/candidate/
+        if-no-files-found: error
     - name: Archive test evidence
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: fire-behavior-test-${{matrix.os}}
         path: |
-          ${{ runner.temp }}/cfbm/results/
-          ${{ runner.temp }}/cfbm/build/mpi/legacy-runs/
-          ${{ runner.temp }}/cfbm/build/*/tests/Testing/Temporary/LastTest.log
+          build/results/
+          build/*/tests/Testing/Temporary/LastTest.log
+          build/*/CMakeCache.txt
