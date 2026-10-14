@@ -16,10 +16,24 @@ endfunction()
 
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
                       namelist_validation_unit time_interval_unit
-                      coordinate_precision_unit projection_precision_unit fuel_precision_unit wind_order_unit wind_state_unit)
+                      coordinate_precision_unit projection_precision_unit bilinear_precision_unit
+                      fuel_precision_unit wind_order_unit wind_state_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
+
+# Check the production wind routine's array bounds even in Release builds.
+# Keep its test module separate from firelib's normal compilation products.
+target_sources(wind_order_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90)
+set_target_properties(wind_order_unit PROPERTIES
+  Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules")
+target_include_directories(wind_order_unit PRIVATE
+  "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules" "${CMAKE_Fortran_MODULE_DIRECTORY}")
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(wind_order_unit PRIVATE -fcheck=bounds)
+elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+  target_compile_options(wind_order_unit PRIVATE -check bounds)
+endif()
 
 # Atmospheric initialization validates timing without requiring an ignition.
 add_cfbm_unit_test(NAME namelist_atm_only_unit
@@ -100,6 +114,9 @@ add_cfbm_unit_test(NAME coordinate_precision_unit COMMAND coordinate_precision_u
 
 add_cfbm_unit_test(NAME projection_precision_unit COMMAND projection_precision_unit
   LABELS coordinates projection EXPECT "projection precision checks passed")
+
+add_cfbm_unit_test(NAME bilinear_precision_unit COMMAND bilinear_precision_unit
+  LABELS interpolation EXPECT "bilinear precision checks passed")
 
 add_cfbm_unit_test(NAME fuel_precision_unit COMMAND fuel_precision_unit
   LABELS fuel EXPECT "fuel precision checks passed")

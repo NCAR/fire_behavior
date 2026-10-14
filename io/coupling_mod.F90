@@ -72,7 +72,7 @@
       logical, intent (in) :: fire_lsm_zcoupling
       real, dimension(iims:iime, jims:jime, kims:kime), intent (in) :: u3d, v3d, z_at_w
       real, dimension(iims:iime, jims:jime), intent (in) :: z0
-      real, dimension(ioms:iome, joms:joms), intent (out) :: u_out, v_out
+      real, dimension(ioms:iome, joms:jome), intent (out) :: u_out, v_out
       logical, intent (in), optional :: cap_winds
 
       real :: wspd

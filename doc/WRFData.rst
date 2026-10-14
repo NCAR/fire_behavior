@@ -23,6 +23,12 @@ Both methods retain the resulting fire winds in ``state_fire_t%uf`` and
 The atmospheric reader does not retain duplicate ``ua``/``va`` arrays.
 Unsupported wind options stop with an explicit diagnostic.
 
+Horizontal bilinear interpolation evaluates its fractional weights and weighted
+sum in double precision before assigning the result to the existing field type.
+This preserves uniform atmospheric fields and reduces rounding differences
+from coupled remapping. It applies to all bilinearly mapped fields, including
+the surface forcing used by the fuel-moisture model, not only winds.
+
 Users can obtain the model from the GitHub repository:
 
 .. code-block:: console

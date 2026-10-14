@@ -59,11 +59,12 @@ tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical
 regression acceptance.
 
-PR #57 aligns the standalone and coupled 3D wind-interpolation order. Its
-60 s terrain comparisons pass at the requested 6.096 m height, but a separate
-every-4-second diagnostic still exceeds tolerance in one level-set cell at
-20 s. See the [validation record](doc/validation.md#wind-interpolation-order)
-for the combined harness results and remaining limits.
+The standalone and coupled pathways map 3D profiles horizontally before
+sampling winds at 6.096 m. Standalone bilinear interpolation uses double
+precision for weights and summation. The PR suite keeps `fire_upwinding=9`
+and uses the 60 s endpoint for acceptance. Intermediate-time and longer-run
+experiments are separate diagnostics, documented in the
+[validation history](doc/validation.md), rather than additional PR-suite gates.
 
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated
