@@ -28,6 +28,8 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -finit-real=nan")
   set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
+  # Preserve floating-point evaluation across the tested GNU environments.
+  string(APPEND CMAKE_Fortran_FLAGS " -fno-fast-math -ffp-contract=off -fprotect-parens -frounding-math")
 else()
   message(WARNING "${CMAKE_Fortran_COMPILER_ID} Fortran compiler will be used with default options")
 endif()
