@@ -1,5 +1,9 @@
 program namelist_broadcast_mpi
 
+  ! Broadcast the fuel-moisture option using a communicator with reversed rank
+  ! order, so its root differs from MPI_COMM_WORLD rank zero. Check that every
+  ! rank receives the value supplied by the requested communicator's root.
+
   use mpi
   use namelist_mod, only : namelist_t
 
