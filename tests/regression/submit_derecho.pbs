@@ -28,8 +28,6 @@ SOURCE_ROOT="${RUN_ROOT}/source"
 BUILD_JOBS=8
 # PR includes quick coverage, so the template avoids running quick twice.
 SUITES=(pr)
-# Legacy text-output comparisons are optional; PR baseline checks stay enabled.
-RUN_LEGACY=false
 
 #--------------------------------------------------------------------------------
 # Preserve a committed source snapshot and refuse reused run directories
@@ -78,6 +76,8 @@ export CTEST_PARALLEL_LEVEL=1
 #--------------------------------------------------------------------------------
 # Build serial, OpenMP, and MPI/hybrid configurations with coupling
 #--------------------------------------------------------------------------------
+# compile.sh builds one configuration per call. Keep separate build/install
+# directories, then compare all four configurations in one regression suite.
 BUILDS=()
 for VARIANT in serial omp mpi hybrid; do
     OPTIONS=()
@@ -144,25 +144,5 @@ for SUITE in "${SUITES[@]}"; do
     fi
 done
 
-#--------------------------------------------------------------------------------
-# Run legacy cases after saving all generated results
-#--------------------------------------------------------------------------------
-# Reconfigure only after generated suites finish. This changes registrations,
-# not model compile options. The original legacy criteria can still fail.
-if [[ "${RUN_LEGACY}" == true ]]; then
-    STATUS=0
-    "${SOURCE_ROOT}/compile_legacy.sh" --esmx --test \
-        --build-jobs="${BUILD_JOBS}" \
-        --build-dir="${RUN_ROOT}/build/mpi" \
-        --prefix="${RUN_ROOT}/install/mpi" \
-        > "${RUN_ROOT}/legacy.log" 2>&1 || STATUS=$?
-
-    echo "legacy ${STATUS}" | tee -a "${RUN_ROOT}/suite-status.txt"
-    if (( STATUS != 0 )); then
-        FINAL_STATUS=1
-    fi
-fi
-
 echo "Results: ${RUN_ROOT}/results"
-echo "Legacy outputs: ${RUN_ROOT}/build/mpi/legacy-runs"
 exit "${FINAL_STATUS}"

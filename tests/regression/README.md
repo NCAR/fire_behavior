@@ -73,7 +73,7 @@ experiments are separate diagnostics, documented in the
 
 The original tests are preserved in [tests/legacy](../legacy/README.md), including
 `testx`, whose ESMX_Data feedback configuration is not replaced by the generated
-cases. They no longer run in CI or by default in the PBS template. For historical
+cases. They do not run in CI or in the PBS template. For historical
 investigations, use `compile_legacy.sh` with separate build/install directories.
 Coverage limits and postponed investigations are recorded in
 [deferred work](doc/deferred.md).
