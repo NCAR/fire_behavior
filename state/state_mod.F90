@@ -112,6 +112,7 @@
       integer :: output_level
         ! Resolved initialization path; supplied grid data can override ideal_opt.
       integer :: init_mode = INIT_MODE_NONE
+      logical :: fire_perimeter_ignited = .false.
 
         ! For MPI tasks
       integer :: cfbm_comm ! The MPI communicator before the domain decomposition
@@ -128,6 +129,8 @@
       procedure, public :: Init_fuel_vars => Init_fuel_vars
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_ignition_lines => Init_ignition_lines
+      procedure, public :: Init_fire_perimeter => Init_fire_perimeter
+      procedure, public :: Ignite_fire_perimeter => Ignite_fire_perimeter
       procedure :: Init_latlons => Init_latlons
       procedure :: Init_tiles => Init_tiles
       procedure :: Init_tiles_in_wrf => Init_tiles_in_wrf
@@ -284,6 +287,8 @@
 
       if (DEBUG_LOCAL) call Print_message ('Entering Handle_wrfdata_update...')
 
+      ! Check_nml requires aligned update times for this equality-based schedule.
+      ! Intentional skips and output/restart timing need a separate scheduling review.
       If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
         if (DEBUG_LOCAL) call Print_message ('  Updating WRF atm state...')
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
@@ -587,9 +592,9 @@
 
           if (config_flags%fire_is_real_perim) then
             if (allocated (geogrid%lfn_init)) then
-              this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%lfn_init
+              call this%Init_fire_perimeter (geogrid%lfn_init, config_flags%fire_ignition_start_time1)
             else
-              Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
+              call Stop_simulation ('Attempting to initialize fire from a supplied perimeter without initialization data')
             end if
           end if
 
@@ -685,6 +690,56 @@
       call this%ignition_lines%Init (config_flags)
 
     end subroutine Init_ignition_lines
+
+    subroutine Init_fire_perimeter (this, lfn_initial, activation_time)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      real, dimension(:, :), intent (in) :: lfn_initial
+      real, intent (in) :: activation_time
+
+      real :: ignition_time
+      character (len = 160) :: msg
+
+
+      ! Check_nml admits only roundoff-sized offsets from a fire-step boundary.
+      ! Use that boundary for both initial activation and subsequent ignition.
+      ignition_time = anint (activation_time / this%dt) * this%dt
+      if (ignition_time /= activation_time) then
+        write (msg, '(a,es16.8,a,es16.8)') 'Perimeter ignition requested at ', activation_time, ' s; using ', ignition_time
+        call Print_message (msg)
+      end if
+
+      if (size (lfn_initial, 1) /= this%ifpe - this%ifps + 1 .or. &
+          size (lfn_initial, 2) /= this%jfpe - this%jfps + 1) &
+          call Stop_simulation ('Observed perimeter dimensions do not match the local fire patch')
+
+      this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe) = lfn_initial
+      this%fire_perimeter_ignited = .false.
+      ! A zero-time perimeter must already be present in the initial output.
+      if (ignition_time == 0.0) call this%Ignite_fire_perimeter (0.0)
+
+    end subroutine Init_fire_perimeter
+
+    subroutine Ignite_fire_perimeter (this, activation_time)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      real, intent (in) :: activation_time
+
+
+      if (this%fire_perimeter_ignited) return
+
+      this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe) = &
+          this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe)
+      where (this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe) <= 0.0)
+        this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = activation_time
+      end where
+      this%fire_perimeter_ignited = .true.
+
+    end subroutine Ignite_fire_perimeter
 
     subroutine Init_latlons (this, proj, srx, sry)
 

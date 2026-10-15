@@ -1,5 +1,9 @@
 program tiles_unit
 
+  ! Divide an 8-by-6 domain into four tiles and check that tiled work covers
+  ! the complete domain. In an OpenMP build, also require four distinct threads
+  ! to process nonempty tiles, so a serial execution cannot satisfy that check.
+
   use tiles_mod, only : Calc_tiles_dims
 #ifdef _OPENMP
   use omp_lib, only : omp_get_thread_num

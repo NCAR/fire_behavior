@@ -77,6 +77,8 @@
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Starting temporal loop...'
     do while (grid%datetime_now < grid%datetime_end)
       call Advance_state (grid, config_flags)
+      ! Save the forcing used for the completed interval, as in the NUOPC cap.
+      ! Refresh atmospheric fields afterward for the next fire advance.
       call grid%Handle_output (config_flags)
       if (config_flags%ideal_opt == 0) call grid%Handle_wrfdata_update (atm_state, config_flags)
     end do

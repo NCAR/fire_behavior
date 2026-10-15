@@ -2224,8 +2224,9 @@
       integer, parameter :: HALO = 1
 
 
-        ! Go HALO width beyond if not a tile in a domain corner
-        ! assume we have halo need to compute the value we do not have
+        ! Extend physical-boundary work across adjacent tile or patch edges.
+        ! Review these bounds together with halo exchange ordering before changing them.
+        ! A separate review should distinguish shared-memory overlap from MPI coverage.
       ifts1 = ifts
       jfts1 = jfts
       ifte1 = ifte
