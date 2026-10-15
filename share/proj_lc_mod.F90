@@ -1,5 +1,7 @@
   module proj_lc_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
+
     implicit none
 
     private
@@ -7,6 +9,7 @@
     real, parameter :: EARTH_RADIUS_M = 6370000.0 ! m
     real, parameter :: DEG_TO_RAD = 0.01745329251994329444
     real, parameter :: RAD_TO_DEG = 57.29577951308232522583
+    real(REAL64), parameter :: DEG_TO_RAD64 = 0.01745329251994329444_REAL64
 
     public ::  proj_lc_t
 
@@ -14,6 +17,8 @@
       real :: known_lat, known_lon, dx, dy, pole_i, pole_j, known_i, known_j, hemi, &
           true_lat_1, true_lat_2,  standard_lon, cone_factor, r_earth
       integer :: nx, ny
+      ! Separate inverse coefficients preserve the established forward grid.
+      real(REAL64), private :: inverse_cone, inverse_pole_i, inverse_pole_j
     contains
       procedure, public :: Calc_latlon => Calc_lc_latlon_at_ij
       procedure, public :: Calc_ij => Calc_lc_ij_from_latlon
@@ -44,6 +49,46 @@
 
     end subroutine Calc_lc_cone
 
+    subroutine Init_lc_inverse (this)
+
+      implicit none
+
+      class (proj_lc_t), intent (in out) :: this
+      real(REAL64) :: true_lat_1, true_lat_2, hemi, cone, pole_i, pole_j
+      real(REAL64) :: tl1r, ctl1r, rebydx, rsw, deltalon, arg
+
+      ! Compute from the original metadata, not rounded forward coefficients.
+      true_lat_1 = real(this%true_lat_1, REAL64)
+      true_lat_2 = real(this%true_lat_2, REAL64)
+      hemi = real(this%hemi, REAL64)
+      if (abs(true_lat_1 - true_lat_2) > 0.1_REAL64) then
+        cone = log10(cos(true_lat_1 * DEG_TO_RAD64)) - &
+            log10(cos(true_lat_2 * DEG_TO_RAD64))
+        cone = cone / (log10(tan((45.0_REAL64 - abs(true_lat_1) / 2.0_REAL64) * DEG_TO_RAD64)) - &
+            log10(tan((45.0_REAL64 - abs(true_lat_2) / 2.0_REAL64) * DEG_TO_RAD64)))
+      else
+        cone = sin(abs(true_lat_1) * DEG_TO_RAD64)
+      end if
+
+      tl1r = true_lat_1 * DEG_TO_RAD64
+      ctl1r = cos(tl1r)
+      rebydx = real(this%r_earth, REAL64) / real(this%dx, REAL64)
+      rsw = rebydx * ctl1r / cone * &
+          (tan((90.0_REAL64 * hemi - real(this%known_lat, REAL64)) * DEG_TO_RAD64 / 2.0_REAL64) / &
+          tan((90.0_REAL64 * hemi - true_lat_1) * DEG_TO_RAD64 / 2.0_REAL64)) ** cone
+      deltalon = real(this%known_lon, REAL64) - real(this%standard_lon, REAL64)
+      if (deltalon > 180.0_REAL64) deltalon = deltalon - 360.0_REAL64
+      if (deltalon < -180.0_REAL64) deltalon = deltalon + 360.0_REAL64
+      arg = cone * deltalon * DEG_TO_RAD64
+      pole_i = hemi * real(this%known_i, REAL64) - hemi * rsw * sin(arg)
+      pole_j = hemi * real(this%known_j, REAL64) + rsw * cos(arg)
+
+      this%inverse_cone = cone
+      this%inverse_pole_i = pole_i
+      this%inverse_pole_j = pole_j
+
+    end subroutine Init_lc_inverse
+
     pure subroutine Calc_lc_ij_from_latlon (this, lat, lon, i, j)
 
       implicit none
@@ -52,29 +97,33 @@
       real, intent (in) :: lat, lon
       real, intent (out) :: i, j
 
-      real :: arg, deltalon, tl1r, rm, ctl1r, rebydx
+      real(REAL64) :: arg, deltalon, tl1r, rm, ctl1r, rebydx, cone
+      real(REAL64) :: true_lat_1, hemi, latitude, longitude
 
+      ! At 100 m spacing, the northward index subtracts values near 66000.
+      ! Keep the pole, radius, and subtraction in double precision so that
+      ! cancellation does not quantize the atmospheric interpolation weights.
+      true_lat_1 = real(this%true_lat_1, REAL64)
+      hemi = real(this%hemi, REAL64)
+      latitude = real(lat, REAL64)
+      longitude = real(lon, REAL64)
+      cone = this%inverse_cone
+      tl1r = true_lat_1 * DEG_TO_RAD64
+      ctl1r = cos(tl1r)
+      rebydx = real(this%r_earth, REAL64) / real(this%dx, REAL64)
 
-      deltalon = lon - this%standard_lon
-      if (deltalon > 180.0) deltalon = deltalon - 360.0
-      if (deltalon < -180.0) deltalon = deltalon + 360.0
+      deltalon = longitude - real(this%standard_lon, REAL64)
+      if (deltalon > 180.0_REAL64) deltalon = deltalon - 360.0_REAL64
+      if (deltalon < -180.0_REAL64) deltalon = deltalon + 360.0_REAL64
 
-      tl1r = this%true_lat_1 * DEG_TO_RAD
-      ctl1r = cos (tl1r)
+      rm = rebydx * ctl1r / cone * &
+          (tan((90.0_REAL64 * hemi - latitude) * DEG_TO_RAD64 / 2.0_REAL64) / &
+          tan((90.0_REAL64 * hemi - true_lat_1) * DEG_TO_RAD64 / 2.0_REAL64)) ** cone
 
-      rebydx = this%r_earth / this%dx
+      arg = cone * deltalon * DEG_TO_RAD64
 
-      rm = rebydx * ctl1r / this%cone_factor * &
-          (tan ((90.0 * this%hemi - lat) * DEG_TO_RAD / 2.0) / &
-          tan ((90.0 * this%hemi - this%true_lat_1) * DEG_TO_RAD / 2.0)) ** this%cone_factor
-
-      arg = this%cone_factor * (deltalon * DEG_TO_RAD)
-
-      i = this%pole_i + this%hemi * rm * sin (arg)
-      i = this%hemi * i
-
-      j = this%pole_j - rm * cos (arg)
-      j = this%hemi * j
+      i = real(hemi * (this%inverse_pole_i + hemi * rm * sin(arg)))
+      j = real(hemi * (this%inverse_pole_j - rm * cos(arg)))
 
     end subroutine Calc_lc_ij_from_latlon
 
@@ -176,6 +225,8 @@
       arg = return_value%cone_factor * (deltalon * DEG_TO_RAD)
       return_value%pole_i = return_value%hemi * return_value%known_i - return_value%hemi * rsw * sin (arg)
       return_value%pole_j = return_value%hemi * return_value%known_j + rsw * cos (arg)
+
+      call Init_lc_inverse (return_value)
 
     end function Proj_lc_t_const
 

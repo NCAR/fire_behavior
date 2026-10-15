@@ -102,6 +102,35 @@ Example namelists can be found in the various test subdirectories under the ``te
    and does not use this option (see :ref:`WRF`).
 
 
+Numerical precision
+-------------------
+
+Atmospheric coordinates
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The WRF-data reader accepts single- or double-precision ``XLAT`` and ``XLONG``
+and retains cell-centre coordinates in double precision when constructing the
+NUOPC atmospheric grid. Existing single-precision WRF files remain supported;
+promoting their stored values cannot recover coordinate precision already lost.
+
+The standalone inverse Lambert transform evaluates its geometry in double
+precision before returning grid indices at the existing precision. This avoids
+loss of interpolation detail when subtracting large pole and radius terms.
+The forward transform and stored fire-grid coordinates retain their existing
+precision, so this change does not relocate the fire grid or change its spacing.
+
+Fuel accounting
+~~~~~~~~~~~~~~~
+
+Remaining fuel and the fraction consumed during each fire timestep are calculated
+and stored internally in double precision. Subcell interpolation, burning-curve
+evaluation, and accumulation retain that precision before successive remaining
+fractions are subtracted. This preserves small consumption increments when most
+of the fuel is still present. The burning law and fractional accounting are
+unchanged. Heat and emission calculations use the more precise increments;
+output fields retain their existing single-precision NetCDF representation.
+
+
 &fire
 -----
 

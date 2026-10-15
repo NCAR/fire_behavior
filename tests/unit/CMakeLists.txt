@@ -15,7 +15,8 @@ function(add_cfbm_unit_test)
 endfunction()
 
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
-                      namelist_validation_unit time_interval_unit)
+                      namelist_validation_unit time_interval_unit
+                      coordinate_precision_unit projection_precision_unit fuel_precision_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -92,3 +93,13 @@ foreach(scenario IN ITEMS perimeter perimeter_above perimeter_below perimeter_fr
     COMMAND time_interval_unit ${scenario} LABELS perimeter timing
     EXPECT "advance behavior passed: ${scenario}")
 endforeach()
+
+# Both legacy float coordinates and double coordinates must survive the reader.
+add_cfbm_unit_test(NAME coordinate_precision_unit COMMAND coordinate_precision_unit
+  LABELS coordinates io EXPECT "coordinate precision checks passed")
+
+add_cfbm_unit_test(NAME projection_precision_unit COMMAND projection_precision_unit
+  LABELS coordinates projection EXPECT "projection precision checks passed")
+
+add_cfbm_unit_test(NAME fuel_precision_unit COMMAND fuel_precision_unit
+  LABELS fuel EXPECT "fuel precision checks passed")
