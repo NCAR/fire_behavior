@@ -8,7 +8,7 @@ set -euo pipefail
 # Created on 2026-10-04 by the CFBM development team assisted by GPT-6-Astra.
 # From the repository root, with PBS_ACCOUNT set to your allocation:
 # run qsub -A "$PBS_ACCOUNT" tests/regression/submit_derecho.pbs
-# Build four configurations and preserve generated regression results.
+# Build four GNU Strict configurations and compare with the approved baseline.
 
 #--------------------------------------------------------------------------------
 # Paths and run settings
@@ -28,7 +28,7 @@ SOURCE_ROOT="${RUN_ROOT}/source"
 BUILD_JOBS=8
 # PR includes quick coverage, so the template avoids running quick twice.
 SUITES=(pr)
-# Historical comparisons are optional and do not gate the new harness.
+# Legacy text-output comparisons are optional; PR baseline checks stay enabled.
 RUN_LEGACY=false
 
 #--------------------------------------------------------------------------------
@@ -61,28 +61,15 @@ printf '%s\n' "${SOURCE_COMMIT}" > "${RUN_ROOT}/source.txt"
 #--------------------------------------------------------------------------------
 # Load one compatible compiler, MPI, NetCDF, HDF5, and ESMF installation
 #--------------------------------------------------------------------------------
-module --force purge
-module load ncarenv/25.10 \
-            intel/2025.2.1 \
-            ncarcompilers/1.2.0 \
-            cray-mpich/8.1.32 \
-            netcdf-mpi/4.9.3 \
-            esmf-mpi/8.9.1 \
-            conda
-
-# Save model MPI tools before activating NPL, which supplies its own MPI tools.
+# Reuse the validated GNU stack selected by compile.sh --env-auto on Derecho.
+# It selects shared Python without activating Conda's MPI wrappers.
+source "${SOURCE_ROOT}/env/derecho/gnu-12.2.0"
+PYTHON_EXE="${CFBM_PYTHON}"
 MODEL_MPIEXEC=$(command -v mpiexec)
 MODEL_MPIFC=$(command -v mpif90)
 MODEL_MPICC=$(command -v mpicc)
 MODEL_MPICXX=$(command -v mpicxx)
-conda activate npl-2026a
-PYTHON_EXE=$(command -v python)
-conda deactivate
-module load cmake/3.31.8
-module -t list
 
-export FC=ifx CC=icx CXX=icpx
-export NetCDF_ROOT="${NETCDF}"
 export PYTHONDONTWRITEBYTECODE=1
 export OMP_NUM_THREADS=1 OMP_DYNAMIC=FALSE OPENBLAS_NUM_THREADS=1
 # Run CTest cases sequentially. Each hybrid case requests 4 ranks x 4 threads.
@@ -117,6 +104,7 @@ for VARIANT in serial omp mpi hybrid; do
     cmake -S "${SOURCE_ROOT}" \
           -B "${RUN_ROOT}/build/${VARIANT}" \
           "${SETTINGS[@]}" \
+          -DCMAKE_BUILD_TYPE=Strict \
           -DCMAKE_INSTALL_PREFIX="${RUN_ROOT}/install/${VARIANT}" \
           -DPython3_EXECUTABLE="${PYTHON_EXE}" \
           -DMPI_Fortran_COMPILER="${MODEL_MPIFC}" \
@@ -126,7 +114,7 @@ for VARIANT in serial omp mpi hybrid; do
           '-DMPIEXEC_PREFLAGS=--cpu-bind;none' \
           > "${RUN_ROOT}/configure-${VARIANT}.log" 2>&1
 
-    "${SOURCE_ROOT}/compile.sh" "${OPTIONS[@]}" \
+    "${SOURCE_ROOT}/compile.sh" --build-type=Strict "${OPTIONS[@]}" \
         --build-jobs="${BUILD_JOBS}" \
         --build-dir="${RUN_ROOT}/build/${VARIANT}" \
         --prefix="${RUN_ROOT}/install/${VARIANT}" \

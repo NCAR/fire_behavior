@@ -27,7 +27,8 @@ python -B tests/regression/regression.py suite --suite quick \
 
 Use fresh build/install directories for a new configuration. This example tests
 only the serial build. For all four builds, including NUOPC and ESMX, use the
-[Derecho PBS template](submit_derecho.pbs). Its run directory is
+[Derecho PBS template](submit_derecho.pbs). It loads the GNU environment, uses
+Strict builds, and checks the approved GitHub baseline. Its run directory is
 `$TEST/cfbm_<shortCommitHash>_<YYYYMMDD>`.
 
 ## Documentation

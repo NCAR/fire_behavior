@@ -19,9 +19,10 @@ For example, inside a Derecho compute allocation:
 
 This command tests the MPI build, including NUOPC and ESMX. The full matrix
 also requires separate serial, OpenMP, and hybrid builds. Use the same
-`--build-type=Strict` for each. The supplied PBS template retains its Intel
-Release environment; `Strict` requires GNU Fortran and does not change modules
-automatically. Agreement with the GitHub baseline was demonstrated for the
+`--build-type=Strict` for each. The supplied PBS template loads the validated
+Derecho GNU environment and uses Strict for all four builds, with the shared
+GitHub baseline enabled. `Strict` requires GNU Fortran; the build-type option
+alone does not change modules. Agreement with the GitHub baseline was demonstrated for the
 tested GNU environments, not for every compiler or library combination.
 
 ### Reference selection
@@ -337,11 +338,14 @@ the same commit on the same date, rename the previous directory without deleting
 it, then resubmit. Avoid concurrent submissions of the same commit/date.
 
 The job clones the local repository, checks out the revision present when the
-job starts, builds four configurations, runs `pr` (including unit checks and
-quick coverage). Settings are grouped near the top of the template.
+job starts, loads `env/derecho/gnu-12.2.0`, and builds four Strict configurations.
+It runs `pr`: unit checks, 36 model runs, 40 cross-execution comparisons, and
+36 comparisons against the approved `github-pr` baseline. The environment uses
+GNU 12.2, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0, and shared NPL Python.
+Settings are grouped near the top of the template.
 `SUITES=(quick pr)` can explicitly run both when separate reports are needed.
-Historical comparisons are disabled by default; `RUN_LEGACY=true` enables them
-for a separate investigation.
+Legacy text-output tests are disabled by default; `RUN_LEGACY=true` enables
+them for a separate investigation. This switch does not disable PR baseline checks.
 
 The requested queue is `develop`, which routes CPU jobs to `cpudev`. The
 one-node, one-hour allocation covers the sequential small-scale workflow,
@@ -353,8 +357,8 @@ The scratch directory contains `validate.log`, build/configuration logs,
 outputs, and optional `build/mpi/legacy-runs/`. PBS also writes its usual joined output
 file in the submission directory unless `qsub -o` selects another existing
 location. Build failure stops the job. Test failure is collected and causes a
-nonzero final job status. If historical comparisons are explicitly enabled,
-their existing failures also contribute to the final status.
+nonzero final job status. If legacy tests are explicitly enabled, their
+existing failures also contribute to the final status.
 
 The optional legacy step reconfigures the MPI build's CTest registrations. To rerun
 generated cases afterward, restore `CFBM_TEST_SYSTEM=generated` through
