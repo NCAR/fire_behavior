@@ -2,58 +2,136 @@
 
 [Documentation index](../README.md)
 
-`compile.sh` selects compiled capabilities. CTest registers and launches tests.
-Python supplies deterministic inputs and evaluates outputs. Scientific settings
-and the execution matrix are defined in [cases.yaml](../cases.yaml).
+These diagrams show the main execution and data relationships. They group model
+executables, generated artifacts, and baseline files rather than listing every
+file in those directories. Paths are relative to `tests/regression/` unless
+shown otherwise. Arrows state what one file or step does with the next.
+
+## Execution overview
+
+The PBS template and GitHub workflow each build four configurations, then run
+one PR suite across their build directories. **Each call to `compile.sh` builds
+one configuration.** Python selects and checks tests; it does not compile the
+model.
 
 ```mermaid
 flowchart TD
-    A[Contributor or PBS job] --> B[compile.sh]
-    B --> C[CMake: build and install executables]
-    Y[cases.yaml] --> D[CMake: register named CTests]
-    C --> D
-    A --> E[regression.py suite]
-    E --> F[run_suite.py: select exact names and labels]
-    D --> F
-    F --> G[CTest]
-    G --> H[Unit Fortran and Python tests]
-    G --> I[regression.py case]
-    I --> J[One isolated model run]
-    J --> K[result.json]
-    K --> L[Compare matching cases across executions and drivers]
-    L --> M[summary.json and failure reasons]
+    PBS["submit_derecho.pbs<br/>Derecho GNU environment"]
+    CI[".github/workflows/ci_test.yml<br/>GitHub GNU environment"]
+    COMPILE["compile.sh<br/>One call per configuration"]
+    BUILD["CMake build and install<br/>serial, omp, mpi, hybrid"]
+    REGISTER["CMakeLists.txt<br/>Register tests in each build"]
+    SUITE["regression.py suite<br/>run_suite.py"]
+    CTEST["CTest"]
+    UNIT["Fortran and Python unit tests"]
+    CASE["regression.py case<br/>run_case.py"]
+    MODEL["Generate inputs and run one executable<br/>standalone, NUOPC, or ESMX"]
+    CHECK["Check outputs and approved reference"]
+    BASELINE["baselines/github-pr/<br/>Shared by all four Strict builds"]
+    RESULT["Per-case result.json"]
+    COMPARE["run_suite.py<br/>Compare equivalent completed runs"]
+    SUMMARY["summary.json<br/>Overall pass or fail, including unit tests"]
+
+    PBS -->|calls four times| COMPILE
+    CI -->|calls four times| COMPILE
+    COMPILE -->|configures and builds| BUILD
+    BUILD -->|provides executables for| REGISTER
+    PBS -->|after builds, invokes| SUITE
+    CI -->|after builds, invokes| SUITE
+    REGISTER -->|provides test names and labels to| SUITE
+    SUITE -->|selects tests and launches| CTEST
+    CTEST -->|runs| UNIT
+    CTEST -->|runs each model case through| CASE
+    CASE -->|stages and launches| MODEL
+    MODEL -->|produces fields and logs for| CHECK
+    BASELINE -->|supplies accepted fields to| CHECK
+    CHECK -->|records findings in| RESULT
+    RESULT -->|supplies completed runs to| COMPARE
+    UNIT -->|contributes pass or fail to| SUMMARY
+    COMPARE -->|records comparisons and case status in| SUMMARY
 ```
 
-## One generated case
+The complete PR matrix has 36 model runs, 40 cross-execution comparisons, and
+36 approved-baseline comparisons, plus unit tests. In contrast,
+`compile.sh --openmp-on --esmx --test-suite=pr` builds only hybrid and then
+invokes the suite for that build: four standalone, two NUOPC, and two ESMX
+runs. `--esmx` enables both coupled drivers while retaining standalone.
+
+Strict selects the shared baseline automatically. `--reference` overrides it;
+`--no-reference` disables historical comparison with a warning. Physical and
+cross-execution checks remain active. See [running tests](running.md) for
+commands and [comparison rules](comparison.md) for acceptance criteria.
+
+## File relationships inside the harness
+
+`regression.py` is the command interface. CMake uses its `registrations` command
+when configuring tests; CTest uses its `case` command when running a model case.
+The PBS template and workflow use its `suite` command to select tests across
+builds and combine their results. `run_case.py` also uses `config.py` to resolve
+the selected scientific settings; `run_suite.py` reads comparison settings
+through the same module. The diagram groups related files to keep it readable.
 
 ```mermaid
 flowchart TD
-    A[Resolve defaults, case, configuration, scale] --> B[Validate settings]
-    B --> C[Create a new run directory]
-    C --> D[Generate inputs and render namelist]
-    D --> E[Launch selected standalone, NUOPC, or ESMX binary]
-    E --> F[Check exit status, diagnostics, and completion]
-    F --> G[Require expected times, fields, metadata, and physical evolution]
-    G --> H{Approved reference supplied?}
-    H -->|Yes| I[Verify reference integrity and compare fields]
-    H -->|No| J[Record behavior checks only]
-    I --> K[Write result.json and preserve all artifacts]
-    J --> K
+    YAML["cases.yaml<br/>Settings, executions, expected fields"]
+    CONFIG["config.py<br/>Validate settings and enumerate tests"]
+    CLI["regression.py<br/>Dispatch registrations, suite, and case commands"]
+    SUITE["run_suite.py<br/>Select CTests across build directories"]
+    CASE["run_case.py<br/>Resolve settings and manage one model run"]
+    PREP["generate_inputs.py: NetCDF inputs<br/>render_namelist.py: namelist.fire"]
+    TEMPLATES["templates/esmfRun.config<br/>templates/fd_fire.yaml"]
+    RUN["Private run directory<br/>Inputs, configuration, model.log,<br/>NetCDF outputs"]
+    CHECK["check_outputs.py<br/>Output inventory and physical checks"]
+    REF["reference.py<br/>Verify baseline and compare matching case"]
+    BASELINE["baselines/github-pr/<br/>reference.json, settings.json,<br/>approved NetCDF outputs"]
+    COMPARE["compare_outputs.py<br/>Shared field-comparison routines"]
+    REPORT["reports.py<br/>Write structured results"]
+    JSON["result.json: case and baseline checks<br/>summary.json: suite and cross-execution checks"]
+
+    YAML -->|read and validated by| CONFIG
+    CONFIG -->|supplies registrations to| CLI
+    CLI -->|dispatches suite to| SUITE
+    SUITE -->|launches through CTest and the case command| CASE
+    CASE -->|calls to prepare inputs| PREP
+    PREP -->|supplies input files for| RUN
+    TEMPLATES -->|copied by run_case.py into| RUN
+    RUN -->|supplies outputs for| CHECK
+    RUN -->|supplies outputs for| REF
+    BASELINE -->|supplies approved settings and fields to| REF
+    REF -->|compares stored and current outputs with| COMPARE
+    SUITE -->|compares equivalent current runs with| COMPARE
+    CHECK -->|findings written by run_case.py through| REPORT
+    COMPARE -->|findings written by case or suite through| REPORT
+    REPORT -->|writes| JSON
 ```
 
-A suite additionally compares successful runs with the same case, configuration,
-and scale. It never compares `u10m` against `u3d` or WENO against Godunov.
-Execution settings are recorded separately and cannot alter science. It prefers standalone
-serial as the reference when available, then the smallest available rank/thread
-layout. A partial selection tests only that selection. For example, selecting
-only NUOPC cannot establish agreement with standalone. Failed cases remain
-failures and are not converted to passes because a dependent comparison is
-absent.
+
+`run_suite.py` reads the completed `result.json` files before comparing runs
+and writing `summary.json`. `run_case.py` also writes `esmxRun.yaml` from the resolved clock, MPI rank count,
+and coupling sequence. `generate_inputs.py` writes the input files directly;
+`run_case.py` saves the rendered namelist and preserves inputs, logs, and outputs
+alongside `result.json`, including when a case fails.
+
+There are two uses of `compare_outputs.py`: `reference.py` compares a run with
+its stored baseline; `run_suite.py` compares equivalent runs from the current
+suite. A suite compares only matching case, configuration, and scale. It never
+compares `u10m` against `u3d` or WENO against Godunov. It prefers standalone
+serial when available, then the smallest available rank/thread layout. A
+partial selection establishes agreement only among the selected runs. Failed
+cases remain failures when a dependent comparison cannot be performed.
+
+Reference generation is a separate, explicit operation:
+`regression.py reference-create` calls `reference.py` to read a passing suite's
+reports and copy its settings and NetCDF outputs into a new **unapproved**
+candidate. Normal test execution never refreshes the approved baseline. See
+[reference review and activation](references.md#github-review-and-activation).
 
 ## Files and responsibilities
 
 | File | Responsibility |
 | --- | --- |
+| [submit_derecho.pbs](../submit_derecho.pbs), [ci_test.yml](../../../.github/workflows/ci_test.yml) | Build four configurations and invoke the PR suite |
+| [compile.sh](../../../compile.sh) | Configure, build, and install one selected configuration per call |
 | [regression.py](../regression.py) | Parse public commands and dispatch |
 | [config.py](../config.py), [cases.yaml](../cases.yaml) | Resolve settings, validate supported options, enumerate tests |
 | [CMakeLists.txt](../CMakeLists.txt) | Choose executables, launcher, labels, timeouts, processor counts |
@@ -65,7 +143,9 @@ absent.
 | [run_suite.py](../run_suite.py) | Select CTests and compare equivalent completed cases |
 | [reports.py](../reports.py) | Save structured results and print their locations |
 | [reference.py](../reference.py) | Create unapproved references and verify supplied references |
-| [tests/](../tests/) | Test the Python infrastructure using synthetic arrays |
+| [python_harness_test.py](../tests/python_harness_test.py), [generator_comparator_test.py](../tests/generator_comparator_test.py) | Test the Python infrastructure using generated inputs and synthetic arrays |
+| [tests/unit/](../../unit/) | Fortran unit tests, registered separately from model cases |
+| [baselines/github-pr/](../baselines/github-pr/README.md) | Approved settings and output fields shared by all four builds |
 | [legacy/](../../legacy/README.md) | Preserve historical fixtures and comparisons |
 
 The model or coupler selects MPI decomposition from its communicator. Runtime
@@ -73,7 +153,7 @@ rank/thread settings are separate from compilation. Namelist `num_tiles` and
 `tile_strategy` control within-rank tiling. CTest reserves ranks × threads and
 the PBS template runs CTest cases sequentially within the allocation.
 
-Generated coupled runs use `esmfRun.config` and `fd_fire.yaml` from
-`tests/regression/templates/`. `run_case.py` copies them into each private run
-directory. ESMX's clock and run sequence come from the resolved case.
-The archived legacy files and registration are independent of this path.
+The archived [legacy tests](../../legacy/README.md) use a separate build route
+and are not run by the PBS template or GitHub workflow. Documentation files,
+case figures, and `doc/plot_cases.py` explain the tests but are not part of
+model execution.

@@ -30,6 +30,8 @@ only the serial build. For all four builds, including NUOPC and ESMX, use the
 [Derecho PBS template](submit_derecho.pbs). It loads the GNU environment, uses
 Strict builds, and checks the approved GitHub baseline. Its run directory is
 `$TEST/cfbm_<shortCommitHash>_<YYYYMMDD>`.
+See the [execution overview](doc/structure.md#execution-overview) for the
+difference between one `compile.sh` call and the complete four-build matrix.
 
 ## Documentation
 
@@ -38,7 +40,7 @@ Strict builds, and checks the approved GitHub baseline. Its run directory is
 | Build, submit a PBS job, select suites or exact names | [Running tests](doc/running.md) |
 | Select exact namelist options and named configurations | [YAML configuration](doc/configuration.md) |
 | Understand terrain, fuel, ignition, winds, and timing | [Case configurations and figures](doc/cases.md) |
-| Understand which script does what | [Structure and execution diagrams](doc/structure.md) |
+| Follow the build/run flow and connections between files | [Execution overview and file relationships](doc/structure.md) |
 | Find every compared field and its acceptance rule | [Variable comparison table](doc/comparison.md) |
 | Understand improvements and remaining legacy coverage | [New and legacy tests](doc/advantages.md) |
 | Find outputs or prepare an unapproved reference | [Results and references](doc/references.md) |
