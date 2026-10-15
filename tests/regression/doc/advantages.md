@@ -1,15 +1,16 @@
-# What the new regression tests add
+# Current coverage compared with the retired tests
 
 [Documentation index](../README.md)
 
-The generated tests add spatial comparisons, explicit parallel coverage, and
-reproducible forcing while preserving the original cases under
-[tests/legacy](../../legacy/README.md). They serve different purposes, so the
-original references remain available for historical diagnosis.
+The generated tests provide spatial comparisons, explicit parallel coverage,
+and reproducible forcing. The original suite has been retired; its
+[fixtures and references](https://github.com/NCAR/fire_behavior/tree/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy)
+remain in Git history for historical diagnosis. The comparison below records
+the old behavior and the coverage that still needs generated cases.
 
 ## Comparison of capabilities
 
-| Area | Original legacy tests | Generated regression tests |
+| Area | Retired legacy tests | Generated regression tests |
 | --- | --- | --- |
 | Quantities compared | Five printed diagnostics and their timestamps: fire area, heat output, latent heat output, maximum heat flux, maximum latent heat flux | Every field in the expected NetCDF inventory, at every scheduled output time |
 | Spatial information | Domain summaries, including maxima, can hide cell-by-cell differences | Per-field cell counts, first differing index and values, maximum absolute/percentage errors, RMS error, and bitwise differences |
@@ -23,14 +24,16 @@ original references remain available for historical diagnosis.
 | Coupling coverage | NUOPC/ESMX fixtures and ESMX_Data `testx` | Both terrain wind representations through NUOPC and ESMX, with one/four MPI ranks and comparison to standalone |
 | Completion | Text comparisons | Exit status, fatal diagnostics, required coupled completion marker, exact file/field inventory, and physical evolution checks |
 | Isolation | Historical scripts used shared working paths and cleanup commands | New directories for each attempt, preserved inputs/outputs/logs, safe reruns |
-| Selection | Individual shell scripts | Plain case, configuration, scale, driver, execution, and exact CTest names, plus `quick`, `pr`, `full`, `unit`, and `legacy` suites |
+| Selection | Individual shell scripts | Plain case, configuration, scale, driver, execution, and exact CTest names, plus `quick`, `pr`, `full`, and `unit` suites |
 | Reports | Console text | `result.json`, suite `summary.json`, and CI CTest JUnit reports with artifact locations |
 | Historical references | Shared text solutions | Explicit immutable reference directories, recorded approval, and file-integrity checks |
 | Maintainability | Repeated case scripts and implicit settings | Separate Python responsibilities, one scientific YAML file, exact namelist names, and unit Python tests |
 
-The legacy duration and text rules are visible in
-[test7.s](../../legacy/test7.s), [test8.s](../../legacy/test8.s), and their
-[namelists](../../legacy/test8/namelist.fire). The new settings and field
+The legacy duration and text rules are preserved in
+[test7.s](https://github.com/NCAR/fire_behavior/blob/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy/test7.s),
+[test8.s](https://github.com/NCAR/fire_behavior/blob/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy/test8.s), and their
+[namelists](https://github.com/NCAR/fire_behavior/blob/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy/test8/namelist.fire).
+The current settings and field
 inventory are in [cases.yaml](../cases.yaml). The [comparison
 table](comparison.md) documents the implemented acceptance rules.
 

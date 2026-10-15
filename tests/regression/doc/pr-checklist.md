@@ -25,8 +25,8 @@ template or a claim that any existing PR has met every item.
 - [ ] Add unit tests that would fail for the reported defect or missing behavior.
 - [ ] Exercise affected serial, MPI, OpenMP, hybrid, NUOPC, and ESMX configurations,
       or explain which are inapplicable or still untested.
-- [ ] Preserve archived legacy evidence; identify any coverage not yet reproduced
-      by generated cases. Legacy comparisons do not gate CI.
+- [ ] Preserve historical validation evidence and identify coverage not yet
+      reproduced by generated cases, including the retired ESMX_Data fixture.
 
 ## Validation evidence
 
