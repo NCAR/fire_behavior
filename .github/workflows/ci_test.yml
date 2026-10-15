@@ -169,8 +169,9 @@ jobs:
             mpi) OPTIONS+=(--esmx) ;;
             hybrid) OPTIONS+=(--openmp-on --esmx) ;;
           esac
-          if [[ "$CREATE_REFERENCE" != true ]]; then
-            OPTIONS+=(--reference="$GITHUB_WORKSPACE/$CFBM_CI_REFERENCE")
+          # Strict uses the bundled reference unless generating a new candidate.
+          if [[ "$CREATE_REFERENCE" == true ]]; then
+            OPTIONS+=(--no-reference)
           fi
           ./compile.sh --build-type=Strict "${OPTIONS[@]}" \
             --build-dir="$GITHUB_WORKSPACE/build/$variant" \

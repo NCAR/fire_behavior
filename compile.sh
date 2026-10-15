@@ -33,7 +33,9 @@ usage () {
   printf "      run one exact test name, or the quick suite\n"
   printf "  --test-suite=quick|pr|full|unit\n"
   printf "  --reference=DIRECTORY\n"
-  printf "      compare generated outputs with an approved reference\n"
+  printf "      override the reference; strict defaults to the bundled PR baseline\n"
+  printf "  --no-reference\n"
+  printf "      disable historical reference comparisons (prints a warning)\n"
   printf "  --clean\n"
   printf "      delete build and install directories\n"
   printf "\n"
@@ -79,7 +81,7 @@ BUILD_DIR="${FIRE_DIR}/build"
 BUILD_TYPE="release"
 BUILD_JOBS=""
 INSTALL_PREFIX="${FIRE_DIR}/install"
-REFERENCE=""
+REFERENCE="AUTO"
 MPI=true
 NUOPC=false
 ESMX=false
@@ -135,6 +137,7 @@ while :; do
     --verbose=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --test-suite=?*) TEST=true; TEST_SUITE=${1#*=} ;;
     --reference=?*) REFERENCE=${1#*=} ;;
+    --no-reference) REFERENCE="" ;;
     --reference|--reference=) printf "ERROR: $1 requires a directory.\n"; exit 1 ;;
     --test|-t) TEST=true ;;
     --test=?*|-t=?*) TEST=true; TEST_NAME=${1#*=} ;;
@@ -202,10 +205,12 @@ if [ "${CLEAN}" = true ]; then
 fi
 
 # generate
-CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated")
-if [ -n "${REFERENCE}" ]; then
-  CMAKE_SETTINGS+=("-DCFBM_REFERENCE:PATH=$(realpath "${REFERENCE}")")
+# Pass the selection every time so a reused build cannot retain an old override.
+if [[ -n "${REFERENCE}" && "${REFERENCE}" != AUTO ]]; then
+  REFERENCE=$(realpath "${REFERENCE}")
 fi
+CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated"
+                "-DCFBM_REFERENCE:STRING=${REFERENCE}")
 if [ -n "${CFBM_PYTHON:-}" ]; then
   CMAKE_SETTINGS+=("-DPython3_EXECUTABLE:FILEPATH=${CFBM_PYTHON}")
 fi

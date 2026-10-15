@@ -14,8 +14,7 @@ Debug, and RelWithDebInfo retain their existing flags.
 For example, inside a Derecho compute allocation:
 
 ```bash
-./compile.sh --env-auto --build-type=Strict --esmx --test-suite=pr \
-    --reference=tests/regression/baselines/github-pr-hybrid
+./compile.sh --env-auto --build-type=Strict --esmx --test-suite=pr
 ```
 
 This command tests the MPI build, including NUOPC and ESMX. The full matrix
@@ -24,6 +23,22 @@ also requires separate serial, OpenMP, and hybrid builds. Use the same
 Release environment; `Strict` requires GNU Fortran and does not change modules
 automatically. Agreement with the GitHub baseline was demonstrated for the
 tested GNU environments, not for every compiler or library combination.
+
+### Reference selection
+
+`Strict` defaults to `tests/regression/baselines/github-pr-hybrid` for every
+parallel configuration, including coupled hybrid. No separate OpenMP reference
+is needed. `--reference=DIRECTORY` selects another approved reference;
+`--no-reference` deliberately disables historical comparisons and prints a
+warning. Other build types warn and run without a reference unless one is supplied.
+Physical and cross-execution checks remain active when no reference is selected.
+
+With direct CMake, `-DCFBM_REFERENCE=AUTO` selects this build-type default,
+`-DCFBM_REFERENCE=/absolute/directory` overrides it, and
+`-DCFBM_REFERENCE:STRING=` disables historical comparison. `compile.sh` resets
+this selection on every invocation, so a cached override does not carry over
+when the command changes. The bundled reference covers the small `pr` cases;
+`full` needs its own reference or an intentional `--no-reference` run.
 
 ### Coupled hybrid runs
 
@@ -34,8 +49,7 @@ per rank, use at least 16 allocated CPUs and a separate build directory:
 ./compile.sh --env-auto --build-type=strict --openmp-on --esmx \
     --test-suite=pr \
     --build-dir="$PWD/build/hybrid-strict" \
-    --prefix="$PWD/install/hybrid-strict" \
-    --reference=tests/regression/baselines/github-pr-hybrid
+    --prefix="$PWD/install/hybrid-strict"
 ```
 
 This selects eight model runs: four standalone cases and four coupled terrain

@@ -7,8 +7,9 @@ run `38648160726` with GNU Strict builds and reviewed against the previous
 reference and the corresponding MPI outputs.
 
 The earlier [github-pr/](github-pr/README.md) remains unchanged and covers the
-original 32 runs. It lacks the four coupled hybrid mappings. Select references
-explicitly; there is no automatic fallback for a missing case.
+original 32 runs. It lacks the four coupled hybrid mappings. Strict selects `github-pr-hybrid` by default for every parallel configuration.
+Use `--reference` to override it or `--no-reference` to disable it with a warning.
+There is no automatic fallback for a missing case.
 
 Use the manual workflow's `create_reference` input to build all four GNU Strict
 configurations and generate an unapproved candidate after the PR suite passes.

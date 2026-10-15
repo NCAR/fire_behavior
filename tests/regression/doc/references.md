@@ -21,13 +21,19 @@ python -B tests/regression/regression.py reference-create \
     --destination="$TEST/references/candidate-NEW"
 ```
 
-This creates an **unapproved** reference and never activates it. Supply an
-explicit directory through `./compile.sh --reference="$TEST/references/APPROVED_ID"`
-(or `-DCFBM_REFERENCE` with direct CMake). Normal comparisons reject unapproved references;
-explicit directory selection does not replace recorded team approval. Without
-that option, tests check physical evolution and agreement among executions; they
-do not claim agreement with an approved historical baseline. The report records
-the supplied reference's approval status.
+This creates an **unapproved** reference and never activates it. Build with
+`--no-reference` when generating a new candidate so the tests do not depend on
+an older baseline. The workflow's candidate-generation mode does this explicitly.
+
+`Strict` selects the bundled `github-pr-hybrid` reference by default for all
+parallel configurations. Override it with
+`./compile.sh --reference="$TEST/references/APPROVED_ID"` or disable it with
+`--no-reference`. Direct CMake accepts `-DCFBM_REFERENCE=AUTO`, a directory,
+or an empty string, respectively. The selected reference path is printed;
+when none is selected, configuration warns that historical baseline comparisons
+are disabled. Such runs check physical evolution and agreement among executions,
+without claiming historical regression acceptance. Normal comparisons reject
+unapproved references, and reports record the supplied reference's approval status.
 
 SHA256 checksums are file fingerprints used to detect changed reference
 payloads. They establish data integrity, not scientific correctness. Numerical
@@ -46,7 +52,7 @@ MPI and hybrid, both including NUOPC/ESMX. Its 36 generated runs produce 40
 cross-execution comparisons. Unit checks run in each build. PRs targeting
 prerequisite branches are included, so a merge into `develop` is not needed.
 
-Normal checks use the [approved GitHub reference](../baselines/github-pr-hybrid/README.md)
+Normal Strict checks default to the [approved GitHub reference](../baselines/github-pr-hybrid/README.md)
 committed for the complete PR suite. A missing or unapproved reference fails
 the check. To generate a future candidate, select **Run workflow** for
 **Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.

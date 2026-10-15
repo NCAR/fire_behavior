@@ -55,6 +55,9 @@ with a 4 s timestep. Terrain also runs through NUOPC and ESMX with MPI and
 hybrid MPI/OpenMP. The complete PR matrix has 36 runs and 40 comparisons. See the
 [YAML configuration guide](doc/configuration.md) for exact namelist options,
 configuration names, and the `large` scale.
+GNU `Strict` builds select the shared `github-pr-hybrid` baseline by default.
+Use `--reference` to override it or `--no-reference` to disable historical
+comparison deliberately. Configuration warns when no reference is selected.
 The [comparison table](doc/comparison.md) separates bitwise checks from numerical
 tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical
