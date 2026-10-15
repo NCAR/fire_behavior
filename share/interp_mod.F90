@@ -1,5 +1,6 @@
   module interp_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
     use proj_lc_mod, only : proj_lc_t
 
     implicit none
@@ -55,7 +56,8 @@
       real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: data_out
 
       integer :: i, j, i0, j0, i1, j1
-      real :: i_real, j_real, di, dj
+      real :: i_real, j_real
+      real(REAL64) :: di, dj
 
 
       do j = jfts, jfte
@@ -67,12 +69,13 @@
           i1 = i0 + 1
           j1 = j0 + 1
 
-          di = max (0.0, min (1.0, i_real - real (i0)))
-          dj = max (0.0, min (1.0, j_real - real (j0)))
+          di = max (0.0_REAL64, min (1.0_REAL64, real(i_real, REAL64) - i0))
+          dj = max (0.0_REAL64, min (1.0_REAL64, real(j_real, REAL64) - j0))
 
-          data_out(i, j) = (1.0 - di) * (1.0 - dj) * data_in(i0, j0) + &
-              di * (1.0 - dj) * data_in(i1, j0) + &
-              (1.0 - di) * dj * data_in(i0, j1) + &
+          ! Accumulate in double precision before rounding the mapped field.
+          data_out(i, j) = (1.0_REAL64 - di) * (1.0_REAL64 - dj) * data_in(i0, j0) + &
+              di * (1.0_REAL64 - dj) * data_in(i1, j0) + &
+              (1.0_REAL64 - di) * dj * data_in(i0, j1) + &
               di * dj * data_in(i1, j1)
         end do
       end do

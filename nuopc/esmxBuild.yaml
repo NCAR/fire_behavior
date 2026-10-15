@@ -4,10 +4,12 @@ application:
 components:
   fire_behavior:
     build_type: none
-    libraries: fire_behavior_nuopc
+    # ESMX reads archive names here, so CMake's transitive dependency on
+    # the model library must also be listed explicitly.
+    libraries: fire_behavior_nuopc, firelib
     fort_module: fire_behavior_nuopc.mod
 
   wrfdata:
     build_type:  none
-    libraries: fire_behavior_wrfnuopc
+    libraries: fire_behavior_wrfnuopc, firelib
     fort_module: wrf_nuopc.mod

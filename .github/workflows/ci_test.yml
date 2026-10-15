@@ -5,40 +5,18 @@ on:
     - cron: '0 10 * * 4'
   push:
     branches: [ main, develop ]
+  # Test prerequisite branches before anything is merged into develop.
   pull_request:
-    branches: [ main, develop ]
   release:
     types: [ published ]
   workflow_dispatch:
     inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        type: choice
-        options:
-          - Release
-          - Debug
-          - RelWithDebInfo
-        default: Release
-      test_names:
-        description: 'Test Names (regex)'
-        required: false
-        type: string
-        default: ''
-      enable_nuopc:
-        description: 'Enable NUOPC'
+      create_reference:
+        description: 'Generate an unapproved PR-suite reference for review'
         type: boolean
-        default: true
-      enable_esmx:
-        description: 'Enable ESMX'
-        type: boolean
-        default: true
+        default: false
 
 env:
-  build_type: ${{ github.event_name == 'workflow_dispatch' && inputs.build_type || 'Release' }}
-  test_names: ${{ github.event_name == 'workflow_dispatch' && inputs.test_names || '' }}
-  enable_nuopc: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_nuopc || true }}
-  enable_esmx: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_esmx || true }}
   openmpi-url: 'https://download.open-mpi.org/release/open-mpi/v4.0/openmpi-4.0.3.tar.gz'
   hdf5-url: 'https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.12/hdf5-1.12.2/src/hdf5-1.12.2.tar.gz'
   netcdf-url: 'https://github.com/Unidata/netcdf-c/archive/v4.9.0.tar.gz'
@@ -46,8 +24,21 @@ env:
   esmf-url: 'https://github.com/esmf-org/esmf/archive/refs/tags/v8.5.0.tar.gz'
 
 jobs:
+  python_format:
+    name: Python formatting
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v6
+      with:
+        python-version: '3.13'
+    - name: Install the pinned formatter
+      run: python -m pip install -r tests/regression/requirements-style.txt
+    - name: Check harness formatting without changing files
+      run: python -m yapf --diff --recursive --style tests/regression/.style.yapf tests/regression
+
   fire_behavior_linux_test:
-    name: Fire Behavior Test
+    name: New regression harness
     strategy:
       matrix:
         os: [ubuntu-22.04]
@@ -58,6 +49,8 @@ jobs:
       CTEST_OUTPUT_ON_FAILURE: '1'
 
     steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
     - name: Cache Dependencies
       id: cache-build-dependencies
       uses: actions/cache@v4
@@ -152,26 +145,79 @@ jobs:
         fi
         echo "ESMFMKFILE=$STACK_DIR/lib/esmf.mk" >> $GITHUB_ENV
         echo "ESMF_ROOT=$STACK_DIR" >> $GITHUB_ENV
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-    - name: Build and Test
+    - name: Set up regression Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+    - name: Install regression dependencies
+      run: python -m pip install -r tests/regression/requirements.txt
+    - name: Build each executable configuration once
+      env:
+        CREATE_REFERENCE: ${{ inputs.create_reference }}
+      run: |
+        for variant in serial omp mpi hybrid; do
+          OPTIONS=()
+          case "$variant" in
+            serial) OPTIONS+=(--mpi-off) ;;
+            omp) OPTIONS+=(--mpi-off --openmp-on) ;;
+            mpi) OPTIONS+=(--esmx) ;;
+            hybrid) OPTIONS+=(--openmp-on --esmx) ;;
+          esac
+          # Strict uses the bundled reference unless generating a new candidate.
+          if [[ "$CREATE_REFERENCE" == true ]]; then
+            OPTIONS+=(--no-reference)
+          fi
+          ./compile.sh --build-type=Strict "${OPTIONS[@]}" \
+            --build-dir="$GITHUB_WORKSPACE/build/$variant" \
+            --prefix="$GITHUB_WORKSPACE/install/$variant"
+        done
+    - name: Run the selected CTest suite and compare executions
       run: |
         OPTIONS=()
-        if [ -z "${test_names}" ]; then
-          OPTIONS+=("--test")
-        else
-          OPTIONS+=("--test=${test_names}")
+        for variant in serial omp mpi hybrid; do
+          OPTIONS+=(--build-dir "$GITHUB_WORKSPACE/build/$variant")
+        done
+        python -B tests/regression/regression.py suite "${OPTIONS[@]}" \
+          --suite pr --run-root "$GITHUB_WORKSPACE/build/results"
+    - name: Save an unapproved reference from the passing suite
+      if: ${{ inputs.create_reference }}
+      run: |
+        # A fresh runner produces exactly one PR-suite directory.
+        suites=("$GITHUB_WORKSPACE"/build/results/pr-*)
+        test "${#suites[@]}" -eq 1
+        python -B tests/regression/regression.py reference-create \
+          --suite-root "${suites[0]}" \
+          --destination "$GITHUB_WORKSPACE/build/candidate"
+        {
+          git rev-parse HEAD
+          gfortran --version
+          mpiexec --version
+          nc-config --all
+          python --version
+          python -m pip freeze
+          cat "$STACK_DIR/lib/esmf.mk"
+        } > "$GITHUB_WORKSPACE/build/candidate/environment.txt"
+        # NetCDF timestamps contain colons, which artifact upload rejects.
+        tar -czf "$RUNNER_TEMP/baseline-candidate.tar.gz" -C build/candidate .
+    - name: Upload the candidate for team review
+      if: ${{ inputs.create_reference }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: baseline-candidate-${{ github.sha }}
+        path: ${{ runner.temp }}/baseline-candidate.tar.gz
+        if-no-files-found: error
+    - name: Package test evidence with original NetCDF filenames
+      if: ${{ !cancelled() }}
+      run: |
+        shopt -s nullglob
+        files=(build/*/tests/Testing/Temporary/LastTest.log build/*/CMakeCache.txt)
+        if [[ -d build/results ]]; then files+=(build/results); fi
+        if (( ${#files[@]} )); then
+          tar -czf "$RUNNER_TEMP/test-evidence.tar.gz" "${files[@]}"
         fi
-        if [[ "${enable_nuopc}" == 'true' ]]; then
-          OPTIONS+=("--nuopc")
-        fi
-        if [[ "${enable_esmx}" == 'true' ]]; then
-          OPTIONS+=("--esmx")
-        fi
-        ./compile.sh --build-type=${build_type} ${OPTIONS[@]}
-    - name: Archive Test Results
+    - name: Archive test evidence
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@v4
       with:
         name: fire-behavior-test-${{matrix.os}}
-        path: build/tests/Testing/Temporary/LastTest.log
+        path: ${{ runner.temp }}/test-evidence.tar.gz

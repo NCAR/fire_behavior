@@ -1,5 +1,9 @@
 program wind_order_unit
 
+  ! Verify that atmospheric profiles are mapped horizontally before vertical
+  ! wind sampling. Also check that every row of the fire patch is accessible
+  ! and that temporary atmospheric profiles are released after interpolation.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use wrfdata_mod, only : wrfdata_t, G
   use namelist_mod, only : namelist_t
@@ -15,6 +19,8 @@ program wind_order_unit
 
   ! The projection centre lies halfway between four atmospheric columns.
   ! A nonsquare fire patch also exercises every output row and column.
+  ! CMake compiles Calc_fire_wind with bounds checks for this test, so a
+  ! one-row output declaration must fail when the second row is populated.
   atmosphere%ids = 1
   atmosphere%ide = 3
   atmosphere%jds = 1
