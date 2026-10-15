@@ -5,6 +5,41 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## Coupled hybrid baseline extension (2026-10-14)
+
+At Maria Frediani's request, revision `4b6535d` enables NUOPC and ESMX in
+the hybrid build in CI and the PBS template. The complete PR selection now
+has 36 integrations and 40 cross-execution comparisons. The four added runs
+cover terrain `u10m`/`u3d` with four MPI ranks and four OpenMP threads per rank.
+No model, Python harness, scientific configuration, or tolerance changes.
+
+[GitHub generation run 38648160726](https://github.com/NCAR/fire_behavior/actions/runs/38648160726)
+passes formatting, four GNU Strict builds, 154 unit CTests, all 36 integrations,
+and all 40 comparisons. All 28 within-driver comparisons are bitwise identical.
+Maximum cross-driver relative error remains 0.000636870574%. All 108 candidate
+checksums were verified. The previous 64 NetCDF outputs and 32 settings files
+are unchanged; all eight new NetCDF outputs and four new settings files are
+byte-identical to their corresponding four-rank MPI cases.
+
+The requested extension is committed as the approved
+[github-pr-hybrid reference](../baselines/github-pr-hybrid/README.md), with
+72 NetCDF outputs and 36 settings files. The original `github-pr` reference
+is retained unchanged. Normal CI selects the expanded directory explicitly.
+
+Derecho PBS `7823739.desched1` uses the automatic GNU 12.2 / Cray MPICH 8.1.25 /
+NetCDF 4.9.2 / ESMF 8.5.0 environment used by Pedro. All four Strict builds,
+154 unit CTests, 36 integrations and 40 internal comparisons pass. Independent
+comparison with the GitHub candidate passes for all 36 runs, with all 1,368
+fields bitwise identical. NetCDF container bytes can differ across libraries.
+
+The updated PBS template also passes on Intel 2025.2.1 / Cray MPICH 8.1.32 /
+ESMF 8.9.1 in job `7823740.desched1`: four Release builds, 154 unit CTests,
+36 integrations and 40 internal comparisons. Its 28 within-driver comparisons
+are bitwise; maximum cross-driver error is 0.00186100875%. This is not an
+Intel comparison against the GNU baseline and does not approve an Intel reference.
+Both jobs exit zero. Evidence is under `cfbm-pr49-coupled-hybrid-20261014/`
+and `cfbm_4b6535d_20261014/` in the validation submitter's Derecho scratch `tmp/`.
+
 ## Strict GNU flags and baseline provenance (2026-10-14)
 
 Revision `6cefd15` adds the GNU-only `Strict` build type with `-fno-fast-math -ffp-contract=off -fprotect-parens
