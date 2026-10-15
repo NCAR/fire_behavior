@@ -1,41 +1,45 @@
-# Approved GitHub PR-suite baseline
+# GitHub PR-suite baseline
 
-Maria Frediani requested this strict-flags refresh on 2026-10-14:
+Maria Frediani requested this extension on 2026-10-14:
 
-> make the changes and push it then update the baseline with the strict flags
+> can you update the baseline to include hybrid esmx and nuopc?
 
-The numerical payload retains its prior approval: all 64 NetCDF outputs and
-32 scientific-settings files are byte-identical to the reference approved from
-[run 38612379390](https://github.com/NCAR/fire_behavior/actions/runs/38612379390).
-All 96 checksums were independently verified against both generations. This
-refresh records the strict-flags source and environment without changing the
-accepted numerical results or comparison tolerances.
+This reference adds four cases to the previous approved selection: NUOPC and
+ESMX terrain runs with `u10m` and `u3d`, using four MPI ranks and four OpenMP
+threads per rank. All 36 cases share this `github-pr` directory. The previous
+32-case reference remains available in Git history.
 
-- Source: `6cefd1545c3ddc993e26df4caa1d3ff9295037ba`, clean worktree.
-- Generation: [GitHub run 38644049156](https://github.com/NCAR/fire_behavior/actions/runs/38644049156).
-- Coverage: the complete `pr` suite, 32 executions across serial, OpenMP,
-  MPI, hybrid, NUOPC, and ESMX, with outputs at 0 and 60 s.
-- Environment: Ubuntu 22.04, GNU Fortran 11.4.0, OpenMPI 4.0.3, and ESMF 8.5.0.
-  See [environment.txt](environment.txt) for the full record.
-- GNU floating-point flags, including the external ESMX driver:
-  `-fno-fast-math -ffp-contract=off -fprotect-parens -frounding-math`.
-  The `Strict` build type uses `-O2`; existing build types retain their prior flags.
+- Source: `4b6535d14db185c20d40f471873580311b1feb00`, clean worktree.
+- Generation: [GitHub run 38648160726](https://github.com/NCAR/fire_behavior/actions/runs/38648160726).
+- Coverage: 36 runs, with 72 NetCDF outputs at 0 and 60 s and 36 settings files.
+- Environment: Ubuntu 22.04, GNU Fortran 11.4.0, OpenMPI 4.0.3, ESMF 8.5.0.
+  Full provenance is in [environment.txt](environment.txt).
+- Build type: GNU `Strict`, including the external ESMX driver.
 
-The generating run passed formatting, four builds, 154 unit CTests, 32 model
-runs, and 32 cross-execution comparisons. All 24 within-driver comparisons
-were bitwise identical; maximum cross-driver relative error was 0.000636870574%,
-below the 0.01% limit. Normal PR
-[run 38644053759](https://github.com/NCAR/fire_behavior/actions/runs/38644053759)
-also passed all 32 comparisons against the previous approved reference, with
-every compared field bitwise identical.
+The generating run passes formatting, four builds, 154 unit CTests, 36 model
+runs, and 40 cross-execution comparisons. All 28 within-driver comparisons
+are bitwise equal. Maximum cross-driver relative error remains
+0.000636870574%, below the unchanged 0.01% limit.
 
-The manifest retains the generating source revision, rather than the later
-commit that records this refresh. The original approval and provenance remain
-preserved in commit `7461e3c`. The downloaded strict-flags candidate was generated
-in a separate directory and remained unapproved until this verified refresh.
+All 108 payload checksums were independently verified. The existing 64 NetCDF
+outputs and 32 settings files are byte-identical to the previous approved
+reference. Each added hybrid case also has NetCDF outputs and scientific
+settings byte-identical to its corresponding four-rank MPI case. This adds
+execution coverage without changing accepted numerical results, scientific
+settings, comparison rules, or model source.
 
-Normal GitHub checks compare each matching execution against these files.
-The tested native Derecho GNU 12.2 environment also matches these fields with
-the strict flags; see [validation history](../../doc/validation.md). This does
-not approve the separate Intel reference or establish longer-duration agreement.
-Future numerical changes require a newly generated and reviewed reference.
+The manifest records the generating source revision, not the later commit that
+stores this reference. Approval records the requested extension after these
+checks; candidate generation alone does not approve a reference. The raw
+downloaded candidate is retained separately with `approval: unapproved`.
+
+Derecho GNU validation (PBS `7823739.desched1`) passes the same 36 runs and
+40 internal comparisons; all 1,368 saved fields match this GitHub reference
+bitwise. The updated Intel PBS template (job `7823740.desched1`) also passes
+36 runs and 40 internal comparisons, without a historical GNU-reference check.
+
+`Strict` selects this reference automatically. Use
+`--reference=tests/regression/baselines/github-pr` to select it explicitly,
+including for coupled hybrid runs. This reference does not establish
+agreement for arbitrary compilers or longer integrations, and does not approve
+the separate Intel candidate. See [validation history](../../doc/validation.md).

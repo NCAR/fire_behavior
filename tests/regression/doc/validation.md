@@ -22,9 +22,12 @@ are unchanged; all eight new NetCDF outputs and four new settings files are
 byte-identical to their corresponding four-rank MPI cases.
 
 The requested extension is committed as the approved
-[github-pr-hybrid reference](../baselines/github-pr-hybrid/README.md), with
-72 NetCDF outputs and 36 settings files. The original `github-pr` reference
-is retained unchanged. Normal CI selects the expanded directory explicitly.
+[github-pr reference](../baselines/github-pr/README.md), with
+72 NetCDF outputs and 36 settings files. At Maria Frediani's request, the
+expanded reference now occupies the single `github-pr` directory; the earlier
+32-case version is preserved in Git history. Its manifest, approval, provenance,
+and 108 payload checksums are unchanged by the directory consolidation. Normal
+CI uses Strict's automatic selection of this shared reference.
 
 Derecho PBS `7823739.desched1` uses the automatic GNU 12.2 / Cray MPICH 8.1.25 /
 NetCDF 4.9.2 / ESMF 8.5.0 environment used by Pedro. All four Strict builds,

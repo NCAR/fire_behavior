@@ -26,7 +26,7 @@ tested GNU environments, not for every compiler or library combination.
 
 ### Reference selection
 
-`Strict` defaults to `tests/regression/baselines/github-pr-hybrid` for every
+`Strict` defaults to `tests/regression/baselines/github-pr` for every
 parallel configuration, including coupled hybrid. No separate OpenMP reference
 is needed. `--reference=DIRECTORY` selects another approved reference;
 `--no-reference` deliberately disables historical comparisons and prints a
@@ -54,8 +54,8 @@ per rank, use at least 16 allocated CPUs and a separate build directory:
 
 This selects eight model runs: four standalone cases and four coupled terrain
 cases. The complete four-build PR matrix has 36 runs and 40 cross-execution
-comparisons. The expanded reference includes the four coupled hybrid names;
-the older `github-pr` reference covers only the previous 32-run selection.
+comparisons. The shared `github-pr` reference includes all 36 names, including
+the four coupled hybrid cases.
 
 ## Run a suite
 

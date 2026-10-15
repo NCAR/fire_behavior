@@ -1,10 +1,14 @@
 {
   "source": {
-    "revision": "6cefd1545c3ddc993e26df4caa1d3ff9295037ba",
+    "revision": "4b6535d14db185c20d40f471873580311b1feb00",
     "changes": ""
   },
   "approval": "approved",
   "cases": {
+    "esmx_terrain_u10m_small_hybrid4": {
+      "directory": "esmx_terrain_u10m_small_hybrid4",
+      "settings": "esmx_terrain_u10m_small_hybrid4/settings.json"
+    },
     "esmx_terrain_u10m_small_mpi1": {
       "directory": "esmx_terrain_u10m_small_mpi1",
       "settings": "esmx_terrain_u10m_small_mpi1/settings.json"
@@ -12,6 +16,10 @@
     "esmx_terrain_u10m_small_mpi4": {
       "directory": "esmx_terrain_u10m_small_mpi4",
       "settings": "esmx_terrain_u10m_small_mpi4/settings.json"
+    },
+    "esmx_terrain_u3d_small_hybrid4": {
+      "directory": "esmx_terrain_u3d_small_hybrid4",
+      "settings": "esmx_terrain_u3d_small_hybrid4/settings.json"
     },
     "esmx_terrain_u3d_small_mpi1": {
       "directory": "esmx_terrain_u3d_small_mpi1",
@@ -21,6 +29,10 @@
       "directory": "esmx_terrain_u3d_small_mpi4",
       "settings": "esmx_terrain_u3d_small_mpi4/settings.json"
     },
+    "nuopc_terrain_u10m_small_hybrid4": {
+      "directory": "nuopc_terrain_u10m_small_hybrid4",
+      "settings": "nuopc_terrain_u10m_small_hybrid4/settings.json"
+    },
     "nuopc_terrain_u10m_small_mpi1": {
       "directory": "nuopc_terrain_u10m_small_mpi1",
       "settings": "nuopc_terrain_u10m_small_mpi1/settings.json"
@@ -28,6 +40,10 @@
     "nuopc_terrain_u10m_small_mpi4": {
       "directory": "nuopc_terrain_u10m_small_mpi4",
       "settings": "nuopc_terrain_u10m_small_mpi4/settings.json"
+    },
+    "nuopc_terrain_u3d_small_hybrid4": {
+      "directory": "nuopc_terrain_u3d_small_hybrid4",
+      "settings": "nuopc_terrain_u3d_small_hybrid4/settings.json"
     },
     "nuopc_terrain_u3d_small_mpi1": {
       "directory": "nuopc_terrain_u3d_small_mpi1",
@@ -135,24 +151,36 @@
     }
   },
   "checksums": {
+    "esmx_terrain_u10m_small_hybrid4/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
+    "esmx_terrain_u10m_small_hybrid4/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
+    "esmx_terrain_u10m_small_hybrid4/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
     "esmx_terrain_u10m_small_mpi1/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
     "esmx_terrain_u10m_small_mpi1/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
     "esmx_terrain_u10m_small_mpi1/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
     "esmx_terrain_u10m_small_mpi4/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
     "esmx_terrain_u10m_small_mpi4/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
     "esmx_terrain_u10m_small_mpi4/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
+    "esmx_terrain_u3d_small_hybrid4/fire_output_2020-01-01_00:01:00.nc": "d32eb6d33e894e45eebe7f05ae3bd34248005b1556b7c7abf6c205d56127ebd2",
+    "esmx_terrain_u3d_small_hybrid4/fire_output_2020-01-01_00:00:00.nc": "a4cc942ef30d986c3f6e98b137627e14cc225d8c259e480a61d757cc2b5a4966",
+    "esmx_terrain_u3d_small_hybrid4/settings.json": "1fc76e05a6475571aa706687842d6c54d472fa9de5ce0665f16dc10c316419b5",
     "esmx_terrain_u3d_small_mpi1/fire_output_2020-01-01_00:01:00.nc": "d32eb6d33e894e45eebe7f05ae3bd34248005b1556b7c7abf6c205d56127ebd2",
     "esmx_terrain_u3d_small_mpi1/fire_output_2020-01-01_00:00:00.nc": "a4cc942ef30d986c3f6e98b137627e14cc225d8c259e480a61d757cc2b5a4966",
     "esmx_terrain_u3d_small_mpi1/settings.json": "1fc76e05a6475571aa706687842d6c54d472fa9de5ce0665f16dc10c316419b5",
     "esmx_terrain_u3d_small_mpi4/fire_output_2020-01-01_00:01:00.nc": "d32eb6d33e894e45eebe7f05ae3bd34248005b1556b7c7abf6c205d56127ebd2",
     "esmx_terrain_u3d_small_mpi4/fire_output_2020-01-01_00:00:00.nc": "a4cc942ef30d986c3f6e98b137627e14cc225d8c259e480a61d757cc2b5a4966",
     "esmx_terrain_u3d_small_mpi4/settings.json": "1fc76e05a6475571aa706687842d6c54d472fa9de5ce0665f16dc10c316419b5",
+    "nuopc_terrain_u10m_small_hybrid4/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
+    "nuopc_terrain_u10m_small_hybrid4/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
+    "nuopc_terrain_u10m_small_hybrid4/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
     "nuopc_terrain_u10m_small_mpi1/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
     "nuopc_terrain_u10m_small_mpi1/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
     "nuopc_terrain_u10m_small_mpi1/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
     "nuopc_terrain_u10m_small_mpi4/fire_output_2020-01-01_00:01:00.nc": "c8d6e5427851eb108be0b6dc1652095c167e39f5e0c70fd9feeff06914a1db60",
     "nuopc_terrain_u10m_small_mpi4/fire_output_2020-01-01_00:00:00.nc": "65b748f13a3d655a4e1906d010372f855f8694db6bfa2a78473cf52e80ff1e41",
     "nuopc_terrain_u10m_small_mpi4/settings.json": "28e649dfea2c3ded14889617a7cbd7ea69f0cf9acca91102ee18d7cd92edc386",
+    "nuopc_terrain_u3d_small_hybrid4/fire_output_2020-01-01_00:01:00.nc": "d32eb6d33e894e45eebe7f05ae3bd34248005b1556b7c7abf6c205d56127ebd2",
+    "nuopc_terrain_u3d_small_hybrid4/fire_output_2020-01-01_00:00:00.nc": "a4cc942ef30d986c3f6e98b137627e14cc225d8c259e480a61d757cc2b5a4966",
+    "nuopc_terrain_u3d_small_hybrid4/settings.json": "1fc76e05a6475571aa706687842d6c54d472fa9de5ce0665f16dc10c316419b5",
     "nuopc_terrain_u3d_small_mpi1/fire_output_2020-01-01_00:01:00.nc": "d32eb6d33e894e45eebe7f05ae3bd34248005b1556b7c7abf6c205d56127ebd2",
     "nuopc_terrain_u3d_small_mpi1/fire_output_2020-01-01_00:00:00.nc": "a4cc942ef30d986c3f6e98b137627e14cc225d8c259e480a61d757cc2b5a4966",
     "nuopc_terrain_u3d_small_mpi1/settings.json": "1fc76e05a6475571aa706687842d6c54d472fa9de5ce0665f16dc10c316419b5",

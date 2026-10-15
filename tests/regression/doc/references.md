@@ -25,7 +25,7 @@ This creates an **unapproved** reference and never activates it. Build with
 `--no-reference` when generating a new candidate so the tests do not depend on
 an older baseline. The workflow's candidate-generation mode does this explicitly.
 
-`Strict` selects the bundled `github-pr-hybrid` reference by default for all
+`Strict` selects the bundled `github-pr` reference by default for all
 parallel configurations. Override it with
 `./compile.sh --reference="$TEST/references/APPROVED_ID"` or disable it with
 `--no-reference`. Direct CMake accepts `-DCFBM_REFERENCE=AUTO`, a directory,
@@ -39,8 +39,8 @@ SHA256 checksums are file fingerprints used to detect changed reference
 payloads. They establish data integrity, not scientific correctness. Numerical
 acceptance is described in the [comparison table](comparison.md). There are no
 automatic fallback reference directories. A case-name or scientific-setting
-change requires a new reviewed reference mapping, not edits to an existing
-immutable reference.
+change requires a newly generated and reviewed candidate. Replace the current
+`github-pr` only after approval; Git history preserves earlier versions.
 
 For the limits of current 60 s and 600 s evidence, see [validation
 history](validation.md).
@@ -52,7 +52,7 @@ MPI and hybrid, both including NUOPC/ESMX. Its 36 generated runs produce 40
 cross-execution comparisons. Unit checks run in each build. PRs targeting
 prerequisite branches are included, so a merge into `develop` is not needed.
 
-Normal Strict checks default to the [approved GitHub reference](../baselines/github-pr-hybrid/README.md)
+Normal Strict checks default to the [approved GitHub reference](../baselines/github-pr/README.md)
 committed for the complete PR suite. A missing or unapproved reference fails
 the check. To generate a future candidate, select **Run workflow** for
 **Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.
