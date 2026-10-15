@@ -21,12 +21,13 @@ Python test filenames end in _test.py. Use unittest discovery with -p '*_test.py
 and confirm that both Python test files are collected after any rename.
 Keep compile.sh responsible for build options, CTest responsible for test
 invocation, and cases.yaml responsible for the scientific cases and executions.
-Do not change scientific tolerances or legacy references to conceal failures.
+Do not change scientific tolerances or approved references to conceal failures.
 
 Documentation lives in doc/. Keep README.md as the entry point. Update the
 case figures and comparison table when scientific settings or outputs change.
 Read doc/contributing.md and doc/pr-checklist.md before extending the cases.
-Keep historical fixtures in ../legacy/ and preserve their reference data.
+The retired legacy suite is preserved in Git history. Keep historical validation
+records and document coverage not yet reproduced by generated cases.
 
 Use exact namelist names in cases.yaml. Cases own explicit configurations; do
 not add generic option-category expansion. Compare only matching case,

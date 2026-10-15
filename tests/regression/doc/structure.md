@@ -146,14 +146,12 @@ candidate. Normal test execution never refreshes the approved baseline. See
 | [python_harness_test.py](../tests/python_harness_test.py), [generator_comparator_test.py](../tests/generator_comparator_test.py) | Test the Python infrastructure using generated inputs and synthetic arrays |
 | [tests/unit/](../../unit/) | Fortran unit tests, registered separately from model cases |
 | [baselines/github-pr/](../baselines/github-pr/README.md) | Approved settings and output fields shared by all four builds |
-| [legacy/](../../legacy/README.md) | Preserve historical fixtures and comparisons |
 
 The model or coupler selects MPI decomposition from its communicator. Runtime
 rank/thread settings are separate from compilation. Namelist `num_tiles` and
 `tile_strategy` control within-rank tiling. CTest reserves ranks × threads and
 the PBS template runs CTest cases sequentially within the allocation.
 
-The archived [legacy tests](../../legacy/README.md) use a separate build route
-and are not run by the PBS template or GitHub workflow. Documentation files,
-case figures, and `doc/plot_cases.py` explain the tests but are not part of
-model execution.
+Documentation files, case figures, and `doc/plot_cases.py` explain the tests
+but are not part of model execution. The retired legacy suite is available
+only in Git history; see the [coverage comparison](advantages.md).

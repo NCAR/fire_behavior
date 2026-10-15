@@ -42,7 +42,7 @@ difference between one `compile.sh` call and the complete four-build matrix.
 | Understand terrain, fuel, ignition, winds, and timing | [Case configurations and figures](doc/cases.md) |
 | Follow the build/run flow and connections between files | [Execution overview and file relationships](doc/structure.md) |
 | Find every compared field and its acceptance rule | [Variable comparison table](doc/comparison.md) |
-| Understand improvements and remaining legacy coverage | [New and legacy tests](doc/advantages.md) |
+| Compare current coverage with the retired tests | [Current and retired tests](doc/advantages.md) |
 | Find outputs or prepare an unapproved reference | [Results and references](doc/references.md) |
 | Add or extend a case, namelist option, or output | [Contributor guide](doc/contributing.md) |
 | Prepare a model or regression change for review | [PR checklist](doc/pr-checklist.md) |
@@ -73,11 +73,10 @@ and uses the 60 s endpoint for acceptance. Intermediate-time and longer-run
 experiments are separate diagnostics, documented in the
 [validation history](doc/validation.md), rather than additional PR-suite gates.
 
-The original tests are preserved in [tests/legacy](../legacy/README.md), including
-`testx`, whose ESMX_Data feedback configuration is not replaced by the generated
-cases. They do not run in CI or in the PBS template. For historical
-investigations, use `compile_legacy.sh` with separate build/install directories.
-Coverage limits and postponed investigations are recorded in
+The legacy test scripts, fixtures, and build route have been retired. Their
+source and reference data remain in [Git history](https://github.com/NCAR/fire_behavior/tree/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy).
+The former `testx` ESMX_Data feedback configuration is not covered by the
+generated cases. Coverage limits and postponed investigations are recorded in
 [deferred work](doc/deferred.md).
 
 ## Python style

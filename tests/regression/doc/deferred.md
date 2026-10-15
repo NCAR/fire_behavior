@@ -4,8 +4,8 @@
 
 These items are outside the current generated matrix. PR acceptance uses the
 60 s endpoint; intermediate-time and longer-run agreement are not additional
-gates. Keep the relevant legacy tests and diagnostic artifacts as evidence of
-coverage limits.
+gates. The retired legacy suite remains in Git history. Preserve diagnostic
+artifacts as evidence of coverage limits.
 
 | Item | What remains to be established |
 | --- | --- |
@@ -14,13 +14,13 @@ coverage limits.
 | Humidity interpretation | Scientific review associated with PR #46 is independent of reproducibility; current moisture remains enabled. |
 | Restart | Restart continuity, restart inputs, and segmented-run comparisons. |
 | PR #39 changes and method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
-| ESMX_Data feedback | The generated coupled cases use WRF-data forcing. Legacy `testx` still exercises a distinct feedback fixture. |
+| ESMX_Data feedback | The generated coupled cases use WRF-data forcing. The retired `testx` exercised a distinct feedback fixture that still needs a generated replacement. |
 | Coupled OpenMP-only | MPI and hybrid NUOPC/ESMX are included in the PR matrix. Coupled runs using an OpenMP-only build remain outside this selection. |
 | Atmospheric hosts | WRF/UFS host integrations, including UFS mass-centred winds and any future staggered interpolation option. |
 | SB40 fuels | Native model support, documented option value, input generation, and physical output checks. A crosswalk table alone is insufficient. |
 | Diagnostic output levels | The default inventory has 19 fields; higher-level diagnostics need explicit inventory and behavior checks. |
 | Historical acceptance | No reference is approved or activated by a generated cross-execution pass. Reference approval remains a separate recorded decision. |
 
-The original legacy comparisons remain unchanged. Their current failures and
-timing-related diagnosis are recorded in [validation.md](validation.md); this
-refactor does not update references or relax acceptance rules to make them pass.
+Historical legacy comparison failures and their timing-related diagnosis are
+recorded in [validation.md](validation.md). Retiring that suite does not resolve
+those failures or establish coverage of its ESMX_Data feedback configuration.
