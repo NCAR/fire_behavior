@@ -14,7 +14,7 @@ artifacts as evidence of coverage limits.
 | Humidity interpretation | Scientific review associated with PR #46 is independent of reproducibility; current moisture remains enabled. |
 | Restart | Restart continuity, restart inputs, and segmented-run comparisons. |
 | PR #39 changes and method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
-| ESMX_Data feedback | The generated coupled cases use WRF-data forcing. The retired `testx` exercised a distinct feedback fixture that still needs a generated replacement. |
+| ESMX_Data and received feedback | The generated coupled cases use WRF-data forcing and include the return exchange. The retired `testx` used ESMX_Data with prescribed atmospheric fields and fire-feedback imports. That component configuration and explicit numerical checks of received feedback fields remain future work; see [issue #58](https://github.com/NCAR/fire_behavior/issues/58). |
 | Coupled OpenMP-only | MPI and hybrid NUOPC/ESMX are included in the PR matrix. Coupled runs using an OpenMP-only build remain outside this selection. |
 | Atmospheric hosts | WRF/UFS host integrations, including UFS mass-centred winds and any future staggered interpolation option. |
 | SB40 fuels | Native model support, documented option value, input generation, and physical output checks. A crosswalk table alone is insufficient. |

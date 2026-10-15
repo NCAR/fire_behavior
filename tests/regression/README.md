@@ -75,8 +75,10 @@ experiments are separate diagnostics, documented in the
 
 The legacy test scripts, fixtures, and build route have been retired. Their
 source and reference data remain in [Git history](https://github.com/NCAR/fire_behavior/tree/26d57b64d9e5b9356f791d63e0c2461d5e67308a/tests/legacy).
-The former `testx` ESMX_Data feedback configuration is not covered by the
-generated cases. Coverage limits and postponed investigations are recorded in
+The former `testx` ESMX_Data configuration is not covered by the generated
+cases. Its replacement and numerical checks of received feedback fields are
+tracked in [issue #58](https://github.com/NCAR/fire_behavior/issues/58).
+Coverage limits and postponed investigations are recorded in
 [deferred work](doc/deferred.md).
 
 ## Python style
