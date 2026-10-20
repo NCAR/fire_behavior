@@ -332,6 +332,7 @@
       character (len = :), allocatable :: file_restart
       integer (kind = INT32) :: att_int, restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second, &
           start_year, start_month, start_day, start_hour, start_minute, start_second
+      integer (kind = INT32) :: perimeter_ignited
       integer :: ij, expected_sr_x, expected_sr_y, ierr, rank
       logical, parameter :: DEBUG_LOCAL = .false.
 
@@ -415,6 +416,10 @@
         call Get_netcdf_att (file_restart, 'global', 'restart_minute', restart_minute)
         call Get_netcdf_att (file_restart, 'global', 'restart_second', restart_second)
 
+        call Get_netcdf_att (file_restart, 'global', 'fire_perimeter_ignited', perimeter_ignited)
+        if (perimeter_ignited /= 0 .and. perimeter_ignited /= 1) &
+            call Stop_simulation ('Restart fire_perimeter_ignited must be 0 or 1')
+
         call Get_netcdf_att (file_restart, 'global', 'itimestep', att_int)
       end if
 
@@ -432,6 +437,8 @@
       call Broadcast_restart_integer (this, restart_second)
       call Broadcast_restart_integer (this, att_int)
       this%itimestep = att_int
+      call Broadcast_restart_integer (this, perimeter_ignited)
+      this%fire_perimeter_ignited = perimeter_ignited == 1
 
       this%datetime_start = datetime_t (start_year, start_month, start_day, start_hour, start_minute, start_second)
       this%datetime_now = datetime_t (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
@@ -781,6 +788,8 @@
         call Add_netcdf_att (file_restart, 'global', 'restart_minute', int (restart_minute, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'restart_second', int (restart_second, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'itimestep', int (this%itimestep, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fire_perimeter_ignited', &
+            int (merge (1, 0, this%fire_perimeter_ignited), kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'nx', int (this%nx, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'ny', int (this%ny, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'dt', real (this%dt, kind = REAL32))
