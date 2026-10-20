@@ -1,0 +1,138 @@
+{
+  "start": "2020-01-01_00:00:00",
+  "duration_seconds": 60,
+  "namelist": {
+    "time": {
+      "dt": 4,
+      "interval_output": 60,
+      "num_tiles": 4,
+      "tile_strategy": 3
+    },
+    "atm": {
+      "interval_atm": 4
+    },
+    "fire": {
+      "fire_num_ignitions": 1,
+      "fire_ignition_ros1": 250.0,
+      "fire_ignition_radius1": 500.0,
+      "fire_ignition_start_time1": 8.0,
+      "fire_ignition_end_time1": 2.0,
+      "fire_is_real_perim": true,
+      "fire_upwinding": 9,
+      "fire_upwinding_reinit": 4,
+      "fire_lsm_reinit": true,
+      "fire_lsm_reinit_iter": 1,
+      "reinit_pseudot_coef": 0.0001,
+      "fire_wind_height": 6.096,
+      "wind_vinterp_opt": 0,
+      "hinterp_opt": 2,
+      "fmoist_run": true,
+      "fmoist_freq": 1,
+      "fmoist_dt": 4.0,
+      "fuelmc_g": 0.08,
+      "fuelmc_g_live": 0.3,
+      "ideal_opt": 0,
+      "devel_opt": 1,
+      "fuel_opt": 1,
+      "fmc_opt": -1,
+      "fire_ignition_start_lat1": 40.0,
+      "fire_ignition_start_lon1": -105.0,
+      "fire_ignition_end_lat1": 40.0,
+      "fire_ignition_end_lon1": -105.0
+    },
+    "devel": {
+      "check_isolated_neg_lfn": 2,
+      "output_level": 0
+    }
+  },
+  "inputs": {
+    "grid": {
+      "nx": 72,
+      "ny": 72,
+      "dx_m": 100.0,
+      "dy_m": 100.0,
+      "sr_x": 1,
+      "sr_y": 1,
+      "axis_order": "NetCDF (Time,south_north,west_east); Fortran (west_east,south_north)"
+    },
+    "projection": {
+      "cen_lat": 40.0,
+      "cen_lon": -105.0,
+      "stand_lon": -105.0,
+      "true_lat_1": 30.0,
+      "true_lat_2": 60.0,
+      "map_proj": 1
+    },
+    "terrain": {
+      "kind": "sinusoidal",
+      "base_elevation_m": 1600.0,
+      "amplitude_m": 150.0,
+      "wavelength_x_m": 6000.0,
+      "wavelength_y_m": 6000.0,
+      "ideal_dz_dx": 0.0,
+      "ideal_dz_dy": 0.0
+    },
+    "fuel": {
+      "family": "Anderson13",
+      "uniform_category": 3,
+      "categories": [
+        7,
+        3,
+        6,
+        5,
+        1,
+        13,
+        2,
+        12,
+        10,
+        11,
+        9,
+        8
+      ],
+      "strip_axis": "south_north"
+    },
+    "ignition": {
+      "kind": "perimeter",
+      "center_x_fraction": 0.5,
+      "center_y_fraction": 0.5,
+      "line_x_fraction": 0.35,
+      "line_y_start_fraction": 0.25,
+      "line_y_end_fraction": 0.75
+    },
+    "atmosphere": {
+      "wind_terrain_gradient_per_m": 0.001,
+      "u10_m_s": 10.0,
+      "v10_m_s": 10.0,
+      "temperature_start_k": 300.0,
+      "temperature_end_k": 302.0,
+      "mixing_ratio_start_kg_kg": 0.008,
+      "mixing_ratio_end_kg_kg": 0.004,
+      "surface_pressure_pa": 90000.0,
+      "accumulated_rain_start_mm": 0.0,
+      "accumulated_rain_end_mm": 0.0,
+      "vertical_levels_stag": 5,
+      "roughness_length_min_m": 0.05,
+      "roughness_length_max_m": 0.25,
+      "height_interfaces_m": [
+        0.0,
+        20.0,
+        60.0,
+        120.0,
+        200.0
+      ],
+      "u_profile_m_s": [
+        10.0,
+        14.0,
+        18.0,
+        22.0
+      ],
+      "v_profile_m_s": [
+        10.0,
+        6.0,
+        2.0,
+        -2.0
+      ]
+    }
+  },
+  "end": "2020-01-01_00:01:00"
+}

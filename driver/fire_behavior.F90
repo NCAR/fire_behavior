@@ -85,6 +85,9 @@
 
       call grid%Check_model_clock ()
 
+      ! Save the forcing used for the completed interval, as in the NUOPC cap.
+      ! Refresh atmospheric fields afterward for the next fire advance.
+
       call grid%Handle_output (config_flags)
       if (config_flags%ideal_opt == 0) call grid%Handle_wrfdata_update (atm_state, config_flags)
 

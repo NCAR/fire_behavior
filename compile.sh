@@ -14,7 +14,7 @@ usage () {
   printf "      build directory\n"
   printf "  --build-type=BUILD_TYPE\n"
   printf "      build type; valid options are 'debug', 'release',\n"
-  printf "      'relWithDebInfo'\n"
+  printf "      'relWithDebInfo', 'strict' (GNU Fortran only)\n"
   printf "  --build-jobs=BUILD_JOBS\n"
   printf "      number of jobs used for building esmx and components\n"
   printf "  --mpi-off\n"
@@ -30,7 +30,12 @@ usage () {
   printf "  --verbose, -v\n"
   printf "      build with verbose output\n"
   printf "  --test[=TEST_NAME], -t[=TEST_NAME]\n"
-  printf "      run tests\n"
+  printf "      run one exact test name, or the quick suite\n"
+  printf "  --test-suite=quick|pr|full|unit\n"
+  printf "  --reference=DIRECTORY\n"
+  printf "      override the reference; strict defaults to the bundled PR baseline\n"
+  printf "  --no-reference\n"
+  printf "      disable historical reference comparisons (prints a warning)\n"
   printf "  --clean\n"
   printf "      delete build and install directories\n"
   printf "\n"
@@ -76,12 +81,14 @@ BUILD_DIR="${FIRE_DIR}/build"
 BUILD_TYPE="release"
 BUILD_JOBS=""
 INSTALL_PREFIX="${FIRE_DIR}/install"
+REFERENCE="AUTO"
 MPI=true
 NUOPC=false
 ESMX=false
 VERBOSE=false
 TEST=false
 TEST_NAME=""
+TEST_SUITE="quick"
 CLEAN=false
 OPENMP=false
 
@@ -128,6 +135,10 @@ while :; do
     --verbose|-v) VERBOSE=true ;;
     --verbose=?*) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
     --verbose=) printf "ERROR: $1 argument ignored.\n"; usage; exit 1 ;;
+    --test-suite=?*) TEST=true; TEST_SUITE=${1#*=} ;;
+    --reference=?*) REFERENCE=${1#*=} ;;
+    --no-reference) REFERENCE="" ;;
+    --reference|--reference=) printf "ERROR: $1 requires a directory.\n"; exit 1 ;;
     --test|-t) TEST=true ;;
     --test=?*|-t=?*) TEST=true; TEST_NAME=${1#*=} ;;
     --test=) TEST=true ;;
@@ -165,7 +176,7 @@ fi
 if [ "${ENV_AUTO}" = true ] ; then
   case ${SYSTEM} in
     cheyenne) AUTOFILE="${ENV_DIR}/cheyenne/gnu-10.1.0";;
-    derecho) AUTOFILE="${ENV_DIR}/derecho/gnu-12.2.0";;
+    derecho|dec) AUTOFILE="${ENV_DIR}/derecho/gnu-12.2.0";;
     *) printf "ERROR: unspecified --env-auto for ${SYSTEM}\n"; exit 1 ;;
   esac
   if [ -f "${AUTOFILE}" ]; then
@@ -194,7 +205,15 @@ if [ "${CLEAN}" = true ]; then
 fi
 
 # generate
-CMAKE_SETTINGS=("")
+# Pass the selection every time so a reused build cannot retain an old override.
+if [[ -n "${REFERENCE}" && "${REFERENCE}" != AUTO ]]; then
+  REFERENCE=$(realpath "${REFERENCE}")
+fi
+CMAKE_SETTINGS=("-DCFBM_TEST_SYSTEM=generated"
+                "-DCFBM_REFERENCE:STRING=${REFERENCE}")
+if [ -n "${CFBM_PYTHON:-}" ]; then
+  CMAKE_SETTINGS+=("-DPython3_EXECUTABLE:FILEPATH=${CFBM_PYTHON}")
+fi
 if [ ! -z "${BUILD_TYPE}" ]; then
   CMAKE_SETTINGS+=("-DCMAKE_BUILD_TYPE=${BUILD_TYPE}")
 fi
@@ -222,7 +241,7 @@ if [ "${OPENMP}" = true ]; then
 else
   CMAKE_SETTINGS+=("-DOPENMP=OFF")
 fi
-cmake -S${FIRE_DIR} -B${BUILD_DIR} ${CMAKE_SETTINGS[@]}
+cmake -S "${FIRE_DIR}" -B "${BUILD_DIR}" "${CMAKE_SETTINGS[@]}"
 if [ "$?" !=  "0" ]; then
   echo "$0 Failed: (cmake)"
   exit -1
@@ -264,19 +283,22 @@ if [ "${ESMX}" = true ]; then
   fi
 fi
 
-# test
-TEST_SETTINGS=("")
-if [ "${VERBOSE}" = true ]; then
-  TEST_SETTINGS=("--output-on-failure")
-  TEST_SETTINGS=("--verbose")
-fi
-if [ ! -z "${TEST_NAME}" ]; then
-  TEST_SETTINGS+=("--tests-regex ${TEST_NAME}")
-fi 
+# Run named CTest selections with the Python chosen during configuration.
 if [ "${TEST}" = true ]; then
-  ctest --test-dir ${BUILD_DIR}/tests ${TEST_SETTINGS[@]} 
-  if [ "$?" !=  "0" ]; then
-    echo "$0 Failed: (ctest)"
-    exit -6
+  PYTHON_EXE=""
+  while IFS='=' read -r KEY VALUE; do
+    case "${KEY}" in
+      Python3_EXECUTABLE:FILEPATH|_Python3_EXECUTABLE:INTERNAL) PYTHON_EXE=${VALUE} ;;
+    esac
+  done < "${BUILD_DIR}/CMakeCache.txt"
+  if [ -z "${PYTHON_EXE}" ]; then
+    printf 'ERROR: CMake did not record a Python interpreter.\n'
+    exit 1
   fi
+  TEST_SETTINGS=(--suite "${TEST_SUITE}")
+  if [ -n "${TEST_NAME}" ]; then
+    TEST_SETTINGS+=(--test "${TEST_NAME}")
+  fi
+  "${PYTHON_EXE}" -B "${FIRE_DIR}/tests/regression/regression.py" suite \
+    --build-dir "${BUILD_DIR}" --run-root "${BUILD_DIR}/suite-runs" "${TEST_SETTINGS[@]}"
 fi

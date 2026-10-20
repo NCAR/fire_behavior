@@ -17,6 +17,12 @@ print_fire_settings()
 # preprocessor options
 set(CMAKE_CPP_FLAGS "-nostdinc -C -P -w")
 
+# Strict is a separate GNU configuration; existing build types are unchanged.
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _fire_build_type)
+if(_fire_build_type STREQUAL "STRICT" AND NOT CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+  message(FATAL_ERROR "The Strict build type requires GNU Fortran")
+endif()
+
 # compiler options
 if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
@@ -28,6 +34,8 @@ elseif(CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
   set(CMAKE_Fortran_FLAGS_RELWITHDEBINFO "-g -fbacktrace -02")
   set(CMAKE_Fortran_FLAGS_DEBUG "-g -fbacktrace -O0 -Wall -fcheck=all -ffpe-trap=invalid,zero,overflow,underflow -finit-real=nan")
   set(CMAKE_Fortran_FLAGS "-std=f2008 -ffree-form -ffree-line-length-none -fall-intrinsics")
+  # Preserve floating-point evaluation across the tested GNU environments.
+  set(CMAKE_Fortran_FLAGS_STRICT "-O2 -fno-fast-math -ffp-contract=off -fprotect-parens -frounding-math")
 else()
   message(WARNING "${CMAKE_Fortran_COMPILER_ID} Fortran compiler will be used with default options")
 endif()

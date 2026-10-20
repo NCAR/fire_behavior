@@ -1,5 +1,7 @@
   module state_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL32, REAL64
+
 #ifdef DM_PARALLEL
     use mpi
 #endif
@@ -9,6 +11,7 @@
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
+    use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
     use namelist_mod, only : namelist_t
     use netcdf_mod, only : Create_netcdf_file, Add_netcdf_dim, Add_netcdf_var, Add_netcdf_var_mpi, &
         NAME_DIM_X, NAME_DIM_Y, NF90_FILL_FLOAT
@@ -60,9 +63,10 @@
       real, dimension(:, :), allocatable :: flame_length ! "fire flame length" "m"
       real, dimension(:, :), allocatable :: ros_front ! "rate of spread at fire front" "m/s"
       real, dimension(:, :), allocatable :: tign_g ! "ignition time on ground" "s"
-      real, dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
+      ! Retain small consumption increments when subtracting nearly-one fractions.
+      real(REAL64), dimension(:, :), allocatable :: fuel_frac ! "fuel remaining" "1"
       real, dimension(:, :), allocatable :: fire_area ! "fraction of cell area on fire" "1"
-      real, dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
+      real(REAL64), dimension(:, :), allocatable :: fuel_frac_burnt_dt ! "fraction of fuel burnt on current dt" "-"
       real, dimension(:, :), allocatable :: fgrnhfx ! "heat flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fgrnqfx ! "moisture flux from ground fire" "W/m^2"
       real, dimension(:, :), allocatable :: fcanhfx ! "heat flux from crown fire" "W/m^2"
@@ -114,6 +118,7 @@
       logical :: is_restart_output_initialized = .false.
         ! Resolved initialization path; supplied grid data can override ideal_opt.
       integer :: init_mode = INIT_MODE_NONE
+      logical :: fire_perimeter_ignited = .false.
 
         ! For MPI tasks
       integer :: cfbm_comm ! The MPI communicator before the domain decomposition
@@ -132,6 +137,8 @@
       procedure, public :: Init_fuel_vars => Init_fuel_vars
       procedure, public :: Initialization => Init_domain
       procedure, public :: Init_ignition_lines => Init_ignition_lines
+      procedure, public :: Init_fire_perimeter => Init_fire_perimeter
+      procedure, public :: Ignite_fire_perimeter => Ignite_fire_perimeter
       procedure :: Init_latlons => Init_latlons
       procedure :: Init_tiles => Init_tiles
       procedure :: Init_tiles_in_wrf => Init_tiles_in_wrf
@@ -345,6 +352,8 @@
 
       if (DEBUG_LOCAL) call Print_message ('Entering Handle_wrfdata_update...')
 
+      ! Check_nml requires aligned update times for this equality-based schedule.
+      ! Intentional skips and output/restart timing need a separate scheduling review.
       If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
         if (DEBUG_LOCAL) call Print_message ('  Updating WRF atm state...')
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
@@ -668,9 +677,9 @@
 
           if (config_flags%fire_is_real_perim) then
             if (allocated (geogrid%lfn_init)) then
-              this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe) = geogrid%lfn_init
+              call this%Init_fire_perimeter (geogrid%lfn_init, config_flags%fire_ignition_start_time1)
             else
-              Call Stop_simulation ('Attenting to initialize fire from given  perimeter but no initialization data present')
+              call Stop_simulation ('Attempting to initialize fire from a supplied perimeter without initialization data')
             end if
           end if
 
@@ -769,6 +778,56 @@
       call this%ignition_lines%Init (config_flags)
 
     end subroutine Init_ignition_lines
+
+    subroutine Init_fire_perimeter (this, lfn_initial, activation_time)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      real, dimension(:, :), intent (in) :: lfn_initial
+      real, intent (in) :: activation_time
+
+      real :: ignition_time
+      character (len = 160) :: msg
+
+
+      ! Check_nml admits only roundoff-sized offsets from a fire-step boundary.
+      ! Use that boundary for both initial activation and subsequent ignition.
+      ignition_time = anint (activation_time / this%dt) * this%dt
+      if (ignition_time /= activation_time) then
+        write (msg, '(a,es16.8,a,es16.8)') 'Perimeter ignition requested at ', activation_time, ' s; using ', ignition_time
+        call Print_message (msg)
+      end if
+
+      if (size (lfn_initial, 1) /= this%ifpe - this%ifps + 1 .or. &
+          size (lfn_initial, 2) /= this%jfpe - this%jfps + 1) &
+          call Stop_simulation ('Observed perimeter dimensions do not match the local fire patch')
+
+      this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe) = lfn_initial
+      this%fire_perimeter_ignited = .false.
+      ! A zero-time perimeter must already be present in the initial output.
+      if (ignition_time == 0.0) call this%Ignite_fire_perimeter (0.0)
+
+    end subroutine Init_fire_perimeter
+
+    subroutine Ignite_fire_perimeter (this, activation_time)
+
+      implicit none
+
+      class (state_fire_t), intent (in out) :: this
+      real, intent (in) :: activation_time
+
+
+      if (this%fire_perimeter_ignited) return
+
+      this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe) = &
+          this%lfn_hist(this%ifps:this%ifpe, this%jfps:this%jfpe)
+      where (this%lfn(this%ifps:this%ifpe, this%jfps:this%jfpe) <= 0.0)
+        this%tign_g(this%ifps:this%ifpe, this%jfps:this%jfpe) = activation_time
+      end where
+      this%fire_perimeter_ignited = .true.
+
+    end subroutine Ignite_fire_perimeter
 
     subroutine Init_latlons (this, proj, srx, sry)
 
@@ -901,19 +960,35 @@
       if (.not. allocated (this%lats) .or. .not. allocated (this%lons)) &
           call Stop_simulation ('Init lats/lons before calling hinterp atm variables')
 
+      ! The vertical wind profile uses roughness interpolated to the fire grid.
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'ua', config_flags%hinterp_opt, this%uf)
+          'z0', config_flags%hinterp_opt, this%fz0)
 
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'va', config_flags%hinterp_opt, this%vf)
+      select case (config_flags%wind_vinterp_opt)
+        case (VINTERP_WINDS_FROM_3D_WINDS)
+          call wrf%Interp_winds2grid (this%lats, this%lons, this%fz0, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%ifps, this%ifpe, this%jfps, this%jfpe, this%num_tiles, &
+              this%i_start, this%i_end, this%j_start, this%j_end, config_flags, this%uf, this%vf)
 
-      if (config_flags%wind_vinterp_opt == 1) then
-        call this%Apply_wafs ()
-        call wrf%Destroy_u10 ()
-        call wrf%Destroy_v10 ()
-      end if
+        case (VINTERP_WINDS_FROM_10M_WINDS)
+          ! Map the loaded 10 m winds directly, then apply fuel wind adjustment.
+          call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+              'u10', config_flags%hinterp_opt, this%uf)
+
+          call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
+              this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
+              'v10', config_flags%hinterp_opt, this%vf)
+
+          call this%Apply_wafs ()
+          call wrf%Destroy_u10 ()
+          call wrf%Destroy_v10 ()
+
+        case default
+          call Stop_simulation ('Error: wrong wind_vinterp_opt')
+
+      end select
 
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
@@ -930,10 +1005,6 @@
       call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
           this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
           'rain', config_flags%hinterp_opt, this%fire_rain)
-
-      call wrf%Interp_var2grid (this%lats, this%lons, this%ifms, this%ifme, this%jfms, this%jfme, &
-          this%num_tiles, this%i_start, this%i_end, this%j_start, this%j_end, &
-          'z0', config_flags%hinterp_opt, this%fz0)
 
       call wrf%Destroy_z0 ()
 
@@ -1034,11 +1105,11 @@
           this%fire_area(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'fire-area fraction within cell')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac_burnt_dt', &
-          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', &
+          real(this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe), REAL32), NF90_FILL_FLOAT, '1', &
           'fuel fraction burned during current fire timestep')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac', &
-          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, '1', 'remaining fuel fraction')
+          real(this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe), REAL32), NF90_FILL_FLOAT, '1', 'remaining fuel fraction')
 
       call Add_netcdf_var_mpi (file_output, this%cfbm_comm, this%nx, this%ny, this%ifps, this%ifpe, this%jfps, this%jfpe, 'emis_smoke', &
           this%emis_smoke(this%ifps:this%ifpe, this%jfps:this%jfpe), NF90_FILL_FLOAT, 'kg m-2', &
