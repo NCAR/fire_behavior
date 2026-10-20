@@ -461,9 +461,13 @@
       call Read_restart_field (file_restart, 'lfn_s3', this%lfn_s3)
       call Read_restart_field (file_restart, 'lfn_out', this%lfn_out)
       call Read_restart_field (file_restart, 'tign_g', this%tign_g)
-      call Read_restart_field (file_restart, 'fuel_frac', this%fuel_frac)
+      call Get_netcdf_var_mpi (file_restart, this%cfbm_comm, this%nx, this%ny, &
+          this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac', &
+          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe))
       call Read_restart_field (file_restart, 'fire_area', this%fire_area)
-      call Read_restart_field (file_restart, 'fuel_frac_burnt_dt', this%fuel_frac_burnt_dt)
+      call Get_netcdf_var_mpi (file_restart, this%cfbm_comm, this%nx, this%ny, &
+          this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac_burnt_dt', &
+          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe))
       call Read_restart_field (file_restart, 'fgrnhfx', this%fgrnhfx)
       call Read_restart_field (file_restart, 'fgrnqfx', this%fgrnqfx)
       call Read_restart_field (file_restart, 'fcanhfx', this%fcanhfx)
@@ -527,9 +531,13 @@
         call Exchange_restart_field (this%lfn_s3)
         call Exchange_restart_field (this%lfn_out)
         call Exchange_restart_field (this%tign_g)
-        call Exchange_restart_field (this%fuel_frac)
+        call Do_halo_exchange_with_corners (this%fuel_frac, &
+            this%ifms, this%ifme, this%jfms, this%jfme, &
+            this%ifps, this%ifpe, this%jfps, this%jfpe, N_POINTS_IN_HALO, this%cart_comm)
         call Exchange_restart_field (this%fire_area)
-        call Exchange_restart_field (this%fuel_frac_burnt_dt)
+        call Do_halo_exchange_with_corners (this%fuel_frac_burnt_dt, &
+            this%ifms, this%ifme, this%jfms, this%jfme, &
+            this%ifps, this%ifpe, this%jfps, this%jfpe, N_POINTS_IN_HALO, this%cart_comm)
         call Exchange_restart_field (this%fgrnhfx)
         call Exchange_restart_field (this%fgrnqfx)
         call Exchange_restart_field (this%fcanhfx)
@@ -831,9 +839,13 @@
       call Add_restart_field ('lfn_s3', this%lfn_s3)
       call Add_restart_field ('lfn_out', this%lfn_out)
       call Add_restart_field ('tign_g', this%tign_g)
-      call Add_restart_field ('fuel_frac', this%fuel_frac)
+      call Add_netcdf_var_mpi (file_restart, this%cfbm_comm, this%nx, this%ny, &
+          this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac', &
+          this%fuel_frac(this%ifps:this%ifpe, this%jfps:this%jfpe))
       call Add_restart_field ('fire_area', this%fire_area)
-      call Add_restart_field ('fuel_frac_burnt_dt', this%fuel_frac_burnt_dt)
+      call Add_netcdf_var_mpi (file_restart, this%cfbm_comm, this%nx, this%ny, &
+          this%ifps, this%ifpe, this%jfps, this%jfpe, 'fuel_frac_burnt_dt', &
+          this%fuel_frac_burnt_dt(this%ifps:this%ifpe, this%jfps:this%jfpe))
       call Add_restart_field ('fgrnhfx', this%fgrnhfx)
       call Add_restart_field ('fgrnqfx', this%fgrnqfx)
       call Add_restart_field ('fcanhfx', this%fcanhfx)

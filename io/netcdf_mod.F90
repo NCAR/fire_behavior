@@ -1,5 +1,6 @@
   module netcdf_mod
 
+    use, intrinsic :: iso_fortran_env, only : REAL64
     use netcdf, only : NF90_FILL_FLOAT
     use stderrout_mod, only : Stop_simulation, Print_message
     use mpi_mod, only : Gather_var2d, Distribute_global_var2d
@@ -20,11 +21,13 @@
 
     interface Add_netcdf_var
       module procedure Add_netcdf_var_real32_2d
+      module procedure Add_netcdf_var_real64_2d
       module procedure Add_netcdf_var_real32_3d
     end interface Add_netcdf_var
 
     interface Add_netcdf_var_mpi
       module procedure Add_netcdf_var_real32_2d_mpi
+      module procedure Add_netcdf_var_real64_2d_mpi
       module procedure Add_netcdf_var_real32_3d_mpi
     end interface Add_netcdf_var_mpi
 
@@ -32,6 +35,7 @@
       module procedure Get_netcdf_var_char_1d
       module procedure Get_netcdf_var_int32_3d
       module procedure Get_netcdf_var_real32_2d
+      module procedure Get_netcdf_var_real64_2d
       module procedure Get_netcdf_var_real32_3d
       module procedure Get_netcdf_var_real64_3d
       module procedure Get_netcdf_var_real32_4d
@@ -39,6 +43,7 @@
 
     interface Get_netcdf_var_mpi
       module procedure Get_netcdf_var_real32_2d_mpi
+      module procedure Get_netcdf_var_real64_2d_mpi
       module procedure Get_netcdf_var_real32_3d_mpi
     end interface Get_netcdf_var_mpi
 
@@ -213,6 +218,63 @@
 
     end subroutine Add_netcdf_var_real32_2d
 
+    subroutine Add_netcdf_var_real64_2d (file_name, name_dims, varname, var, fill_value, units, long_name)
+
+      use netcdf
+
+      implicit none
+
+      character (len = *), intent (in) :: file_name, varname
+      character (len = *), dimension(:), intent (in) :: name_dims
+      real (kind = REAL64), dimension(:, :), intent (in) :: var
+      real (kind = REAL64), intent (in), optional :: fill_value
+      character (len = *), intent (in), optional :: units, long_name
+
+      integer, parameter :: N_DIMS = 2
+      integer :: ncidout, status, varid, n
+      integer :: dimids(N_DIMS)
+
+
+      status = nf90_open (file_name, NF90_WRITE, ncidout)
+      call Check_status (status)
+
+      status = nf90_redef (ncidout)
+      call Check_status (status)
+
+      do n = 1, N_DIMS
+        status = nf90_inq_dimid(ncidout, name_dims(n), dimids(n))
+        call Check_status (status)
+      end do
+
+      status = nf90_inq_varid (ncidout, varname, varid)
+      if (status == NF90_ENOTVAR) then
+        status = nf90_def_var (ncidout, varname, NF90_DOUBLE, dimids, varid)
+        call Check_status (status)
+        if (present (fill_value)) then
+          status = nf90_put_att (ncidout, varid, '_FillValue', fill_value)
+          call Check_status (status)
+        end if
+        if (present (units)) then
+          status = nf90_put_att (ncidout, varid, 'units', units)
+          call Check_status (status)
+        end if
+        if (present (long_name)) then
+          status = nf90_put_att (ncidout, varid, 'long_name', long_name)
+          call Check_status (status)
+        end if
+      end if
+
+      status = nf90_enddef (ncidout)
+      call Check_status (status)
+
+      status = nf90_put_var (ncidout, varid, var)
+      call Check_status (status)
+
+      status = nf90_close (ncidout)
+      call Check_status (status)
+
+    end subroutine Add_netcdf_var_real64_2d
+
     subroutine Add_netcdf_var_real32_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local, &
         fill_value, units, long_name)
 
@@ -257,6 +319,51 @@
       if (DEBUG_LOCAL) call Print_message ('Leaving Add_netcdf_var_real32_2d_mpi...')
 
     end subroutine Add_netcdf_var_real32_2d_mpi
+
+    subroutine Add_netcdf_var_real64_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local, &
+        fill_value, units, long_name)
+
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+      implicit none
+
+      integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
+      character (len = *), intent (in) :: file_name, var_name
+      real (kind = REAL64), dimension(ifps:ifpe, jfps:jfpe), intent (in) :: var2d_local
+      real (kind = REAL64), intent (in), optional :: fill_value
+      character (len = *), intent (in), optional :: units, long_name
+
+      real (kind = REAL64), dimension(nx, ny) :: var2d
+      integer :: rank, ierr
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Add_netcdf_var_real64_2d_mpi...')
+
+      if (DEBUG_LOCAL) call Print_message ('file name = ' // trim (file_name))
+      if (DEBUG_LOCAL) call Print_message ('var name = ' // trim (var_name))
+      if (DEBUG_LOCAL) call Print_message ('dim X name = ' // trim (NAME_DIM_X))
+      if (DEBUG_LOCAL) call Print_message ('dim Y name = ' // trim (NAME_DIM_Y))
+
+#ifdef DM_PARALLEL
+      call Mpi_comm_rank (cfbm_comm, rank, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
+
+      call Gather_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_local(ifps:ifpe, jfps:jfpe), var2d)
+
+      if (rank == 0) then
+        call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d(1:nx, 1:ny), &
+            fill_value, units, long_name)
+      end if
+#else
+      call Add_netcdf_var (file_name, [NAME_DIM_X, NAME_DIM_Y], var_name, var2d_local(1:nx, 1:ny), &
+          fill_value, units, long_name)
+#endif
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Add_netcdf_var_real64_2d_mpi...')
+
+    end subroutine Add_netcdf_var_real64_2d_mpi
 
     subroutine Get_netcdf_var_real32_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local)
 
@@ -304,6 +411,53 @@
       if (DEBUG_LOCAL) call Print_message ('Leaving Get_netcdf_var_real32_2d_mpi...')
 
     end subroutine Get_netcdf_var_real32_2d_mpi
+
+    subroutine Get_netcdf_var_real64_2d_mpi (file_name, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var_name, var2d_local)
+
+#ifdef DM_PARALLEL
+      use mpi
+#endif
+      implicit none
+
+      character (len = *), intent (in) :: file_name, var_name
+      integer, intent (in) :: cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe
+      real (kind = REAL64), dimension(ifps:ifpe, jfps:jfpe), intent (out) :: var2d_local
+
+      real (kind = REAL64), dimension(:, :), allocatable :: var2d_global
+      character (len = :), allocatable :: msg
+      integer :: rank, ierr
+      logical, parameter :: DEBUG_LOCAL = .false.
+
+
+      if (DEBUG_LOCAL) call Print_message ('Entering Get_netcdf_var_real64_2d_mpi...')
+
+#ifdef DM_PARALLEL
+      call Mpi_comm_rank (cfbm_comm, rank, ierr)
+      if (ierr /= MPI_SUCCESS) call Stop_simulation ('Problems with Mpi_comm_rank ')
+
+      if (rank == 0) then
+        call Get_netcdf_var (file_name, var_name, var2d_global)
+        if (size (var2d_global, 1) /= nx .or. size (var2d_global, 2) /= ny) then
+          msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
+          call Stop_simulation (msg)
+        end if
+      end if
+
+      call Distribute_global_var2d (cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, var2d_global, var2d_local)
+#else
+      call Get_netcdf_var (file_name, var_name, var2d_global)
+      if (size (var2d_global, 1) /= nx .or. size (var2d_global, 2) /= ny) then
+        msg = 'NetCDF variable has unexpected dimensions: '//trim (var_name)
+        call Stop_simulation (msg)
+      end if
+      var2d_local(1:nx, 1:ny) = var2d_global(1:nx, 1:ny)
+#endif
+
+      if (allocated (var2d_global)) deallocate (var2d_global)
+
+      if (DEBUG_LOCAL) call Print_message ('Leaving Get_netcdf_var_real64_2d_mpi...')
+
+    end subroutine Get_netcdf_var_real64_2d_mpi
 
     subroutine Add_netcdf_var_real32_3d (file_name, name_dims, varname, var)
 
@@ -744,6 +898,61 @@
       call Check_status (status)
 
     end subroutine Get_netcdf_var_real32_2d
+
+    subroutine Get_netcdf_var_real64_2d (file_name, var_name, output)
+
+      use netcdf
+      use, intrinsic :: iso_fortran_env, only : REAL64
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, var_name
+      real (kind = REAL64), dimension (:, :), allocatable :: output
+
+      integer :: status, ncid, ivar, nf_type, nvdims
+      integer :: i, n1, n2, io_stat
+      integer, dimension(NF90_MAX_VAR_DIMS) :: dimids, idims
+      character (len = :), allocatable :: msg
+
+
+        ! Open file
+      status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
+      call Check_status (status)
+
+        ! Get var
+      status = nf90_inq_varid (ncid, trim (var_name), ivar)
+      call Check_status (status)
+      status = nf90_inquire_variable (ncid, ivar, xtype = nf_type, ndims = nvdims, dimids = dimids)
+      call Check_status (status)
+
+      if (nf_type == NF90_FLOAT .or. nf_type == NF90_DOUBLE) then
+        if (nvdims == 2) then
+          do i = 1, nvdims
+            status = nf90_inquire_dimension (ncid, dimids(i), len = idims(i))
+            call Check_status (status)
+          end do
+
+          n1 = idims(1)
+          n2 = idims(2)
+          allocate (output(n1, n2), stat = io_stat)
+          if (io_stat /= 0) Call Stop_simulation ('Problems allocating output variable')
+
+          status = nf90_get_var (ncid, ivar, output)
+          call Check_status (status)
+        else
+          msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a 2D array'
+          call Stop_simulation (msg)
+        end if
+      else
+        msg = 'FATAL ERROR: ' // trim (var_name) // ' is not a floating-point variable'
+        call Stop_simulation (msg)
+      end if
+
+        ! Closing file
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Get_netcdf_var_real64_2d
 
     subroutine Get_netcdf_var_real32_3d (file_name, var_name, output)
 
