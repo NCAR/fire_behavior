@@ -14,10 +14,25 @@
     type, abstract :: fmc_t
     contains
       procedure (Advance_fmc_model), deferred :: Advance_fmc_model
+      procedure (Add_restart_vars), deferred :: Add_restart_vars
       procedure (Init), deferred :: Init
     end type fmc_t
 
     abstract interface
+      subroutine Add_restart_vars (this, file_restart, cfbm_comm, nx, ny, ifps, ifpe, jfps, jfpe, rank)
+        import :: fmc_t
+        class (fmc_t), intent (in) :: this
+        character (len = *), intent (in) :: file_restart
+        integer, intent (in) :: cfbm_comm
+        integer, intent (in) :: nx
+        integer, intent (in) :: ny
+        integer, intent (in) :: ifps
+        integer, intent (in) :: ifpe
+        integer, intent (in) :: jfps
+        integer, intent (in) :: jfpe
+        integer, intent (in) :: rank
+      end subroutine Add_restart_vars
+
       subroutine Init (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
         import :: fmc_t, fuel_t
         class (fmc_t), intent (in out) :: this
