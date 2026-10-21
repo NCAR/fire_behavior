@@ -46,6 +46,9 @@ The PR #39 writer also saves method work arrays `lfn_0/1/2`, `lfn_s0/1/2/3`
 and unused crown fluxes `fcanhfx/fcanqfx`. Their values are not all initialized
 for these methods. They remain in the schema comparison but are explicitly
 listed as uncompared fields. Physical fields are not excluded to obtain a pass.
+`lfn_hist` is checked only for observed perimeters, whose initialization sets
+it; `fz0` and atmospheric forcing are checked only for real cases. Idealized
+runs do not use those atmospheric fields.
 Regular-output tolerances do not weaken the exact checkpoint-state comparison.
 
 The complete selection contains 15 cases across `serial`, `omp4`, `mpi1`,

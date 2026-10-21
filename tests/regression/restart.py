@@ -15,6 +15,7 @@ import copy
 import datetime as dt
 from pathlib import Path
 import shutil
+import subprocess
 from typing import Any
 
 import netCDF4
@@ -29,10 +30,10 @@ from reports import write_result
 # and unused crown fluxes fcanhfx/fcanqfx, are written by PR #39 but are not all
 # initialized for the selected methods. Their names remain in the schema check.
 STATE_FIELDS = {
-    "lfn", "lfn_hist", "lfn_out", "tign_g", "fuel_frac", "fuel_frac_burnt_dt",
-    "fire_area", "fgrnhfx", "fgrnqfx", "flame_length", "ros", "ros_front",
-    "emis_smoke", "fmc_g", "fuel_load_g", "fuel_time", "zsf", "dzdxf", "dzdyf",
-    "nfuel_cat", "uf", "vf", "fz0"
+    "lfn", "lfn_out", "tign_g", "fuel_frac", "fuel_frac_burnt_dt", "fire_area",
+    "fgrnhfx", "fgrnqfx", "flame_length", "ros", "ros_front", "emis_smoke",
+    "fmc_g", "fuel_load_g", "fuel_time", "zsf", "dzdxf", "dzdyf", "nfuel_cat",
+    "uf", "vf"
 }
 FORCING_FIELDS = {"fire_t2", "fire_q2", "fire_psfc", "fire_rain"}
 REAL64_FIELDS = {"fuel_frac", "fuel_frac_burnt_dt"}
@@ -67,8 +68,12 @@ def checkpoint_fields(spec: dict[str, Any]) -> set[str]:
     """Select physical fields whose owned cells must survive a restart exactly."""
     fields = set(STATE_FIELDS)
     fire = spec["namelist"]["fire"]
+    # Init_fire_perimeter alone initializes lfn_hist; ideal runs leave fz0
+    # unavailable. Neither is consumed by the corresponding excluded path.
+    if fire["fire_is_real_perim"]:
+        fields.add("lfn_hist")
     if fire["ideal_opt"] == 0:
-        fields |= FORCING_FIELDS
+        fields |= FORCING_FIELDS | {"fz0"}
     if fire["fmoist_run"]:
         fields |= {"fmc_gc"} | {f"{name}_old" for name in FORCING_FIELDS}
     return fields
@@ -218,7 +223,7 @@ def run_restarts(spec: dict[str, Any], directory: Path, command: list[str],
             record = run_model(command, segment, environment,
                                spec["execution"]["timeout_seconds"],
                                "standalone")
-        except (OSError, RuntimeError) as error:
+        except (OSError, RuntimeError, subprocess.SubprocessError) as error:
             record = {"reasons": [f"{type(error).__name__}: {error}"]}
         record.update(directory=str(segment),
                       begin_seconds=begin,

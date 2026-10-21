@@ -244,7 +244,7 @@ def compare_file(
     volatile_global_attributes: set[str] | None = None,
     required_fields: set[str] | None = None,
 ) -> dict[str, Any]:
-    """Compare two NetCDF files and every field under the fixed policy."""
+    """Compare full schemas and all fields, or an explicit required-field subset."""
     result: dict[str, Any] = {
         "reference":
             str(reference_path),

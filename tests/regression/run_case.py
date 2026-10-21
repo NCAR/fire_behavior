@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from typing import Any
@@ -21,7 +22,7 @@ import yaml
 
 from check_outputs import expected_output_names, validate_outputs
 from config import load_yaml, resolve_spec
-from generate_inputs import generate_inputs
+from generate_inputs import generate_inputs, sha256_file
 from render_namelist import render_namelist
 from reports import print_result, write_result
 
@@ -145,7 +146,14 @@ def run_case(args: Any) -> dict[str, Any]:
         "driver": args.driver,
         "pass": False,
         "reasons": [],
-        "source": source_identity()
+        "source": source_identity(),
+        "executable": str(executable),
+        "executable_sha256": sha256_file(executable),
+        "environment": {
+            "python": sys.executable,
+            "PBS_JOBID": os.environ.get("PBS_JOBID"),
+            "LOADEDMODULES": os.environ.get("LOADEDMODULES")
+        }
     }
     started = time.monotonic()
     try:

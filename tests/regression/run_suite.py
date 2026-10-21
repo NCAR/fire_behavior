@@ -173,6 +173,10 @@ def run_suite(args: Any) -> dict[str, Any]:
             result["restart"]["pass"],
         "segments":
             len(result["restart"]["segments"]),
+        "completed_segments":
+            sum(item["pass"] for item in result["restart"]["segments"]),
+        "model_invocations":
+            1 + len(result["restart"]["segments"]),
         "comparisons":
             len(result["restart"]["comparisons"]),
         "failed_comparisons":
