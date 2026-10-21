@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import datetime as dt
 import math
+import struct
 from pathlib import Path
 from typing import Any
 
@@ -312,6 +313,27 @@ def registrations(document: dict[str, Any], variant: str,
     return list(records.values())
 
 
+def resolved_clock(spec: dict[str, Any]) -> tuple[int, int]:
+    """Resolve integer seconds/steps using the production clock's rounding rule."""
+    time = spec["namelist"]["time"]
+    step = struct.unpack("f", struct.pack("f", time["dt"]))[0]
+    intervals = [
+        time["interval_output"], spec["namelist"]["atm"]["interval_atm"],
+        time.get("restart_interval", -1)
+    ]
+    if any(value != int(value) for value in intervals):
+        raise ValueError(
+            "Output and forcing timestamps require integer seconds")
+    common = math.gcd(*(int(value) for value in intervals if value > 0))
+    ratio = common / step
+    count = round(ratio)
+    if count < 1 or abs(ratio - count) > min(0.01, 5.0e-6 * ratio):
+        raise ValueError(
+            "Schedule must be an integer number of model timesteps")
+    divisor = math.gcd(common, count)
+    return common // divisor, count // divisor
+
+
 def validate_spec(spec: dict[str, Any]) -> None:
     """Reject unsupported scientific combinations and misaligned schedules."""
     nml, inputs = spec["namelist"], spec["inputs"]
@@ -320,16 +342,10 @@ def validate_spec(spec: dict[str, Any]) -> None:
     step = _require_number(time, "dt", 1.0e-12, "time")
     output = _require_number(time, "interval_output", step, "time")
     forcing_interval = _require_number(nml["atm"], "interval_atm", step, "atm")
-    for value in (duration, step, output, forcing_interval):
-        if abs(value / step - round(value / step)) > 1.0e-10:
-            raise ValueError(
-                "Schedule must be an integer number of model timesteps")
-    # Output names and forcing Times have whole-second precision; the model
-    # timestep may be fractional provided every scheduled time aligns with it.
-    if any(value != int(value)
-           for value in (duration, output, forcing_interval)):
+    seconds, steps = resolved_clock(spec)
+    if duration != int(duration) or int(duration) * steps % seconds:
         raise ValueError(
-            "Output and forcing timestamps require integer seconds")
+            "Schedule must be an integer number of model timesteps")
     for interval in (output, forcing_interval):
         if abs(duration / interval - round(duration / interval)) > 1.0e-10:
             raise ValueError(
@@ -337,7 +353,7 @@ def validate_spec(spec: dict[str, Any]) -> None:
     if "restart_splits" in spec:
         splits = spec["restart_splits"]
         interval = _require_number(time, "restart_interval", step, "time")
-        if interval / step != round(interval / step):
+        if int(interval) * steps % seconds:
             raise ValueError(
                 "restart_interval must align with the fire timestep")
         if (not isinstance(splits, list) or not splits or any(

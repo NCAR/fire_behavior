@@ -10,6 +10,7 @@ from typing import Any
 import netCDF4
 import numpy as np
 from generate_inputs import DATE_FORMAT
+from config import resolved_clock
 
 OUTPUT_METADATA = {
     "lats": ("degrees_north", "fire-grid cell-center latitude"),
@@ -255,8 +256,52 @@ def validate_outputs(run_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
             validation["reasons"].append(
                 "Fuel-adjusted 10 m winds lost the prescribed direction or magnitude bounds"
             )
+    if spec["identity"]["configuration"].startswith(
+            "schedule_") and expected <= actual:
+        validation["forcing_history"] = check_forcing_history(run_dir, spec)
+        validation["reasons"].extend(validation["forcing_history"]["reasons"])
     validation["pass"] = not validation["reasons"]
     return validation
+
+
+def check_forcing_history(run_dir: Path, spec: dict[str,
+                                                    Any]) -> dict[str, Any]:
+    """Check each forcing record used by the completed fire interval."""
+    result = {"records": [], "reasons": []}
+    seconds, steps = resolved_clock(spec)
+    cadence = spec["namelist"]["atm"]["interval_atm"]
+    exchange_steps = int(cadence) * steps // seconds
+    origin = dt.datetime.strptime(spec["start"], DATE_FORMAT)
+    forcing = spec["inputs"]["atmosphere"]
+    for name in expected_output_names(spec):
+        date = dt.datetime.strptime(name[len("fire_output_"):-3], DATE_FORMAT)
+        elapsed = int((date - origin).total_seconds())
+        step = elapsed * steps // seconds
+        record_time = max(0, step - 1) // exchange_steps * cadence
+        fraction = record_time / spec["duration_seconds"]
+        targets = {
+            "fire_t2":
+                forcing["temperature_start_k"] + fraction *
+                (forcing["temperature_end_k"] - forcing["temperature_start_k"]),
+            "fire_q2":
+                forcing["mixing_ratio_start_kg_kg"] + fraction *
+                (forcing["mixing_ratio_end_kg_kg"] -
+                 forcing["mixing_ratio_start_kg_kg"]),
+        }
+        with netCDF4.Dataset(run_dir / name) as dataset:
+            for field, target in targets.items():
+                values = np.ma.asarray(dataset[field][:])
+                if np.ma.count_masked(values) or not np.allclose(
+                        values, target, rtol=FORCING_CHECK_RTOL, atol=0.0):
+                    result["reasons"].append(
+                        f"{name} {field} does not match the {record_time:g} s forcing record"
+                    )
+        result["records"].append({
+            "output_seconds": elapsed,
+            "forcing_seconds": record_time
+        })
+    result["pass"] = not result["reasons"]
+    return result
 
 
 def check_wind_profile(path: Path, spec: dict[str, Any]) -> dict[str, Any]:

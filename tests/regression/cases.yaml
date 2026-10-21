@@ -208,6 +208,75 @@ cases:
         namelist:
           fire:
             wind_vinterp_opt: 1
+      schedule_03:
+        duration_seconds: 72
+        namelist:
+          time:
+            dt: 0.3
+            interval_output: 12
+            restart_interval: 9
+          atm:
+            interval_atm: 18
+          fire:
+            fire_ignition_start_time1: 0.0
+      schedule_03_restart:
+        duration_seconds: 72
+        restart_splits: [9, 27]
+        namelist:
+          time:
+            dt: 0.3
+            interval_output: 12
+            restart_interval: 9
+          atm:
+            interval_atm: 18
+          fire:
+            fire_ignition_start_time1: 0.0
+      schedule_rounded:
+        duration_seconds: 72
+        namelist:
+          time:
+            dt: 0.222222
+            interval_output: 12
+            restart_interval: 8
+          atm:
+            interval_atm: 18
+          fire:
+            fire_ignition_start_time1: 0.0
+      schedule_rounded_restart:
+        duration_seconds: 72
+        restart_splits: [8, 24]
+        namelist:
+          time:
+            dt: 0.222222
+            interval_output: 12
+            restart_interval: 8
+          atm:
+            interval_atm: 18
+          fire:
+            fire_ignition_start_time1: 0.0
+      schedule_nested:
+        duration_seconds: 60
+        namelist:
+          time:
+            dt: 0.2777777777777778
+            interval_output: 15
+            restart_interval: 10
+          atm:
+            interval_atm: 20
+          fire:
+            fire_ignition_start_time1: 0.0
+      schedule_nested_restart:
+        duration_seconds: 60
+        restart_splits: [10, 30]
+        namelist:
+          time:
+            dt: 0.2777777777777778
+            interval_output: 15
+            restart_interval: 10
+          atm:
+            interval_atm: 20
+          fire:
+            fire_ignition_start_time1: 0.0
       restart_time:
         # Updates at 4, 20, 36, 52 s; splits bracket perimeter activation
         # and include times between moisture updates and forcing records.
@@ -300,6 +369,14 @@ executions:
     timeout_seconds: 1800
     build: mpi
 suites:
+  scheduling:
+    scale: small
+    cases:
+      terrain:
+        configurations: [schedule_03, schedule_rounded, schedule_nested,
+                         schedule_03_restart, schedule_rounded_restart,
+                         schedule_nested_restart]
+        executions: [serial, omp4, mpi4, hybrid4]
   restart:
     scale: small
     cases:

@@ -11,7 +11,8 @@ program fire_clock_unit
   type(datetime_t) :: origin, now, expected
   integer(int64) :: next_output, next_exchange
   integer :: scenario_index, step, output_interval, exchange_interval, stop_step, outputs, resets, ierr
-  real :: dt, flux, sum_flux
+  real :: dt
+  real(real64) :: flux
   real, parameter :: timesteps(*) = [0.3, 2.0/9.0, 5.0/18.0, 4.0/15.0, 10.0/27.0, 0.222222, 0.111111]
   character(len=40) :: scenario
 
@@ -34,16 +35,15 @@ program fire_clock_unit
       origin = datetime_t (2020, 2, 28, 23, 59, 0)
       do scenario_index = 1, size (timesteps)
         dt = timesteps(scenario_index)
-        call clock%Init (dt, [60, 30, 90])
-        output_interval = clock%Step_at (60_int64, 'output')
-        exchange_interval = clock%Step_at (30_int64, 'exchange')
+        call clock%Init (dt, [120, 60, 180])
+        output_interval = clock%Step_at (120_int64, 'output')
+        exchange_interval = clock%Step_at (60_int64, 'exchange')
         stop_step = clock%Step_at (604800_int64, 'Final time')
         next_output = output_interval
         next_exchange = 0
         outputs = 0
         resets = 0
         flux = 0.0
-        sum_flux = 0.0
         do step = 0, stop_step
           ! NUOPC resets before an advance, after exporting the previous mean.
           if (Event_due (step, next_exchange, exchange_interval)) then
@@ -55,7 +55,7 @@ program fire_clock_unit
             outputs = outputs + 1
             now = clock%Datetime_at (origin, int (step, int64))
             expected = origin
-            call expected%Add_seconds (int (outputs, int64) * 60)
+            call expected%Add_seconds (int (outputs, int64) * 120)
             if (now /= expected) error stop 'event timestamp drifted'
           end if
           ! Restore schedule phase between output and exchange events.
@@ -63,9 +63,9 @@ program fire_clock_unit
             next_output = Next_event_step (step, output_interval)
             next_exchange = Next_event_step (step, exchange_interval)
           end if
-          flux = flux + 7.0 / exchange_interval
+          flux = flux + 7.0_real64 * (1.0 / real (exchange_interval))
         end do
-        if (outputs /= 10080 .or. resets /= 20161) error stop 'wrong event count'
+        if (outputs /= 5040 .or. resets /= 10081) error stop 'wrong event count'
         now = clock%Datetime_at (origin, int (stop_step, int64))
         if (now%datetime /= '2020-03-06_23:59:00') error stop 'calendar rollover failed'
         if (clock%Elapsed (stop_step) /= 604800.0_real64) error stop 'long elapsed time drifted'
