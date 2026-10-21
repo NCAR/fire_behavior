@@ -22,6 +22,36 @@ foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
 
+add_executable(moisture_extinction_unit moisture_extinction_unit.F90)
+target_link_libraries(moisture_extinction_unit PRIVATE firelib)
+foreach(scenario IN ITEMS below edge at above)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "moisture extinction checks passed: ${scenario}")
+  if(OPENMP)
+    set_tests_properties(moisture_extinction_${scenario}_unit PROPERTIES
+      ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
+  endif()
+endforeach()
+add_cfbm_unit_test(NAME moisture_extinction_negative_moisture_unit
+  COMMAND moisture_extinction_unit negative_moisture LABELS fuel moisture ros
+  EXPECT "STOP:Rothermel fmc_g must be nonnegative")
+foreach(scenario IN ITEMS nan_moisture inf_moisture neginf_moisture)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:Rothermel fmc_g must be finite")
+endforeach()
+foreach(scenario IN ITEMS zero_extinction negative_extinction)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:Rothermel fuelmce must be positive")
+endforeach()
+foreach(scenario IN ITEMS nan_extinction inf_extinction neginf_extinction)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:Rothermel fuelmce must be finite")
+endforeach()
+
 # Check the production wind routine's array bounds even in Release builds.
 # Keep its test module separate from firelib's normal compilation products.
 target_sources(wind_order_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90)
