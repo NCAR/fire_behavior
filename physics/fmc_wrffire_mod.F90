@@ -41,6 +41,8 @@
     type, extends(fmc_t) :: fmc_wrffire_t
       real :: fmoist_lasttime, fmoist_nexttime, dt_moisture
       real :: initialization_time = 0.0
+      ! Component-local state: all five moisture classes and previous forcing
+      ! are initialized by the first advance or restored from a valid restart.
       logical :: initialized = .false.
       real, dimension(MOISTURE_CLASSES) :: rec_drying_lag_sec, rec_wetting_lag_sec, fmc_gc_initial_value
       logical :: run_advance_moisture

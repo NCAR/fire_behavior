@@ -1,7 +1,15 @@
 program fmc_initialization_unit
 
-  ! Use two owned tiles surrounded by unavailable halos. Check the effective
-  ! initialization timestamp and a subsequent drying increment independently.
+  ! Exercise the moisture lifecycle through the production advance routine.
+  ! moisture%initialized covers all five moisture classes and their previous
+  ! atmospheric forcing; allocating storage with Init must leave it false.
+  ! Check first-call initialization for each-step, delayed-step and time-based
+  ! cadence, including a first call after step 1. Two owned tiles surrounded by
+  ! unavailable halos test that forcing validation respects the tile bounds.
+  ! Verify zero initial elapsed time, unchanged state between updates, and the
+  ! first drying increment against separately calculated equilibrium values.
+  ! CTest expects explicit failures for invalid current/previous forcing and a
+  ! repeated update time. Restart-file restoration is covered by regression cases.
   use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_finite
   use fmc_wrffire_mod, only : fmc_wrffire_t
   use fuel_anderson_mod, only : fuel_anderson_t
@@ -90,8 +98,8 @@ program fmc_initialization_unit
   initial_fmc = fmc(1:4,1:2)
   if (scenario == 'old_forcing') q_old(4,2) = ieee_value (0.0, ieee_quiet_nan)
 
-  ! Dry the forcing after initialization. Held classes and previous forcing must
-  ! persist until the scheduled update, including the first post-restart call.
+  ! Dry the forcing after initialization. Classes and previous forcing must
+  ! remain at their initialized values until the next scheduled moisture update.
   t(1:4,1:2) = 310.0
   q(1:4,1:2) = 0.002
   do step = first_step + 1, next_step - 1
