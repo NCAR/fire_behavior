@@ -196,6 +196,20 @@ def run_case(args: Any) -> dict[str, Any]:
             result["reference_policy"] = "same-revision continuous/restarted"
             if not result["restart"]["pass"]:
                 result["reasons"].append("Restart continuity checks failed")
+        if spec["identity"]["configuration"] == "restart_prescribed":
+            from scheduling import check_legacy_ideal
+            result["legacy_clock"] = check_legacy_ideal(spec, directory,
+                                                        command, environment)
+            if not result["legacy_clock"]["pass"]:
+                result["reasons"].append(
+                    "Legacy idealized clock compatibility checks failed")
+        if spec["identity"]["configuration"] == "schedule_03_restart":
+            from scheduling import check_schedule_limits
+            result["scheduling_limits"] = check_schedule_limits(
+                spec, directory, command, environment)
+            if not result["scheduling_limits"]["pass"]:
+                result["reasons"].append(
+                    "Scheduling rejection or final-time checks failed")
         if args.reference and not spec.get("restart_splits"):
             from reference import compare_reference
             result["reference"] = compare_reference(args.reference, result,

@@ -372,6 +372,9 @@ suites:
   scheduling:
     scale: small
     cases:
+      circle:
+        configurations: [restart_prescribed]
+        executions: [serial, omp4, mpi4, hybrid4]
       terrain:
         configurations: [schedule_03, schedule_rounded, schedule_nested,
                          schedule_03_restart, schedule_rounded_restart,

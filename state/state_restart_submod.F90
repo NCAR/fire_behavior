@@ -356,6 +356,12 @@
         call Validate_restart_integer (file_restart, 'nx', this%nx)
         call Validate_restart_integer (file_restart, 'ny', this%ny)
         call Validate_restart_real (file_restart, 'dt', this%dt)
+        if (Has_restart_attribute (file_restart, 'clock_seconds') .neqv. &
+            Has_restart_attribute (file_restart, 'clock_steps')) &
+            call Stop_simulation ('Incomplete restart clock metadata')
+        if (Has_restart_attribute (file_restart, 'clock_seconds') .neqv. &
+            Has_restart_attribute (file_restart, 'interval_atm')) &
+            call Stop_simulation ('Incomplete restart clock metadata')
         if (Has_restart_attribute (file_restart, 'clock_seconds')) then
           call Validate_restart_integer (file_restart, 'clock_seconds', this%clock%seconds)
           call Validate_restart_integer (file_restart, 'clock_steps', this%clock%steps)

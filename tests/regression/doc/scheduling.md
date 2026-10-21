@@ -17,8 +17,19 @@ Each `schedule_*` configuration runs continuously through standalone, NUOPC,
 and ESMX where the build supports them. The matching `schedule_*_restart`
 configuration adds standalone chained restarts. These remain separate test
 names: a coupled continuous run does not establish coupled restart continuity.
-The suite selects serial, omp4, mpi4, and hybrid4. Its 36 continuous cases plus
-36 restart-segment integrations give 72 model invocations.
+The suite selects serial, omp4, mpi4, and hybrid4. It also includes P00's
+`circle/restart_prescribed` to check the legacy idealized clock schema. Four
+copies of that checkpoint lose only the P04 clock attributes before restart;
+the input checkpoints remain unchanged. This is a schema compatibility fixture,
+not a claim of equivalence across a scientific correction.
+
+The 40 continuous cases, 44 restart-segment integrations, 28 expected startup
+rejections, four runs ending between events, and four legacy-schema restarts
+give 120 model invocations. Each rejected configuration must produce its specific
+diagnostic before writing history. Rejections cover unaligned output/end times,
+forcing-record gaps, incompatible or incomplete clock/cadence metadata, and legacy forcing
+state whose cadence cannot be established. The valid 69 s endpoint is between
+output, atmospheric, and checkpoint events and must be reached exactly.
 
 Acceptance requires the exact history-file inventory, forcing temperature and
 humidity from the correct record at every output, existing physical checks,

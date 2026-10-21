@@ -425,9 +425,6 @@
 
     subroutine Check_time_intervals (this, require_atm_interval)
 
-      use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
-      use, intrinsic :: iso_fortran_env, only : real64
-
       implicit none
 
       class (namelist_t), intent (in) :: this
