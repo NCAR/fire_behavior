@@ -130,7 +130,7 @@ python -B tests/regression/regression.py suite --suite pr \
 selection accepts regex syntax. Internally, Python reads CTest's JSON listing
 and supplies a numeric list of selected tests to CTest.
 
-`--suite` accepts **six values**. `--test` accepts **any exact CTest name
+`--suite` accepts **seven values**. `--test` accepts **any exact CTest name
 registered in the selected build**, so its available names depend on the build
 configuration.
 
@@ -143,6 +143,7 @@ The suite options are defined in [regression.py](../regression.py):
 | `full` | Unit tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
 | `unit` | Unit Fortran tests and the Python harness tests. No generated fire-case integrations. |
 | `restart` | Python harness checks and standalone continuous/restarted cases in serial, OpenMP, MPI, and hybrid layouts. See [restart continuity](restart.md) for schedules, counts, and coverage limits. |
+| `scheduling` | Fractional clocks, forcing history, standalone restart phase, timing rejections, and continuous NUOPC/ESMX exchange. See [event schedules](scheduling.md). |
 | `legacy` | Original tests registered by the legacy build route. |
 
 These selections follow [cases.yaml](../cases.yaml). Each build contributes only
