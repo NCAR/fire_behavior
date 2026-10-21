@@ -94,7 +94,7 @@ INPUT_KEYS = {
 SCIENCE_KEYS = {
     "start", "duration_seconds", "namelist", "inputs", "restart_splits"
 }
-DRIVERS = {"standalone", "nuopc", "esmx"}
+DRIVERS = {"standalone", "nuopc", "esmx", "wrf"}
 BUILDS = {"serial", "omp", "mpi", "hybrid"}
 ALLOWED_METHOD_PAIRS = {(9, 4), (2, 4)}
 
@@ -291,6 +291,9 @@ def registrations(document: dict[str, Any], variant: str,
                     spec = resolve_spec(document, case, scale, configuration,
                                         execution)
                     for driver in drivers:
+                        if configuration.startswith("wrf_") != (
+                                driver == "wrf"):
+                            continue
                         if spec.get(
                                 "restart_splits") and driver != "standalone":
                             continue

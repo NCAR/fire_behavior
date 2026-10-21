@@ -648,6 +648,56 @@ class PythonHarnessTests(unittest.TestCase):
         self.assertTrue(
             any("inventory" in reason for reason in result["reasons"]))
 
+    def test_wrf_clock_and_layout_use_fire_step(self):
+        from wrf_coupled import host_namelist, validate_wrf_mpi_layout
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_rounded", "mpi4")
+        namelist = host_namelist(spec, False)
+        self.assertIn("time_step_fract_num = 2,", namelist)
+        self.assertIn("time_step_fract_den = 9,", namelist)
+        self.assertEqual(validate_wrf_mpi_layout(spec), (2, 2))
+        self.assertIn("ifire = 1,", namelist)
+        self.assertNotIn("interval_atm", namelist)
+
+    def test_wrf_initializer_reads_the_shared_terrain(self):
+        from generate_inputs import _fields
+        from wrf_coupled import stage_initializer
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_03", "mpi1")
+        source = self.root / "host"
+        (source / "test/em_fire").mkdir(parents=True)
+        (source / "run").mkdir()
+        (source / "test/em_fire/namelist.fire").write_text("fixture")
+        stage_initializer(self.root, spec, source)
+        terrain = np.loadtxt(self.root / "input_ht", skiprows=1).T
+        np.testing.assert_allclose(terrain, _fields(spec)["ZSF"], atol=1e-5)
+        fuel = np.loadtxt(self.root / "input_fc", skiprows=1).T
+        np.testing.assert_array_equal(fuel, _fields(spec)["NFUEL_CAT"])
+
+    def test_wrf_missing_middle_output_is_rejected(self):
+        from wrf_coupled import check_wrf_outputs
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_03", "mpi1")
+        start = dt.datetime.strptime(spec["start"], "%Y-%m-%d_%H:%M:%S")
+        for seconds in range(12, 73, 12):
+            timestamp = (
+                start +
+                dt.timedelta(seconds=seconds)).strftime("%Y-%m-%d_%H:%M:%S")
+            with netCDF4.Dataset(self.root / f"fire_output_{timestamp}.nc",
+                                 "w") as data:
+                data.createDimension("x", 2)
+                data.createVariable("fgrnhfx", "f4", ("x",))[:] = 100.0
+                data.createVariable("fuel_frac", "f4", ("x",))[:] = 0.9
+        with netCDF4.Dataset(self.root / f"wrfout_d01_{spec['end']}",
+                             "w") as data:
+            data.createDimension("x", 2)
+            for name in ("U", "V", "T", "QVAPOR", "GRNHFX"):
+                data.createVariable(name, "f4", ("x",))[:] = 1.0
+        self.assertTrue(check_wrf_outputs(self.root, spec)["pass"])
+        (self.root / "fire_output_2020-01-01_00:00:36.nc").rename(
+            self.root / "withheld-output.nc")
+        self.assertFalse(check_wrf_outputs(self.root, spec)["pass"])
+
 
 if __name__ == "__main__":
     unittest.main()
