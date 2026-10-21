@@ -146,3 +146,6 @@ foreach(scenario IN ITEMS nan old_forcing)
 endforeach()
 add_cfbm_unit_test(NAME fmc_missing_unit COMMAND fmc_initialization_unit missing
   LABELS moisture restart EXPECT "STOP:FMC atmospheric forcing is unavailable")
+
+add_cfbm_unit_test(NAME fmc_duplicate_unit COMMAND fmc_initialization_unit duplicate
+  LABELS moisture restart EXPECT "STOP:FMC advance requires increasing moisture time")

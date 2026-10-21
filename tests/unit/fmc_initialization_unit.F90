@@ -88,7 +88,6 @@ program fmc_initialization_unit
       error stop 'initial forcing history was not copied'
   initial = moisture%fmc_gc(1:4,:,1:2)
   initial_fmc = fmc(1:4,1:2)
-  if (scenario == 'duplicate') call Advance (first_step * frequency)
   if (scenario == 'old_forcing') q_old(4,2) = ieee_value (0.0, ieee_quiet_nan)
 
   ! Dry the forcing after initialization. Held classes and previous forcing must
@@ -111,6 +110,7 @@ program fmc_initialization_unit
   if (any (moisture%fmc_gc(1:4,1,1:2) >= initial(:,1,:))) error stop 'drying did not advance moisture'
   if (moisture%initialization_time /= first_step * 4.0) error stop 'initialization was repeated'
   if (frequency == 0 .and. moisture%fmoist_nexttime /= next_step * 4.0 + interval) error stop 'time cadence changed'
+  if (scenario == 'duplicate') call Advance (next_step)
   print *, 'moisture initialization checks passed: ', trim (scenario)
 #ifdef DM_PARALLEL
   call MPI_Finalize (ierr)
