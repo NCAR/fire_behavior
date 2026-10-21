@@ -1,10 +1,13 @@
   module ros_wrffire_mod
 
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use fuel_mod, only : fuel_t
     use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
     use state_mod, only : state_fire_t
+    use stderrout_mod, only : Stop_simulation
 
     implicit none
 
@@ -140,6 +143,22 @@
             this%r_0(i, j) = 0.0
             this%iboros(i, j) = 0.0
           else
+            ! Moisture is water mass per dry fuel mass; wetter-than-extinction
+            ! fuel is valid, but invalid inputs must not be hidden by damping.
+            if (.not. ieee_is_finite (fmc_g(i, j))) then
+              write (msg, '(a,2(1x,i0))') 'Rothermel fmc_g must be finite at i,j:', i, j
+              call Stop_simulation (msg)
+            else if (fmc_g(i, j) < 0.0) then
+              write (msg, '(a,2(1x,i0))') 'Rothermel fmc_g must be nonnegative at i,j:', i, j
+              call Stop_simulation (msg)
+            end if
+            if (.not. ieee_is_finite (fuels%fuelmce(k))) then
+              write (msg, '(a,1x,i0)') 'Rothermel fuelmce must be finite for fuel category:', k
+              call Stop_simulation (msg)
+            else if (fuels%fuelmce(k) <= 0.0) then
+              write (msg, '(a,1x,i0)') 'Rothermel fuelmce must be positive for fuel category:', k
+              call Stop_simulation (msg)
+            end if
             this%ischap(i, j) = fuels%ichap(k)
               ! Settings of fire spread parameters from Rothermel
               ! No need to recalculate if FMC does not change
@@ -176,9 +195,14 @@
 
              ! net fuel loading, lb/ft^2
             wn = fuelload/(1 + fuels%st(k))
-            rtemp1 = fmc_g(i, j) / fuels%fuelmce(k)
-              ! moist damp coef
-            etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
+              ! Zero reaction at extinction without capping physical moisture.
+              ! Retain the existing polynomial and arithmetic below extinction.
+            if (fmc_g(i, j) >= fuels%fuelmce(k)) then
+              etam = 0.0
+            else
+              rtemp1 = fmc_g(i, j) / fuels%fuelmce(k)
+              etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
+            end if
               ! mineral damping coef
             etas = 0.174 * fuels%se(k) ** (-0.19)
               !rxn intensity,btu/ft^2 min
