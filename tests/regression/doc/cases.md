@@ -181,4 +181,3 @@ the terrain, fuel strips, and 3D wind profile illustrated here. They use WRF's
 vertical column, physics, timing, and acceptance are documented in
 [WRF-host tests](wrf.md); the offline perimeter and forcing figures do not
 describe those host-specific substitutions.
-
