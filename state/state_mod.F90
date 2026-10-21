@@ -234,11 +234,6 @@
       allocate (this%fire_rain(ifms:ifme, jfms:jfme))
       allocate (this%fire_t2(ifms:ifme, jfms:jfme))
       allocate (this%fire_q2(ifms:ifme, jfms:jfme))
-      ! Active moisture must reject fields that no atmospheric source supplied.
-      this%fire_psfc = NF90_FILL_FLOAT
-      this%fire_rain = NF90_FILL_FLOAT
-      this%fire_t2 = NF90_FILL_FLOAT
-      this%fire_q2 = NF90_FILL_FLOAT
       allocate (this%fire_rh_fire(ifms:ifme, jfms:jfme))
       allocate (this%fire_psfc_old(ifms:ifme, jfms:jfme))
       allocate (this%fire_rain_old(ifms:ifme, jfms:jfme))
@@ -1235,10 +1230,10 @@
 
       ! Fill values mark unavailable atmospheric output; they are not valid FMC inputs.
       ! Atmospheric forcing must replace them before the moisture model advances.
-      this%fire_t2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
-      this%fire_q2(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
-      this%fire_psfc(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
-      this%fire_rain(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
+      this%fire_t2 = NF90_FILL_FLOAT
+      this%fire_q2 = NF90_FILL_FLOAT
+      this%fire_psfc = NF90_FILL_FLOAT
+      this%fire_rain = NF90_FILL_FLOAT
       this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       if (this%init_mode == INIT_MODE_IDEAL) then
         this%fire_t2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT

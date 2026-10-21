@@ -3,13 +3,13 @@
 #ifdef DM_PARALLEL
     use mpi
 #endif
+    use netcdf, only : nf90_open, nf90_close, nf90_inquire_attribute, nf90_nowrite, nf90_global, nf90_noerr, nf90_enotatt
+    use, intrinsic :: iso_fortran_env, only : INT32, REAL32
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
     use fmc_wrffire_mod, only : fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME, &
         NAME_ATT_FMC_INITIALIZED, NAME_ATT_FMC_INITTIME
     use mpi_mod, only : Do_halo_exchange_with_corners
     use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present, Is_netcdf_var_present
-    use netcdf, only : nf90_open, nf90_close, nf90_inquire_attribute, nf90_nowrite, nf90_global, nf90_noerr, nf90_enotatt
-    use, intrinsic :: iso_fortran_env, only : INT32, REAL32
-    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
 
     implicit none
 
