@@ -35,13 +35,13 @@ FATAL_PREFIXES = ("STOP", "ERROR:", "Error:", "MPI_ABORT")
 #--------------------------------------------------------------------------------
 
 
-def source_identity() -> dict[str, Any]:
+def source_identity(source_root: Path = SOURCE_ROOT) -> dict[str, Any]:
     """Record the revision and local edits; ordinary testing allows both."""
 
     def git(*args: str) -> str:
         """Read identity from the source worktree without changing it."""
         return subprocess.check_output(
-            ["git", "-C", str(SOURCE_ROOT), *args], text=True).strip()
+            ["git", "-C", str(source_root), *args], text=True).strip()
 
     return {
         "revision": git("rev-parse", "HEAD"),

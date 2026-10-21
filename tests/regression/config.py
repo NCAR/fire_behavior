@@ -58,6 +58,9 @@ NAMELIST_TYPES = {
     },
 }
 INPUT_KEYS = {
+    "wrf": {
+        "e_vert", "ztop", "theta_surface_k", "theta_gradient_k_m", "z_grd_scale"
+    },
     "grid": {"nx", "ny", "dx_m", "dy_m", "sr_x", "sr_y", "axis_order"},
     "projection": {
         "cen_lat", "cen_lon", "stand_lon", "true_lat_1", "true_lat_2",
@@ -374,6 +377,16 @@ def validate_spec(spec: dict[str, Any]) -> None:
     for name in ("dx_m", "dy_m"):
         _require_number(grid, name, 1.0e-12, "grid")
     terrain, forcing = inputs["terrain"], inputs["atmosphere"]
+    if "wrf" in inputs:
+        host = inputs["wrf"]
+        if type(host["e_vert"]) is not int or host["e_vert"] < 4:
+            raise ValueError("wrf.e_vert must be an integer >= 4")
+        _require_number(
+            host, "ztop",
+            terrain["base_elevation_m"] + terrain["amplitude_m"] + 1000, "wrf")
+        _require_number(host, "theta_surface_k", 200, "wrf")
+        _require_number(host, "theta_gradient_k_m", 0, "wrf")
+        _require_number(host, "z_grd_scale", 0.1, "wrf")
     if terrain["kind"] not in {"flat", "sinusoidal"}:
         raise ValueError("Unsupported terrain kind")
     amplitude = _require_number(terrain, "amplitude_m", 0, "terrain")

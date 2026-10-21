@@ -25,18 +25,15 @@ from render_namelist import render_namelist, fortran_value
 from reports import print_result, write_result
 
 #--------------------------------------------------------------------------------
-# Host column and boundary settings
+# Host initialization and boundary settings
 #--------------------------------------------------------------------------------
-# The offline profile ends at 200 m. WRF needs a deeper atmospheric column;
-# extend its uppermost wind and prescribe a stable potential-temperature lapse.
-HOST_LEVELS = 41
-HOST_TOP_M = 8000.0
-THETA_LAPSE_K_M = 0.003
 
 
 def validate_wrf_mpi_layout(spec: dict[str, Any]) -> tuple[int, int]:
     """Select a rectangular decomposition with at least ten mass cells per tile."""
     ranks = spec['execution']['ranks']
+    if spec['execution']['build'] != 'mpi' or spec['execution']['threads'] != 1:
+        raise ValueError('The WRF suite currently requires an MPI-only host')
     ny = int(np.sqrt(ranks))
     while ranks % ny:
         ny -= 1
@@ -75,10 +72,10 @@ def host_namelist(spec: dict[str, Any], initialize: bool) -> str:
             'max_dom': 1,
             'e_we': grid['nx'],
             'e_sn': grid['ny'],
-            'e_vert': HOST_LEVELS,
+            'e_vert': spec['inputs']['wrf']['e_vert'],
             'dx': grid['dx_m'],
             'dy': grid['dy_m'],
-            'ztop': HOST_TOP_M,
+            'ztop': spec['inputs']['wrf']['ztop'],
             'grid_id': 1,
             'parent_id': 0,
             'i_parent_start': 1,
@@ -143,6 +140,11 @@ def host_namelist(spec: dict[str, Any], initialize: bool) -> str:
             'sfc_tmn': spec['inputs']['atmosphere']['temperature_start_k'],
             'sfc_vegfra': 50.0,
             'sfc_canwat': 0.0,
+            # Resolve the terrain/u3d wind profile near the surface. The
+            # initializer's default exponential eta grid puts k=1 near 160 m.
+            'stretch_grd': True,
+            'stretch_hyp': True,
+            'z_grd_scale': spec['inputs']['wrf']['z_grd_scale'],
         },
     }
     for endpoint in ('start', 'end'):
@@ -177,11 +179,14 @@ def stage_initializer(directory: Path, spec: dict[str, Any],
                    header=f'{values.shape[1]} {values.shape[0]}')
     forcing = spec['inputs']['atmosphere']
     qv = forcing['mixing_ratio_start_kg_kg'] * 1000.0
-    theta = forcing['temperature_start_k']
+    host = spec['inputs']['wrf']
+    theta = host['theta_surface_k']
     sounding = [f"{forcing['surface_pressure_pa'] / 100.0} {theta} {qv}"]
-    for height in np.linspace(0.0, HOST_TOP_M + 4000.0, 121):
-        sounding.append(f'{height} {theta + THETA_LAPSE_K_M * height} '
-                        f'{qv} 10.0 10.0')
+    # Extend the sounding above the model top for hydrostatic interpolation.
+    for height in np.linspace(0.0, host['ztop'] + 4000.0, 121):
+        sounding.append(
+            f"{height} {theta + host['theta_gradient_k_m'] * height} "
+            f'{qv} 10.0 10.0')
     (directory / 'input_sounding').write_text('\n'.join(sounding) + '\n')
     (directory / 'namelist.input').write_text(host_namelist(spec, True))
     shutil.copy2(source / 'test/em_fire/namelist.fire',
@@ -209,8 +214,9 @@ def complete_host_input(path: Path, spec: dict[str, Any]) -> None:
         }.items():
             # WRF's metadata readers require NC_INT/NC_FLOAT, not Python's
             # default int64/float64 attribute types in a NetCDF4 file.
-            dataset.setncattr(key, np.int32(value) if key == 'MAP_PROJ'
-                              else np.float32(value))
+            dataset.setncattr(
+                key,
+                np.int32(value) if key == 'MAP_PROJ' else np.float32(value))
         dataset.setncattr('MAP_PROJ_CHAR', 'Lambert Conformal')
         dataset.setncattr('DT', np.float32(spec['namelist']['time']['dt']))
         for suffix, offset_i, offset_j in (('', 1.0, 1.0), ('_U', 0.5, 1.0),
@@ -220,8 +226,8 @@ def complete_host_input(path: Path, spec: dict[str, Any]) -> None:
             lon = np.empty_like(lat)
             for j, i in np.ndindex(lat.shape):
                 lat[j, i], lon[j, i] = proj.latlon(i + offset_i, j + offset_j)
-            lat_var[:] = lat
-            dataset[f'XLONG{suffix}'][:] = lon
+            lat_var[0] = lat
+            dataset[f'XLONG{suffix}'][0] = lon
             phi = np.radians(proj.hemi * lat)
             phi1 = np.radians(abs(projection['true_lat_1']))
             scale = np.cos(phi1) / np.cos(phi) * (
@@ -231,12 +237,12 @@ def complete_host_input(path: Path, spec: dict[str, Any]) -> None:
             for name in (f'MAPFAC_{stagger}', f'MAPFAC_{stagger}X',
                          f'MAPFAC_{stagger}Y'):
                 if name in dataset.variables:
-                    dataset[name][:] = scale
+                    dataset[name][0] = scale
             if not suffix:
                 angle = proj.cone * np.radians(lon - projection['stand_lon'])
-                dataset['SINALPHA'][:] = np.sin(angle)
-                dataset['COSALPHA'][:] = np.cos(angle)
-                dataset['F'][:] = 2 * 7.292e-5 * np.sin(np.radians(lat))
+                dataset['SINALPHA'][0] = np.sin(angle)
+                dataset['COSALPHA'][0] = np.cos(angle)
+                dataset['F'][0] = 2 * 7.292e-5 * np.sin(np.radians(lat))
         height = (dataset['PH'][0] + dataset['PHB'][0]) / 9.81
         height = 0.5 * (height[:-1] + height[1:]) - dataset['HGT'][0]
         profile_height = np.asarray(forcing['height_interfaces_m'])
@@ -271,6 +277,9 @@ def run_wrf_case(args: Any) -> dict[str, Any]:
                         args.configuration, args.execution)
     if not spec['identity']['configuration'].startswith('wrf_'):
         raise ValueError('WRF requires an explicit wrf_ configuration')
+    if spec['namelist']['fire']['fire_is_real_perim']:
+        raise ValueError(
+            'The WRF interface does not support observed perimeters')
     root = Path(os.environ.get('CFBM_RUN_ROOT', str(args.run_root))).resolve()
     if root.is_relative_to(SOURCE_ROOT) and not root.is_relative_to(
             SOURCE_ROOT / 'build'):
@@ -287,6 +296,10 @@ def run_wrf_case(args: Any) -> dict[str, Any]:
                   reasons=[],
                   executable=str(args.executable.resolve()),
                   executable_sha256=sha256_file(args.executable),
+                  initializer_sha256=sha256_file(args.wrf_ideal),
+                  host_source=source_identity(args.wrf_source),
+                  host_cfbm_source=source_identity(args.wrf_source /
+                                                   'phys/fire_behavior'),
                   environment=dict(
                       PBS_JOBID=os.environ.get('PBS_JOBID'),
                       LOADEDMODULES=os.environ.get('LOADEDMODULES')))
@@ -322,10 +335,11 @@ def run_wrf_case(args: Any) -> dict[str, Any]:
         result.update(
             run_model(command, directory, environment,
                       spec['execution']['timeout_seconds'], 'wrf'))
-        result['validation'] = check_wrf_outputs(directory, spec)
-        result['expected_outputs'] = result['validation']['expected_outputs']
         result['expected_fields'] = load_yaml(
             args.config)['expected_output_fields']
+        result['validation'] = check_wrf_outputs(directory, spec,
+                                                 result['expected_fields'])
+        result['expected_outputs'] = result['validation']['expected_outputs']
         result['reasons'].extend(result['validation']['reasons'])
         result['host_input_sha256'] = sha256_file(directory / 'wrfinput_d01')
     except (OSError, ValueError, KeyError, IndexError, RuntimeError,
@@ -338,7 +352,10 @@ def run_wrf_case(args: Any) -> dict[str, Any]:
     return result
 
 
-def check_wrf_outputs(directory: Path, spec: dict[str, Any]) -> dict[str, Any]:
+def check_wrf_outputs(
+        directory: Path,
+        spec: dict[str, Any],
+        expected_fields: list[str] | None = None) -> dict[str, Any]:
     """Require every scheduled fire output, finite evolving fields, and host feedback."""
     start = dt.datetime.strptime(spec['start'], DATE_FORMAT)
     interval = int(spec['namelist']['time']['interval_output'])
@@ -354,9 +371,12 @@ def check_wrf_outputs(directory: Path, spec: dict[str, Any]) -> dict[str, Any]:
     reasons = []
     if actual != expected:
         reasons.append(f'Fire output inventory differs: {actual} != {expected}')
-    fluxes, fuel = [], []
+    fluxes, fuel, feedback_errors = [], [], []
     for filename in actual:
         with netCDF4.Dataset(directory / filename) as data:
+            if expected_fields is not None and set(
+                    data.variables) != set(expected_fields):
+                reasons.append(f'Fire field inventory differs in {filename}')
             for variable in data.variables.values():
                 if np.issubdtype(variable.dtype, np.number):
                     if not np.isfinite(variable[:].compressed()).all():
@@ -364,23 +384,64 @@ def check_wrf_outputs(directory: Path, spec: dict[str, Any]) -> dict[str, Any]:
                             f'Nonfinite {variable.name} in {filename}')
             fluxes.append(float(data['fgrnhfx'][:].max()))
             fuel.append(float(data['fuel_frac'][:].min()))
+            timestamp = filename.removeprefix('fire_output_').removesuffix(
+                '.nc')
+            host = directory / f'wrfout_d01_{timestamp}'
+            if not host.is_file():
+                reasons.append(f'Missing scheduled WRF output: {host.name}')
+                continue
+            with netCDF4.Dataset(host) as atmosphere:
+                recorded = atmosphere['Times'][0].tobytes().decode('ascii')
+                if recorded != timestamp:
+                    reasons.append(f'Incorrect WRF timestamp in {host.name}')
+                for name in ('U', 'V', 'T', 'QVAPOR', 'T2', 'Q2', 'PSFC',
+                             'GRNHFX', 'GRNQFX'):
+                    values = atmosphere[name][:]
+                    if np.ma.count_masked(
+                            values) or not np.isfinite(values).all():
+                        reasons.append(
+                            f'Invalid host field {name} in {host.name}')
+                for name in ('Q2', 'QVAPOR'):
+                    if atmosphere[name][:].min() < 0:
+                        reasons.append(f'Negative host {name} in {host.name}')
+                for name in ('T2', 'PSFC'):
+                    if atmosphere[name][:].min() <= 0:
+                        reasons.append(
+                            f'Nonpositive host {name} in {host.name}')
+                # With sr_x=sr_y=1, Provide_atm_feedback copies each step's
+                # flux exactly on ids+1:ide-2, jds+1:jde-2. Testing every
+                # output detects stale or accumulated exchange-window flux.
+                for fire_name, host_name in (('fgrnhfx', 'GRNHFX'), ('fgrnqfx',
+                                                                     'GRNQFX')):
+                    host_flux = atmosphere[host_name][0]
+                    ny, nx = host_flux.shape
+                    fire_flux = data[fire_name][1:ny - 1, 1:nx - 1]
+                    error = float(
+                        np.max(np.abs(fire_flux - host_flux[1:-1, 1:-1])))
+                    feedback_errors.append(error)
+                    if error != 0:
+                        reasons.append(
+                            f'{host_name} differs from current fire flux in {host.name}'
+                        )
     if not fluxes or max(fluxes) <= 0 or min(fuel) >= 1:
         reasons.append(
             'Fire consumption and positive heat flux were not observed')
-    host = directory / f"wrfout_d01_{spec['end']}"
-    if not host.is_file():
+    if not (directory / f"wrfout_d01_{spec['end']}").is_file():
         reasons.append('WRF did not write the exact final time')
-    else:
-        with netCDF4.Dataset(host) as data:
-            for name in ('U', 'V', 'T', 'QVAPOR', 'GRNHFX'):
-                if not np.isfinite(data[name][:]).all():
-                    reasons.append(f'Nonfinite host field {name}')
-            if data['GRNHFX'][:].max() <= 0:
-                reasons.append('WRF received no positive fire heat flux')
+    seconds, steps = resolved_clock(spec)
+    expected_steps = int(spec['duration_seconds']) * steps // seconds
+    log = directory / 'rsl.error.0000'
+    actual_steps = log.read_text().count(
+        'Timing for main:') if log.exists() else 0
+    if actual_steps != expected_steps:
+        reasons.append(
+            f'WRF step count differs: {actual_steps} != {expected_steps}')
     return {
         'pass': not reasons,
         'reasons': reasons,
         'expected_outputs': expected,
         'fire_flux_maxima': fluxes,
-        'minimum_fuel_fractions': fuel
+        'minimum_fuel_fractions': fuel,
+        'feedback_max_absolute_error': max(feedback_errors, default=None),
+        'host_steps': actual_steps,
     }

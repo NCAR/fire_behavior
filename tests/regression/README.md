@@ -43,6 +43,7 @@ difference between one `compile.sh` call and the complete four-build matrix.
 | Follow the build/run flow and connections between files | [Execution overview and file relationships](doc/structure.md) |
 | Find every compared field and its acceptance rule | [Variable comparison table](doc/comparison.md) |
 | Check continuous versus restarted integrations | [Restart continuity](doc/restart.md) |
+| Run an evolving WRF atmosphere with generated terrain inputs | [WRF-host tests](doc/wrf.md) |
 | Understand improvements and remaining legacy coverage | [New and legacy tests](doc/advantages.md) |
 | Find outputs or prepare an unapproved reference | [Results and references](doc/references.md) |
 | Add or extend a case, namelist option, or output | [Contributor guide](doc/contributing.md) |
