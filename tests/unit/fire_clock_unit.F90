@@ -3,11 +3,15 @@ program fire_clock_unit
   use, intrinsic :: iso_fortran_env, only : int64, real64
   use fire_clock_mod, only : fire_clock_t, Event_due, Next_event_step
   use datetime_mod, only : datetime_t
+  use state_mod, only : state_fire_t
+  use namelist_mod, only : namelist_t
 #ifdef DM_PARALLEL
   use mpi
 #endif
   implicit none
   type(fire_clock_t) :: clock
+  type(state_fire_t) :: grid
+  type(namelist_t) :: config
   type(datetime_t) :: origin, now, expected
   integer(int64) :: next_output, next_exchange
   integer :: scenario_index, step, output_interval, exchange_interval, stop_step, outputs, resets, ierr
@@ -75,6 +79,36 @@ program fire_clock_unit
       ! The 300 s cadence reported for dt=0.7 is not aligned; 7 s is aligned.
       call clock%Init (0.7, [7, 14, 21])
       if (clock%Step_at (21_int64, 'output') /= 30) error stop '0.7 s clock failed'
+      config%dt = 0.3
+      config%interval_output = 12
+      config%interval_atm = 18
+      config%restart_interval = 9
+      config%start_year = 2020
+      config%start_month = 1
+      config%start_day = 1
+      config%start_hour = 0
+      config%start_minute = 0
+      config%start_second = 0
+      config%end_year = 2020
+      config%end_month = 1
+      config%end_day = 1
+      config%end_hour = 0
+      config%end_minute = 1
+      config%end_second = 12
+      call grid%Set_time_stamps (config)
+      call grid%Handle_restart (config, initialize = .true.)
+      if (grid%restart_step_interval /= 30 .or. grid%output_step_interval /= 40) &
+          error stop 'output and restart intervals were not independent'
+      if (.not. grid%Atm_event_due ()) error stop 'first exchange window did not reset'
+      grid%itimestep = 30
+      call grid%Update_model_clock ()
+      call grid%Set_event_phase ()
+      if (grid%next_output_step /= 40 .or. grid%next_atm_step /= 60 .or. grid%final_step /= 240) &
+          error stop 'restart moved schedule origin'
+      if (grid%Atm_event_due ()) error stop 'partial exchange window reset on restart'
+      grid%itimestep = 60
+      if (.not. grid%Atm_event_due ()) error stop 'resumed exchange window did not reset'
+      if (grid%Atm_event_due ()) error stop 'exchange reset repeated at the same step'
       print *, 'fire clock checks passed'
     case default
       error stop 'unknown fire clock scenario'

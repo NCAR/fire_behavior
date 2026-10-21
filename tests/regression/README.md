@@ -81,6 +81,8 @@ investigations, use `compile_legacy.sh` with separate build/install directories.
 Coverage limits and postponed investigations are recorded in
 [deferred work](doc/deferred.md).
 
+See [fractional event schedules](doc/scheduling.md) for the P04 suite.
+
 ## Python style
 
 Use Google-based YAPF formatting, four-space indentation, an 80-column target,

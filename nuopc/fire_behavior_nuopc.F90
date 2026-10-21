@@ -158,6 +158,8 @@ module fire_behavior_nuopc
     ! interval_atm for exchange and flux accumulation.
     call config_flags%Check_time_intervals (require_atm_interval = .true.)
     call Init_fire_state (grid, config_flags)
+    if (mod (grid%final_step, grid%atm_step_interval) /= 0) &
+        call Stop_simulation ('NUOPC final time must align with the atmospheric exchange interval')
 
     ! Import/ Export Variables -----------------------------------------------------
 
