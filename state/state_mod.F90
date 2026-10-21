@@ -234,6 +234,11 @@
       allocate (this%fire_rain(ifms:ifme, jfms:jfme))
       allocate (this%fire_t2(ifms:ifme, jfms:jfme))
       allocate (this%fire_q2(ifms:ifme, jfms:jfme))
+      ! Active moisture must reject fields that no atmospheric source supplied.
+      this%fire_psfc = NF90_FILL_FLOAT
+      this%fire_rain = NF90_FILL_FLOAT
+      this%fire_t2 = NF90_FILL_FLOAT
+      this%fire_q2 = NF90_FILL_FLOAT
       allocate (this%fire_rh_fire(ifms:ifme, jfms:jfme))
       allocate (this%fire_psfc_old(ifms:ifme, jfms:jfme))
       allocate (this%fire_rain_old(ifms:ifme, jfms:jfme))

@@ -918,6 +918,8 @@ module fire_behavior_nuopc
     grid%fire_t2(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_t2(clb(1):cub(1),clb(2):cub(2))
     grid%fire_psfc(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = ptr_psfc(clb(1):cub(1),clb(2):cub(2))
     if (imp_rainrte) then
+      ! Rate forcing owns this accumulator; allocation marks it unavailable.
+      if (grid%itimestep == 0 .and. .not. config_flags%restart) grid%fire_rain = 0.0
       ! convert m s-1 to m and accumulate
       grid%fire_rain(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) = grid%fire_rain(grid%ifps:grid%ifpe, grid%jfps:grid%jfpe) + &
           ( ptr_rainrte(clb(1):cub(1),clb(2):cub(2)) * ts )
