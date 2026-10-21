@@ -1230,10 +1230,10 @@
 
       ! Fill values mark unavailable atmospheric output; they are not valid FMC inputs.
       ! Atmospheric forcing must replace them before the moisture model advances.
-      this%fire_t2 = NF90_FILL_FLOAT
-      this%fire_q2 = NF90_FILL_FLOAT
-      this%fire_psfc = NF90_FILL_FLOAT
-      this%fire_rain = NF90_FILL_FLOAT
+      this%fire_t2(this%ifms:this%ifme, this%jfms:this%jfme) = NF90_FILL_FLOAT
+      this%fire_q2(this%ifms:this%ifme, this%jfms:this%jfme) = NF90_FILL_FLOAT
+      this%fire_psfc(this%ifms:this%ifme, this%jfms:this%jfme) = NF90_FILL_FLOAT
+      this%fire_rain(this%ifms:this%ifme, this%jfms:this%jfme) = NF90_FILL_FLOAT
       this%fz0(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
       if (this%init_mode == INIT_MODE_IDEAL) then
         this%fire_t2_old(this%ifps:this%ifpe, this%jfps:this%jfpe) = NF90_FILL_FLOAT
