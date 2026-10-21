@@ -5,6 +5,67 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## P00 restart foundation (2026-10-20)
+
+The review base is local merge `bc205bc`, combining upstream `26d57b6` with
+restart PR #39 at `59b9081`. Remote heads were checked on 2026-10-20 and still
+matched that snapshot. P00 changes only the harness and its documentation.
+Its feature branch must retain this explicit prerequisite; targeting upstream
+develop directly would also include the unmerged restart work.
+
+Derecho PBS `7889837.desched1` built this base in serial, OpenMP, MPI, and
+hybrid GNU Strict configurations. All 190 PR CTests passed: 154 unit CTests
+and 36 model runs. The 40 cross-execution comparisons and all 36 approved
+`github-pr` reference comparisons passed. The largest cross-execution absolute
+difference was 0.125 W m-2 in `fgrnhfx`; the applicable relative tolerance was
+unchanged. This establishes the base's existing regression behavior, not
+restart continuity.
+
+The environment was GNU 12.2.0, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0,
+and the shared `npl-2026a` Python interpreter. P00's 45 Python tests also passed
+in a serial-NetCDF development environment; YAPF 0.43.0 and Python compilation
+checks passed. Both existing Python test modules remain in discovery.
+
+The first harness attempt, `1f61101` in PBS `7889874.desched1`, passed all five
+time-based moisture restart cases and the unchanged PR matrix. Its prescribed
+cases exposed a checker applicability error: idealized `fz0` is deliberately
+unavailable. `a863938` corrects that check and restricts `lfn_hist` checks to
+observed perimeters, whose initialization sets it. It also records executable
+hashes and execution environment. The original failed evidence is retained.
+
+The step-based configuration exposes the pre-existing initialization defect
+assigned to P02. In `physics/fmc_wrffire_mod.F90`, `Advance_fmc_model` gates the
+call on update cadence, but `Advance_moisture_classes` initializes only when
+`itimestep == 1`. With `fmoist_freq=3`, that first call is missed. Results include
+invalid class moisture, nonfinite moisture/heat fluxes, differing restart state,
+and MPI aborts reporting equilibrium-moisture NaNs. The tests remain failures;
+P00 does not change the production implementation or claim scientific acceptance
+of this configuration.
+
+The corrected harness at `a863938`, PBS `7889890.desched1`, passes all ten
+prescribed/time-based cases across serial, OpenMP, one-rank MPI, four-rank MPI,
+and hybrid layouts. Their 210 output/checkpoint comparisons have zero absolute
+error, including REAL64 fuel state. All eight cross-layout comparisons pass.
+All five step-based cases fail on the P02 defect described above. There are
+61 attempted model invocations rather than the scheduled 65: the four-rank
+MPI and hybrid chains cannot continue after their first resumed segment aborts.
+The report contains 283 file-comparison attempts, including four missing-file
+failures; 279 comparisons read both files. Agreement in an invalid step-based
+case does not establish restart acceptance. The overall restart suite exits
+nonzero, as intended for an unresolved production defect.
+
+The same job also passed all 190 existing PR CTests, all 40 cross-execution
+comparisons, and all 36 approved-reference comparisons. Maximum cross-driver
+absolute error remained 0.125 W m-2 in `fgrnhfx`. The PBS job exits nonzero
+because of the restart suite's five P02 cases, not because the existing PR
+suite failed. Subsequent P00 edits only document these results and list the
+new suite in `compile.sh --help`; runtime validation applies to `a863938`.
+
+Evidence is preserved under `cfbm-P00-20261021T024500/` in the validation
+submitter's Derecho scratch `tmp/`, with separate `base`, `attempt-01`, and
+`attempt-02` source/build/run trees. See [restart continuity](restart.md) for
+the comparison policy, scheduled counts, and intentionally untested paths.
+
 ## Coupled hybrid baseline extension (2026-10-14)
 
 At Maria Frediani's request, revision `4b6535d` enables NUOPC and ESMX in

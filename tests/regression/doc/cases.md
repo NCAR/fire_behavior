@@ -13,6 +13,12 @@ scientific options within each case; see [configuration.md](configuration.md).
 | `fuels` | Line ignition, twelve fuel categories, nearest interpolation |
 | `terrain` / `u10m` | Terrain, twelve fuel strips, delayed observed perimeter, varying moisture, terrain-dependent 10 m winds |
 | `terrain` / `u3d` | Same terrain experiment with a terrain-dependent vertical wind profile |
+| `circle` / `restart_prescribed` | Same circle geometry with prescribed moisture and a restart at 28 s |
+| `terrain` / `restart_time`, `restart_step` | Same terrain geometry and 10 m winds with restart chains bracketing perimeter activation and moisture updates |
+
+The restart configurations use different output, atmospheric, and moisture
+cadences. Their [schedule table](restart.md) supplements the geometry figures
+below. Existing `quick`, `pr`, and `full` selections retain their settings.
 
 The shared configuration uses a 72 x 72 fire grid, 100 m spacing, 4 s timesteps,
 and 60 s integrations. NUOPC and ESMX run both terrain wind configurations with generated
