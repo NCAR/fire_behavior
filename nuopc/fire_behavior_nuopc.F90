@@ -835,7 +835,9 @@ module fire_behavior_nuopc
 
     rc = ESMF_SUCCESS
 
-    call ESMF_TimeIntervalSet (timeStep, s_r8 = real (config_flags%dt, kind = ESMF_KIND_R8), rc = rc)
+    ! ESMF and CFBM must use the same exact subcycling period, including rounded dt input.
+    call ESMF_TimeIntervalSet (timeStep, s = grid%clock%seconds / grid%clock%steps, &
+        sN = mod (grid%clock%seconds, grid%clock%steps), sD = grid%clock%steps, rc = rc)
     if (ESMF_LogFoundError (rcToCheck = rc, msg = ESMF_LOGERR_PASSTHRU, line = __LINE__, file = __FILE__)) &
         return
 
@@ -888,8 +890,8 @@ module fire_behavior_nuopc
 
     rc = ESMF_SUCCESS
 
-    ! ratio of fire to atmosphere time step
-    dtratio = config_flags%dt / config_flags%interval_atm
+    ! Each exchange window averages exactly atm_step_interval fire advances.
+    dtratio = 1.0 / real (grid%atm_step_interval)
 
     ! query for clock, importState and exportState
     call NUOPC_ModelGet(model, modelClock=clock, importState=importState, &
@@ -992,10 +994,9 @@ module fire_behavior_nuopc
 
     if (grid%datetime_now == grid%datetime_start) call grid%Save_state ()
 
-    If_reset_fluxes: if (grid%datetime_now == grid%datetime_next_atm_update) then
+    If_reset_fluxes: if (grid%Atm_event_due ()) then
 
       call grid%datetime_now%Print_datetime ()
-      call grid%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
 
       ptr_hflx_fire = 0.
       ptr_evap_fire = 0.

@@ -15,7 +15,7 @@ function(add_cfbm_unit_test)
 endfunction()
 
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
-                      namelist_validation_unit time_interval_unit
+                      namelist_validation_unit time_interval_unit fire_clock_unit
                       coordinate_precision_unit projection_precision_unit bilinear_precision_unit
                       fuel_precision_unit wind_order_unit wind_state_unit)
   add_executable(${test} ${test}.F90)
@@ -41,7 +41,7 @@ add_cfbm_unit_test(NAME namelist_atm_only_unit
   EXPECT "namelist validation accepted: atm_only")
 add_cfbm_unit_test(NAME namelist_atm_nonmultiple_unit
   COMMAND namelist_validation_unit atm_nonmultiple LABELS namelist timing
-  EXPECT "STOP:interval_atm must be an integer multiple of dt")
+  EXPECT "STOP:Time intervals must be integer multiples of dt")
 add_cfbm_unit_test(NAME namelist_atm_missing_unit
   COMMAND namelist_validation_unit atm_missing LABELS namelist timing
   EXPECT "STOP:interval_atm must be positive")
@@ -71,7 +71,7 @@ endforeach()
 foreach(scenario IN ITEMS reversed nonmultiple)
   add_cfbm_unit_test(NAME namelist_${scenario}_unit
     COMMAND namelist_validation_unit ${scenario} LABELS namelist
-    EXPECT "STOP:interval_atm must be an integer multiple of dt")
+    EXPECT "STOP:Time intervals must be integer multiples of dt")
 endforeach()
 foreach(scenario IN ITEMS zero_count negative_count)
   add_cfbm_unit_test(NAME namelist_${scenario}_unit
@@ -128,3 +128,12 @@ add_cfbm_unit_test(NAME wind_state_10m_unit COMMAND wind_state_unit u10m
   LABELS wind interpolation EXPECT "state wind checks passed")
 add_cfbm_unit_test(NAME wind_state_invalid_unit COMMAND wind_state_unit invalid
   LABELS wind interpolation EXPECT "STOP:Error: wrong wind_vinterp_opt")
+
+add_cfbm_unit_test(NAME fire_clock_unit COMMAND fire_clock_unit valid
+  LABELS timing EXPECT "fire clock checks passed")
+add_cfbm_unit_test(NAME fire_clock_unaligned_unit COMMAND fire_clock_unit unaligned
+  LABELS timing EXPECT "STOP:Time intervals must be integer multiples of dt")
+add_cfbm_unit_test(NAME fire_clock_final_unit COMMAND fire_clock_unit final
+  LABELS timing EXPECT "STOP:Final time must align with a fire timestep")
+add_cfbm_unit_test(NAME fire_clock_missed_unit COMMAND fire_clock_unit missed
+  LABELS timing EXPECT "STOP:Missed scheduled fire event")

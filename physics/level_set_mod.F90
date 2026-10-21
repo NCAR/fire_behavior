@@ -417,8 +417,7 @@
 #endif
 
       if (detection_sum > 0.0) then
-        grid%datetime_now = grid%datetime_start
-        call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
+        call grid%Update_model_clock ()
         call grid%Save_state ()
 
         write (msg, '(a, i6, a, i6, a, i6, a)') 'Isolated negative LFN cluster (size', int (global_size_value), ') near (i=', &

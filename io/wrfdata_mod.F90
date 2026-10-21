@@ -182,6 +182,8 @@
 
       call Get_netcdf_var (trim (this%file_name), 'Times', times)
 
+      if (datetime%Get_frac_ss () /= 0.0) call Stop_simulation ('Atmospheric record time must be a whole second')
+
       do n = 1, size (times)
         if (times(n) == datetime%datetime) then
           return_value = n
@@ -191,7 +193,7 @@
 
       write (ERROR_UNIT, *) 'Datetime not found in WRF file:'
       call datetime%Print_datetime ()
-      stop
+      call Stop_simulation ('Required atmospheric record is missing; record skipping is not supported')
 
     end function Get_datetime_index
 
@@ -680,6 +682,25 @@
 
     end subroutine Update_atm_state
 
+    subroutine Check_forcing_schedule (file_name, interval)
+      use, intrinsic :: iso_fortran_env, only : INT64
+      character (len = *), intent (in) :: file_name
+      integer, intent (in) :: interval
+      character (len = :), allocatable :: times(:)
+      type (datetime_t) :: expected
+      integer :: n
+
+      if (interval <= 0) call Stop_simulation ('interval_atm must be positive for atmospheric updates')
+      call Get_netcdf_var (file_name, 'Times', times)
+      do n = 2, size (times)
+        expected%datetime = times(n-1)
+        expected%fractional_seconds = 0.0
+        call expected%Add_seconds (int (interval, INT64))
+        if (expected%datetime /= times(n)) &
+            call Stop_simulation ('Atmospheric record spacing differs from interval_atm; record skipping is not supported')
+      end do
+    end subroutine Check_forcing_schedule
+
     function Wrfdata_t_const (file_name, config_flags) result (return_value)
 
       use, intrinsic :: iso_fortran_env, only : REAL32, INT32
@@ -702,6 +723,7 @@
 
       return_value%file_name = trim (file_name)
       call Is_netcdf_file_present (trim (file_name))
+      call Check_forcing_schedule (trim (file_name), config_flags%interval_atm)
 
         ! Init projection
       call Get_netcdf_att (trim (return_value%file_name), 'global', 'CEN_LAT', att_real32)
