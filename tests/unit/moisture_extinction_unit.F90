@@ -1,5 +1,13 @@
 program moisture_extinction_unit
 
+  ! Check the Rothermel extinction correction for all 13 Anderson fuel categories.
+  ! Moisture is water mass per dry fuel mass and must remain unchanged, including
+  ! valid values above extinction. Reaction intensity, its residence-time product
+  ! (iboros), and base spread must be exactly zero at and above extinction, while
+  ! valid values below extinction retain the existing damping polynomial.
+  ! Downstream checks cover spread and flame length, including the independent
+  ! chaparral spread law and nonburnable category 14.
+
   use, intrinsic :: iso_fortran_env, only : REAL64
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_value, ieee_quiet_nan, &
       ieee_positive_inf, ieee_negative_inf
@@ -36,6 +44,9 @@ program moisture_extinction_unit
   end do
   area = 0.5
 
+  ! Sample dry-to-moist fuel below extinction and the nearest representable values
+  ! on each side of the threshold. These boundary cases distinguish an exact
+  ! extinction cutoff from polynomial cancellation or an unintended moisture cap.
   do sample = 1, 4
     select case (trim(scenario))
     case ('below')
@@ -54,6 +65,9 @@ program moisture_extinction_unit
       if (scenario == 'edge') moisture(i,1:2) = nearest(fuels%fuelmce(i), -1.0)
       if (scenario == 'above' .and. sample == 1) moisture(i,1:2) = nearest(fuels%fuelmce(i), 1.0)
     end do
+    ! Each invalid-input scenario must stop in Set_params with the specific
+    ! diagnostic registered in CMakeLists.txt. A generic failure or silent
+    ! acceptance does not establish that the input validation is correct.
     select case (trim(scenario))
     case ('negative_moisture')
       moisture(1,1) = -0.01
@@ -78,7 +92,9 @@ program moisture_extinction_unit
       error stop 'unknown extinction scenario'
     end select
     original = moisture(1:14,1:2)
-    ! Exercise disjoint owned tiles through the same routine used on restart.
+    ! Exercise disjoint owned tiles, concurrently in OpenMP builds. Set_params
+    ! also reconstructs derived spread parameters after restart; checkpoint I/O
+    ! and continuous-versus-restarted evolution are covered by regression cases.
     !$omp parallel do private(tile)
     do tile = 1, 2
       call params%Set_params(0,15,0,3,1,14,tile,tile,fuels,category,moisture)
