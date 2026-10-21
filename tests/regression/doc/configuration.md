@@ -2,6 +2,10 @@
 
 [Documentation index](../README.md)
 
+Restart configurations additionally specify `restart_splits` and the exact
+`namelist.time.restart_interval`; the runner derives `time.restart` and segment
+dates. See [restart continuity](restart.md) for schedule and driver constraints.
+
 Use one [cases.yaml](../cases.yaml) with exact Fortran block and option names
 under `namelist`. For example, `namelist.fire.wind_vinterp_opt: 0` writes
 `wind_vinterp_opt=0` in `&fire`. Input-generator settings live under `inputs`;

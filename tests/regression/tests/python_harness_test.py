@@ -14,8 +14,10 @@ configuration and artifact directory; assert* calls describe the expected result
 from __future__ import annotations
 
 import json
+import datetime as dt
 import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -35,6 +37,8 @@ from reference import compare_reference, verify_reference
 from render_namelist import render_namelist
 from run_case import run_case, write_esmx_config
 from run_suite import select_tests
+from restart import (check_checkpoint, checkpoint_fields, compare_checkpoint,
+                     run_restarts, segment_names)
 
 # CTest supplies a directory under the build tree. Direct Python invocations
 # must supply CFBM_TEST_TMP, so artifacts never go to a developer's home/scratch.
@@ -381,6 +385,166 @@ class PythonHarnessTests(unittest.TestCase):
         self.assertEqual(select_tests(tests, args), [1])
         args.test = "terrain.*"
         self.assertEqual(select_tests(tests, args), [])
+
+    #------------------------------------------------------------------------
+    # Restart configuration, precision, and segmentation
+    #------------------------------------------------------------------------
+
+    def test_restart_registration_and_phase(self) -> None:
+        """Select standalone restart cases without changing existing PR matrices."""
+        records = registrations(self.document, "mpi",
+                                ["standalone", "nuopc", "esmx"])
+        selected = [r for r in records if "restart" in r["labels"]]
+        self.assertEqual(len(selected), 6)
+        self.assertEqual({r["driver"] for r in selected}, {"standalone"})
+        self.assertTrue(all("pr" not in r["labels"] for r in selected))
+        spec = resolve_spec(self.document,
+                            "terrain",
+                            configuration="restart_time")
+        self.assertEqual(segment_names(spec, 28, 60), [
+            "fire_output_2020-01-01_00:00:36.nc",
+            "fire_output_2020-01-01_00:00:48.nc",
+            "fire_output_2020-01-01_00:01:00.nc"
+        ])
+        self.assertEqual(segment_names(spec, 0, 4),
+                         ["fire_output_2020-01-01_00:00:00.nc"])
+
+    def test_invalid_restart_splits_fail(self) -> None:
+        """Reject absent checkpoints, unordered splits, and invalid endpoints."""
+        for values in ([], [0], [60], [5], [12, 4], [4, 4], [True], [4.0]):
+            with self.subTest(values=values):
+                self.document["cases"]["terrain"]["configurations"][
+                    "restart_time"]["restart_splits"] = values
+                with self.assertRaises(ValueError):
+                    resolve_spec(self.document,
+                                 "terrain",
+                                 configuration="restart_time")
+
+    def _checkpoint(self,
+                    path: Path,
+                    spec: dict,
+                    seconds: int,
+                    fuel_dtype: str = "f8") -> None:
+        """Write independent small physical-state fixtures with REAL64 signals."""
+        with netCDF4.Dataset(path, "w") as dataset:
+            for name, size in (("nx", 2), ("ny", 2), ("moisture_class", 5)):
+                dataset.createDimension(name, size)
+            for name in checkpoint_fields(spec):
+                dimensions = ("ny", "moisture_class",
+                              "nx") if name == "fmc_gc" else ("ny", "nx")
+                kind = fuel_dtype if name in {
+                    "fuel_frac", "fuel_frac_burnt_dt"
+                } else "f4"
+                dataset.createVariable(name, kind,
+                                       dimensions)[:] = 0.123456789012345
+            origin = dt.datetime(2020, 1, 1)
+            for prefix, date in (("start", origin),
+                                 ("restart",
+                                  origin + dt.timedelta(seconds=seconds))):
+                for part in ("year", "month", "day", "hour", "minute",
+                             "second"):
+                    setattr(dataset, f"{prefix}_{part}", getattr(date, part))
+            dataset.itimestep = seconds // 4
+            dataset.fire_perimeter_ignited = int(
+                spec["namelist"]["fire"]["fire_is_real_perim"] and seconds >= 8)
+            dataset.fmc_fmoist_lasttime = 4.0
+            dataset.fmc_fmoist_nexttime = 20.0
+
+    def test_checkpoint_detects_real64_loss(self) -> None:
+        """Detect both float32 storage and quantization hidden in float64 storage."""
+        spec = resolve_spec(self.document,
+                            "circle",
+                            configuration="restart_prescribed")
+        for kind in ("f4", "f8"):
+            path = self.root / f"{kind}.nc"
+            self._checkpoint(path, spec, 60, kind)
+            check = check_checkpoint(path, spec, 60)
+            self.assertEqual(check["pass"], kind == "f8", check)
+        path = self.root / "f8.nc"
+        with netCDF4.Dataset(path, "a") as dataset:
+            dataset["fuel_frac"][:] = dataset["fuel_frac"][:].astype("f4")
+        self.assertFalse(check_checkpoint(path, spec, 60)["pass"])
+
+    def test_checkpoint_rejects_state_and_metadata_damage(self) -> None:
+        """Require class state, clock origin, activation flag, and exact fuel bits."""
+        spec = resolve_spec(self.document,
+                            "terrain",
+                            configuration="restart_time")
+        reference = self.root / "reference.nc"
+        self._checkpoint(reference, spec, 12)
+        self.assertTrue(check_checkpoint(reference, spec, 12)["pass"])
+        for defect in ("fuel_bit", "perimeter", "clock", "class_zero",
+                       "class_nan", "moisture_time"):
+            test = self.root / f"{defect}.nc"
+            shutil.copy2(reference, test)
+            with netCDF4.Dataset(test, "a") as dataset:
+                if defect == "fuel_bit":
+                    value = dataset["fuel_frac"][0, 0]
+                    dataset["fuel_frac"][0, 0] = np.nextafter(value, np.inf)
+                elif defect == "perimeter":
+                    dataset.fire_perimeter_ignited = 0
+                elif defect == "clock":
+                    dataset.start_second = 4
+                elif defect == "class_zero":
+                    dataset["fmc_gc"][:] = 0
+                elif defect == "class_nan":
+                    dataset["fmc_gc"][:] = np.nan
+                else:
+                    dataset.fmc_fmoist_nexttime = 999.0
+            self.assertFalse(
+                compare_checkpoint(reference, test, spec)["pass"], defect)
+            if defect not in ("fuel_bit", "moisture_time"):
+                self.assertFalse(
+                    check_checkpoint(test, spec, 12)["pass"], defect)
+        self.assertFalse(
+            compare_checkpoint(reference, self.root / "absent.nc",
+                               spec)["pass"])
+
+    def test_restart_chain_preserves_forcing_and_uses_previous_segment(
+            self) -> None:
+        """Exercise staging with a synthetic launcher and reject an extra output."""
+        spec = resolve_spec(self.document,
+                            "terrain",
+                            configuration="restart_time")
+        for extra in (False, True):
+            root = self.root / str(extra)
+            root.mkdir()
+            (root / "wrf.nc").write_bytes(b"original full-duration forcing")
+            for seconds in range(4, 61, 4):
+                name = f"fire_restart_2020-01-01_00:{seconds // 60:02d}:{seconds % 60:02d}.nc"
+                self._checkpoint(root / name, spec, seconds)
+            for name in segment_names(spec, 0, 60):
+                with netCDF4.Dataset(root / name, "w") as dataset:
+                    dataset.createDimension("nx", 1)
+                    dataset.createVariable("field", "f4", ("nx",))[:] = 1.0
+            calls = []
+
+            def launch(command: list, directory: Path, environment: dict,
+                       timeout: int, driver: str) -> dict:
+                """Emulate only file writes; no model process is launched."""
+                begin, end = [(0, 4), (4, 12), (12, 28), (28, 60)][len(calls)]
+                settings = json.loads((directory / "settings.json").read_text())
+                self.assertEqual((directory / "wrf.nc").read_bytes(),
+                                 (root / "wrf.nc").read_bytes())
+                if calls:
+                    self.assertEqual(
+                        Path(settings["restart_source"]).parent, calls[-1])
+                    self.assertIn("restart=.true.",
+                                  (directory / "namelist.fire").read_text())
+                for checkpoint in (False, True):
+                    for name in segment_names(spec, begin, end, checkpoint):
+                        shutil.copy2(root / name, directory / name)
+                if extra:
+                    (directory /
+                     "fire_output_unexpected.nc").write_bytes(b"unexpected")
+                calls.append(directory)
+                return {"reasons": [], "exit_status": 0}
+
+            with patch("run_case.run_model", side_effect=launch):
+                result = run_restarts(spec, root, ["fixture"], {}, set())
+            self.assertEqual(result["pass"], not extra, result["reasons"])
+            self.assertEqual(len(calls), 4)
+            self.assertEqual(len(result["comparisons"]), 21)
 
     #------------------------------------------------------------------------
     # Stored reference integrity and approval

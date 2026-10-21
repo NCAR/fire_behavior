@@ -115,6 +115,12 @@ cases:
         base_elevation_m: 0.0
     configurations:
       base: {}
+      restart_prescribed:
+        restart_splits: [28]
+        namelist:
+          time:
+            restart_interval: 4
+            interval_output: 12
       godunov:
         namelist:
           fire:
@@ -202,6 +208,31 @@ cases:
         namelist:
           fire:
             wind_vinterp_opt: 1
+      restart_time:
+        # Updates at 4, 20, 36, 52 s; splits bracket perimeter activation
+        # and include times between moisture updates and forcing records.
+        restart_splits: [4, 12, 28]
+        namelist:
+          time:
+            restart_interval: 4
+            interval_output: 12
+          atm:
+            interval_atm: 12
+          fire:
+            fmoist_freq: 0
+            fmoist_dt: 16.0
+      restart_step:
+        # Delayed first update exercises the initialization defect owned by P02.
+        restart_splits: [4, 12, 28]
+        namelist:
+          time:
+            restart_interval: 4
+            interval_output: 12
+          atm:
+            interval_atm: 12
+          fire:
+            fmoist_freq: 3
+            fmoist_dt: 12.0
       u3d:
         namelist:
           fire:
@@ -269,6 +300,15 @@ executions:
     timeout_seconds: 1800
     build: mpi
 suites:
+  restart:
+    scale: small
+    cases:
+      circle:
+        configurations: [restart_prescribed]
+        executions: [serial, omp4, mpi1, mpi4, hybrid4]
+      terrain:
+        configurations: [restart_time, restart_step]
+        executions: [serial, omp4, mpi1, mpi4, hybrid4]
   quick:
     scale: small
     cases:

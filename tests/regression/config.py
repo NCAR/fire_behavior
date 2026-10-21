@@ -19,6 +19,7 @@ NAMELIST_TYPES = {
     "time": {
         "dt": float,
         "interval_output": float,
+        "restart_interval": int,
         "num_tiles": int,
         "tile_strategy": int
     },
@@ -89,7 +90,9 @@ INPUT_KEYS = {
         "v_profile_m_s",
     },
 }
-SCIENCE_KEYS = {"start", "duration_seconds", "namelist", "inputs"}
+SCIENCE_KEYS = {
+    "start", "duration_seconds", "namelist", "inputs", "restart_splits"
+}
 DRIVERS = {"standalone", "nuopc", "esmx"}
 BUILDS = {"serial", "omp", "mpi", "hybrid"}
 ALLOWED_METHOD_PAIRS = {(9, 4), (2, 4)}
@@ -284,9 +287,12 @@ def registrations(document: dict[str, Any], variant: str,
                     if layout["build"] != variant:
                         continue
                     # Validate scientific combinations while configuring CMake.
-                    resolve_spec(document, case, scale, configuration,
-                                 execution)
+                    spec = resolve_spec(document, case, scale, configuration,
+                                        execution)
                     for driver in drivers:
+                        if spec.get(
+                                "restart_splits") and driver != "standalone":
+                            continue
                         if driver not in document["cases"][case]["drivers"]:
                             continue
                         name = f"{driver}_{case}_{configuration}_{scale}_{execution}"
@@ -328,6 +334,18 @@ def validate_spec(spec: dict[str, Any]) -> None:
         if abs(duration / interval - round(duration / interval)) > 1.0e-10:
             raise ValueError(
                 "Integration end must align with output and forcing records")
+    if "restart_splits" in spec:
+        splits = spec["restart_splits"]
+        interval = _require_number(time, "restart_interval", step, "time")
+        if interval / step != round(interval / step):
+            raise ValueError(
+                "restart_interval must align with the fire timestep")
+        if (not isinstance(splits, list) or not splits or any(
+                type(value) is not int or not 0 < value < duration or value %
+                interval for value in splits) or
+                splits != sorted(set(splits)) or duration % interval):
+            raise ValueError("restart_splits must increase within the run and "
+                             "align with restart_interval, including the end")
     start = dt.datetime.strptime(spec["start"], "%Y-%m-%d_%H:%M:%S")
     spec["end"] = (start +
                    dt.timedelta(seconds=duration)).strftime("%Y-%m-%d_%H:%M:%S")

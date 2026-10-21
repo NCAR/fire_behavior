@@ -79,6 +79,44 @@ def write_esmx_config(path: Path, spec: dict[str, Any]) -> None:
     path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
 
 
+def run_model(command: list[str], directory: Path, environment: dict[str, str],
+              timeout_seconds: int, driver: str) -> dict[str, Any]:
+    """Launch one integration and retain process and fatal-log evidence."""
+    result = {
+        "reasons": [],
+        "command": command,
+        "started_utc": dt.datetime.now(dt.timezone.utc).isoformat()
+    }
+    with (directory / "model.log").open("w") as log:
+        process = subprocess.run(command,
+                                 cwd=directory,
+                                 env=environment,
+                                 stdout=log,
+                                 stderr=subprocess.STDOUT,
+                                 timeout=timeout_seconds,
+                                 check=False)
+    result["exit_status"] = process.returncode
+    if process.returncode:
+        result["reasons"].append(
+            f"Model exited with status {process.returncode}")
+    logs = [directory / "model.log", *directory.glob("PET*.ESMF_LogFile")]
+    for log in logs:
+        lines = log.read_text(errors="replace").splitlines()
+        result["reasons"].extend(
+            line.strip()
+            for line in lines
+            if line.strip().startswith(FATAL_PREFIXES) or " ERROR " in line)
+    if driver != "standalone":
+        marker = ("esmApp FINISHED" if driver == "nuopc" else
+                  "ESMX (Earth System Model eXecutable) FINISHED")
+        completed = any(
+            marker in log.read_text(errors="replace") for log in logs)
+        result["coupled_finalize_observed"] = completed
+        if not completed:
+            result["reasons"].append("Coupled finalization was not observed")
+    return result
+
+
 def run_case(args: Any) -> dict[str, Any]:
     """Stage a case, launch the model, and reject incomplete integrations."""
     if Path("/glade").exists() and not os.environ.get("PBS_JOBID"):
@@ -89,6 +127,8 @@ def run_case(args: Any) -> dict[str, Any]:
                         args.execution)
     if args.driver not in document["cases"][args.case]["drivers"]:
         raise ValueError(f"No coupled configuration for {args.case}")
+    if spec.get("restart_splits") and args.driver != "standalone":
+        raise ValueError("Restart experiments currently require standalone")
     executable = args.executable.resolve(strict=True)
     root = Path(os.environ.get("CFBM_RUN_ROOT", str(args.run_root))).resolve()
     if root.is_relative_to(SOURCE_ROOT) and not root.is_relative_to(
@@ -135,37 +175,20 @@ def run_case(args: Any) -> dict[str, Any]:
         result.update(command=command,
                       started_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
                       threads=execution["threads"])
-        with (directory / "model.log").open("w") as log:
-            process = subprocess.run(command,
-                                     cwd=directory,
-                                     env=environment,
-                                     stdout=log,
-                                     stderr=subprocess.STDOUT,
-                                     timeout=execution["timeout_seconds"],
-                                     check=False)
-        result["exit_status"] = process.returncode
-        if process.returncode:
-            result["reasons"].append(
-                f"Model exited with status {process.returncode}")
-        logs = [directory / "model.log", *directory.glob("PET*.ESMF_LogFile")]
-        for log in logs:
-            lines = log.read_text(errors="replace").splitlines()
-            result["reasons"].extend(
-                line.strip()
-                for line in lines
-                if line.strip().startswith(FATAL_PREFIXES) or " ERROR " in line)
-        if args.driver != "standalone":
-            marker = ("esmApp FINISHED" if args.driver == "nuopc" else
-                      "ESMX (Earth System Model eXecutable) FINISHED")
-            completed = any(
-                marker in log.read_text(errors="replace") for log in logs)
-            result["coupled_finalize_observed"] = completed
-            if not completed:
-                result["reasons"].append(
-                    "Coupled finalization was not observed")
+        result.update(
+            run_model(command, directory, environment,
+                      execution["timeout_seconds"], args.driver))
         result["validation"] = validate_outputs(directory, result)
         result["reasons"].extend(result["validation"]["reasons"])
-        if args.reference:
+        if spec.get("restart_splits"):
+            from restart import run_restarts
+            result["restart"] = run_restarts(spec, directory, command,
+                                             environment,
+                                             set(document["static_fields"]))
+            result["reference_policy"] = "same-revision continuous/restarted"
+            if not result["restart"]["pass"]:
+                result["reasons"].append("Restart continuity checks failed")
+        if args.reference and not spec.get("restart_splits"):
             from reference import compare_reference
             result["reference"] = compare_reference(args.reference, result,
                                                     document)
