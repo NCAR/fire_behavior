@@ -1219,8 +1219,10 @@
     subroutine Set_event_phase (this)
       class (state_fire_t), intent (in out) :: this
 
-      ! The restored origin and absolute step count, not restart start_* values,
-      ! determine every subsequent event. Output and restart cadences are independent.
+      ! After restart, datetime_start is the original run origin and itimestep
+      ! counts all fire steps since that origin. Resuming at 9 s (step 30 for
+      ! dt=0.3) with 12 s output schedules the next output at 12 s (step 40).
+      ! Each event retains its own interval, measured from the same origin.
       this%final_step = this%clock%Step_at (this%datetime_end%Seconds_since (this%datetime_start), 'Final time')
       if (this%final_step <= this%itimestep) call Stop_simulation ('Final time must follow the current fire state')
       this%next_output_step = Next_event_step (this%itimestep, this%output_step_interval)
