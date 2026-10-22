@@ -125,6 +125,7 @@
       real ::  fuelload, fueldepth, rtemp1, rtemp2, qig, epsilon, rhob, wn, betaop, e, c, &
           xifr, etas, etam, a, gammax, gamma, ratio, ir, fuelloadm, bmst
       integer:: i, j, k, kk
+      character (len = 128) :: msg
 
 
       Loop_j: do j = jfts, jfte
