@@ -17,7 +17,7 @@ endfunction()
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
                       namelist_validation_unit time_interval_unit
                       coordinate_precision_unit projection_precision_unit bilinear_precision_unit
-                      fuel_precision_unit wind_order_unit wind_state_unit)
+                      fuel_precision_unit wind_order_unit wind_state_unit fmc_initialization_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -200,3 +200,24 @@ add_cfbm_unit_test(NAME wind_state_10m_unit COMMAND wind_state_unit u10m
   LABELS wind interpolation EXPECT "state wind checks passed")
 add_cfbm_unit_test(NAME wind_state_invalid_unit COMMAND wind_state_unit invalid
   LABELS wind interpolation EXPECT "STOP:Error: wrong wind_vinterp_opt")
+
+foreach(scenario IN ITEMS each delayed time late_first_call)
+  add_cfbm_unit_test(NAME fmc_${scenario}_unit COMMAND fmc_initialization_unit ${scenario}
+    LABELS moisture restart EXPECT "moisture initialization checks passed")
+  if(OPENMP)
+    set_tests_properties(fmc_${scenario}_unit PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=4;OMP_DYNAMIC=FALSE")
+  endif()
+endforeach()
+foreach(scenario IN ITEMS temperature pressure humidity rain)
+  add_cfbm_unit_test(NAME fmc_${scenario}_unit COMMAND fmc_initialization_unit ${scenario}
+    LABELS moisture restart EXPECT "STOP:FMC requires positive temperature and pressure and nonnegative humidity and rain")
+endforeach()
+foreach(scenario IN ITEMS nan old_forcing)
+  add_cfbm_unit_test(NAME fmc_${scenario}_unit COMMAND fmc_initialization_unit ${scenario}
+    LABELS moisture restart EXPECT "STOP:FMC requires finite atmospheric forcing")
+endforeach()
+add_cfbm_unit_test(NAME fmc_missing_unit COMMAND fmc_initialization_unit missing
+  LABELS moisture restart EXPECT "STOP:FMC atmospheric forcing is unavailable")
+
+add_cfbm_unit_test(NAME fmc_duplicate_unit COMMAND fmc_initialization_unit duplicate
+  LABELS moisture restart EXPECT "STOP:FMC advance requires increasing moisture time")

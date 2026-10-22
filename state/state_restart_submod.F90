@@ -3,11 +3,14 @@
 #ifdef DM_PARALLEL
     use mpi
 #endif
-    use fmc_wrffire_mod, only : fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME
+    use netcdf, only : nf90_open, nf90_close, nf90_inquire_attribute, nf90_nowrite, nf90_global, nf90_noerr, nf90_enotatt
+    use, intrinsic :: iso_fortran_env, only : INT32, REAL32
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+    use fmc_wrffire_mod, only : fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME, &
+        NAME_ATT_FMC_INITIALIZED, NAME_ATT_FMC_INITTIME
     use fmc_mod, only : Check_fmc
     use mpi_mod, only : Do_halo_exchange_with_corners
-    use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present
-    use, intrinsic :: iso_fortran_env, only : INT32, REAL32
+    use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present, Is_netcdf_var_present
 
     implicit none
 
@@ -381,6 +384,18 @@
         call Validate_restart_integer (file_restart, 'fuel_opt', config_flags%fuel_opt)
         call Validate_restart_integer (file_restart, 'ros_opt', config_flags%ros_opt)
         call Validate_restart_integer (file_restart, 'fmc_opt', config_flags%fmc_opt)
+        if (Has_restart_attribute (file_restart, 'fmoist_run')) then
+          call Validate_restart_integer (file_restart, 'fmoist_run', merge (1, 0, config_flags%fmoist_run))
+          if (config_flags%fmoist_run) then
+            call Validate_restart_integer (file_restart, 'fmoist_freq', config_flags%fmoist_freq)
+            call Validate_restart_real (file_restart, 'fmoist_dt', config_flags%fmoist_dt)
+          end if
+        else
+          if (Is_netcdf_var_present (file_restart, NAME_VAR_FMC_GC) .neqv. config_flags%fmoist_run) &
+              call Stop_simulation ('Legacy restart moisture activation differs from fmoist_run')
+          if (Has_restart_attribute (file_restart, NAME_ATT_FMC_INITIALIZED)) &
+              call Stop_simulation ('Restart moisture cadence metadata is incomplete')
+        end if
         call Validate_restart_integer (file_restart, 'emis_opt', config_flags%emis_opt)
         call Validate_restart_integer (file_restart, 'fire_upwinding', config_flags%fire_upwinding)
         call Validate_restart_integer (file_restart, 'fire_upwinding_reinit', config_flags%fire_upwinding_reinit)
@@ -641,8 +656,8 @@
         character (len = *), intent (in) :: file_name
 
         real (kind = REAL32) :: att_real32
-        real :: fmoist_lasttime, fmoist_nexttime
-        integer :: n_moisture_classes
+        real :: fmoist_lasttime, fmoist_nexttime, initialization_time
+        integer :: n_moisture_classes, initialized, i, j
 
 
         if (.not. allocated (this%fmc_param)) call Stop_simulation ('FMC restart read requires allocated fmc_param')
@@ -661,16 +676,65 @@
 
             fmoist_lasttime = 0.0
             fmoist_nexttime = 0.0
+            initialization_time = 0.0
+            initialized = 0
             if (rank == 0) then
               call Get_netcdf_att (file_name, 'global', NAME_ATT_FMOIST_LASTTIME, att_real32)
               fmoist_lasttime = att_real32
               call Get_netcdf_att (file_name, 'global', NAME_ATT_FMOIST_NEXTTIME, att_real32)
               fmoist_nexttime = att_real32
+              if (Has_restart_attribute (file_name, NAME_ATT_FMC_INITIALIZED)) then
+                call Get_netcdf_att (file_name, 'global', NAME_ATT_FMC_INITIALIZED, initialized)
+                call Get_netcdf_att (file_name, 'global', NAME_ATT_FMC_INITTIME, att_real32)
+                initialization_time = att_real32
+              else
+                if (Has_restart_attribute (file_name, NAME_ATT_FMC_INITTIME) .or. &
+                    Has_restart_attribute (file_name, 'fmoist_run')) &
+                    call Stop_simulation ('Restart moisture initialization metadata is incomplete')
+                ! PR #39 advances nexttime only for time-based moisture. A zero
+                ! nexttime cannot distinguish initialized from defective step runs.
+                if (config_flags%fmoist_freq /= 0 .or. fmoist_nexttime <= fmoist_lasttime) &
+                    call Stop_simulation ('Legacy restart cannot establish moisture initialization for step-based cadence')
+                if (abs ((fmoist_nexttime - fmoist_lasttime) - config_flags%fmoist_dt) > &
+                    RESTART_INTERVAL_TOL * max (1.0, abs (config_flags%fmoist_dt))) &
+                    call Stop_simulation ('Legacy restart moisture interval differs from fmoist_dt')
+                initialization_time = this%dt
+                initialized = 1
+              end if
+              if (initialized /= 1) call Stop_simulation ('Restart moisture state is not initialized')
+              if (.not. all (ieee_is_finite ([initialization_time, fmoist_lasttime, fmoist_nexttime]))) &
+                  call Stop_simulation ('Restart moisture times must be finite')
+              if (initialization_time < this%dt .or. fmoist_lasttime < initialization_time .or. &
+                  fmoist_lasttime > this%itimestep * this%dt .or. fmoist_nexttime < 0.0) &
+                  call Stop_simulation ('Restart moisture times are inconsistent with the fire clock')
+              if (config_flags%fmoist_freq == 0 .and. fmoist_nexttime <= fmoist_lasttime) &
+                  call Stop_simulation ('Restart next moisture update must follow the last update')
             end if
             call Broadcast_restart_real (this, fmoist_lasttime)
             call Broadcast_restart_real (this, fmoist_nexttime)
+            call Broadcast_restart_real (this, initialization_time)
+            call Broadcast_restart_integer (this, initialized)
             fmc_param%fmoist_lasttime = fmoist_lasttime
             fmc_param%fmoist_nexttime = fmoist_nexttime
+            fmc_param%initialization_time = initialization_time
+            fmc_param%initialized = initialized == 1
+            fmc_param%dt_moisture = 0.0
+
+            do j = this%jfps, this%jfpe
+              do i = this%ifps, this%ifpe
+                if (.not. all (ieee_is_finite (fmc_param%fmc_gc(i,:,j))) .or. &
+                    any (fmc_param%fmc_gc(i,:,j) < 0.0) .or. any (fmc_param%fmc_gc(i,:,j) >= NF90_FILL_FLOAT)) &
+                    call Stop_simulation ('Restart class moisture must be finite, available and nonnegative')
+                if (.not. all (ieee_is_finite ([this%fire_t2_old(i,j), this%fire_psfc_old(i,j), &
+                    this%fire_q2_old(i,j), this%fire_rain_old(i,j)]))) &
+                    call Stop_simulation ('Restart moisture forcing history must be finite')
+                if (this%fire_t2_old(i,j) <= 0.0 .or. this%fire_psfc_old(i,j) <= 0.0 .or. &
+                    this%fire_q2_old(i,j) < 0.0 .or. this%fire_rain_old(i,j) < 0.0 .or. &
+                    any ([this%fire_t2_old(i,j), this%fire_psfc_old(i,j), this%fire_q2_old(i,j), &
+                    this%fire_rain_old(i,j)] >= NF90_FILL_FLOAT)) &
+                    call Stop_simulation ('Restart moisture forcing history is unavailable or invalid')
+              end do
+            end do
 
           class default
             call Stop_simulation ('Restart read is not implemented for selected FMC component')
@@ -710,6 +774,19 @@
           var_name, var(ifps:ifpe, jfps:jfpe))
 
     end subroutine Read_restart_field_2d
+
+    logical function Has_restart_attribute (file_name, att_name) result (present_attribute)
+      character (len = *), intent (in) :: file_name, att_name
+      integer :: ncid, status, close_status
+
+      status = nf90_open (file_name, nf90_nowrite, ncid)
+      if (status /= nf90_noerr) call Stop_simulation ('Cannot open restart metadata: '//file_name)
+      status = nf90_inquire_attribute (ncid, nf90_global, att_name)
+      close_status = nf90_close (ncid)
+      if (close_status /= nf90_noerr) call Stop_simulation ('Cannot close restart metadata: '//file_name)
+      if (status /= nf90_noerr .and. status /= nf90_enotatt) call Stop_simulation ('Cannot inspect restart attribute: '//att_name)
+      present_attribute = status == nf90_noerr
+    end function Has_restart_attribute
 
     subroutine Validate_restart_integer (file_name, att_name, expected_value)
 
@@ -822,6 +899,11 @@
         call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fmc_opt', int (config_flags%fmc_opt, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', 'fmoist_run', int (merge (1, 0, config_flags%fmoist_run), kind = INT32))
+        if (config_flags%fmoist_run) then
+          call Add_netcdf_att (file_restart, 'global', 'fmoist_freq', int (config_flags%fmoist_freq, kind = INT32))
+          call Add_netcdf_att (file_restart, 'global', 'fmoist_dt', real (config_flags%fmoist_dt, kind = REAL32))
+        end if
         call Add_netcdf_att (file_restart, 'global', 'emis_opt', int (config_flags%emis_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fire_upwinding', int (config_flags%fire_upwinding, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fire_upwinding_reinit', int (config_flags%fire_upwinding_reinit, kind = INT32))
