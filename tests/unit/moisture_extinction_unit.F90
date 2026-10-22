@@ -13,6 +13,7 @@ program moisture_extinction_unit
       ieee_positive_inf, ieee_negative_inf
   use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
   use fuel_anderson_mod, only : fuel_anderson_t
+  use fmc_mod, only : Check_fmc
   use ros_wrffire_mod, only : ros_wrffire_t
   use fire_physics_mod, only : Calc_flame_length
 #ifdef DM_PARALLEL
@@ -65,9 +66,8 @@ program moisture_extinction_unit
       if (scenario == 'edge') moisture(i,1:2) = nearest(fuels%fuelmce(i), -1.0)
       if (scenario == 'above' .and. sample == 1) moisture(i,1:2) = nearest(fuels%fuelmce(i), 1.0)
     end do
-    ! Each invalid-input scenario must stop in Set_params with the specific
-    ! diagnostic registered in CMakeLists.txt. A generic failure or silent
-    ! acceptance does not establish that the input validation is correct.
+    ! Invalid inputs are rejected by the owning fuel/moisture layer, before ROS.
+    ! CTest requires the specific diagnostic; a generic failure is insufficient.
     select case (trim(scenario))
     case ('negative_moisture')
       moisture(1,1) = -0.01
@@ -93,12 +93,13 @@ program moisture_extinction_unit
     end select
     original = moisture(1:14,1:2)
     if (index(scenario, 'moisture') > 0 .or. index(scenario, 'extinction') > 0) then
-      ! Expected rejection must reach Stop_simulation from the main thread only.
-      ! The MPI build uses MPI_Init; concurrent tile failures can otherwise race
-      ! in MPI_Abort instead of terminating with the intended input diagnostic.
-      call params%Set_params(0,15,0,3,1,14,1,2,fuels,category,moisture)
+      ! Match initialization/restart validation on the initial thread. Fuel-table
+      ! mutations emulate an invalid definition before Check_fuels is called.
+      call fuels%Check_fuels ()
+      call Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
       error stop 'invalid input was accepted'
     end if
+    call Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
     ! Exercise disjoint owned tiles, concurrently in OpenMP builds. Set_params
     ! also reconstructs derived spread parameters after restart; checkpoint I/O
     ! and continuous-versus-restarted evolution are covered by regression cases.

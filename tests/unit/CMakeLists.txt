@@ -35,22 +35,64 @@ foreach(scenario IN ITEMS below edge at above)
 endforeach()
 add_cfbm_unit_test(NAME moisture_extinction_negative_moisture_unit
   COMMAND moisture_extinction_unit negative_moisture LABELS fuel moisture ros
-  EXPECT "STOP:Rothermel fmc_g must be nonnegative")
+  EXPECT "STOP:Restart fmc_g must be nonnegative")
 foreach(scenario IN ITEMS nan_moisture inf_moisture neginf_moisture)
   add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
     COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
-    EXPECT "STOP:Rothermel fmc_g must be finite")
+    EXPECT "STOP:Restart fmc_g must be finite")
 endforeach()
 foreach(scenario IN ITEMS zero_extinction negative_extinction)
   add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
     COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
-    EXPECT "STOP:Rothermel fuelmce must be positive")
+    EXPECT "STOP:fuelmce must be positive")
 endforeach()
 foreach(scenario IN ITEMS nan_extinction inf_extinction neginf_extinction)
   add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
     COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
-    EXPECT "STOP:Rothermel fuelmce must be finite")
+    EXPECT "STOP:fuelmce must be finite")
 endforeach()
+
+add_cfbm_unit_test(NAME namelist_fuelmc_zero_unit
+  COMMAND namelist_validation_unit fuelmc_zero LABELS namelist moisture
+  EXPECT "namelist validation accepted: fuelmc_zero")
+add_cfbm_unit_test(NAME namelist_fuelmc_negative_unit
+  COMMAND namelist_validation_unit fuelmc_negative LABELS namelist moisture
+  EXPECT "STOP:fuelmc_g must be nonnegative")
+foreach(scenario IN ITEMS nan inf neginf)
+  add_cfbm_unit_test(NAME namelist_fuelmc_${scenario}_unit
+    COMMAND namelist_validation_unit fuelmc_${scenario} LABELS namelist moisture
+    EXPECT "STOP:fuelmc_g must be finite")
+endforeach()
+
+add_executable(fmc_validation_unit fmc_validation_unit.F90)
+target_link_libraries(fmc_validation_unit PRIVATE firelib)
+foreach(scenario IN ITEMS valid restored_zero restored_wet)
+  add_cfbm_unit_test(NAME fmc_validation_${scenario}_unit
+    COMMAND fmc_validation_unit ${scenario} LABELS fuel moisture
+    EXPECT "moisture validation checks passed: ${scenario}")
+endforeach()
+foreach(quantity IN ITEMS class average)
+  foreach(scenario IN ITEMS negative nan inf neginf)
+    if(quantity STREQUAL "class")
+      set(field fmc_gc)
+    else()
+      set(field fmc_g)
+    endif()
+    if(scenario STREQUAL "negative")
+      set(requirement nonnegative)
+    else()
+      set(requirement finite)
+    endif()
+    add_cfbm_unit_test(NAME fmc_validation_${quantity}_${scenario}_unit
+      COMMAND fmc_validation_unit ${quantity}_${scenario} LABELS fuel moisture
+      EXPECT "STOP:Computed ${field} must be ${requirement}")
+  endforeach()
+endforeach()
+if(OPENMP)
+  get_property(fmc_tests DIRECTORY PROPERTY TESTS)
+  list(FILTER fmc_tests INCLUDE REGEX "^fmc_validation_")
+  set_tests_properties(${fmc_tests} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
+endif()
 
 # Check the production wind routine's array bounds even in Release builds.
 # Keep its test module separate from firelib's normal compilation products.

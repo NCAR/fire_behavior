@@ -117,6 +117,8 @@
         end if
       end do
 
+      call this%Check_fuels ()
+
       ! Initialize wind adjustment factor
       call this%Calc_wind_adjustment_factor()
 

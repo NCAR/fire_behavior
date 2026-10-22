@@ -267,8 +267,13 @@ output fields retain their existing single-precision NetCDF representation.
    For burnable cells, effective ground moisture ``fmc_g`` must be finite and
    nonnegative, and fuel-table extinction moisture ``fuelmce`` must be finite
    and positive. Both use kg water per kg dry fuel. Invalid inputs stop with
-   the cell indices or fuel category in the diagnostic. Nonburnable cells do
-   not evaluate these fuel quantities.
+   the cell indices or fuel category in the diagnostic. Fuel-table values are
+   checked during initialization, and prescribed ``fuelmc_g`` is checked in
+   the namelist (zero moisture is allowed). The moisture component checks
+   computed class and effective moisture before updating spread parameters;
+   the restart reader checks restored moisture before reconstruction. These
+   checks run outside OpenMP tile regions. Nonburnable cells do not require
+   physical moisture values.
 
    Aggregate moisture damping retains the existing polynomial below extinction
    and is zero at or above extinction. Reaction intensity, ``iboros`` (reaction

@@ -4,6 +4,7 @@
     use mpi
 #endif
     use fmc_wrffire_mod, only : fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME
+    use fmc_mod, only : Check_fmc
     use mpi_mod, only : Do_halo_exchange_with_corners
     use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present
     use, intrinsic :: iso_fortran_env, only : INT32, REAL32
@@ -505,6 +506,9 @@
 
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
         do ij = 1, this%num_tiles
+          ! Restored moisture bypasses both namelist and parameterization checks.
+          call Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
+              this%j_start(ij), this%j_end(ij), this%nfuel_cat, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
               this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
         end do
@@ -651,6 +655,9 @@
             call Get_netcdf_var_mpi (file_name, this%cfbm_comm, this%nx, this%ny, n_moisture_classes, &
                 this%ifps, this%ifpe, this%jfps, this%jfpe, NAME_VAR_FMC_GC, &
                 fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
+
+            call fmc_param%Check_moisture_classes (this%ifms, this%ifme, this%jfms, this%jfme, &
+                this%ifps, this%ifpe, this%jfps, this%jfpe, this%nfuel_cat, this%fuels%no_fuel_cat, 'Restart')
 
             fmoist_lasttime = 0.0
             fmoist_nexttime = 0.0
