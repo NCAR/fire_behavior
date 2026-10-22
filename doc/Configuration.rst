@@ -28,7 +28,10 @@ section. The ``ideal_opt`` option and ``&ideal`` section are available only for
 standalone runs, not for WRF-CFBM or NUOPC-coupled runs. The available options
 in each section are described below.
 
-Example namelists can be found in the various test subdirectories under the ``tests/legacy/`` directory.
+The regression harness generates example namelists from the explicit settings
+in ``tests/regression/cases.yaml``. Each completed case retains its
+``namelist.fire`` in the run directory; see ``tests/regression/doc/running.md``
+for commands and output locations.
 
 
 &time
@@ -83,7 +86,7 @@ Example namelists can be found in the various test subdirectories under the ``te
    This output ordering does not change the forcing used for fire integration.
 
 ``num_tiles``: *integer* (Default: ``1``)
-   Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The example namelists in ``tests/legacy/`` use ``num_tiles = 16``.
+   Number of OpenMP tiles per MPI process. The fire computations loop over ``num_tiles`` tiles under ``!$OMP PARALLEL DO``, so this sets the shared-memory (OpenMP) threading granularity. The generated regression cases in ``tests/regression/cases.yaml`` use ``num_tiles = 4``.
 
 
 &atm

@@ -4,6 +4,9 @@
 
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
+The legacy suite and its build route have since been retired. Mentions of
+legacy commands and results below describe the recorded historical revisions;
+they are not instructions for the current source tree.
 
 ## Coupled hybrid baseline extension (2026-10-14)
 

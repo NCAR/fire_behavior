@@ -89,9 +89,8 @@ netcdf-mpi/4.9.3 esmf-mpi/8.9.1 cmake/3.31.8`. The parallel NetCDF module loads
 matching parallel HDF5 libraries. Mixing serial NetCDF/HDF5 with this MPI ESMF
 can cause unresolved HDF5 symbols when linking ESMX.
 
-The build/launch separation is the same as in the legacy suite. `compile.sh`
-chooses whether MPI and OpenMP are compiled in. The case runner launches the
-resulting executable with the rank count and `OMP_NUM_THREADS` from the
+`compile.sh` chooses whether MPI and OpenMP are compiled in. The case runner
+launches the resulting executable with the rank count and `OMP_NUM_THREADS` from the
 `executions` section of `cases.yaml`. The model/coupler derives the MPI domain
 layout from its communicator; `num_tiles` and `tile_strategy` in the rendered
 namelist control the within-rank tiles. Compilation does not select rank counts
@@ -130,7 +129,7 @@ python -B tests/regression/regression.py suite --suite pr \
 selection accepts regex syntax. Internally, Python reads CTest's JSON listing
 and supplies a numeric list of selected tests to CTest.
 
-`--suite` accepts **five values**. `--test` accepts **any exact CTest name
+`--suite` accepts **four values**. `--test` accepts **any exact CTest name
 registered in the selected build**, so its available names depend on the build
 configuration.
 
@@ -142,7 +141,6 @@ The suite options are defined in [regression.py](../regression.py):
 | `pr` | Unit tests plus all four default case/configuration combinations across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
 | `full` | Unit tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
 | `unit` | Unit Fortran tests and the Python harness tests. No generated fire-case integrations. |
-| `legacy` | Original tests registered by the legacy build route. |
 
 These selections follow [cases.yaml](../cases.yaml). Each build contributes only
 the executions it supports, such as serial or MPI. **`full` selects only the
@@ -236,13 +234,6 @@ and scientific output requires the generated model tests.
 `namelist_broadcast_mpi` requires an MPI build. `regression_python` is
 registered by the generated test system and runs both Python test files.
 
-### Legacy tests
-
-The original names are `test7`, `test8`, `test7esmf`, `test8esmf`, `test7esmx`,
-`test8esmx`, and `testx`, subject to the enabled coupling capabilities. They
-require the legacy test system. See [legacy
-instructions](../../legacy/README.md).
-
 ## Exact selection overrides the suite
 
 **`--test` overrides the suite-label selection**. For example, `--test
@@ -269,7 +260,7 @@ and replaces an older interpreter cached by a previous run. Omit `--clean`
 to keep existing build artifacts.
 
 To choose another compatible interpreter, export `CFBM_PYTHON` before running
-`compile.sh` or `compile_legacy.sh`. This overrides the Derecho default and
+`compile.sh`. This overrides the Derecho default and
 is also honored without `--env-auto`.
 
 Both systems provide the centrally maintained `npl-2026a` environment:
@@ -347,8 +338,7 @@ that configuration. After all four builds finish, one suite invocation selects
 their tests and compares the outputs. Settings are grouped near the top of the
 template.
 `SUITES=(quick pr)` can explicitly run both when separate reports are needed.
-The template runs only the generated regression harness. Legacy investigations
-use `compile_legacy.sh` separately with their own build/install directories.
+The template runs the generated regression harness.
 
 The requested queue is `develop`, which routes CPU jobs to `cpudev`. The
 one-node, one-hour allocation covers the sequential small-scale workflow,

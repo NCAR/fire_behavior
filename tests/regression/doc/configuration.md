@@ -18,7 +18,7 @@ they describe synthetic fields and are not additional model namelist options.
 | Execution | Compiled build, MPI ranks, OpenMP threads, timeout | `serial`, `omp4`, `mpi4`, `hybrid4` |
 | Suite | Explicit selections of cases, configurations, scale, and executions | `quick`, `pr`, `full` |
 
-`unit` and `legacy` are additional CTest selections, not generated experiments.
+`unit` is an additional CTest selection, not a generated experiment.
 The suite `full` uses scale `large`. Scale is more than domain size: it also
 changes the integration schedule. The name `small` replaces `standard`, and
 `large` replaces the old scale name `full`.
