@@ -92,6 +92,13 @@ program moisture_extinction_unit
       error stop 'unknown extinction scenario'
     end select
     original = moisture(1:14,1:2)
+    if (index(scenario, 'moisture') > 0 .or. index(scenario, 'extinction') > 0) then
+      ! Expected rejection must reach Stop_simulation from the main thread only.
+      ! The MPI build uses MPI_Init; concurrent tile failures can otherwise race
+      ! in MPI_Abort instead of terminating with the intended input diagnostic.
+      call params%Set_params(0,15,0,3,1,14,1,2,fuels,category,moisture)
+      error stop 'invalid input was accepted'
+    end if
     ! Exercise disjoint owned tiles, concurrently in OpenMP builds. Set_params
     ! also reconstructs derived spread parameters after restart; checkpoint I/O
     ! and continuous-versus-restarted evolution are covered by regression cases.
@@ -100,8 +107,6 @@ program moisture_extinction_unit
       call params%Set_params(0,15,0,3,1,14,tile,tile,fuels,category,moisture)
     end do
     !$omp end parallel do
-    if (index(scenario, 'moisture') > 0 .or. index(scenario, 'extinction') > 0) &
-        error stop 'invalid input was accepted'
     if (any(moisture(1:13,1:2) /= original(1:13,1:2))) error stop 'physical moisture was modified'
 
     do i = 1, 13
