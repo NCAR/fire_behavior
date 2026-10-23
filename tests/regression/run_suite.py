@@ -155,7 +155,8 @@ def run_suite(args: Any) -> dict[str, Any]:
         json.loads(path.read_text())
         for path in sorted(root.glob("*/result.json"))
     ]
-    if args.suite in ("quick", "pr", "full") and not args.test and not results:
+    if args.suite in ("quick", "pr", "full",
+                      "restart") and not args.test and not results:
         summary["reasons"].append(
             "No generated cases ran; full requires CFBM_FULL_TESTS=ON")
     if any(not result["pass"] for result in results):
@@ -165,6 +166,27 @@ def run_suite(args: Any) -> dict[str, Any]:
         "pass": result["pass"],
         "directory": result["directory"]
     } for result in results]
+    summary["restart_cases"] = [{
+        "name":
+            result["name"],
+        "pass":
+            result["restart"]["pass"],
+        "segments":
+            len(result["restart"]["segments"]),
+        "completed_segments":
+            sum(item["pass"] for item in result["restart"]["segments"]),
+        "model_invocations":
+            1 + len(result["restart"]["segments"]) +
+            len(result["restart"].get("loading_checks", [])),
+        "loading_checks":
+            len(result["restart"].get("loading_checks", [])),
+        "comparisons":
+            len(result["restart"]["comparisons"]),
+        "failed_comparisons":
+            sum(not item["pass"] for item in result["restart"]["comparisons"]),
+        "report":
+            str(Path(result["directory"]) / "restart.json")
+    } for result in results if "restart" in result]
     comparisons = compare_executions(
         results, set(load_yaml(args.config)["static_fields"]))
     summary["comparisons"] = comparisons

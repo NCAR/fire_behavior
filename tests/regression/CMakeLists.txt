@@ -109,5 +109,5 @@ endif()
 add_test(NAME regression_python COMMAND "${Python3_EXECUTABLE}" -B -m unittest
   discover -s "${CMAKE_CURRENT_SOURCE_DIR}/tests" -p "*_test.py" -v)
 set_tests_properties(regression_python PROPERTIES
-  LABELS "unit;quick;pr;full"
+  LABELS "unit;quick;pr;full;restart"
   ENVIRONMENT "CFBM_TEST_TMP=${PROJECT_BINARY_DIR}/python-test-artifacts")

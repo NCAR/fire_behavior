@@ -5,6 +5,106 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## P00 on merged P02/develop (2026-10-22)
+
+After PR #39 and P02/PR #62 were squash-merged, the review base became
+`develop` at `622e191`. P00 merges that revision into its published history,
+retaining the merged moisture component and restart reader. The 19-file review
+diff contains only tests and documentation; production code and P02's focused
+unit tests match `622e191` exactly. The harness now includes the initialization
+metadata checks and 30 restart-loading probes from the earlier P00/P02 test
+integration.
+
+Derecho PBS `7915414.desched1` tests candidate `9a64864`. The published-history
+merge `ce551ee` has the identical complete file tree; subsequent edits only
+update documentation. All four GNU Strict builds pass: serial, OpenMP, MPI,
+and hybrid, with NUOPC/ESMX enabled in the latter two. The environment is GNU
+12.2.0, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0, and shared NPL Python.
+
+All 67 restart CTests pass, comprising 15 restart cases, 48 P02 lifecycle
+checks, and four Python harness registrations. All five formerly failing
+step-based moisture cases now pass. The suite completes 65 continuity model
+invocations and 30 loading probes. Its 315 continuity file comparisons and
+five accepted-legacy checkpoint comparisons are bitwise equal, with zero
+maximum absolute error. All 450 checkpoint validity checks, 30 loading probes,
+and 12 cross-layout comparisons pass; cross-layout error is also zero.
+
+The same job passes all 238 existing PR CTests: 202 unit registrations and
+36 model runs. All 40 execution comparisons and 36 approved-reference
+comparisons pass. The reference error is zero; the maximum cross-driver error
+is 0.125 W m-2 in `fgrnhfx`, within the unchanged tolerance. The PBS job exits
+zero. The 45 Python tests also pass in the serial-NetCDF development environment;
+YAPF 0.43.0, shell syntax, and whitespace checks pass.
+
+Evidence is preserved under `cfbm-P00-develop-20261022T230324-0600/` in the
+validation submitter's Derecho scratch `tmp/`. The historical P00 failures
+below remain preserved. This validation establishes same-revision standalone
+restart continuity, including P02's delayed initialization correction. It does
+not establish NUOPC/ESMX or WRF-host restart continuity, cross-layout checkpoint
+transfer, or combined P01/P04 behavior.
+
+## P00 restart foundation (2026-10-20)
+
+The original review base was local merge `bc205bc`, combining upstream
+`26d57b6` with restart PR #39 at `59b9081`. Remote heads were checked on
+2026-10-20 and still matched that snapshot. P00 changes only the harness and
+its documentation.
+At that time, its feature branch required an explicit stacked review base;
+targeting upstream develop would also have included the unmerged restart work.
+
+Derecho PBS `7889837.desched1` built this base in serial, OpenMP, MPI, and
+hybrid GNU Strict configurations. All 190 PR CTests passed: 154 unit CTests
+and 36 model runs. The 40 cross-execution comparisons and all 36 approved
+`github-pr` reference comparisons passed. The largest cross-execution absolute
+difference was 0.125 W m-2 in `fgrnhfx`; the applicable relative tolerance was
+unchanged. This establishes the base's existing regression behavior, not
+restart continuity.
+
+The environment was GNU 12.2.0, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0,
+and the shared `npl-2026a` Python interpreter. P00's 45 Python tests also passed
+in a serial-NetCDF development environment; YAPF 0.43.0 and Python compilation
+checks passed. Both existing Python test modules remain in discovery.
+
+The first harness attempt, `1f61101` in PBS `7889874.desched1`, passed all five
+time-based moisture restart cases and the unchanged PR matrix. Its prescribed
+cases exposed a checker applicability error: idealized `fz0` is deliberately
+unavailable. `a863938` corrects that check and restricts `lfn_hist` checks to
+observed perimeters, whose initialization sets it. It also records executable
+hashes and execution environment. The original failed evidence is retained.
+
+The step-based configuration exposes the pre-existing initialization defect
+assigned to P02. In `physics/fmc_wrffire_mod.F90`, `Advance_fmc_model` gates the
+call on update cadence, but `Advance_moisture_classes` initializes only when
+`itimestep == 1`. With `fmoist_freq=3`, that first call is missed. Results include
+invalid class moisture, nonfinite moisture/heat fluxes, differing restart state,
+and MPI aborts reporting equilibrium-moisture NaNs. The tests remain failures;
+P00 does not change the production implementation or claim scientific acceptance
+of this configuration.
+
+The corrected harness at `a863938`, PBS `7889890.desched1`, passes all ten
+prescribed/time-based cases across serial, OpenMP, one-rank MPI, four-rank MPI,
+and hybrid layouts. Their 210 output/checkpoint comparisons have zero absolute
+error, including REAL64 fuel state. All eight cross-layout comparisons pass.
+All five step-based cases fail on the P02 defect described above. There are
+61 attempted model invocations rather than the scheduled 65: the four-rank
+MPI and hybrid chains cannot continue after their first resumed segment aborts.
+The report contains 283 file-comparison attempts, including four missing-file
+failures; 279 comparisons read both files. Agreement in an invalid step-based
+case does not establish restart acceptance. The overall restart suite exits
+nonzero, as intended for an unresolved production defect.
+
+The same job also passed all 190 existing PR CTests, all 40 cross-execution
+comparisons, and all 36 approved-reference comparisons. Maximum cross-driver
+absolute error remained 0.125 W m-2 in `fgrnhfx`. The PBS job exits nonzero
+because of the restart suite's five P02 cases, not because the existing PR
+suite failed. Subsequent P00 edits only document these results and list the
+new suite in `compile.sh --help`; runtime validation applies to `a863938`.
+
+Evidence is preserved under `cfbm-P00-20261021T024500/` in the validation
+submitter's Derecho scratch `tmp/`, with separate `base`, `attempt-01`, and
+`attempt-02` source/build/run trees. See [restart continuity](restart.md) for
+the comparison policy, scheduled counts, and intentionally untested paths.
+
 ## Coupled hybrid baseline extension (2026-10-14)
 
 At Maria Frediani's request, revision `4b6535d` enables NUOPC and ESMX in

@@ -242,8 +242,9 @@ def compare_file(
     test_path: Path,
     static_fields: set[str],
     volatile_global_attributes: set[str] | None = None,
+    required_fields: set[str] | None = None,
 ) -> dict[str, Any]:
-    """Compare two NetCDF files and every field under the fixed policy."""
+    """Compare full schemas and all fields, or an explicit required-field subset."""
     result: dict[str, Any] = {
         "reference":
             str(reference_path),
@@ -280,7 +281,15 @@ def compare_file(
         if _attributes(reference, volatile_global_attributes) != _attributes(
                 test, volatile_global_attributes):
             result["reasons"].append("global metadata differs")
-        for name in sorted(set(reference.variables) & set(test.variables)):
+        shared = set(reference.variables) & set(test.variables)
+        if required_fields is not None:
+            result["uncompared_fields"] = sorted(shared - required_fields)
+            if required_fields - shared:
+                result["reasons"].append(
+                    f"required fields missing: {sorted(required_fields - shared)}"
+                )
+            shared &= required_fields
+        for name in sorted(shared):
             result["fields"].append(
                 compare_variable(reference.variables[name],
                                  test.variables[name], name in static_fields))

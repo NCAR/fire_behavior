@@ -2,6 +2,10 @@
 
 [Documentation index](../README.md)
 
+The separate [restart suite](restart.md) also compares physical checkpoint
+state bitwise, validates REAL64 fuel storage, and checks clock and activation
+metadata. The regular-output acceptance rules below remain unchanged.
+
 The standard inventory contains 19 variables. Each expected output file must
 contain exactly the fields listed in `expected_output_fields` in
 [cases.yaml](../cases.yaml). The comparator checks all variables, not a selected

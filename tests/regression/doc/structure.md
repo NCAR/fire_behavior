@@ -43,6 +43,8 @@ flowchart TD
     CTEST -->|runs| UNIT
     CTEST -->|runs each model case through| CASE
     CASE -->|stages and launches| MODEL
+    CASE -->|for restart configurations| RESTART["restart.py<br/>Cold first segment and chained restarts"]
+    RESTART -->|checks each segment and checkpoint| RESULT
     MODEL -->|produces fields and logs for| CHECK
     BASELINE -->|supplies accepted fields to| CHECK
     CHECK -->|records findings in| RESULT
@@ -61,6 +63,12 @@ Strict selects the shared baseline automatically. `--reference` overrides it;
 `--no-reference` disables historical comparison with a warning. Physical and
 cross-execution checks remain active. See [running tests](running.md) for
 commands and [comparison rules](comparison.md) for acceptance criteria.
+
+The separately selected [restart suite](restart.md) uses `run_case.run_model`
+for the continuous run and every segment. `restart.py` copies the original
+forcing, derives segment namelists, and calls the shared comparison routines.
+Its results enter the same case and suite reports; it does not build or launch
+tests through a second framework.
 
 ## File relationships inside the harness
 

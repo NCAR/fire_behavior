@@ -11,9 +11,9 @@ coverage limits.
 | --- | --- |
 | Intermediate-time 3D standalone/coupled agreement | Earlier diagnostics exceeded tolerance between saved PR endpoints. The bilinear-precision experiment passed an every-4-second GitHub comparison through 60 s. These are diagnostic results, not an extension of the PR acceptance schedule. See [validation history](validation.md). |
 | Longer standalone/coupled agreement | The 600 s terrain diagnostics still exceed the short-run comparison tolerance, including at 6.096 m with double-precision bilinear arithmetic. A longer-duration acceptance policy would need separate scientific review; it is not required for this PR. See [validation history](validation.md). |
-| Humidity interpretation | Scientific review associated with PR #46 is independent of reproducibility; current moisture remains enabled. |
-| Restart | Restart continuity, restart inputs, and segmented-run comparisons. |
-| PR #39 changes and method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
+| Humidity interpretation | Scientific review of the humidity convention is independent of reproducibility; current moisture remains enabled. |
+| Restart | Standalone same-revision chains are covered by the [restart suite](restart.md). Coupled/WRF-host continuity and cross-revision compatibility remain untested. Known production failures remain failures. |
+| Method `(4,5)` | Separate scientific review and suitable comparison cases before matrix inclusion. |
 | ESMX_Data feedback | The generated coupled cases use WRF-data forcing. Legacy `testx` still exercises a distinct feedback fixture. |
 | Coupled OpenMP-only | MPI and hybrid NUOPC/ESMX are included in the PR matrix. Coupled runs using an OpenMP-only build remain outside this selection. |
 | Atmospheric hosts | WRF/UFS host integrations, including UFS mass-centred winds and any future staggered interpolation option. |

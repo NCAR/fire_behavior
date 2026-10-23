@@ -2,6 +2,10 @@
 
 [Documentation index](../README.md)
 
+Restart configurations additionally specify `restart_splits` and the exact
+`namelist.time.restart_interval`; the runner derives `time.restart` and segment
+dates. See [restart continuity](restart.md) for schedule and driver constraints.
+
 Use one [cases.yaml](../cases.yaml) with exact Fortran block and option names
 under `namelist`. For example, `namelist.fire.wind_vinterp_opt: 0` writes
 `wind_vinterp_opt=0` in `&fire`. Input-generator settings live under `inputs`;
@@ -12,16 +16,21 @@ they describe synthetic fields and are not additional model namelist options.
 | Selection | Meaning | Examples |
 | --- | --- | --- |
 | Case | Shared physical setup and its purpose | `circle`, `fuels`, `terrain` |
-| Configuration | Explicit set of scientific option/input overrides within a case | `base`, `u10m`, `u3d`, `godunov3d` |
+| Configuration | Explicit set of scientific option/input overrides within a case | `base`, `u10m`, `u3d`, `godunov3d`, `restart_time` |
 | Scale | Grid dimensions, spacing, integration duration, and intervals | `small`, `large` |
 | Driver | Executable entry point | `standalone`, `nuopc`, `esmx` |
 | Execution | Compiled build, MPI ranks, OpenMP threads, timeout | `serial`, `omp4`, `mpi4`, `hybrid4` |
-| Suite | Explicit selections of cases, configurations, scale, and executions | `quick`, `pr`, `full` |
+| Suite | Explicit selections of cases, configurations, scale, and executions | `quick`, `pr`, `full`, `restart` |
 
 `unit` and `legacy` are additional CTest selections, not generated experiments.
 The suite `full` uses scale `large`. Scale is more than domain size: it also
 changes the integration schedule. The name `small` replaces `standard`, and
 `large` replaces the old scale name `full`.
+
+Suite membership is explicit: selecting `pr` or `full` does not automatically
+include the `restart` configurations. GitHub CI invokes both `pr` and `restart`
+using the same four builds. The `restart` suite selects standalone runs even
+when the parent case also supports NUOPC and ESMX.
 
 Resolution is **defaults → case → configuration → scale**. Nested mappings
 merge; scalar values and lists replace earlier values. Execution settings are
@@ -100,6 +109,12 @@ cases:
       godunov3d:
         namelist:
           fire: {wind_vinterp_opt: 0, fire_upwinding: 2}
+      restart_time:
+        restart_splits: [4, 12, 28]
+        namelist:
+          time: {restart_interval: 4, interval_output: 12}
+          atm: {interval_atm: 12}
+          fire: {fmoist_freq: 0, fmoist_dt: 16.0}
 
 scales:
   small: {}
@@ -116,6 +131,12 @@ executions:
   mpi4: {build: mpi, ranks: 4, threads: 1, timeout_seconds: 900}
 
 suites:
+  restart:
+    scale: small
+    cases:
+      terrain:
+        configurations: [restart_time]
+        executions: [serial, mpi4]
   pr:
     scale: small
     cases:
@@ -123,6 +144,16 @@ suites:
         configurations: [u10m, u3d]
         executions: [serial, mpi4]
 ```
+
+The `restart_time` example inherits `dt=4` and a 60 s duration. It writes
+checkpoints every 4 s and regular output every 12 s. For each selected execution,
+the harness runs one uninterrupted integration from 0 to 60 s and a chain of
+segments spanning 0-4, 4-12, 12-28, and 28-60 s. The 28 s split falls between
+regular outputs at 24 and 36 s; the first output after resuming is still at
+36 s. `restart_splits` controls the harness, while `restart_interval` is a
+Fortran namelist option. The complete production selection also includes
+prescribed and step-based moisture cases across five execution layouts; see
+[restart continuity](restart.md).
 
 ## Add options without adding a category system
 
@@ -157,3 +188,10 @@ example `nuopc_terrain_u3d_small_mpi4`. Only runs sharing the same case,
 configuration, and scale are compared. Wind choices and numerical schemes are
 separate experiments, not numerical references for one another. Resolved
 settings are saved in each `result.json`.
+
+Restart configurations compare each resumed segment with the uninterrupted run
+from the same revision and execution layout. Physical checkpoint state must
+match exactly; regular output follows the existing comparison policy. These
+cases do not use the stored `github-pr` baseline. Running `restart` alongside
+`pr` in CI therefore requires no baseline update: `pr` keeps its approved
+reference, and reference generation continues to use only the `pr` results.
