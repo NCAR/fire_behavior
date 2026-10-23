@@ -14,6 +14,8 @@
     implicit none
 
     integer, parameter :: RESTART_IO_ROOT = 0
+    ! Legacy moisture timestamps retain their existing REAL32 consistency check.
+    real, parameter :: RESTART_INTERVAL_TOL = 1.0e-6
 
   contains
 
