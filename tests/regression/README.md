@@ -62,6 +62,11 @@ configuration names, and the `large` scale.
 GNU `Strict` builds select the shared `github-pr` baseline by default.
 Use `--reference` to override it or `--no-reference` to disable historical
 comparison deliberately. Configuration warns when no reference is selected.
+
+GitHub CI runs both `pr` and `restart` using the same four builds; either suite
+failing makes the regression check fail. The restart suite compares uninterrupted
+and segmented runs from the same revision and needs no stored baseline. Both
+suites' reports and model files are retained in the test-evidence artifact.
 The [comparison table](doc/comparison.md) separates bitwise checks from numerical
 tolerance. Passing without an approved reference establishes the configured
 behavior checks and agreement among selected executions, not historical

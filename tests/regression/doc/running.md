@@ -142,12 +142,19 @@ The suite options are defined in [regression.py](../regression.py):
 | `pr` | Unit tests plus all four default case/configuration combinations across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
 | `full` | Unit tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
 | `unit` | Unit Fortran tests and the Python harness tests. No generated fire-case integrations. |
-| `restart` | Python harness checks and standalone continuous/restarted cases in serial, OpenMP, MPI, and hybrid layouts. See [restart continuity](restart.md) for schedules, counts, and coverage limits. |
+| `restart` | Moisture initialization unit checks, Python harness checks, and standalone continuous/restarted cases in serial, OpenMP, MPI, and hybrid layouts. See [restart continuity](restart.md) for schedules, counts, and coverage limits. |
 | `legacy` | Original tests registered by the legacy build route. |
 
 These selections follow [cases.yaml](../cases.yaml). Each build contributes only
 the executions it supports, such as serial or MPI. **`full` selects only the
 larger experiments.**
+
+GitHub CI runs `pr` and `restart` consecutively using the same serial, OpenMP,
+MPI and hybrid builds. Both suites run even if one fails, and either failure
+fails the regression check. Their separate `summary.json` files, JUnit reports,
+model logs and outputs are included in the test-evidence artifact. Restart
+comparisons use the uninterrupted run from the same revision; the existing
+`github-pr` baseline remains specific to `pr`.
 
 Enable their registration in an appropriately sized allocation:
 
@@ -211,7 +218,7 @@ namelist_broadcast_mpi
 Here `*_unit` describes a naming pattern, not a literal selector. Copy the
 complete name from the CTest listing when using `--test`. `regression_python`
 tests **the Python regression harness**: input generation, configuration, output
-checks, comparisons, and reporting. It currently contains **40 Python tests**
+checks, comparisons, and reporting. It currently contains **45 Python tests**
 across two files and does not launch the Fortran model.
 
 | Area | What it checks |
@@ -224,9 +231,10 @@ across two files and does not launch the Fortran model.
 | Numerical comparisons | Exercises relative tolerance, zero references, tolerance boundaries, bitwise static-field checks, NaNs, infinities, missing-data masks, and empty valid-data sets. |
 | Comparison policy | Checks cross-driver roughness tolerance, exact fuel categories, comparisons across execution layouts, and rejection of incompatible scientific settings. |
 | Failure detection and reporting | Checks rejection of corrupted or unapproved references, extra output files, and a successful process exit with no outputs; also exercises JSON reporting. |
+| Restart chains | Checks checkpoint precision, state and metadata validity, segment schedules, and preservation of forcing across segments. |
 
 The implementation is in
-[python_harness_test.py](../tests/python_harness_test.py) (23 tests) and
+[python_harness_test.py](../tests/python_harness_test.py) (28 tests) and
 [generator_comparator_test.py](../tests/generator_comparator_test.py) (17
 tests).
 
@@ -347,7 +355,7 @@ The build loop calls `compile.sh` once per configuration; each call builds only
 that configuration. After all four builds finish, one suite invocation selects
 their tests and compares the outputs. Settings are grouped near the top of the
 template.
-`SUITES=(quick pr)` can explicitly run both when separate reports are needed.
+Set `SUITES=(pr restart)` to run both CI suites and retain separate reports.
 The template runs only the generated regression harness. Legacy investigations
 use `compile_legacy.sh` separately with their own build/install directories.
 
