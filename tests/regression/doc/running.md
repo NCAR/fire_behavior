@@ -219,7 +219,7 @@ namelist_broadcast_mpi
 Here `*_unit` describes a naming pattern, not a literal selector. Copy the
 complete name from the CTest listing when using `--test`. `regression_python`
 tests **the Python regression harness**: input generation, configuration, output
-checks, comparisons, and reporting. It currently contains **45 Python tests**
+checks, comparisons, and reporting. Core coverage contains **47 Python tests**
 across two files and does not launch the Fortran model.
 
 | Area | What it checks |
@@ -235,7 +235,7 @@ across two files and does not launch the Fortran model.
 | Restart chains | Checks checkpoint precision, state and metadata validity, segment schedules, and preservation of forcing across segments. |
 
 The implementation is in
-[python_harness_test.py](../tests/python_harness_test.py) (28 tests) and
+[python_harness_test.py](../tests/python_harness_test.py) (30 core tests) and
 [generator_comparator_test.py](../tests/generator_comparator_test.py) (17
 tests).
 
