@@ -22,6 +22,91 @@ foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
 
+add_executable(moisture_extinction_unit moisture_extinction_unit.F90)
+target_link_libraries(moisture_extinction_unit PRIVATE firelib)
+foreach(scenario IN ITEMS below edge at above)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "moisture extinction checks passed: ${scenario}")
+  if(OPENMP)
+    set_tests_properties(moisture_extinction_${scenario}_unit PROPERTIES
+      ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
+  endif()
+endforeach()
+add_cfbm_unit_test(NAME moisture_extinction_negative_moisture_unit
+  COMMAND moisture_extinction_unit negative_moisture LABELS fuel moisture ros
+  EXPECT "STOP:Restart fmc_g must be nonnegative")
+foreach(scenario IN ITEMS nan_moisture inf_moisture neginf_moisture)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:Restart fmc_g must be finite")
+endforeach()
+foreach(scenario IN ITEMS zero_extinction negative_extinction)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:fuelmce must be positive")
+endforeach()
+foreach(scenario IN ITEMS nan_extinction inf_extinction neginf_extinction)
+  add_cfbm_unit_test(NAME moisture_extinction_${scenario}_unit
+    COMMAND moisture_extinction_unit ${scenario} LABELS fuel moisture ros
+    EXPECT "STOP:fuelmce must be finite")
+endforeach()
+
+add_cfbm_unit_test(NAME namelist_fuelmc_zero_unit
+  COMMAND namelist_validation_unit fuelmc_zero LABELS namelist moisture
+  EXPECT "namelist validation accepted: fuelmc_zero")
+add_cfbm_unit_test(NAME namelist_fuelmc_negative_unit
+  COMMAND namelist_validation_unit fuelmc_negative LABELS namelist moisture
+  EXPECT "STOP:fuelmc_g must be nonnegative")
+foreach(scenario IN ITEMS nan inf neginf)
+  add_cfbm_unit_test(NAME namelist_fuelmc_${scenario}_unit
+    COMMAND namelist_validation_unit fuelmc_${scenario} LABELS namelist moisture
+    EXPECT "STOP:fuelmc_g must be finite")
+endforeach()
+
+add_executable(fmc_validation_unit fmc_validation_unit.F90)
+target_link_libraries(fmc_validation_unit PRIVATE firelib)
+foreach(scenario IN ITEMS valid zero_load restored_zero restored_wet)
+  add_cfbm_unit_test(NAME fmc_validation_${scenario}_unit
+    COMMAND fmc_validation_unit ${scenario} LABELS fuel moisture
+    EXPECT "moisture validation checks passed: ${scenario}")
+endforeach()
+foreach(quantity IN ITEMS class restored)
+  foreach(scenario IN ITEMS negative nan inf neginf)
+    if(quantity STREQUAL "class")
+      set(field fmc_gc)
+      set(source Computed)
+    else()
+      set(field fmc_g)
+      set(source Restart)
+    endif()
+    if(scenario STREQUAL "negative")
+      set(requirement nonnegative)
+    else()
+      set(requirement finite)
+    endif()
+    add_cfbm_unit_test(NAME fmc_validation_${quantity}_${scenario}_unit
+      COMMAND fmc_validation_unit ${quantity}_${scenario} LABELS fuel moisture
+      EXPECT "STOP:${source} ${field} must be ${requirement}")
+  endforeach()
+endforeach()
+add_cfbm_unit_test(NAME fmc_validation_load_negative_unit
+  COMMAND fmc_validation_unit load_negative LABELS fuel moisture
+  EXPECT "STOP:.*fuel load in category.*must be nonegative")
+foreach(scenario IN ITEMS nan inf neginf)
+  add_cfbm_unit_test(NAME fmc_validation_load_${scenario}_unit
+    COMMAND fmc_validation_unit load_${scenario} LABELS fuel moisture
+    EXPECT "STOP:Moisture averaging fuel load must be finite for category,class:")
+endforeach()
+add_cfbm_unit_test(NAME fmc_validation_load_overflow_unit
+  COMMAND fmc_validation_unit load_overflow LABELS fuel moisture
+  EXPECT "STOP:Moisture averaging total fuel load exceeds representable range for category:")
+if(OPENMP)
+  get_property(fmc_tests DIRECTORY PROPERTY TESTS)
+  list(FILTER fmc_tests INCLUDE REGEX "^fmc_validation_")
+  set_tests_properties(${fmc_tests} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
+endif()
+
 # Check the production wind routine's array bounds even in Release builds.
 # Keep its test module separate from firelib's normal compilation products.
 target_sources(wind_order_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90)

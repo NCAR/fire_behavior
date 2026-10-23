@@ -111,15 +111,16 @@ they require no new stored baseline.
 
 | Build | Fortran unit checks | Python harness invocation | Model runs | Total CTests |
 | --- | ---: | ---: | ---: | ---: |
-| Serial | 53 | 1 | 7 | 61 |
-| OpenMP | 53 | 1 | 14 | 68 |
-| MPI | 54 | 1 | 34 | 89 |
-| Hybrid | 54 | 1 | 17 | 72 |
-| **Total** | **214** | **4** | **72** | **290** |
+| Serial | 88 | 1 | 7 | 96 |
+| OpenMP | 88 | 1 | 14 | 103 |
+| MPI | 89 | 1 | 34 | 124 |
+| Hybrid | 89 | 1 | 17 | 107 |
+| **Total** | **354** | **4** | **72** | **430** |
 
-Fortran checks cover timing, namelists, moisture initialization, perimeter
-activation, tiling, interpolation, and numerical precision. The clock checks
-include long-duration event counts and exchange-window accumulation/reset.
+Fortran checks cover timing, namelists, moisture initialization and validity,
+extinction, perimeter activation, tiling, interpolation, and numerical precision.
+The clock checks include long-duration event counts and exchange-window
+accumulation/reset.
 
 ### Restart checks
 

@@ -1,5 +1,8 @@
   module fuel_mod
 
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+    use stderrout_mod, only : Stop_simulation
+
     implicit none
 
     private
@@ -40,6 +43,7 @@
       real, dimension(:), allocatable :: waf
     contains
       procedure (Initialization), deferred :: Initialization
+      procedure, public :: Check_fuels => Check_fuels
       procedure, public :: Calc_wind_adjustment_factor => Calc_wind_adjustment_factor
     end type fuel_t
 
@@ -52,6 +56,29 @@
     end interface
 
   contains
+
+    subroutine Check_fuels (this)
+
+      implicit none
+
+      class (fuel_t), intent (in) :: this
+      integer :: k
+      character (len = 128) :: msg
+
+
+      ! Extinction moisture is a fixed table property, checked once at initialization.
+      do k = 1, this%n_fuel_cat
+        if (k == this%no_fuel_cat) cycle
+        if (.not. ieee_is_finite (this%fuelmce(k))) then
+          write (msg, '(a,1x,i0)') 'fuelmce must be finite for fuel category:', k
+          call Stop_simulation (msg)
+        else if (this%fuelmce(k) <= 0.0) then
+          write (msg, '(a,1x,i0)') 'fuelmce must be positive for fuel category:', k
+          call Stop_simulation (msg)
+        end if
+      end do
+
+    end subroutine Check_fuels
 
     pure function Crosswalk_from_scottburgan_to_anderson (fuel_cat) result (return_value)
 
