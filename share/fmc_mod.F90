@@ -1,7 +1,9 @@
   module fmc_mod
 
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
     use fuel_mod, only : fuel_t
     use ros_mod, only : ros_t
+    use stderrout_mod, only : Stop_simulation
 
     implicit none
 
@@ -16,6 +18,7 @@
       procedure (Advance_fmc_model), deferred :: Advance_fmc_model
       procedure (Add_restart_vars), deferred :: Add_restart_vars
       procedure (Init), deferred :: Init
+      procedure, public :: Check_fmc => Check_fmc
     end type fmc_t
 
     abstract interface
@@ -56,5 +59,38 @@
             fire_t2_old, fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
       end subroutine Advance_fmc_model
     end interface
+
+  contains
+
+    subroutine Check_fmc (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, no_fuel_cat, fmc_g, source)
+
+      implicit none
+
+      class (fmc_t), intent (in) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, no_fuel_cat
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+      character (len = *), intent (in) :: source
+      integer :: i, j
+      character (len = 160) :: msg
+
+
+      ! Check computed or restored moisture before it reaches spread physics.
+      ! Prescribed moisture has an FMC object but no initialized class arrays;
+      ! this common check therefore uses only the supplied effective moisture.
+      ! Only owned burnable cells require moisture; halo values may be unavailable.
+      do j = jfts, jfte
+        do i = ifts, ifte
+          if (int (nfuel_cat(i, j)) == no_fuel_cat) cycle
+          if (.not. ieee_is_finite (fmc_g(i, j))) then
+            write (msg, '(a,a,2(1x,i0))') source, ' fmc_g must be finite at i,j:', i, j
+            call Stop_simulation (msg)
+          else if (fmc_g(i, j) < 0.0) then
+            write (msg, '(a,a,2(1x,i0))') source, ' fmc_g must be nonnegative at i,j:', i, j
+            call Stop_simulation (msg)
+          end if
+        end do
+      end do
+
+    end subroutine Check_fmc
 
   end module fmc_mod

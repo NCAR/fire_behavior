@@ -55,6 +55,7 @@
       procedure, public :: Advance_fmc_model => Advance_fmc_model
       procedure, public :: Advance_moisture_classes => Advance_moisture_classes
       procedure, public :: Average_moisture_classes => Average_moisture_classes
+      procedure, public :: Check_moisture_classes => Check_moisture_classes
       procedure, public :: Add_restart_vars => Add_restart_vars
       procedure, public :: Init => Init_fmc_wrffire
     end type fmc_wrffire_t
@@ -170,11 +171,20 @@
       this%fmc_gc_initial_value(4) = fuelmc_g
       this%fmc_gc_initial_value(5) = fuelmc_g_live
 
-        ! Calc averaging weights
+      ! Fixed weights must form a nonnegative, normalized mean for each loaded
+      ! fuel category. Validate once here; subsequent updates check class state.
       do i = 1, mfuelcats
         fgi_t(i) = 0.0
         do k = 1, MOISTURE_CLASSES
+          if (.not. ieee_is_finite (fgi_c(i, k))) then
+            write (msg, '(a,2(1x,i0))') 'Moisture averaging fuel load must be finite for category,class:', i, k
+            call Stop_simulation (msg)
+          end if
           if (fgi_c(i, k) >= 0.0) then
+            if (fgi_c(i, k) > huge (fgi_t(i)) - fgi_t(i)) then
+              write (msg, '(a,1x,i0)') 'Moisture averaging total fuel load exceeds representable range for category:', i
+              call Stop_simulation (msg)
+            end if
             fgi_t(i) = fgi_t(i) + fgi_c(i, k)
           else
             write (msg, *) 'fuel load in category', i, ' fuel class ', k, ' is ', fgi_c(i, k), ',must be nonegative.'
@@ -189,6 +199,17 @@
             this%fmc_gw(i, k) = 0.0
           end if
         end do
+        if (.not. all (ieee_is_finite (this%fmc_gw(i,:))) .or. any (this%fmc_gw(i,:) < 0.0)) then
+          write (msg, '(a,1x,i0)') 'Moisture averaging weights must be finite and nonnegative for category:', i
+          call Stop_simulation (msg)
+        end if
+        if (fgi_t(i) > 0.0) then
+          ! Allow rounding from summing MOISTURE_CLASSES default-real fractions.
+          if (abs (sum (this%fmc_gw(i,:)) - 1.0) > MOISTURE_CLASSES * epsilon (1.0)) then
+            write (msg, '(a,1x,i0)') 'Moisture averaging weights must sum to one for category:', i
+            call Stop_simulation (msg)
+          end if
+        end if
       end do
 
         ! moisture model derived scalars
@@ -260,6 +281,13 @@
         !$OMP END PARALLEL DO
         this%initialized = .true.
 
+        ! Validate the completed update on the initial thread, before averaging.
+        ! Fatal input diagnostics must not race across OpenMP tiles in MPI_Abort.
+        do ij = 1, num_tiles
+          call this%Check_moisture_classes (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
+              nfuel_cat, fuels%no_fuel_cat, 'Computed')
+        end do
+
         !$OMP PARALLEL DO   &
         !$OMP PRIVATE (ij)
         do ij = 1, num_tiles
@@ -277,6 +305,35 @@
       end if
 
     end subroutine Advance_fmc_model
+
+    subroutine Check_moisture_classes (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, no_fuel_cat, source)
+
+      implicit none
+
+      class (fmc_wrffire_t), intent (in) :: this
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, no_fuel_cat
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+      character (len = *), intent (in) :: source
+      integer :: i, j, k
+      character (len = 160) :: msg
+
+
+      do j = jfts, jfte
+        do k = 1, MOISTURE_CLASSES
+          do i = ifts, ifte
+            if (int (nfuel_cat(i, j)) == no_fuel_cat) cycle
+            if (.not. ieee_is_finite (this%fmc_gc(i, k, j))) then
+              write (msg, '(a,a,3(1x,i0))') source, ' fmc_gc must be finite at i,class,j:', i, k, j
+              call Stop_simulation (msg)
+            else if (this%fmc_gc(i, k, j) < 0.0) then
+              write (msg, '(a,a,3(1x,i0))') source, ' fmc_gc must be nonnegative at i,class,j:', i, k, j
+              call Stop_simulation (msg)
+            end if
+          end do
+        end do
+      end do
+
+    end subroutine Check_moisture_classes
 
     subroutine Average_moisture_classes (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, fmc_g)
 

@@ -520,6 +520,11 @@
 
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
         do ij = 1, this%num_tiles
+          ! fmc_g is read independently from the checkpoint, not recomputed from
+          ! fmc_gc. Valid classes cannot establish its validity, and prescribed
+          ! moisture restarts have no class state; check it before rebuilding ROS.
+          call this%fmc_param%Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
+              this%j_start(ij), this%j_end(ij), this%nfuel_cat, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
               this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
         end do
@@ -666,6 +671,9 @@
             call Get_netcdf_var_mpi (file_name, this%cfbm_comm, this%nx, this%ny, n_moisture_classes, &
                 this%ifps, this%ifpe, this%jfps, this%jfpe, NAME_VAR_FMC_GC, &
                 fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
+
+            call fmc_param%Check_moisture_classes (this%ifms, this%ifme, this%jfms, this%jfme, &
+                this%ifps, this%ifpe, this%jfps, this%jfpe, this%nfuel_cat, this%fuels%no_fuel_cat, 'Restart')
 
             fmoist_lasttime = 0.0
             fmoist_nexttime = 0.0

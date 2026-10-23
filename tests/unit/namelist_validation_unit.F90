@@ -1,10 +1,11 @@
 program namelist_validation_unit
 
   ! Exercise configuration checks for atmospheric intervals, ignition counts,
-  ! and perimeter activation times. CTest selects valid or invalid scenarios
+  ! perimeter activation times, and prescribed moisture. CTest selects scenarios
   ! and checks the expected rejection diagnostics. Atmospheric-only scenarios
   ! validate their timing without requiring the fire component's settings.
 
+  use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_positive_inf, ieee_negative_inf
   use namelist_mod, only : namelist_t, FIRE_MAX_IGNITIONS_IN_NAMELIST
 #ifdef DM_PARALLEL
   use mpi
@@ -34,6 +35,16 @@ program namelist_validation_unit
       if (scenario == 'atm_missing') config%interval_atm = -1
       if (scenario == 'atm_zero_dt') config%dt = 0.0
     case ('aligned')
+    case ('fuelmc_zero')
+      config%fuelmc_g = 0.0
+    case ('fuelmc_negative')
+      config%fuelmc_g = -0.01
+    case ('fuelmc_nan')
+      config%fuelmc_g = ieee_value (0.0, ieee_quiet_nan)
+    case ('fuelmc_inf')
+      config%fuelmc_g = ieee_value (0.0, ieee_positive_inf)
+    case ('fuelmc_neginf')
+      config%fuelmc_g = ieee_value (0.0, ieee_negative_inf)
     case ('reversed')
       config%dt = 8.0
       config%interval_atm = 4

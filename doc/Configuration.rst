@@ -292,6 +292,36 @@ output fields retain their existing single-precision NetCDF representation.
    Rate of Spread (ROS) parameterization option.
      0: Rothermel model (only option currently implemented)
 
+   For burnable cells, effective ground moisture ``fmc_g`` must be finite and
+   nonnegative, and fuel-table extinction moisture ``fuelmce`` must be finite
+   and positive. Both use kg water per kg dry fuel. Invalid inputs stop with
+   the cell indices or fuel category in the diagnostic. Fuel-table values are
+   checked during initialization, and prescribed ``fuelmc_g`` is checked in
+   the namelist (zero moisture is allowed). The moisture component validates
+   fixed averaging weights during initialization and checks computed classes
+   before averaging and updating spread parameters. The restart reader checks
+   restored class and effective moisture separately: ``fmc_g`` is read directly,
+   not recomputed from ``fmc_gc``, and prescribed-moisture restarts have no class
+   state. Spatial moisture checks run outside OpenMP tile regions and exclude
+   nonburnable cells.
+   Existing restart checks also require available class state and forcing history.
+
+   Aggregate moisture damping retains the existing polynomial below extinction
+   and is zero at or above extinction. Reaction intensity, ``iboros`` (reaction
+   intensity times residence time), and the Rothermel base spread rate are
+   therefore zero at extinction. The stored physical moisture is not capped.
+   The independent empirical chaparral spread law for Anderson category 4 is
+   unchanged; its reaction-based flame length is zero at or above extinction.
+
+   Restart files retain physical moisture. The reader reconstructs spread
+   parameters from that state using the current damping calculation, so no
+   new restart field or namelist option is required. Existing PR #39 files
+   remain readable when their inputs satisfy the same validation. A legacy
+   checkpoint can contain flame diagnostics calculated with the old damping;
+   these are replaced at the next fire advance. Readability does not imply
+   numerical equivalence across the extinction correction. Continuity must be
+   assessed with continuous and restarted runs of the same model revision.
+
 ``fmc_opt``: *integer* (Default: ``-1``)
    :term:`FMC` model
      -1 = Constant fuel moisture (only option currently implemented)

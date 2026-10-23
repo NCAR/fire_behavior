@@ -396,6 +396,9 @@
 
       if (this%ideal_opt /= 0 .and. this%fmoist_run) &
           call Stop_simulation ('ideal runs do not support a FMC model')
+      ! Prescribed moisture may describe dry fuel, but must be a physical mass ratio.
+      if (.not. ieee_is_finite (this%fuelmc_g)) call Stop_simulation ('fuelmc_g must be finite')
+      if (this%fuelmc_g < 0.0) call Stop_simulation ('fuelmc_g must be nonnegative')
       if (this%fire_is_real_perim .and. this%fire_num_ignitions /= 1) &
           call Stop_simulation ('perimeter mode requires one ignition record for its ignition time')
       if (.not. this%fire_is_real_perim .and. this%fire_num_ignitions <= 0) &

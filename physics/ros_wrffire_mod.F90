@@ -176,9 +176,16 @@
 
              ! net fuel loading, lb/ft^2
             wn = fuelload/(1 + fuels%st(k))
-            rtemp1 = fmc_g(i, j) / fuels%fuelmce(k)
               ! moist damp coef
-            etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
+              ! Zero reaction at extinction without capping physical moisture.
+              ! Polynomial cancellation can leave a positive residual at equality.
+              ! Retain the existing polynomial and arithmetic below extinction.
+            if (fmc_g(i, j) >= fuels%fuelmce(k)) then
+              etam = 0.0
+            else
+              rtemp1 = fmc_g(i, j) / fuels%fuelmce(k)
+              etam = 1.0 - 2.59 * rtemp1 + 5.11 * rtemp1 ** 2 - 3.52 * rtemp1 ** 3
+            end if
               ! mineral damping coef
             etas = 0.174 * fuels%se(k) ** (-0.19)
               !rxn intensity,btu/ft^2 min
