@@ -66,15 +66,16 @@ historical `github-pr` reference, which does not contain their keys. The
 existing `pr` suite remains unchanged and checks its approved reference.
 No reference candidate is created or approved by this suite.
 
-P02 additionally runs 30 restart-loading probes across the five layouts. Each
-time-based case resumes a copy with PR #39 metadata (five new attributes removed)
-and requires an exact checkpoint match. Four damaged copies must reject an unset
-initialization flag, changed cadence, future last-update time, or invalid previous
-pressure before writing output. Each step-based case must reject the ambiguous
-legacy schema. These probes add 30 model invocations and five checkpoint
-comparisons to the continuity counts above. Reports keep expected rejection
-diagnostics separate from failed continuity comparisons. Synthetic legacy files
-exercise schema compatibility; they do not establish cross-revision equivalence.
+The suite additionally runs 30 restart-loading probes for P02 across the five
+layouts. Each time-based case resumes a copy with PR #39 metadata (five new
+attributes removed) and requires an exact checkpoint match. Four damaged copies
+must reject an unset initialization flag, changed cadence, future last-update
+time, or invalid previous pressure before writing output. Each step-based case
+must reject the ambiguous legacy schema. These probes add 30 model invocations
+and five checkpoint comparisons to the continuity counts above. Reports keep
+expected rejection diagnostics separate from failed continuity comparisons.
+Synthetic legacy files exercise schema compatibility; they do not establish
+cross-revision equivalence.
 
 Restart experiments currently require the standalone driver. NUOPC/ESMX and
 WRF-host restart continuity are not established here. Existing coupled PR
