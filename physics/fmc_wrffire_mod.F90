@@ -19,7 +19,7 @@
     use stderrout_mod, only : Stop_simulation
     use netcdf_mod, only : Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
     use ros_mod, only : ros_t
-    use fmc_mod, only : fmc_t, Check_fmc
+    use fmc_mod, only : fmc_t
     use fuel_mod, only : fuel_t
 
     implicit none
@@ -171,11 +171,20 @@
       this%fmc_gc_initial_value(4) = fuelmc_g
       this%fmc_gc_initial_value(5) = fuelmc_g_live
 
-        ! Calc averaging weights
+      ! Fixed weights must form a nonnegative, normalized mean for each loaded
+      ! fuel category. Validate once here; subsequent updates check class state.
       do i = 1, mfuelcats
         fgi_t(i) = 0.0
         do k = 1, MOISTURE_CLASSES
+          if (.not. ieee_is_finite (fgi_c(i, k))) then
+            write (msg, '(a,2(1x,i0))') 'Moisture averaging fuel load must be finite for category,class:', i, k
+            call Stop_simulation (msg)
+          end if
           if (fgi_c(i, k) >= 0.0) then
+            if (fgi_c(i, k) > huge (fgi_t(i)) - fgi_t(i)) then
+              write (msg, '(a,1x,i0)') 'Moisture averaging total fuel load exceeds representable range for category:', i
+              call Stop_simulation (msg)
+            end if
             fgi_t(i) = fgi_t(i) + fgi_c(i, k)
           else
             write (msg, *) 'fuel load in category', i, ' fuel class ', k, ' is ', fgi_c(i, k), ',must be nonegative.'
@@ -190,6 +199,17 @@
             this%fmc_gw(i, k) = 0.0
           end if
         end do
+        if (.not. all (ieee_is_finite (this%fmc_gw(i,:))) .or. any (this%fmc_gw(i,:) < 0.0)) then
+          write (msg, '(a,1x,i0)') 'Moisture averaging weights must be finite and nonnegative for category:', i
+          call Stop_simulation (msg)
+        end if
+        if (fgi_t(i) > 0.0) then
+          ! Allow rounding from summing MOISTURE_CLASSES default-real fractions.
+          if (abs (sum (this%fmc_gw(i,:)) - 1.0) > MOISTURE_CLASSES * epsilon (1.0)) then
+            write (msg, '(a,1x,i0)') 'Moisture averaging weights must sum to one for category:', i
+            call Stop_simulation (msg)
+          end if
+        end if
       end do
 
         ! moisture model derived scalars
@@ -274,11 +294,6 @@
           call this%Average_moisture_classes (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), nfuel_cat, fmc_g)
         end do
         !$OMP END PARALLEL DO
-
-        do ij = 1, num_tiles
-          call Check_fmc (ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
-              nfuel_cat, fuels%no_fuel_cat, fmc_g, 'Computed')
-        end do
 
         !$OMP PARALLEL DO   &
         !$OMP PRIVATE (ij)

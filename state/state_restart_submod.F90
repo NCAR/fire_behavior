@@ -521,7 +521,9 @@
 
       if (allocated (this%ros_param) .and. allocated (this%fuels)) then
         do ij = 1, this%num_tiles
-          ! Restored moisture bypasses both namelist and parameterization checks.
+          ! fmc_g is read independently from the checkpoint, not recomputed from
+          ! fmc_gc. Valid classes cannot establish its validity, and prescribed
+          ! moisture restarts have no class state; check it before rebuilding ROS.
           call Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
               this%j_start(ij), this%j_end(ij), this%nfuel_cat, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &

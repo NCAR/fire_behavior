@@ -297,10 +297,13 @@ output fields retain their existing single-precision NetCDF representation.
    and positive. Both use kg water per kg dry fuel. Invalid inputs stop with
    the cell indices or fuel category in the diagnostic. Fuel-table values are
    checked during initialization, and prescribed ``fuelmc_g`` is checked in
-   the namelist (zero moisture is allowed). The moisture component checks
-   computed class and effective moisture before updating spread parameters;
-   the restart reader checks restored moisture before reconstruction. These
-   checks run outside OpenMP tile regions and exclude nonburnable cells.
+   the namelist (zero moisture is allowed). The moisture component validates
+   fixed averaging weights during initialization and checks computed classes
+   before averaging and updating spread parameters. The restart reader checks
+   restored class and effective moisture separately: ``fmc_g`` is read directly,
+   not recomputed from ``fmc_gc``, and prescribed-moisture restarts have no class
+   state. Spatial moisture checks run outside OpenMP tile regions and exclude
+   nonburnable cells.
    Existing restart checks also require available class state and forcing history.
 
    Aggregate moisture damping retains the existing polynomial below extinction

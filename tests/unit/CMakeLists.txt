@@ -66,17 +66,19 @@ endforeach()
 
 add_executable(fmc_validation_unit fmc_validation_unit.F90)
 target_link_libraries(fmc_validation_unit PRIVATE firelib)
-foreach(scenario IN ITEMS valid restored_zero restored_wet)
+foreach(scenario IN ITEMS valid zero_load restored_zero restored_wet)
   add_cfbm_unit_test(NAME fmc_validation_${scenario}_unit
     COMMAND fmc_validation_unit ${scenario} LABELS fuel moisture
     EXPECT "moisture validation checks passed: ${scenario}")
 endforeach()
-foreach(quantity IN ITEMS class average)
+foreach(quantity IN ITEMS class restored)
   foreach(scenario IN ITEMS negative nan inf neginf)
     if(quantity STREQUAL "class")
       set(field fmc_gc)
+      set(source Computed)
     else()
       set(field fmc_g)
+      set(source Restart)
     endif()
     if(scenario STREQUAL "negative")
       set(requirement nonnegative)
@@ -85,9 +87,20 @@ foreach(quantity IN ITEMS class average)
     endif()
     add_cfbm_unit_test(NAME fmc_validation_${quantity}_${scenario}_unit
       COMMAND fmc_validation_unit ${quantity}_${scenario} LABELS fuel moisture
-      EXPECT "STOP:Computed ${field} must be ${requirement}")
+      EXPECT "STOP:${source} ${field} must be ${requirement}")
   endforeach()
 endforeach()
+add_cfbm_unit_test(NAME fmc_validation_load_negative_unit
+  COMMAND fmc_validation_unit load_negative LABELS fuel moisture
+  EXPECT "STOP:.*fuel load in category.*must be nonegative")
+foreach(scenario IN ITEMS nan inf neginf)
+  add_cfbm_unit_test(NAME fmc_validation_load_${scenario}_unit
+    COMMAND fmc_validation_unit load_${scenario} LABELS fuel moisture
+    EXPECT "STOP:Moisture averaging fuel load must be finite for category,class:")
+endforeach()
+add_cfbm_unit_test(NAME fmc_validation_load_overflow_unit
+  COMMAND fmc_validation_unit load_overflow LABELS fuel moisture
+  EXPECT "STOP:Moisture averaging total fuel load exceeds representable range for category:")
 if(OPENMP)
   get_property(fmc_tests DIRECTORY PROPERTY TESTS)
   list(FILTER fmc_tests INCLUDE REGEX "^fmc_validation_")
