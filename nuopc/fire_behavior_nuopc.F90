@@ -547,6 +547,8 @@ module fire_behavior_nuopc
 
      if (NUOPC_IsConnected(importState, fieldName="mean_prec_rate")) then
        imp_rainrte = .TRUE.
+       ! Start rate accumulation once; retain rainfall restored by Advertise.
+       if (.not. config_flags%restart) grid%fire_rain = 0.0
        ! importable field on Grid: mean_prec_rate
        field = ESMF_FieldCreate(name="mean_prec_rate", grid=fire_grid, &
          typekind=ESMF_TYPEKIND_R8, rc=rc)

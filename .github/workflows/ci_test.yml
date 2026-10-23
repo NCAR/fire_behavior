@@ -171,14 +171,19 @@ jobs:
             --build-dir="$GITHUB_WORKSPACE/build/$variant" \
             --prefix="$GITHUB_WORKSPACE/install/$variant"
         done
-    - name: Run the selected CTest suite and compare executions
+    - name: Run PR and restart CTest suites and compare executions
       run: |
         OPTIONS=()
         for variant in serial omp mpi hybrid; do
           OPTIONS+=(--build-dir "$GITHUB_WORKSPACE/build/$variant")
         done
-        python -B tests/regression/regression.py suite "${OPTIONS[@]}" \
-          --suite pr --run-root "$GITHUB_WORKSPACE/build/results"
+        # Collect both suites even if one fails; either failure fails CI.
+        STATUS=0
+        for suite in pr restart; do
+          python -B tests/regression/regression.py suite "${OPTIONS[@]}" \
+            --suite "$suite" --run-root "$GITHUB_WORKSPACE/build/results" || STATUS=1
+        done
+        exit "$STATUS"
     - name: Save an unapproved reference from the passing suite
       if: ${{ inputs.create_reference }}
       run: |

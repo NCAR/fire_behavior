@@ -259,13 +259,28 @@ class PythonHarnessTests(unittest.TestCase):
         records = []
         for build in ("serial", "omp", "mpi", "hybrid"):
             drivers = ["standalone", "nuopc", "esmx"
-                      ] if build == "mpi" else ["standalone"]
+                      ] if build in ("mpi", "hybrid") else ["standalone"]
             records.extend(registrations(self.document, build, drivers))
-        for suite, count in (("quick", 14), ("pr", 32), ("full", 80)):
+        for suite, count in (("quick", 18), ("pr", 72), ("full", 88)):
             selected = [r for r in records if suite in r["labels"]]
             self.assertEqual(len(selected), count)
             self.assertEqual({r["case"] for r in selected},
                              {"circle", "fuels", "terrain"})
+        # CI's existing selections must include all three fractional clocks.
+        # Continuous coupled runs belong to pr; checkpoint chains belong to
+        # restart and must not imply support for coupled restart execution.
+        self.assertNotIn("scheduling", self.document["suites"])
+        fractional = [
+            r for r in records if r["configuration"].startswith("schedule_")
+        ]
+        self.assertEqual(len(fractional), 51)
+        for record in fractional:
+            if record["configuration"].endswith("_restart"):
+                self.assertEqual(record["labels"], ["restart"])
+                self.assertEqual(record["driver"], "standalone")
+            else:
+                self.assertEqual(record["labels"], ["pr"])
+        self.assertEqual(sum("restart" in r["labels"] for r in records), 30)
         args = SimpleNamespace(test=None,
                                suite="pr",
                                case="terrain",
@@ -427,11 +442,13 @@ class PythonHarnessTests(unittest.TestCase):
     #------------------------------------------------------------------------
 
     def test_restart_registration_and_phase(self) -> None:
-        """Select standalone restart cases without changing existing PR matrices."""
+        """Select integer/fractional restart chains and retain original output phase."""
         records = registrations(self.document, "mpi",
                                 ["standalone", "nuopc", "esmx"])
         selected = [r for r in records if "restart" in r["labels"]]
-        self.assertEqual(len(selected), 6)
+        # Six restart configurations each run with one and four MPI ranks;
+        # NUOPC/ESMX continuous tests must not acquire restart labels.
+        self.assertEqual(len(selected), 12)
         self.assertEqual({r["driver"] for r in selected}, {"standalone"})
         self.assertTrue(all("pr" not in r["labels"] for r in selected))
         spec = resolve_spec(self.document,
@@ -483,8 +500,21 @@ class PythonHarnessTests(unittest.TestCase):
             dataset.itimestep = seconds // 4
             dataset.fire_perimeter_ignited = int(
                 spec["namelist"]["fire"]["fire_is_real_perim"] and seconds >= 8)
-            dataset.fmc_fmoist_lasttime = 4.0
-            dataset.fmc_fmoist_nexttime = 20.0
+            fire = spec["namelist"]["fire"]
+            dataset.fmc_initialized = 1
+            dataset.fmc_initialization_time = 4.0
+            dataset.fmoist_freq = fire["fmoist_freq"]
+            dataset.fmoist_dt = fire["fmoist_dt"]
+            if fire["fmoist_freq"]:
+                interval = fire["fmoist_freq"] * 4
+                dataset.fmc_fmoist_lasttime = max(
+                    4, seconds // interval * interval)
+                dataset.fmc_fmoist_nexttime = 0.0
+            else:
+                last = 4 + (seconds -
+                            4) // fire["fmoist_dt"] * fire["fmoist_dt"]
+                dataset.fmc_fmoist_lasttime = last
+                dataset.fmc_fmoist_nexttime = last + fire["fmoist_dt"]
 
     def test_checkpoint_detects_real64_loss(self) -> None:
         """Detect both float32 storage and quantization hidden in float64 storage."""
@@ -510,7 +540,8 @@ class PythonHarnessTests(unittest.TestCase):
         self._checkpoint(reference, spec, 12)
         self.assertTrue(check_checkpoint(reference, spec, 12)["pass"])
         for defect in ("fuel_bit", "perimeter", "clock", "class_zero",
-                       "class_nan", "moisture_time"):
+                       "class_nan", "moisture_time", "uninitialized",
+                       "init_time"):
             test = self.root / f"{defect}.nc"
             shutil.copy2(reference, test)
             with netCDF4.Dataset(test, "a") as dataset:
@@ -525,11 +556,15 @@ class PythonHarnessTests(unittest.TestCase):
                     dataset["fmc_gc"][:] = 0
                 elif defect == "class_nan":
                     dataset["fmc_gc"][:] = np.nan
+                elif defect == "uninitialized":
+                    dataset.fmc_initialized = 0
+                elif defect == "init_time":
+                    dataset.fmc_initialization_time = 0.0
                 else:
                     dataset.fmc_fmoist_nexttime = 999.0
             self.assertFalse(
                 compare_checkpoint(reference, test, spec)["pass"], defect)
-            if defect not in ("fuel_bit", "moisture_time"):
+            if defect != "fuel_bit":
                 self.assertFalse(
                     check_checkpoint(test, spec, 12)["pass"], defect)
         self.assertFalse(
@@ -576,7 +611,10 @@ class PythonHarnessTests(unittest.TestCase):
                 calls.append(directory)
                 return {"reasons": [], "exit_status": 0}
 
-            with patch("run_case.run_model", side_effect=launch):
+            # Loader rejection probes are exercised by model CTests, separately
+            # from this synthetic segment-staging check.
+            with patch("run_case.run_model", side_effect=launch), patch(
+                    "restart.check_moisture_restart_loading", return_value=[]):
                 result = run_restarts(spec, root, ["fixture"], {}, set())
             self.assertEqual(result["pass"], not extra, result["reasons"])
             self.assertEqual(len(calls), 4)

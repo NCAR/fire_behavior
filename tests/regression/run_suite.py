@@ -155,7 +155,7 @@ def run_suite(args: Any) -> dict[str, Any]:
         json.loads(path.read_text())
         for path in sorted(root.glob("*/result.json"))
     ]
-    if args.suite in ("quick", "pr", "full", "restart", "scheduling",
+    if args.suite in ("quick", "pr", "full", "restart",
                       "wrf") and not args.test and not results:
         summary["reasons"].append(
             "No generated cases ran; full requires CFBM_FULL_TESTS=ON")
@@ -176,7 +176,10 @@ def run_suite(args: Any) -> dict[str, Any]:
         "completed_segments":
             sum(item["pass"] for item in result["restart"]["segments"]),
         "model_invocations":
-            1 + len(result["restart"]["segments"]),
+            1 + len(result["restart"]["segments"]) +
+            len(result["restart"].get("loading_checks", [])),
+        "loading_checks":
+            len(result["restart"].get("loading_checks", [])),
         "comparisons":
             len(result["restart"]["comparisons"]),
         "failed_comparisons":

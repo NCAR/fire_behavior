@@ -340,7 +340,7 @@ cases:
             fmoist_freq: 0
             fmoist_dt: 16.0
       restart_step:
-        # Delayed first update exercises the initialization defect owned by P02.
+        # Initialize at 4 s; updates at 12, 24, ... s retain the original phase.
         restart_splits: [4, 12, 28]
         namelist:
           time:
@@ -424,17 +424,6 @@ suites:
       terrain:
         configurations: [wrf_03, wrf_rounded]
         executions: [mpi1, mpi4]
-  scheduling:
-    scale: small
-    cases:
-      circle:
-        configurations: [restart_prescribed]
-        executions: [serial, omp4, mpi4, hybrid4]
-      terrain:
-        configurations: [schedule_03, schedule_rounded, schedule_nested,
-                         schedule_03_restart, schedule_rounded_restart,
-                         schedule_nested_restart]
-        executions: [serial, omp4, mpi4, hybrid4]
   restart:
     scale: small
     cases:
@@ -442,7 +431,8 @@ suites:
         configurations: [restart_prescribed]
         executions: [serial, omp4, mpi1, mpi4, hybrid4]
       terrain:
-        configurations: [restart_time, restart_step]
+        configurations: [restart_time, restart_step, schedule_03_restart,
+                         schedule_rounded_restart, schedule_nested_restart]
         executions: [serial, omp4, mpi1, mpi4, hybrid4]
   quick:
     scale: small
@@ -493,6 +483,9 @@ suites:
         configurations:
         - u10m
         - u3d
+        - schedule_03
+        - schedule_rounded
+        - schedule_nested
         executions:
         - serial
         - omp1

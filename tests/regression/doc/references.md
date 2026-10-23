@@ -47,17 +47,22 @@ history](validation.md).
 
 ## GitHub review and activation
 
-CI uses the fixed `pr` suite with all four GNU Strict builds: serial, OpenMP,
-MPI and hybrid, both including NUOPC/ESMX. Its 36 generated runs produce 40
-cross-execution comparisons. Unit checks run in each build. PRs targeting
-prerequisite branches are included, so a merge into `develop` is not needed.
+CI runs `pr` and `restart` using all four GNU Strict builds: serial, OpenMP,
+MPI and hybrid, with NUOPC/ESMX in the latter two. The `pr` suite's 36 generated
+runs produce 40 cross-execution comparisons. The `restart` suite compares
+continuous and segmented standalone integrations from the same revision and
+does not use a stored baseline. Both suites must pass. Unit checks run in each
+build. PRs targeting prerequisite branches are included, so a merge into
+`develop` is not needed.
 
 Normal Strict checks default to the [approved GitHub reference](../baselines/github-pr/README.md)
 committed for the complete PR suite. A missing or unapproved reference fails
 the check. To generate a future candidate, select **Run workflow** for
 **Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.
-That run checks the same complete PR selection without a reference, then
-uploads an unapproved baseline only if all checks and comparisons pass.
+That run checks both suites without a stored reference, then creates a candidate
+from only the `pr` results. It uploads the unapproved baseline only if all
+checks and comparisons pass. Adding restart coverage does not change the
+approved baseline or include restart checkpoints in a reference candidate.
 
 Download and extract both `.tar.gz` artifacts (candidate and test evidence).
 Archiving preserves the colons in NetCDF timestamp filenames, which GitHub's

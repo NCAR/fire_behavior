@@ -18,13 +18,15 @@ all times are seconds from the original 2020-01-01 00:00:00 origin.
 | terrain/restart_time | `fmoist_freq=0`, `fmoist_dt=16` | Every 12 s | 4, 12, 28 | Observed perimeter at 8 s |
 | terrain/restart_step | `fmoist_freq=3`, `fmoist_dt=12` | Every 12 s | 4, 12, 28 | Observed perimeter at 8 s |
 
-All integrations use `dt=4`, run through 60 s, write regular output every 12 s,
+The three configurations above use `dt=4`, run through 60 s, write regular output every 12 s,
 and write checkpoints every 4 s. Time-based moisture updates occur at 4, 20,
-36, and 52 s on the reviewed base. The split at 4 s precedes perimeter
-activation; 12 and 28 s follow it. The 28 s split is between moisture updates
-and atmospheric records. Step-based updates first occur at 12 s, exposing the
-known initialization defect assigned to P02. A failure remains a failing CTest;
-the suite has no expected-failure conversion.
+36, and 52 s. The split at 4 s precedes perimeter activation; 12 and 28 s
+follow it. The 28 s split is between moisture updates
+and atmospheric records. Step-based moisture initializes at 4 s and first
+advances at 12 s using an 8 s interval, then advances every 12 s. These cases
+verify initialization before the first scheduled step-based moisture update
+and restoration of that state on restart.
+A failure remains a failing CTest; the suite has no expected-failure conversion.
 
 Each case runs one uninterrupted integration and a separate cold first segment,
 then resumes only from the preceding segment's checkpoint. Generated input files
@@ -40,9 +42,9 @@ the original origin, including output after a split between output events.
 | Physical checkpoint fields in `restart.STATE_FIELDS`, current forcing, previous forcing and five moisture classes where applicable | Bitwise equality for the same executable and execution layout |
 | Checkpoint dimensions, full variable inventory, and global metadata | Exact equality, including clock origin, step count, perimeter activation, and moisture times |
 | Fuel fraction and fuel fraction burned in the current timestep | REAL64 storage and a non-REAL32 signal at the final checkpoint; catches quantization even when stored as float64 |
-| Independent checkpoint validity | Required fields, finite/unmasked owned cells, expected clock and activation state, five moisture-class dimensions, valid moisture times and moisture in (0,1) for these dry-forcing cases |
+| Independent checkpoint validity | Required fields, finite/unmasked owned cells, expected clock and activation state, five moisture-class dimensions, initialized moisture at 4 s, expected cadence and last/next times, and moisture in (0,1) for these dry-forcing cases |
 
-The PR #39 writer also saves method work arrays `lfn_0/1/2`, `lfn_s0/1/2/3`
+The restart writer also saves method work arrays `lfn_0/1/2`, `lfn_s0/1/2/3`
 and unused crown fluxes `fcanhfx/fcanqfx`. Their values are not all initialized
 for these methods. They remain in the schema comparison but are explicitly
 listed as uncompared fields. Physical fields are not excluded to obtain a pass.
@@ -51,7 +53,7 @@ it; `fz0` and atmospheric forcing are checked only for real cases. Idealized
 runs do not use those atmospheric fields.
 Regular-output tolerances do not weaken the exact checkpoint-state comparison.
 
-The complete selection contains 15 cases across `serial`, `omp4`, `mpi1`,
+The integer-step configurations contain 15 cases across `serial`, `omp4`, `mpi1`,
 `mpi4`, and `hybrid4`: 65 model invocations, including the 15 continuous runs,
 and 315 file comparisons (90 output and 225 checkpoint comparisons). Counts
 of attempted/completed segments and failed comparisons are recorded separately
@@ -62,14 +64,32 @@ outputs and the existing comparison policy.
 
 The new configurations use same-revision comparisons and do not select the
 historical `github-pr` reference, which does not contain their keys. The
-existing `pr` suite remains unchanged and checks its approved reference.
+existing reference cases in `pr` retain their approved baseline checks.
 No reference candidate is created or approved by this suite.
+
+The suite additionally runs 30 restart-loading probes for moisture initialization
+across the five layouts. Each time-based case resumes a checkpoint copy with
+legacy restart metadata and requires an exact checkpoint match. The legacy copy
+omits five attributes recording the initialization flag and time, whether
+moisture evolution is enabled, and the step-based and time-based update cadences.
+Four additional probes must reject current checkpoints with an unset
+initialization flag, changed cadence, future last-update time, or invalid previous
+pressure before writing output. Each step-based case must reject the ambiguous
+legacy schema. These probes add 30 model invocations and five checkpoint
+comparisons to the continuity counts above. Reports keep
+expected rejection diagnostics separate from failed continuity comparisons.
+Synthetic legacy files exercise schema compatibility; they do not establish
+cross-revision equivalence.
 
 Restart experiments currently require the standalone driver. NUOPC/ESMX and
 WRF-host restart continuity are not established here. Existing coupled PR
 tests exercise ordinary integrations only. Cross-layout checkpoint transfers,
-legacy-file compatibility across revisions, fractional timesteps, and coupled
-flux accumulation/reset are outside P00 and require their assigned sessions.
+legacy-file equivalence across scientific corrections, and coupled restart
+continuity require separate validation. Fractional timesteps, original-origin
+restart phase, and clock/cadence rejection checks are included through the
+three [fractional restart configurations](scheduling.md). Together the six
+configurations select 30 case-level tests. See the [count breakdown](../README.md#how-test-counts-are-reported)
+for CTest, model-invocation, checkpoint-check, and comparison totals.
 
 ## Extend a restart experiment
 

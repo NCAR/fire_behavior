@@ -53,10 +53,10 @@ flowchart TD
     COMPARE -->|records comparisons and case status in| SUMMARY
 ```
 
-The complete PR matrix has 36 model runs, 40 cross-execution comparisons, and
+The complete PR matrix has 72 model runs, 85 cross-execution comparisons, and
 36 approved-baseline comparisons, plus unit tests. In contrast,
 `compile.sh --openmp-on --esmx --test-suite=pr` builds only hybrid and then
-invokes the suite for that build: four standalone, two NUOPC, and two ESMX
+invokes the suite for that build: seven standalone, five NUOPC, and five ESMX
 runs. `--esmx` enables both coupled drivers while retaining standalone.
 
 Strict selects the shared baseline automatically. `--reference` overrides it;

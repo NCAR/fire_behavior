@@ -48,8 +48,8 @@ def build_parser() -> argparse.ArgumentParser:
                                 help="Select and run registered CTests")
     suite.add_argument("--build-dir", type=Path, action="append", required=True)
     suite.add_argument("--suite",
-                       choices=("quick", "pr", "full", "restart", "scheduling",
-                                "wrf", "unit", "legacy"),
+                       choices=("quick", "pr", "full", "restart", "wrf", "unit",
+                                "legacy"),
                        default="quick")
     suite.add_argument("--case")
     suite.add_argument("--driver",

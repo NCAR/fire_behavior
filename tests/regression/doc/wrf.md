@@ -99,4 +99,4 @@ The suite compares MPI layouts with the existing field policies and does not
 use or replace the approved offline reference. No WRF restart acceptance is
 claimed: the specified host revision does not coordinate native WRF restart
 with the CFBM checkpoint interface. Standalone restart continuity and NUOPC
-exchange-window accumulation/reset are covered by the [scheduling suite](scheduling.md).
+exchange-window accumulation/reset are covered by the [PR and restart cases](scheduling.md).

@@ -49,10 +49,9 @@ between mass levels, where unscaled (U, V) = (12, 8) m/s.
 
 For 3D winds, both drivers first remap the wind and geopotential profiles
 horizontally to the fire grid, then sample vertically using mapped roughness.
-PR #57 applies this order to standalone; previously it sampled vertically on
-the atmospheric grid first. The logarithmic surface calculation is nonlinear,
-so reversing these operations can change the result. Matching the order does
-not make the two horizontal interpolation implementations bitwise identical.
+The logarithmic surface calculation is nonlinear, so reversing these operations
+can change the result. Matching the order does not make the two horizontal
+interpolation implementations bitwise identical.
 
 Both wind paths retain their final values in the fire-state `uf`/`vf` arrays.
 The 10 m path maps `u10`/`v10` directly before applying WAF; it no longer
