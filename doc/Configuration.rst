@@ -248,10 +248,11 @@ output fields retain their existing single-precision NetCDF representation.
    last/next update times, and the moisture activation and cadence settings.
    A resumed run restores this state without reinitialization and requires the
    same activation and cadence. New checkpoints cannot be written before
-   moisture initialization. PR #39 time-based checkpoints are accepted when their
-   positive next-update time establishes initialization and their saved interval
-   matches ``fmoist_dt``. Legacy step-based files are rejected because their
-   metadata cannot distinguish initialized state from the old delayed-initialization
+   moisture initialization. Older checkpoints without explicit initialization
+   status or time are accepted for time-based cadence when their positive next-update
+   time establishes initialization and their saved interval matches ``fmoist_dt``.
+   Legacy step-based files are rejected because their metadata cannot distinguish
+   initialized state from the old delayed-initialization
    defect. Prescribed-moisture legacy files remain readable. This compatibility
    rule does not resolve the separate humidity-convention audit.
 
@@ -315,10 +316,11 @@ output fields retain their existing single-precision NetCDF representation.
 
    Restart files retain physical moisture. The reader reconstructs spread
    parameters from that state using the current damping calculation, so no
-   new restart field or namelist option is required. Existing PR #39 files
-   remain readable when their inputs satisfy the same validation. A legacy
-   checkpoint can contain flame diagnostics calculated with the old damping;
-   these are replaced at the next fire advance. Readability does not imply
+   new restart field or namelist option is required. Checkpoints from earlier
+   versions remain readable when their state and metadata satisfy the restart
+   compatibility checks. A legacy checkpoint can contain flame diagnostics
+   calculated with the old damping; these are replaced at the next fire advance.
+   Readability does not imply
    numerical equivalence across the extinction correction. Continuity must be
    assessed with continuous and restarted runs of the same model revision.
 
@@ -436,16 +438,121 @@ atmospheric data.
 Timing and perimeter validation
 ===============================
 
-``interval_atm`` must be a positive integer multiple of ``dt`` when using the
-standalone forcing reader or NUOPC exchange schedule. For example, a 4 s fire
-step and 60 s atmospheric interval are aligned. An 8 s fire step with a 4 s
-atmospheric interval is not: the equality-based update trigger would miss the
-first update and retain its expired schedule. The interval is an exchange
-cadence, not necessarily the atmospheric solver timestep. Direct WRF stepping
-and unforced ideal runs may leave ``interval_atm`` unset. Supplied positive
-intervals are checked; file-driven and NUOPC entry points also require that the
-interval is supplied. Programmatically constructed configurations are checked
-before state allocation.
+Output, forcing/exchange, restart writes, and the final time must align with
+fire steps. Positive ``interval_output``, ``interval_atm``, and
+``restart_interval`` values are whole seconds; ``-1`` disables an optional
+schedule. At least one positive interval is needed to establish the fire clock.
+Output and restart periods need not divide one another. For example,
+``dt=0.3``, output every 12 s, forcing every 18 s, and restart writes every 9 s
+are supported. An output interval of 13 s with that timestep is rejected.
+
+The common interval is the greatest common divisor of enabled periods. Its
+ratio to ``dt`` must differ from the nearest integer by at most
+``min(0.01, 5e-6 * ratio)`` fire steps. The 5 ppm allowance covers timestep
+inputs rounded to six significant digits, including ``0.222222`` for 2/9 s;
+the 0.01-step bound prevents large intervals from admitting ambiguous alignment.
+The resulting reduced rational seconds/steps defines the scheduling clock.
+All other event and final times must be exactly reachable on this clock.
+No tolerance grows with run duration, and no event fires after a missed step.
+
+For example, consider these two accepted schedules:
+
+.. list-table:: Converting event periods to fire-step counts
+   :header-rows: 1
+   :widths: 45 25 30
+
+   * - Quantity
+     - ``dt=0.3`` s
+     - ``dt=0.222222`` s
+   * - Output / atmosphere / restart periods
+     - 12 / 18 / 9 s
+     - 12 / 18 / 8 s
+   * - Common interval (greatest common divisor)
+     - 3 s
+     - 2 s
+   * - Common interval divided by input ``dt``
+     - Approximately 10 steps
+     - Approximately 9.000009 steps
+   * - Accepted integer step count
+     - 10
+     - 9
+   * - Scheduling timestep (common interval / step count)
+     - 3/10 s
+     - 2/9 s
+   * - Output / atmosphere / restart step intervals
+     - 40 / 60 / 30 steps
+     - 54 / 81 / 36 steps
+
+In the ``dt=0.3`` example, 3 s is the largest whole-second interval that divides
+12, 18, and 9 s. It is used to construct the clock; it does not request an
+event every 3 s. In the rounded-timestep column, the discrepancy of about
+0.000009 step is smaller than the allowed ``5e-6 * 9 = 0.000045`` step.
+The scheduler therefore represents each step as exactly 2/9 s, while physics
+continues to use the configured ``dt=0.222222`` s.
+
+For a rejected example, change the ``dt=0.3`` output period to 13 s while
+keeping the 18 s atmospheric and 9 s restart periods. Their common interval
+becomes 1 s, and ``1 / 0.3`` is about 3.333333 steps. Its distance from the
+nearest integer is about 0.333333 step, far above the allowed 0.0000167 step.
+The model rejects this schedule because 13 s falls between fire steps.
+
+Event detection uses integer step counts from the original origin. Calendar
+timestamps use integer whole seconds and a subsecond remainder, so elapsed
+single-precision multiplication cannot stall output or drift across calendar
+boundaries. Physics retains the configured ``dt``; normalization corrects the
+schedule within the documented input-rounding allowance. The shared
+``grid%clock%Elapsed(itimestep)`` interface returns REAL64 scheduling seconds
+from the original origin. The moisture component computes its initialization
+and elapsed update time from the configured physics timestep.
+
+With the 0.3 s clock above, output every 12 s means output at steps 40, 80,
+120, and so on. The event check compares the current step with those integers;
+it does not need a floating-point elapsed time to equal 12 s exactly. At step
+41, the timestamp is constructed from ``41 * 3 / 10``: 12 whole seconds plus
+a 3/10 s remainder after the original start time. With the rounded 2/9 s
+clock, the first 12 s output occurs at step 54 because ``54 * 2 / 9 = 12``.
+If the caller reaches step 55 without processing that event, the scheduler
+reports a missed event instead of writing late or skipping a forcing record.
+
+``interval_atm`` is the exchange cadence, independently of the atmospheric
+solver timestep. File-driven and NUOPC entry points require it. Direct WRF
+stepping and unforced ideal runs may leave it unset. Supplied positive intervals
+are validated. NUOPC uses the exact rational fire clock for ESMF subcycling,
+accumulates ``1/atm_step_interval`` of each instantaneous flux, and resets before
+the first advance of the next exchange window. The file-driven component
+requires consecutive records spaced by ``interval_atm`` and an exact record at
+every requested update; missing records and implicit skipping are rejected.
+
+Standalone stops at the validated final step without overshooting or taking a
+partial step. Its endpoint need not be an output, forcing, or restart event.
+NUOPC/ESMX run endpoints must additionally be reachable by the host exchange
+clock. Direct WRF retains responsibility for its host integration endpoint.
+
+New checkpoints store the reduced clock ratio and atmospheric interval.
+Restart restores the original origin and absolute timestep, then reconstructs
+the next events strictly after that step. A checkpoint between events therefore
+preserves their original phase. Output/restart intervals may change if they
+remain compatible with the saved clock; atmospheric cadence must match in
+file-driven runs. Restart writes require whole-second boundaries, consistent
+with the existing filenames and namelist date interface. The REAL64 fuel fields
+and saved perimeter-activation state are unchanged.
+
+For example, start a run at 00:00:00 with ``dt=0.3``, output every 12 s,
+and checkpoints every 9 s. A checkpoint at 00:00:09 stores the original
+00:00:00 origin and absolute step 30. To resume, the new namelist's ``start_*``
+values select 00:00:09, but reading the checkpoint restores that original
+origin and step count. The next advance is step 31. The next output is step
+40 at 00:00:12, followed by step 80 at 00:00:24. Restarting does not shift
+those outputs to 00:00:21 and 00:00:33. Checkpoints continue on their own
+9 s schedule, next at step 60 (00:00:18). Both schedules remain measured
+from 00:00:00, although their events do not always coincide.
+
+Idealized checkpoints without ``clock_seconds``, ``clock_steps``, and
+``interval_atm`` are accepted when their timestamp agrees with the reconstructed
+original clock and their other configuration metadata match. File-driven
+checkpoints without ``interval_atm`` are rejected with a specific compatibility
+diagnostic. This does not infer unknown forcing or humidity semantics. This
+checkpoint interface does not provide NUOPC/WRF-host restart support.
 
 For a supplied perimeter, ``fire_ignition_start_time1`` must be nonnegative
 and align with a fire timestep. Roundoff-sized offsets are normalized to that

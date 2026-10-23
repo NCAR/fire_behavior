@@ -29,8 +29,7 @@
 
       call Advance_fire_components (grid, config_flags)
 
-      grid%datetime_now = grid%datetime_start
-      call grid%datetime_now%Add_seconds (grid%itimestep * grid%dt)
+      call grid%Update_model_clock ()
       call grid%datetime_now%Print_datetime ()
 
       if (DEBUG_LOCAL) call Print_message ('  Leaving Advance_state... ')

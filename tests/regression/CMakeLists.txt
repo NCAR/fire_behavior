@@ -79,7 +79,7 @@ function(add_cfbm_test record)
       list(APPEND _arguments "--launcher-post-arg=${_flag}")
     endforeach()
   endif()
-  if(CFBM_REFERENCE)
+  if(CFBM_REFERENCE AND NOT _configuration MATCHES "^schedule_")
     list(APPEND _arguments --reference "${CFBM_REFERENCE}")
   endif()
   add_test(NAME ${_name} COMMAND "${Python3_EXECUTABLE}" -B "${_runner}" case

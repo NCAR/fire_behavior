@@ -1,12 +1,13 @@
   module state_mod
 
-    use, intrinsic :: iso_fortran_env, only : REAL32, REAL64
+    use, intrinsic :: iso_fortran_env, only : REAL32, REAL64, INT64
 
 #ifdef DM_PARALLEL
     use mpi
 #endif
     use constants_mod, only : PI
     use datetime_mod, only : datetime_t
+    use fire_clock_mod, only : fire_clock_t, Event_due, Next_event_step
     use fmc_mod, only : fmc_t
     use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
     use geogrid_mod, only : geogrid_t
@@ -42,6 +43,9 @@
       integer :: itimestep = 0
       integer :: num_tiles = 1
       type (datetime_t) :: datetime_start, datetime_end, datetime_now, datetime_next_output, datetime_next_atm_update
+      type (fire_clock_t) :: clock
+      integer :: output_step_interval = -1, atm_step_interval = -1, final_step = 0
+      integer (INT64) :: next_output_step = huge (0_INT64), next_atm_step = 0_INT64
 
       real, dimension(:, :), allocatable :: uf ! W-E winds used in fire module
       real, dimension(:, :), allocatable :: vf ! S-N winds used in fire module
@@ -150,6 +154,9 @@
       procedure, public :: Set_vars_to_default => Set_vars_to_default
       procedure, public :: Set_mpi_comm_cfbm => Set_mpi_comm_cfbm
       procedure, public :: Set_time_stamps => Set_time_stamps
+      procedure, public :: Update_model_clock
+      procedure, public :: Set_event_phase
+      procedure, public :: Atm_event_due
       procedure, public :: Write_restart => Write_restart
     end type state_fire_t
 
@@ -315,8 +322,7 @@
       type (datetime_t) :: datetime_check
 
 
-      datetime_check = this%datetime_start
-      call datetime_check%Add_seconds (this%itimestep * this%dt)
+      datetime_check = this%clock%Datetime_at (this%datetime_start, int (this%itimestep, INT64))
       if (datetime_check /= this%datetime_now) call Stop_simulation ('Model clock is inconsistent with itimestep and dt')
 
     end subroutine Check_model_clock
@@ -331,10 +337,11 @@
       logical, parameter :: DEBUG_LOCAL = .false.
 
 
-      if (this%datetime_now == this%datetime_next_output) then
+      if (Event_due (this%itimestep, this%next_output_step, this%output_step_interval)) then
         if (DEBUG_LOCAL) call Print_message ('Writing output...')
+        call this%Update_model_clock ()
         call this%Save_state ()
-        call this%datetime_next_output%Add_seconds (config_flags%interval_output)
+        this%datetime_next_output = this%clock%Datetime_at (this%datetime_start, this%next_output_step)
       end if
 
     end subroutine Handle_output
@@ -352,18 +359,15 @@
 
       if (DEBUG_LOCAL) call Print_message ('Entering Handle_wrfdata_update...')
 
-      ! Check_nml requires aligned update times for this equality-based schedule.
-      ! Intentional skips and output/restart timing need a separate scheduling review.
-      If_update_atm: if (this%datetime_now == this%datetime_next_atm_update) then
+      If_update_atm: if (this%Atm_event_due ()) then
         if (DEBUG_LOCAL) call Print_message ('  Updating WRF atm state...')
         if (DEBUG_LOCAL) call this%datetime_now%Print_datetime ()
 
+        call this%Update_model_clock ()
         call wrf%Update_atm_state (this%datetime_now, config_flags)
 
         if (DEBUG_LOCAL) call Print_message ('  Interpolating WRF vars...')
         call this%Interpolate_vars_atm_to_fire(wrf, config_flags)
-
-        call this%datetime_next_atm_update%Add_seconds (config_flags%interval_atm)
 
       end if If_update_atm
 
@@ -1189,14 +1193,52 @@
           config_flags%start_hour, config_flags%start_minute, config_flags%start_second)
       this%datetime_end = datetime_t (config_flags%end_year, config_flags%end_month, config_flags%end_day, &
           config_flags%end_hour, config_flags%end_minute, config_flags%end_second)
-      this%datetime_now = this%datetime_start
-
-      this%datetime_next_output = this%datetime_start
-      call this%datetime_next_output%Add_seconds (config_flags%interval_output)
-
+      call config_flags%Check_time_intervals ()
+      this%clock = config_flags%Get_fire_clock ()
+      if (this%clock%steps == 0) call Stop_simulation ('Fire clock requires a positive event interval')
+      this%output_step_interval = -1
+      if (config_flags%interval_output > 0) &
+          this%output_step_interval = this%clock%Step_at (int (config_flags%interval_output, INT64), 'interval_output')
+      this%atm_step_interval = -1
+      if (config_flags%interval_atm > 0) &
+          this%atm_step_interval = this%clock%Step_at (int (config_flags%interval_atm, INT64), 'interval_atm')
+      call this%Update_model_clock ()
+      call this%Set_event_phase ()
+      ! Initial forcing and the first coupled flux window start at the origin.
+      this%next_atm_step = 0_INT64
       this%datetime_next_atm_update = this%datetime_start
 
     end subroutine Set_time_stamps
+
+    subroutine Update_model_clock (this)
+      class (state_fire_t), intent (in out) :: this
+
+      this%datetime_now = this%clock%Datetime_at (this%datetime_start, int (this%itimestep, INT64))
+    end subroutine Update_model_clock
+
+    subroutine Set_event_phase (this)
+      class (state_fire_t), intent (in out) :: this
+
+      ! After restart, datetime_start is the original run origin and itimestep
+      ! counts all fire steps since that origin. Resuming at 9 s (step 30 for
+      ! dt=0.3) with 12 s output schedules the next output at 12 s (step 40).
+      ! Each event retains its own interval, measured from the same origin.
+      this%final_step = this%clock%Step_at (this%datetime_end%Seconds_since (this%datetime_start), 'Final time')
+      if (this%final_step <= this%itimestep) call Stop_simulation ('Final time must follow the current fire state')
+      this%next_output_step = Next_event_step (this%itimestep, this%output_step_interval)
+      this%next_atm_step = Next_event_step (this%itimestep, this%atm_step_interval)
+      if (this%output_step_interval > 0) &
+          this%datetime_next_output = this%clock%Datetime_at (this%datetime_start, this%next_output_step)
+      if (this%atm_step_interval > 0) &
+          this%datetime_next_atm_update = this%clock%Datetime_at (this%datetime_start, this%next_atm_step)
+    end subroutine Set_event_phase
+
+    logical function Atm_event_due (this) result (due)
+      class (state_fire_t), intent (in out) :: this
+
+      due = Event_due (this%itimestep, this%next_atm_step, this%atm_step_interval)
+      if (due) this%datetime_next_atm_update = this%clock%Datetime_at (this%datetime_start, this%next_atm_step)
+    end function Atm_event_due
 
     subroutine Set_vars_to_default (this, config_flags)
 

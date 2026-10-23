@@ -14,6 +14,7 @@
     implicit none
 
     integer, parameter :: RESTART_IO_ROOT = 0
+    ! Legacy moisture timestamps retain their existing REAL32 consistency check.
     real, parameter :: RESTART_INTERVAL_TOL = 1.0e-6
 
   contains
@@ -37,8 +38,6 @@
       type (namelist_t), intent (in) :: config_flags
       logical, intent (in), optional :: initialize
 
-      real :: restart_interval_seconds, restart_interval_error
-      character (len = 256) :: msg
       logical :: do_initialize
 
 
@@ -48,16 +47,7 @@
       if (do_initialize .or. .not. this%is_restart_output_initialized) then
         this%restart_step_interval = -1
         if (config_flags%restart_interval > 0) then
-          this%restart_step_interval = nint (real (config_flags%restart_interval) / this%dt)
-          restart_interval_seconds = this%restart_step_interval * this%dt
-          restart_interval_error = abs (restart_interval_seconds - real (config_flags%restart_interval))
-
-          if (this%restart_step_interval <= 0 .or. &
-              restart_interval_error > max (RESTART_INTERVAL_TOL, abs (real (config_flags%restart_interval)) * RESTART_INTERVAL_TOL)) then
-            write (msg, '(a, i0, a, f12.6)') 'restart_interval must map to an integer number of time steps: restart_interval = ', &
-                config_flags%restart_interval, ', dt = ', this%dt
-            call Stop_simulation (msg)
-          end if
+          this%restart_step_interval = this%clock%Step_at (int (config_flags%restart_interval, INT64), 'restart_interval')
         end if
         this%is_restart_output_initialized = .true.
       end if
@@ -370,6 +360,21 @@
         call Validate_restart_integer (file_restart, 'nx', this%nx)
         call Validate_restart_integer (file_restart, 'ny', this%ny)
         call Validate_restart_real (file_restart, 'dt', this%dt)
+        if (Has_restart_attribute (file_restart, 'clock_seconds') .neqv. &
+            Has_restart_attribute (file_restart, 'clock_steps')) &
+            call Stop_simulation ('Incomplete restart clock metadata')
+        if (Has_restart_attribute (file_restart, 'clock_seconds') .neqv. &
+            Has_restart_attribute (file_restart, 'interval_atm')) &
+            call Stop_simulation ('Incomplete restart clock metadata')
+        if (Has_restart_attribute (file_restart, 'clock_seconds')) then
+          call Validate_restart_integer (file_restart, 'clock_seconds', this%clock%seconds)
+          call Validate_restart_integer (file_restart, 'clock_steps', this%clock%steps)
+          if (config_flags%ideal_opt == 0) &
+              call Validate_restart_integer (file_restart, 'interval_atm', config_flags%interval_atm)
+        else if (config_flags%ideal_opt == 0) then
+          ! Old files did not record the cadence that produced the saved forcing.
+          call Stop_simulation ('Legacy restart lacks interval_atm metadata; forcing schedule compatibility is unknown')
+        end if
         call Validate_restart_real (file_restart, 'dx', this%dx)
         call Validate_restart_real (file_restart, 'dy', this%dy)
         call Validate_restart_real (file_restart, 'cen_lat', this%cen_lat)
@@ -458,12 +463,10 @@
       this%datetime_start = datetime_t (start_year, start_month, start_day, start_hour, start_minute, start_second)
       this%datetime_now = datetime_t (restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second)
 
-      datetime_check = this%datetime_start
-      call datetime_check%Add_seconds (this%itimestep * this%dt)
+      datetime_check = this%clock%Datetime_at (this%datetime_start, int (this%itimestep, INT64))
       if (datetime_check /= this%datetime_now) call Stop_simulation ('Restart clock is inconsistent with itimestep and dt')
 
-      call Set_next_datetime_after_restart (this%datetime_next_output, config_flags%interval_output)
-      call Set_next_datetime_after_restart (this%datetime_next_atm_update, config_flags%interval_atm)
+      call this%Set_event_phase ()
 
       call Read_restart_field (file_restart, 'lfn', this%lfn)
       call Read_restart_field (file_restart, 'lfn_hist', this%lfn_hist)
@@ -743,22 +746,6 @@
 
       end subroutine Read_restart_fmc
 
-      subroutine Set_next_datetime_after_restart (datetime_next, interval_seconds)
-
-        implicit none
-
-        type (datetime_t), intent (in out) :: datetime_next
-        integer, intent (in) :: interval_seconds
-
-        datetime_next = this%datetime_now
-        if (interval_seconds > 0) then
-          datetime_next = this%datetime_start
-          do while (datetime_next <= this%datetime_now)
-            call datetime_next%Add_seconds (interval_seconds)
-          end do
-        end if
-
-      end subroutine Set_next_datetime_after_restart
 
     end subroutine Read_restart
 
@@ -855,6 +842,9 @@
       if (config_flags%ideal_opt /= 0 .and. config_flags%ideal_opt /= 1) &
           call Stop_simulation ('Write_restart is implemented for standalone idealized and real runs only')
 
+      call this%Check_model_clock ()
+      if (this%datetime_now%Get_frac_ss () /= 0.0) &
+          call Stop_simulation ('Restart writes require a whole-second fire clock boundary')
       file_restart = Build_restart_file_name (this%datetime_now%datetime)
 
       call this%datetime_start%Get_datetime_as_ints (start_year, start_month, start_day, start_hour, start_minute, start_second)
@@ -886,6 +876,9 @@
         call Add_netcdf_att (file_restart, 'global', 'nx', int (this%nx, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'ny', int (this%ny, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'dt', real (this%dt, kind = REAL32))
+        call Add_netcdf_att (file_restart, 'global', 'clock_seconds', int (this%clock%seconds, INT32))
+        call Add_netcdf_att (file_restart, 'global', 'clock_steps', int (this%clock%steps, INT32))
+        call Add_netcdf_att (file_restart, 'global', 'interval_atm', int (config_flags%interval_atm, INT32))
         call Add_netcdf_att (file_restart, 'global', 'dx', real (this%dx, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', 'dy', real (this%dy, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', 'cen_lat', real (this%cen_lat, kind = REAL32))

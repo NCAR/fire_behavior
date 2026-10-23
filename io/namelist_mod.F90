@@ -9,6 +9,7 @@
     use ros_mod, only : ROS_WRFFIRE
     use fmc_mod, only : FMC_WRFFIRE
     use emis_mod, only : EMIS_WRFFIRE
+    use fire_clock_mod, only : fire_clock_t
     use stderrout_mod, only : Stop_simulation, Print_message
     use mpi_mod, only : Convert_mpi_comm_to_f08
 
@@ -159,7 +160,7 @@
       real :: true_lat_2 = 40.363             ! true latitude 2
 
         ! Atm block
-      integer :: interval_atm = -1            ! Time step [s] of the atm (or frequency to read atm data if offline)
+      integer :: interval_atm = -1            ! Atmospheric exchange/forcing cadence [s], independent of host solver dt
       integer :: kde = 1                      ! Number of atm vertical levels
 
         ! Devel block
@@ -169,6 +170,7 @@
       procedure, public :: Broadcast_nml => Broadcast_nml
       procedure, public :: Check_nml => Check_nml
       procedure, public :: Check_time_intervals => Check_time_intervals
+      procedure, public :: Get_fire_clock
       procedure, public :: Initialization => Init_namelist
       procedure, public :: Init_devel_block => Init_devel_block
       procedure, public :: Init_fire_block => Init_fire_block
@@ -426,40 +428,34 @@
 
     subroutine Check_time_intervals (this, require_atm_interval)
 
-      use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
-      use, intrinsic :: iso_fortran_env, only : real64
-
       implicit none
 
       class (namelist_t), intent (in) :: this
       logical, intent (in), optional :: require_atm_interval
-      real (real64) :: ratio, tolerance
+      type (fire_clock_t) :: clock
       logical :: check_atm
 
-
-      ! The WRF-data component reads only time/atm; do not require fire settings.
-      if (.not. ieee_is_finite (this%dt)) call Stop_simulation ('dt must be finite and positive')
-      if (this%dt <= 0.0) call Stop_simulation ('dt must be finite and positive')
-
-      ! File-driven and NUOPC schedules need interval_atm; direct WRF stepping
-      ! and unforced ideal runs can leave it unset. Validate a supplied interval.
+      ! The atmospheric component reads only time/atm, without ignition settings.
       check_atm = this%interval_atm > 0
       if (present (require_atm_interval)) check_atm = check_atm .or. require_atm_interval
-      if (check_atm) then
-        if (this%interval_atm <= 0) call Stop_simulation ('interval_atm must be positive for atmospheric updates')
-        ratio = real (this%interval_atm, real64) / real (this%dt, real64)
-        ! Four single-precision roundoff units in the dimensionless step count.
-        ! Cap the tolerance at 1e-4 step so long schedules cannot admit partial steps.
-        tolerance = min (1.0e-4_real64, 4.0_real64 * epsilon (this%dt) * max (1.0_real64, abs (ratio)))
-        if (anint (ratio) < 1.0_real64 .or. abs (ratio - anint (ratio)) > tolerance) &
-            call Stop_simulation ('interval_atm must be an integer multiple of dt')
-      end if
+      if (check_atm .and. this%interval_atm <= 0) &
+          call Stop_simulation ('interval_atm must be positive for atmospheric updates')
+      if (this%interval_atm /= -1 .and. this%interval_atm <= 0) &
+          call Stop_simulation ('interval_atm must be positive or -1')
+      if (this%interval_output /= -1 .and. this%interval_output <= 0) &
+          call Stop_simulation ('interval_output must be positive or -1')
+      if (this%restart_interval /= -1 .and. this%restart_interval <= 0) &
+          call Stop_simulation ('restart_interval must be positive or -1')
+      clock = this%Get_fire_clock ()
 
-      ! The equality-based scheduler can stall after a missed update.
-      ! interval_atm is the exchange interval, not necessarily the host model dt.
-      ! Intentional record skipping and output/restart alignment need a separate
-      ! time-scheduling review; bypassing this check would not implement skipping.
     end subroutine Check_time_intervals
+
+    function Get_fire_clock (this) result (clock)
+      class (namelist_t), intent (in) :: this
+      type (fire_clock_t) :: clock
+
+      call clock%Init (this%dt, [this%interval_output, this%interval_atm, this%restart_interval])
+    end function Get_fire_clock
 
     subroutine Init_atm_block (this, file_name)
 

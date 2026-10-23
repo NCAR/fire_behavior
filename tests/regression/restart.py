@@ -22,6 +22,7 @@ import netCDF4
 import numpy as np
 
 from compare_outputs import compare_file
+from config import resolved_clock
 from generate_inputs import DATE_FORMAT, sha256_file
 from render_namelist import render_namelist
 from reports import write_result
@@ -114,8 +115,9 @@ def check_checkpoint(path: Path, spec: dict[str, Any],
                 name = f"{prefix}_{part}"
                 if getattr(dataset, name, None) != getattr(parsed, part):
                     reasons.append(f"Incorrect checkpoint clock: {name}")
+        clock_seconds, clock_steps = resolved_clock(spec)
         if getattr(dataset, "itimestep",
-                   None) != seconds / spec["namelist"]["time"]["dt"]:
+                   None) != seconds * clock_steps // clock_seconds:
             reasons.append("Incorrect checkpoint itimestep")
         ignited = int(fire["fire_is_real_perim"] and
                       seconds >= fire["fire_ignition_start_time1"])

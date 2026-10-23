@@ -48,17 +48,18 @@ history](validation.md).
 ## GitHub review and activation
 
 CI runs `pr` and `restart` using all four GNU Strict builds: serial, OpenMP,
-MPI and hybrid, with NUOPC/ESMX in the latter two. The `pr` suite's 36 generated
-runs produce 40 cross-execution comparisons. The `restart` suite compares
+MPI and hybrid, with NUOPC/ESMX in the latter two. The `pr` suite's 72 generated
+runs produce 85 cross-execution comparisons. The `restart` suite compares
 continuous and segmented standalone integrations from the same revision and
 does not use a stored baseline. Both suites must pass. Unit checks run in each
-build. PRs targeting prerequisite branches are included, so a merge into
-`develop` is not needed.
+build.
 
 Normal Strict checks default to the [approved GitHub reference](../baselines/github-pr/README.md)
-committed for the complete PR suite. A missing or unapproved reference fails
-the check. To generate a future candidate, select **Run workflow** for
-**Fire Behavior CI Test**, choose the PR branch, and enable `create_reference`.
+committed for the original 36 cases. Fractional-step cases use exact timing and
+forcing checks and same-revision comparisons. A missing or unapproved reference
+for a case requiring one fails the check. To generate a future candidate, select
+**Run workflow** for **Fire Behavior CI Test**, choose the source revision, and
+enable `create_reference`.
 That run checks both suites without a stored reference, then creates a candidate
 from only the `pr` results. It uploads the unapproved baseline only if all
 checks and comparisons pass. Adding restart coverage does not change the
@@ -74,6 +75,6 @@ across compilers and libraries.
 
 After explicit team approval, commit the candidate under the workflow's selected
 baseline directory, record the approval, and rerun the normal workflow on the
-final PR revision. The candidate-generation run alone is not reference acceptance.
+final source revision. The candidate-generation run alone is not reference acceptance.
 See [baseline storage](../baselines/README.md). The larger `full` suite remains available through the local CLI and PBS template, with references covering
 those selections when historical comparisons are required.

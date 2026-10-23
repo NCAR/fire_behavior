@@ -80,7 +80,7 @@
     call grid%Handle_restart (config_flags, initialize = .true.)
 
     if (DEBUG_LOCAL) write (OUTPUT_UNIT, *) '  Starting temporal loop...'
-    do while (grid%datetime_now < grid%datetime_end)
+    do while (grid%itimestep < grid%final_step)
       call Advance_state (grid, config_flags)
 
       call grid%Check_model_clock ()

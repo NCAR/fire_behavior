@@ -38,7 +38,8 @@ With direct CMake, `-DCFBM_REFERENCE=AUTO` selects this build-type default,
 `-DCFBM_REFERENCE=/absolute/directory` overrides it, and
 `-DCFBM_REFERENCE:STRING=` disables historical comparison. `compile.sh` resets
 this selection on every invocation, so a cached override does not carry over
-when the command changes. The bundled reference covers the small `pr` cases;
+when the command changes. The bundled reference covers the original 36 small `pr` cases; fractional
+configurations use exact timing/forcing and same-revision checks instead;
 `full` needs its own reference or an intentional `--no-reference` run.
 
 ### Coupled hybrid runs
@@ -53,10 +54,10 @@ per rank, use at least 16 allocated CPUs and a separate build directory:
     --prefix="$PWD/install/hybrid-strict"
 ```
 
-This selects eight model runs: four standalone cases and four coupled terrain
-cases. The complete four-build PR matrix has 36 runs and 40 cross-execution
-comparisons. The shared `github-pr` reference includes all 36 names, including
-the four coupled hybrid cases.
+This selects 17 model runs: seven standalone cases and ten coupled terrain
+cases. The complete four-build PR matrix has 72 runs and 85 cross-execution
+comparisons. The shared `github-pr` reference retains the original 36 names;
+the additional fractional-step cases have no stored reference.
 
 ## Run a suite
 
@@ -139,10 +140,10 @@ The suite options are defined in [regression.py](../regression.py):
 | Option | Tests selected |
 |---|---|
 | `quick` | Default. Unit tests plus the four default case/configuration combinations in serial, and both terrain wind configurations with `omp4`, `mpi4`, or `hybrid4`, where supported. |
-| `pr` | Unit tests plus all four default case/configuration combinations across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
+| `pr` | Unit tests, the four default case/configuration combinations, and three fractional-step terrain configurations across `serial`, `omp1`, `omp4`, `mpi1`, `mpi4`, and `hybrid4`, where supported. |
 | `full` | Unit tests plus the larger experiments: 320 × 320 grids, 3600 s integrations, both method pairs `(9,4)` and `(2,4)`, and the additional `mpi8` execution. Requires `CFBM_FULL_TESTS=ON`. |
 | `unit` | Unit Fortran tests and the Python harness tests. No generated fire-case integrations. |
-| `restart` | Moisture initialization unit checks, Python harness checks, and standalone continuous/restarted cases in serial, OpenMP, MPI, and hybrid layouts. See [restart continuity](restart.md) for schedules, counts, and coverage limits. |
+| `restart` | Moisture initialization unit checks, Python harness checks, and standalone continuous/restarted cases in serial, OpenMP, MPI, and hybrid layouts. Includes fractional restart phase, legacy clock metadata, and schedule rejection checks. See [restart continuity](restart.md) and [event schedules](scheduling.md). |
 | `legacy` | Original tests registered by the legacy build route. |
 
 These selections follow [cases.yaml](../cases.yaml). Each build contributes only
@@ -218,7 +219,7 @@ namelist_broadcast_mpi
 Here `*_unit` describes a naming pattern, not a literal selector. Copy the
 complete name from the CTest listing when using `--test`. `regression_python`
 tests **the Python regression harness**: input generation, configuration, output
-checks, comparisons, and reporting. It currently contains **45 Python tests**
+checks, comparisons, and reporting. Core coverage contains **47 Python tests**
 across two files and does not launch the Fortran model.
 
 | Area | What it checks |
@@ -234,7 +235,7 @@ across two files and does not launch the Fortran model.
 | Restart chains | Checks checkpoint precision, state and metadata validity, segment schedules, and preservation of forcing across segments. |
 
 The implementation is in
-[python_harness_test.py](../tests/python_harness_test.py) (28 tests) and
+[python_harness_test.py](../tests/python_harness_test.py) (30 core tests) and
 [generator_comparator_test.py](../tests/generator_comparator_test.py) (17
 tests).
 
@@ -348,7 +349,7 @@ it, then resubmit. Avoid concurrent submissions of the same commit/date.
 
 The job clones the local repository, checks out the revision present when the
 job starts, loads `env/derecho/gnu-12.2.0`, and builds four Strict configurations.
-It runs `pr`: unit checks, 36 model runs, 40 cross-execution comparisons, and
+It runs `pr`: unit checks, 72 model runs, 85 cross-execution comparisons, and
 36 comparisons against the approved `github-pr` baseline. The environment uses
 GNU 12.2, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0, and shared NPL Python.
 The build loop calls `compile.sh` once per configuration; each call builds only

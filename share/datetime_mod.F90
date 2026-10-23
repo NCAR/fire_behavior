@@ -1,6 +1,6 @@
   module datetime_mod
 
-    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT
+    use, intrinsic :: iso_fortran_env, only : OUTPUT_UNIT, INT64
 
     implicit none
 
@@ -16,9 +16,11 @@
       character (len = DATETIME_LEN) :: datetime
       real :: fractional_seconds
     contains
-      procedure :: Add_seconds_int, Add_seconds_real
+      procedure :: Add_seconds_int, Add_seconds_real, Add_seconds_int64
       generic, public :: Add_seconds => Add_seconds_int
       generic, public :: Add_seconds => Add_seconds_real
+      generic, public :: Add_seconds => Add_seconds_int64
+      procedure, public :: Seconds_since
       procedure, public :: Calc_days_in_month => Calc_days_in_month
       procedure, public :: Get_datetime_as_ints => Get_datetime_as_ints
       procedure, public :: Get_dd => Get_dd
@@ -50,6 +52,62 @@
     end interface datetime_t
 
   contains
+
+    pure subroutine Add_seconds_int64 (this, delta_seconds)
+
+      class (datetime_t), intent (in out) :: this
+      integer (INT64), intent (in) :: delta_seconds
+      integer :: yyyy, mm, dd, hh, mins, secs, days_in_this_month
+      integer (INT64) :: seconds, days
+      type (datetime_t) :: date
+
+      call this%Get_datetime_as_ints (yyyy, mm, dd, hh, mins, secs)
+      seconds = int (hh * 3600 + mins * 60 + secs, INT64) + delta_seconds
+      days = seconds / 86400_INT64
+      seconds = mod (seconds, 86400_INT64)
+      hh = int (seconds / 3600)
+      mins = int (mod (seconds, 3600_INT64) / 60)
+      secs = int (mod (seconds, 60_INT64))
+      do while (days > 0)
+        date = datetime_t (yyyy, mm, dd, 0, 0, 0)
+        days_in_this_month = date%Calc_days_in_month ()
+        if (days <= days_in_this_month - dd) then
+          dd = dd + int (days)
+          exit
+        end if
+        days = days - (days_in_this_month - dd + 1)
+        dd = 1
+        mm = mm + 1
+        if (mm > 12) then
+          mm = 1
+          yyyy = yyyy + 1
+        end if
+      end do
+      call this%Update_datetime (yyyy, mm, dd, hh, mins, secs)
+    end subroutine Add_seconds_int64
+
+    pure function Seconds_since (this, origin) result (seconds)
+      class (datetime_t), intent (in) :: this
+      type (datetime_t), intent (in) :: origin
+      integer (INT64) :: seconds
+
+      ! Whole-second Gregorian dates are the public namelist and file interface.
+      seconds = (Day_number (this) - Day_number (origin)) * 86400_INT64 + &
+          (this%Get_hh () - origin%Get_hh ()) * 3600 + &
+          (this%Get_min () - origin%Get_min ()) * 60 + this%Get_ss () - origin%Get_ss ()
+    end function Seconds_since
+
+    pure function Day_number (date) result (days)
+      class (datetime_t), intent (in) :: date
+      integer (INT64) :: days, years
+      integer :: month
+
+      years = int (date%Get_yyyy (), INT64) - 1
+      month = date%Get_mm ()
+      days = 365_INT64 * years + years / 4 - years / 100 + years / 400 + date%Get_dd () - 1
+      if (month > 1) days = days + sum (DAYS_IN_MONTHS(1:month-1))
+      if (month > 2 .and. date%Is_leap ()) days = days + 1
+    end function Day_number
 
     pure subroutine Add_seconds_int (this, delta_seconds)
 

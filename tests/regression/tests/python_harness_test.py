@@ -30,8 +30,8 @@ import numpy as np
 MODULE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(MODULE_ROOT))
 
-from check_outputs import check_surface_wind, check_wind_profile, expected_output_names
-from config import load_yaml, registrations, resolve_spec
+from check_outputs import check_surface_wind, check_wind_profile, expected_output_names, check_forcing_history
+from config import load_yaml, registrations, resolve_spec, resolved_clock
 from generate_inputs import generate_inputs
 from reference import compare_reference, verify_reference
 from render_namelist import render_namelist
@@ -68,6 +68,42 @@ class PythonHarnessTests(unittest.TestCase):
     #------------------------------------------------------------------------
     # Scientific configuration
     #------------------------------------------------------------------------
+
+    def test_fractional_schedule_resolution(self) -> None:
+        """Accept reported fractional/rounded inputs and reject a partial fire step."""
+        expected = {"03": (3, 10), "rounded": (2, 9), "nested": (5, 18)}
+        for name, ratio in expected.items():
+            spec = resolve_spec(self.document, "terrain", "small",
+                                "schedule_" + name, "serial")
+            self.assertEqual(resolved_clock(spec), ratio)
+        config = self.document["cases"]["terrain"]["configurations"][
+            "schedule_03"]
+        config["namelist"]["time"]["interval_output"] = 13
+        with self.assertRaisesRegex(ValueError, "integer number"):
+            resolve_spec(self.document, "terrain", "small", "schedule_03",
+                         "serial")
+
+    def test_forcing_history_detects_stale_record(self) -> None:
+        """A repeated middle record must fail even when the final record is correct."""
+        spec = resolve_spec(self.document, "terrain", "small", "schedule_03",
+                            "serial")
+        for name in expected_output_names(spec):
+            date = dt.datetime.strptime(name[len("fire_output_"):-3],
+                                        "%Y-%m-%d_%H:%M:%S")
+            origin = dt.datetime.strptime(spec["start"], "%Y-%m-%d_%H:%M:%S")
+            second = int((date - origin).total_seconds())
+            record = max(0, second - 1) // 18 * 18
+            fraction = record / 72
+            with netCDF4.Dataset(self.root / name, "w") as dataset:
+                dataset.createDimension("x", 1)
+                for field, value in (("fire_t2", 300 + 2 * fraction),
+                                     ("fire_q2", 0.008 - 0.004 * fraction)):
+                    dataset.createVariable(field, "f4", ("x",))[:] = value
+        self.assertTrue(check_forcing_history(self.root, spec)["pass"])
+        middle = self.root / expected_output_names(spec)[2]
+        with netCDF4.Dataset(middle, "a") as dataset:
+            dataset["fire_t2"][:] = 300
+        self.assertFalse(check_forcing_history(self.root, spec)["pass"])
 
     def test_execution_cannot_change_science(self) -> None:
         """Reject scientific overrides hidden in a rank/thread definition."""
@@ -223,13 +259,28 @@ class PythonHarnessTests(unittest.TestCase):
         records = []
         for build in ("serial", "omp", "mpi", "hybrid"):
             drivers = ["standalone", "nuopc", "esmx"
-                      ] if build == "mpi" else ["standalone"]
+                      ] if build in ("mpi", "hybrid") else ["standalone"]
             records.extend(registrations(self.document, build, drivers))
-        for suite, count in (("quick", 14), ("pr", 32), ("full", 80)):
+        for suite, count in (("quick", 18), ("pr", 72), ("full", 88)):
             selected = [r for r in records if suite in r["labels"]]
             self.assertEqual(len(selected), count)
             self.assertEqual({r["case"] for r in selected},
                              {"circle", "fuels", "terrain"})
+        # CI's existing selections must include all three fractional clocks.
+        # Continuous coupled runs belong to pr; checkpoint chains belong to
+        # restart and must not imply support for coupled restart execution.
+        self.assertNotIn("scheduling", self.document["suites"])
+        fractional = [
+            r for r in records if r["configuration"].startswith("schedule_")
+        ]
+        self.assertEqual(len(fractional), 51)
+        for record in fractional:
+            if record["configuration"].endswith("_restart"):
+                self.assertEqual(record["labels"], ["restart"])
+                self.assertEqual(record["driver"], "standalone")
+            else:
+                self.assertEqual(record["labels"], ["pr"])
+        self.assertEqual(sum("restart" in r["labels"] for r in records), 30)
         args = SimpleNamespace(test=None,
                                suite="pr",
                                case="terrain",
@@ -391,11 +442,13 @@ class PythonHarnessTests(unittest.TestCase):
     #------------------------------------------------------------------------
 
     def test_restart_registration_and_phase(self) -> None:
-        """Select standalone restart cases without changing existing PR matrices."""
+        """Select integer/fractional restart chains and retain original output phase."""
         records = registrations(self.document, "mpi",
                                 ["standalone", "nuopc", "esmx"])
         selected = [r for r in records if "restart" in r["labels"]]
-        self.assertEqual(len(selected), 6)
+        # Six restart configurations each run with one and four MPI ranks;
+        # NUOPC/ESMX continuous tests must not acquire restart labels.
+        self.assertEqual(len(selected), 12)
         self.assertEqual({r["driver"] for r in selected}, {"standalone"})
         self.assertTrue(all("pr" not in r["labels"] for r in selected))
         spec = resolve_spec(self.document,
