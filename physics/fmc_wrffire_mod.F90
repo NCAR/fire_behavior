@@ -13,7 +13,9 @@
     ! 50%  Entering dormancy, coloration starting, some leaves may have dropped from stem
     ! 30%  Completely cured, treat as dead fuel
 
-    use, intrinsic :: iso_fortran_env, only : REAL32
+    use, intrinsic :: iso_fortran_env, only : REAL32, INT32
+    use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
+    use netcdf, only : NF90_FILL_FLOAT
     use stderrout_mod, only : Stop_simulation
     use netcdf_mod, only : Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
     use ros_mod, only : ros_t
@@ -25,6 +27,7 @@
     private
 
     public :: fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME
+    public :: NAME_ATT_FMC_INITIALIZED, NAME_ATT_FMC_INITTIME
 
     integer, parameter :: MOISTURE_CLASSES = 5, NUM_FMEP = 2
     real, parameter :: FMEP_DECAY_TLAG = 999999 ! time constant of assimilated adjustments of equilibria decay
@@ -32,9 +35,15 @@
     character (len = *), parameter :: NAME_VAR_FMC_GC = 'fmc_gc'
     character (len = *), parameter :: NAME_ATT_FMOIST_LASTTIME = 'fmc_fmoist_lasttime'
     character (len = *), parameter :: NAME_ATT_FMOIST_NEXTTIME = 'fmc_fmoist_nexttime'
+    character (len = *), parameter :: NAME_ATT_FMC_INITIALIZED = 'fmc_initialized'
+    character (len = *), parameter :: NAME_ATT_FMC_INITTIME = 'fmc_initialization_time'
 
     type, extends(fmc_t) :: fmc_wrffire_t
       real :: fmoist_lasttime, fmoist_nexttime, dt_moisture
+      real :: initialization_time = 0.0
+      ! Component-local state: all five moisture classes and previous forcing
+      ! are initialized by the first advance or restored from a valid restart.
+      logical :: initialized = .false.
       real, dimension(MOISTURE_CLASSES) :: rec_drying_lag_sec, rec_wetting_lag_sec, fmc_gc_initial_value
       logical :: run_advance_moisture
       real, dimension(:, :, :), allocatable :: fmc_gc ! fuel moisture contents by class
@@ -92,6 +101,7 @@
 
 
       if (.not. allocated (this%fmc_gc)) call Stop_simulation ('FMC restart write requires allocated fmc_gc')
+      if (.not. this%initialized) call Stop_simulation ('FMC restart write requires initialized moisture and forcing history')
 
       n_moisture_classes = size (this%fmc_gc, 2)
       if (rank == 0) call Add_netcdf_dim (file_restart, NAME_DIM_MOISTURE_CLASS, n_moisture_classes)
@@ -107,6 +117,8 @@
           ifps, ifpe, jfps, jfpe, NAME_VAR_FMC_GC, this%fmc_gc(ifps:ifpe, 1:n_moisture_classes, jfps:jfpe))
 
       if (rank == 0) then
+        call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMC_INITIALIZED, int (1, kind = INT32))
+        call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMC_INITTIME, real (this%initialization_time, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_LASTTIME, real (this%fmoist_lasttime, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', NAME_ATT_FMOIST_NEXTTIME, real (this%fmoist_nexttime, kind = REAL32))
       end if
@@ -141,6 +153,9 @@
 
       this%fmoist_lasttime = itimestep * dt
       this%fmoist_nexttime = this%fmoist_lasttime
+      this%initialized = .false.
+      this%initialization_time = 0.0
+      this%dt_moisture = 0.0
 
       fgi_c = 0.0
       fgi_c(1:mfuelcats, 1) = fuels%fgi_1h
@@ -202,10 +217,12 @@
 
       integer :: ij
       real :: time_start, moisture_time
+      logical :: initialize
 
 
       time_start = itimestep * dt
       moisture_time = time_start
+      initialize = .not. this%initialized
 
       this%run_advance_moisture = .false.
       if (fmoist_freq > 0) then
@@ -214,8 +231,17 @@
         if (.not. moisture_time < this%fmoist_nexttime) this%run_advance_moisture = .true.
       end if
 
+      ! Establish class state at the first call's model timestamp, even when
+      ! the first scheduled update is later. Initialization has no elapsed time.
+      if (initialize) this%run_advance_moisture = .true.
       if (this%run_advance_moisture) then
-        this%dt_moisture = moisture_time - this%fmoist_lasttime
+        if (initialize) then
+          this%dt_moisture = 0.0
+          this%initialization_time = moisture_time
+        else
+          this%dt_moisture = moisture_time - this%fmoist_lasttime
+          if (this%dt_moisture <= 0.0) call Stop_simulation ('FMC advance requires increasing moisture time')
+        end if
         this%fmoist_lasttime = moisture_time
         if (fmoist_freq > 0)then
             continue
@@ -228,10 +254,11 @@
         !$OMP PARALLEL DO   &
         !$OMP PRIVATE (ij)
         do ij = 1, num_tiles
-          call this%Advance_moisture_classes (itimestep == 1, ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
+          call this%Advance_moisture_classes (initialize, ifms, ifme, jfms, jfme, i_start(ij), i_end(ij), j_start(ij), j_end(ij), &
               fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, fire_psfc_old, fire_rh_fire, fuelmc_g)
         end do
         !$OMP END PARALLEL DO
+        this%initialized = .true.
 
         !$OMP PARALLEL DO   &
         !$OMP PRIVATE (ij)
@@ -301,7 +328,14 @@
       real :: epsilon, Pws, Pw
 
 
-      if (initialize) call Copy2old ()
+      ! Reject unavailable forcing before copying it into the persistent history
+      ! or evaluating logarithms and powers in the equilibrium calculation.
+      call Validate_forcing (rain, t2, q2, psfc)
+      if (initialize) then
+        call Copy2old ()
+      else
+        call Validate_forcing (rain_old, t2_old, q2_old, psfc_old)
+      end if
 
       rhmax = -huge (rhmax)
       rhmin = huge (rhmin)
@@ -441,6 +475,25 @@
       return
 
     contains
+
+      subroutine Validate_forcing (rain_in, t_in, q_in, p_in)
+
+        real, intent (in) :: rain_in(ifms:ifme, jfms:jfme), t_in(ifms:ifme, jfms:jfme), &
+            q_in(ifms:ifme, jfms:jfme), p_in(ifms:ifme, jfms:jfme)
+        integer :: i, j
+
+        do j = jfts, jfte
+          do i = ifts, ifte
+            if (.not. all (ieee_is_finite ([rain_in(i,j), t_in(i,j), q_in(i,j), p_in(i,j)]))) &
+                call Stop_simulation ('FMC requires finite atmospheric forcing')
+            if (any ([rain_in(i,j), t_in(i,j), q_in(i,j), p_in(i,j)] >= NF90_FILL_FLOAT)) &
+                call Stop_simulation ('FMC atmospheric forcing is unavailable')
+            if (t_in(i,j) <= 0.0 .or. p_in(i,j) <= 0.0 .or. q_in(i,j) < 0.0 .or. rain_in(i,j) < 0.0) &
+                call Stop_simulation ('FMC requires positive temperature and pressure and nonnegative humidity and rain')
+          end do
+        end do
+
+      end subroutine Validate_forcing
 
       subroutine Copy2old ()
 

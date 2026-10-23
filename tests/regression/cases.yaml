@@ -291,7 +291,7 @@ cases:
             fmoist_freq: 0
             fmoist_dt: 16.0
       restart_step:
-        # Delayed first update exercises the initialization defect owned by P02.
+        # Initialize at 4 s; updates at 12, 24, ... s retain the original phase.
         restart_splits: [4, 12, 28]
         namelist:
           time:

@@ -5,13 +5,52 @@
 These records describe specific revisions. They do not automatically validate
 later source, documentation examples, renamed registrations, or new cases.
 
+## P00 on merged P02/develop (2026-10-22)
+
+After PR #39 and P02/PR #62 were squash-merged, the review base became
+`develop` at `622e191`. P00 merges that revision into its published history,
+retaining the merged moisture component and restart reader. The 19-file review
+diff contains only tests and documentation; production code and P02's focused
+unit tests match `622e191` exactly. The harness now includes the initialization
+metadata checks and 30 restart-loading probes from the earlier P00/P02 test
+integration.
+
+Derecho PBS `7915414.desched1` tests candidate `9a64864`. The published-history
+merge `ce551ee` has the identical complete file tree; subsequent edits only
+update documentation. All four GNU Strict builds pass: serial, OpenMP, MPI,
+and hybrid, with NUOPC/ESMX enabled in the latter two. The environment is GNU
+12.2.0, Cray MPICH 8.1.25, NetCDF 4.9.2, ESMF 8.5.0, and shared NPL Python.
+
+All 67 restart CTests pass, comprising 15 restart cases, 48 P02 lifecycle
+checks, and four Python harness registrations. All five formerly failing
+step-based moisture cases now pass. The suite completes 65 continuity model
+invocations and 30 loading probes. Its 315 continuity file comparisons and
+five accepted-legacy checkpoint comparisons are bitwise equal, with zero
+maximum absolute error. All 450 checkpoint validity checks, 30 loading probes,
+and 12 cross-layout comparisons pass; cross-layout error is also zero.
+
+The same job passes all 238 existing PR CTests: 202 unit registrations and
+36 model runs. All 40 execution comparisons and 36 approved-reference
+comparisons pass. The reference error is zero; the maximum cross-driver error
+is 0.125 W m-2 in `fgrnhfx`, within the unchanged tolerance. The PBS job exits
+zero. The 45 Python tests also pass in the serial-NetCDF development environment;
+YAPF 0.43.0, shell syntax, and whitespace checks pass.
+
+Evidence is preserved under `cfbm-P00-develop-20261022T230324-0600/` in the
+validation submitter's Derecho scratch `tmp/`. The historical P00 failures
+below remain preserved. This validation establishes same-revision standalone
+restart continuity, including P02's delayed initialization correction. It does
+not establish NUOPC/ESMX or WRF-host restart continuity, cross-layout checkpoint
+transfer, or combined P01/P04 behavior.
+
 ## P00 restart foundation (2026-10-20)
 
-The review base is local merge `bc205bc`, combining upstream `26d57b6` with
-restart PR #39 at `59b9081`. Remote heads were checked on 2026-10-20 and still
-matched that snapshot. P00 changes only the harness and its documentation.
-Its feature branch must retain this explicit prerequisite; targeting upstream
-develop directly would also include the unmerged restart work.
+The original review base was local merge `bc205bc`, combining upstream
+`26d57b6` with restart PR #39 at `59b9081`. Remote heads were checked on
+2026-10-20 and still matched that snapshot. P00 changes only the harness and
+its documentation.
+At that time, its feature branch required an explicit stacked review base;
+targeting upstream develop would also have included the unmerged restart work.
 
 Derecho PBS `7889837.desched1` built this base in serial, OpenMP, MPI, and
 hybrid GNU Strict configurations. All 190 PR CTests passed: 154 unit CTests

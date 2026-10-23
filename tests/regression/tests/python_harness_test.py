@@ -483,8 +483,21 @@ class PythonHarnessTests(unittest.TestCase):
             dataset.itimestep = seconds // 4
             dataset.fire_perimeter_ignited = int(
                 spec["namelist"]["fire"]["fire_is_real_perim"] and seconds >= 8)
-            dataset.fmc_fmoist_lasttime = 4.0
-            dataset.fmc_fmoist_nexttime = 20.0
+            fire = spec["namelist"]["fire"]
+            dataset.fmc_initialized = 1
+            dataset.fmc_initialization_time = 4.0
+            dataset.fmoist_freq = fire["fmoist_freq"]
+            dataset.fmoist_dt = fire["fmoist_dt"]
+            if fire["fmoist_freq"]:
+                interval = fire["fmoist_freq"] * 4
+                dataset.fmc_fmoist_lasttime = max(
+                    4, seconds // interval * interval)
+                dataset.fmc_fmoist_nexttime = 0.0
+            else:
+                last = 4 + (seconds -
+                            4) // fire["fmoist_dt"] * fire["fmoist_dt"]
+                dataset.fmc_fmoist_lasttime = last
+                dataset.fmc_fmoist_nexttime = last + fire["fmoist_dt"]
 
     def test_checkpoint_detects_real64_loss(self) -> None:
         """Detect both float32 storage and quantization hidden in float64 storage."""
@@ -510,7 +523,8 @@ class PythonHarnessTests(unittest.TestCase):
         self._checkpoint(reference, spec, 12)
         self.assertTrue(check_checkpoint(reference, spec, 12)["pass"])
         for defect in ("fuel_bit", "perimeter", "clock", "class_zero",
-                       "class_nan", "moisture_time"):
+                       "class_nan", "moisture_time", "uninitialized",
+                       "init_time"):
             test = self.root / f"{defect}.nc"
             shutil.copy2(reference, test)
             with netCDF4.Dataset(test, "a") as dataset:
@@ -525,11 +539,15 @@ class PythonHarnessTests(unittest.TestCase):
                     dataset["fmc_gc"][:] = 0
                 elif defect == "class_nan":
                     dataset["fmc_gc"][:] = np.nan
+                elif defect == "uninitialized":
+                    dataset.fmc_initialized = 0
+                elif defect == "init_time":
+                    dataset.fmc_initialization_time = 0.0
                 else:
                     dataset.fmc_fmoist_nexttime = 999.0
             self.assertFalse(
                 compare_checkpoint(reference, test, spec)["pass"], defect)
-            if defect not in ("fuel_bit", "moisture_time"):
+            if defect != "fuel_bit":
                 self.assertFalse(
                     check_checkpoint(test, spec, 12)["pass"], defect)
         self.assertFalse(
@@ -576,7 +594,10 @@ class PythonHarnessTests(unittest.TestCase):
                 calls.append(directory)
                 return {"reasons": [], "exit_status": 0}
 
-            with patch("run_case.run_model", side_effect=launch):
+            # Loader rejection probes are exercised by model CTests, separately
+            # from this synthetic segment-staging check.
+            with patch("run_case.run_model", side_effect=launch), patch(
+                    "restart.check_moisture_restart_loading", return_value=[]):
                 result = run_restarts(spec, root, ["fixture"], {}, set())
             self.assertEqual(result["pass"], not extra, result["reasons"])
             self.assertEqual(len(calls), 4)
