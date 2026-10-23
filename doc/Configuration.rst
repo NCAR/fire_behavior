@@ -215,17 +215,45 @@ output fields retain their existing single-precision NetCDF representation.
    Number of grid points around lfn=0 where ``fire_viscosity_bg`` is used
 
 ``fmoist_run``: *logical* (Default: ``.false.``)
-   Runs moisture model on the atmospheric grid, outputting the result as a variable named ``fmc_gc``
+   Enables evolving class moisture on the fire grid. The first moisture call
+   initializes the four dead classes from equilibrium and the live class from
+   ``fuelmc_g_live``, using the first supplied atmospheric forcing. Initialization
+   occurs independently of the update cadence and copies that forcing into the
+   previous-forcing state. Missing, nonfinite, or invalid forcing stops the run.
+   Effective moisture ``fmc_g`` is used by the spread model; class state
+   ``fmc_gc`` is stored in checkpoints, not ordinary output.
+
+   The effective initialization time is the first call's ``itimestep*dt``
+   timestamp, normally ``dt`` seconds from the original run origin. Initialization
+   applies zero elapsed moisture time. Later updates use the interval since
+   initialization or the last update. This retains the existing component's
+   timestamp convention without introducing an artificial initial advance.
 
 ``fmoist_freq``: *integer* (Default: ``0``)
-   Frequency to run moisture model.
+   Frequency of moisture updates after initialization.
      0: use ``fmoist_dt``
 
      k>0: every "k" timesteps
 
 ``fmoist_dt``: *real* (Default: ``600.0``)
    [Units: s]
-   Time step of moisture model (only used if ``fmoist_freq=0``)
+   Numerical update interval of the moisture model (only used if ``fmoist_freq=0``),
+   measured from its effective initialization time. It is distinct from a fuel
+   class's physical response time. Step-based updates retain their phase relative
+   to the original run origin. For example, with ``dt=4`` and ``fmoist_freq=3``,
+   initialization occurs at 4 s, the first update at 12 s uses 8 s elapsed time,
+   and subsequent updates use 12 s intervals.
+
+   Checkpoints save initialization status/time, class moisture, previous forcing,
+   last/next update times, and the moisture activation and cadence settings.
+   A resumed run restores this state without reinitialization and requires the
+   same activation and cadence. New checkpoints cannot be written before
+   moisture initialization. PR #39 time-based checkpoints are accepted when their
+   positive next-update time establishes initialization and their saved interval
+   matches ``fmoist_dt``. Legacy step-based files are rejected because their
+   metadata cannot distinguish initialized state from the old delayed-initialization
+   defect. Prescribed-moisture legacy files remain readable. This compatibility
+   rule does not resolve the separate humidity-convention audit.
 
 ``fire_wind_height``: *real* (Default: ``6.096``)
    [Units: m]

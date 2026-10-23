@@ -22,9 +22,10 @@ All integrations use `dt=4`, run through 60 s, write regular output every 12 s,
 and write checkpoints every 4 s. Time-based moisture updates occur at 4, 20,
 36, and 52 s on the reviewed base. The split at 4 s precedes perimeter
 activation; 12 and 28 s follow it. The 28 s split is between moisture updates
-and atmospheric records. Step-based updates first occur at 12 s, exposing the
-known initialization defect assigned to P02. A failure remains a failing CTest;
-the suite has no expected-failure conversion.
+and atmospheric records. Step-based moisture initializes at 4 s and first
+advances at 12 s using an 8 s interval, then advances every 12 s. These cases
+exposed the delayed-initialization defect on P00 and test its P02 correction.
+A failure remains a failing CTest; the suite has no expected-failure conversion.
 
 Each case runs one uninterrupted integration and a separate cold first segment,
 then resumes only from the preceding segment's checkpoint. Generated input files
@@ -40,7 +41,7 @@ the original origin, including output after a split between output events.
 | Physical checkpoint fields in `restart.STATE_FIELDS`, current forcing, previous forcing and five moisture classes where applicable | Bitwise equality for the same executable and execution layout |
 | Checkpoint dimensions, full variable inventory, and global metadata | Exact equality, including clock origin, step count, perimeter activation, and moisture times |
 | Fuel fraction and fuel fraction burned in the current timestep | REAL64 storage and a non-REAL32 signal at the final checkpoint; catches quantization even when stored as float64 |
-| Independent checkpoint validity | Required fields, finite/unmasked owned cells, expected clock and activation state, five moisture-class dimensions, valid moisture times and moisture in (0,1) for these dry-forcing cases |
+| Independent checkpoint validity | Required fields, finite/unmasked owned cells, expected clock and activation state, five moisture-class dimensions, initialized moisture at 4 s, expected cadence and last/next times, and moisture in (0,1) for these dry-forcing cases |
 
 The PR #39 writer also saves method work arrays `lfn_0/1/2`, `lfn_s0/1/2/3`
 and unused crown fluxes `fcanhfx/fcanqfx`. Their values are not all initialized
@@ -64,6 +65,16 @@ The new configurations use same-revision comparisons and do not select the
 historical `github-pr` reference, which does not contain their keys. The
 existing `pr` suite remains unchanged and checks its approved reference.
 No reference candidate is created or approved by this suite.
+
+P02 additionally runs 30 restart-loading probes across the five layouts. Each
+time-based case resumes a copy with PR #39 metadata (five new attributes removed)
+and requires an exact checkpoint match. Four damaged copies must reject an unset
+initialization flag, changed cadence, future last-update time, or invalid previous
+pressure before writing output. Each step-based case must reject the ambiguous
+legacy schema. These probes add 30 model invocations and five checkpoint
+comparisons to the continuity counts above. Reports keep expected rejection
+diagnostics separate from failed continuity comparisons. Synthetic legacy files
+exercise schema compatibility; they do not establish cross-revision equivalence.
 
 Restart experiments currently require the standalone driver. NUOPC/ESMX and
 WRF-host restart continuity are not established here. Existing coupled PR

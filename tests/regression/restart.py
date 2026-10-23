@@ -122,10 +122,35 @@ def check_checkpoint(path: Path, spec: dict[str, Any],
         if getattr(dataset, "fire_perimeter_ignited", None) != ignited:
             reasons.append("Incorrect observed-perimeter activation state")
         if fire["fmoist_run"]:
+            if getattr(dataset, "fmc_initialized", None) != 1:
+                reasons.append("Moisture initialization flag is not set")
+            step = spec["namelist"]["time"]["dt"]
+            if getattr(dataset, "fmc_initialization_time",
+                       None) != np.float32(step):
+                reasons.append(
+                    "Incorrect effective moisture initialization time")
+            for name in ("fmoist_freq", "fmoist_dt"):
+                if getattr(dataset, name, None) != np.float32(fire[name]):
+                    reasons.append(f"Incorrect moisture cadence: {name}")
             for name in MOISTURE_TIMES:
                 value = getattr(dataset, name, None)
                 if value is None or not np.isfinite(value) or value < 0:
                     reasons.append(f"Missing or invalid moisture time: {name}")
+            if fire["fmoist_freq"]:
+                # Check the component's default-real timestamp convention;
+                # the separate fire clock may normalize a rounded input dt.
+                count = int(dataset.itimestep)
+                last_step = max(
+                    1, count // fire["fmoist_freq"] * fire["fmoist_freq"])
+                last = float(np.float32(last_step) * np.float32(step))
+                next_time = 0.0
+            else:
+                interval = fire["fmoist_dt"]
+                last = step + (seconds - step) // interval * interval
+                next_time = last + interval
+            for name, expected in zip(MOISTURE_TIMES, (last, next_time)):
+                if getattr(dataset, name, None) != expected:
+                    reasons.append(f"Incorrect scheduled moisture time: {name}")
             if "fmc_gc" in dataset.variables:
                 variable = dataset["fmc_gc"]
                 if (variable.dimensions != ("ny", "moisture_class", "nx") or
@@ -153,6 +178,86 @@ def compare_checkpoint(reference: Path, test: Path,
 #--------------------------------------------------------------------------------
 # Segmented integrations using the existing case launcher
 #--------------------------------------------------------------------------------
+
+
+def check_moisture_restart_loading(spec: dict[str, Any], directory: Path,
+                                   command: list[str],
+                                   environment: dict[str, str]) -> list[dict]:
+    """Exercise legacy inference and reject damaged lifecycle state before use."""
+    from run_case import run_model
+
+    fire = spec["namelist"]["fire"]
+    if spec["identity"]["configuration"] not in ("restart_time",
+                                                 "restart_step"):
+        return []
+    # These schema probes resume after initialization and before the first
+    # time-based update. No atmospheric refresh can hide a damaged history.
+    probes = {"legacy": None}
+    if fire["fmoist_freq"]:
+        probes[
+            "legacy"] = "Legacy restart cannot establish moisture initialization"
+    else:
+        probes.update({
+            "uninitialized":
+                "Restart moisture state is not initialized",
+            "cadence":
+                "Restart metadata mismatch: fmoist_freq",
+            "future_time":
+                "Restart moisture times are inconsistent",
+            "history":
+                "Restart moisture forcing history is unavailable or invalid"
+        })
+    records = []
+    begin = spec["namelist"]["time"]["dt"]
+    end = 2 * begin
+    incoming = f"fire_restart_{timestamp(spec, begin)}.nc"
+    for probe, diagnostic in probes.items():
+        target = directory / f"loading-{probe}"
+        target.mkdir()
+        for name in ("wrf.nc", "geo_em.d01.nc", incoming):
+            shutil.copy2(directory / name, target / name)
+        with netCDF4.Dataset(target / incoming, "a") as dataset:
+            if probe == "legacy":
+                for name in ("fmc_initialized", "fmc_initialization_time",
+                             "fmoist_run", "fmoist_freq", "fmoist_dt"):
+                    dataset.delncattr(name)
+            elif probe == "uninitialized":
+                dataset.fmc_initialized = 0
+            elif probe == "cadence":
+                dataset.fmoist_freq = fire["fmoist_freq"] + 1
+            elif probe == "future_time":
+                dataset.fmc_fmoist_lasttime = 1000.0
+            elif probe == "history":
+                dataset["fire_psfc_old"][0, 0] = 0.0
+        resumed = copy.deepcopy(spec)
+        resumed.update(start=timestamp(spec, begin),
+                       end=timestamp(spec, end),
+                       duration_seconds=end - begin)
+        resumed["namelist"]["time"]["restart"] = True
+        (target / "namelist.fire").write_text(render_namelist(resumed))
+        write_result(
+            target / "settings.json", {
+                "spec": resumed,
+                "probe": probe,
+                "expected_diagnostic": diagnostic,
+                "restart_sha256": sha256_file(target / incoming)
+            })
+        record = run_model(command, target, environment,
+                           spec["execution"]["timeout_seconds"], "standalone")
+        record.update(probe=probe, directory=str(target))
+        if diagnostic:
+            log = (target / "model.log").read_text(errors="replace")
+            record["pass"] = diagnostic in log and not any(
+                target.glob("fire_output_*.nc"))
+        else:
+            outgoing = f"fire_restart_{timestamp(spec, end)}.nc"
+            comparison = compare_checkpoint(directory / outgoing,
+                                            target / outgoing, spec)
+            record["comparison"] = comparison
+            record["pass"] = not record["reasons"] and comparison["pass"]
+        write_result(target / "execution.json", record)
+        records.append(record)
+    return records
 
 
 def run_restarts(spec: dict[str, Any], directory: Path, command: list[str],
@@ -265,6 +370,10 @@ def run_restarts(spec: dict[str, Any], directory: Path, command: list[str],
         result["reasons"].append("Checkpoint contract failed")
     if any(not item["pass"] for item in result["comparisons"]):
         result["reasons"].append("Continuous/restarted comparison failed")
+    result["loading_checks"] = check_moisture_restart_loading(
+        spec, directory, command, environment)
+    if any(not item["pass"] for item in result["loading_checks"]):
+        result["reasons"].append("Moisture restart loading checks failed")
     result["pass"] = not result["reasons"]
     write_result(directory / "restart.json", result)
     return result
