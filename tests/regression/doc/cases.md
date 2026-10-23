@@ -171,3 +171,12 @@ centred at 40°N, 105°W with standard parallels 30°N and 60°N. See
 
 Regeneration instructions are in the [contributor
 guide](contributing.md#regenerate-case-figures).
+
+## WRF-host extension
+
+The optional `terrain/wrf_03` and `terrain/wrf_rounded` configurations reuse
+the terrain, fuel strips, and 3D wind profile illustrated here. They use WRF's
+`EM_FIRE` initializer and an evolving atmosphere with point ignition. Their
+vertical column, physics, timing, and acceptance are documented in
+[WRF-host tests](wrf.md); the offline perimeter and forcing figures do not
+describe those host-specific substitutions.

@@ -686,6 +686,119 @@ class PythonHarnessTests(unittest.TestCase):
         self.assertTrue(
             any("inventory" in reason for reason in result["reasons"]))
 
+    def test_wrf_clock_and_layout_use_fire_step(self):
+        from wrf_coupled import host_namelist, validate_wrf_mpi_layout
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_rounded", "mpi4")
+        namelist = host_namelist(spec, False)
+        self.assertIn("time_step_fract_num = 2,", namelist)
+        self.assertIn("time_step_fract_den = 9,", namelist)
+        self.assertEqual(validate_wrf_mpi_layout(spec), (2, 2))
+        self.assertIn("ifire = 1,", namelist)
+        self.assertNotIn("interval_atm", namelist)
+
+    def test_wrf_initializer_reads_the_shared_terrain(self):
+        from generate_inputs import _fields
+        from wrf_coupled import stage_initializer
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_03", "mpi1")
+        source = self.root / "host"
+        (source / "test/em_fire").mkdir(parents=True)
+        (source / "run").mkdir()
+        (source / "test/em_fire/namelist.fire").write_text("fixture")
+        stage_initializer(self.root, spec, source)
+        terrain = np.loadtxt(self.root / "input_ht", skiprows=1).T
+        np.testing.assert_allclose(terrain, _fields(spec)["ZSF"], atol=1e-5)
+        fuel = np.loadtxt(self.root / "input_fc", skiprows=1).T
+        np.testing.assert_array_equal(fuel, _fields(spec)["NFUEL_CAT"])
+
+    def test_wrf_missing_middle_output_is_rejected(self):
+        from wrf_coupled import check_wrf_outputs
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_03", "mpi1")
+        start = dt.datetime.strptime(spec["start"], "%Y-%m-%d_%H:%M:%S")
+        for seconds in range(12, 73, 12):
+            timestamp = (
+                start +
+                dt.timedelta(seconds=seconds)).strftime("%Y-%m-%d_%H:%M:%S")
+            with netCDF4.Dataset(self.root / f"fire_output_{timestamp}.nc",
+                                 "w") as data:
+                for axis in ('x', 'y'):
+                    data.createDimension(axis, 5)
+                for name in ('fgrnhfx', 'fgrnqfx'):
+                    data.createVariable(name, 'f4', ('y', 'x'))[:] = 100
+                data.createVariable('fuel_frac', 'f4', ('y', 'x'))[:] = 0.9
+            with netCDF4.Dataset(self.root / f"wrfout_d01_{timestamp}",
+                                 'w') as data:
+                for axis, size in (('Time', 1), ('DateStrLen', 19), ('x', 4),
+                                   ('y', 4)):
+                    data.createDimension(axis, size)
+                data.createVariable('Times', 'S1',
+                                    ('Time', 'DateStrLen'))[0] = np.frombuffer(
+                                        timestamp.encode(), dtype='S1')
+                for name in ('U', 'V', 'T', 'QVAPOR', 'T2', 'Q2', 'PSFC',
+                             'GRNHFX', 'GRNQFX'):
+                    data.createVariable(name, 'f4', ('Time', 'y', 'x'))[:] = 100
+        (self.root / 'rsl.error.0000').write_text('Timing for main:\n' * 240)
+        self.assertTrue(check_wrf_outputs(self.root, spec)["pass"])
+        with netCDF4.Dataset(self.root / f"wrfout_d01_{spec['end']}",
+                             'r+') as data:
+            data['GRNHFX'][0, 1, 1] = 200
+        self.assertTrue(
+            any('current fire flux' in reason
+                for reason in check_wrf_outputs(self.root, spec)['reasons']))
+        with netCDF4.Dataset(self.root / f"wrfout_d01_{spec['end']}",
+                             'r+') as data:
+            data['GRNHFX'][0, 1, 1] = 100
+            data['Q2'][0, 1, 1] = -0.001
+        self.assertTrue(
+            any('Negative host Q2' in reason
+                for reason in check_wrf_outputs(self.root, spec)['reasons']))
+        with netCDF4.Dataset(self.root / f"wrfout_d01_{spec['end']}",
+                             'r+') as data:
+            data['Q2'][0, 1, 1] = 100
+        (self.root / "fire_output_2020-01-01_00:00:36.nc").rename(
+            self.root / "withheld-output.nc")
+        self.assertTrue(
+            any('inventory' in reason
+                for reason in check_wrf_outputs(self.root, spec)['reasons']))
+
+    def test_wrf_input_preserves_one_record_and_agl_winds(self):
+        from wrf_coupled import complete_host_input
+        spec = resolve_spec(load_yaml(MODULE_ROOT / "cases.yaml"), "terrain",
+                            "small", "wrf_03", "mpi1")
+        spec['inputs']['grid'].update(nx=5, ny=5)
+        path = self.root / 'wrfinput_d01'
+        with netCDF4.Dataset(path, 'w') as data:
+            for name, count in (('Time', None), ('y', 4), ('x', 4), ('ys', 5),
+                                ('xs', 5), ('z', 4), ('zs', 5)):
+                data.createDimension(name, count)
+            for suffix, dims in (('', ('Time', 'y', 'x')), ('_U', ('Time', 'y',
+                                                                   'xs')),
+                                 ('_V', ('Time', 'ys', 'x'))):
+                for name in ('XLAT', 'XLONG'):
+                    data.createVariable(name + suffix, 'f4', dims)[0] = 0
+                name = 'MAPFAC_' + (suffix.removeprefix('_') or 'M')
+                data.createVariable(name, 'f4', dims)[0] = 1
+            for name in ('HGT', 'SINALPHA', 'COSALPHA', 'F'):
+                data.createVariable(name, 'f4', ('Time', 'y', 'x'))[0] = 1600
+            for name in ('PH', 'PHB'):
+                data.createVariable(name, 'f4', ('Time', 'zs', 'y', 'x'))[0] = 0
+            heights = np.array([0, 20, 60, 120, 200])
+            data['PHB'][0] = ((heights + 1600) * 9.81)[:, None, None]
+            data.createVariable('U', 'f4', ('Time', 'z', 'y', 'xs'))[0] = 0
+            data.createVariable('V', 'f4', ('Time', 'z', 'ys', 'x'))[0] = 0
+        complete_host_input(path, spec)
+        with netCDF4.Dataset(path) as data:
+            self.assertEqual(len(data.dimensions['Time']), 1)
+            self.assertEqual(data.MAP_PROJ.dtype, np.dtype('int32'))
+            self.assertEqual(data.TRUELAT1.dtype, np.dtype('float32'))
+            self.assertEqual(int(data.MAP_PROJ), 1)
+            np.testing.assert_allclose(data['U'][0, :, 1, 1], [10, 14, 18, 22],
+                                       atol=2e-5)
+            np.testing.assert_allclose(data['V'][0, :, 1, 1], [10, 6, 2, -2],
+                                       atol=2e-5)
+
 
 if __name__ == "__main__":
     unittest.main()

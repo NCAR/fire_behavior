@@ -24,7 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     case = commands.add_parser("case", help="Run one already-built executable")
     case.add_argument("--case", required=True)
     case.add_argument("--driver",
-                      choices=("standalone", "nuopc", "esmx"),
+                      choices=("standalone", "nuopc", "esmx", "wrf"),
                       default="standalone")
     case.add_argument("--execution", default="serial")
     case.add_argument("--scale", choices=("small", "large"), default="small")
@@ -32,6 +32,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--configuration",
         help="Named configuration; defaults to the first entry for the case")
     case.add_argument("--executable", type=Path, required=True)
+    case.add_argument("--wrf-ideal",
+                      type=Path,
+                      help="WRF EM_FIRE ideal.exe for generated host inputs")
+    case.add_argument("--wrf-source",
+                      type=Path,
+                      help="Matching WRF source containing run/ physics tables")
     case.add_argument("--run-root", type=Path, required=True)
     case.add_argument("--launcher", default="mpiexec")
     case.add_argument("--launcher-arg", action="append", default=[])
@@ -42,11 +48,12 @@ def build_parser() -> argparse.ArgumentParser:
                                 help="Select and run registered CTests")
     suite.add_argument("--build-dir", type=Path, action="append", required=True)
     suite.add_argument("--suite",
-                       choices=("quick", "pr", "full", "restart", "unit",
+                       choices=("quick", "pr", "full", "restart", "wrf", "unit",
                                 "legacy"),
                        default="quick")
     suite.add_argument("--case")
-    suite.add_argument("--driver", choices=("standalone", "nuopc", "esmx"))
+    suite.add_argument("--driver",
+                       choices=("standalone", "nuopc", "esmx", "wrf"))
     suite.add_argument("--execution")
     suite.add_argument("--configuration")
     suite.add_argument("--scale", choices=("small", "large"))

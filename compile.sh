@@ -31,7 +31,7 @@ usage () {
   printf "      build with verbose output\n"
   printf "  --test[=TEST_NAME], -t[=TEST_NAME]\n"
   printf "      run one exact test name, or the quick suite\n"
-  printf "  --test-suite=quick|pr|full|restart|unit\n"
+  printf "  --test-suite=quick|pr|full|restart|wrf|unit\n"
   printf "  --reference=DIRECTORY\n"
   printf "      override the reference; strict defaults to the bundled PR baseline\n"
   printf "  --no-reference\n"

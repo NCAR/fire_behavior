@@ -155,8 +155,8 @@ def run_suite(args: Any) -> dict[str, Any]:
         json.loads(path.read_text())
         for path in sorted(root.glob("*/result.json"))
     ]
-    if args.suite in ("quick", "pr", "full",
-                      "restart") and not args.test and not results:
+    if args.suite in ("quick", "pr", "full", "restart",
+                      "wrf") and not args.test and not results:
         summary["reasons"].append(
             "No generated cases ran; full requires CFBM_FULL_TESTS=ON")
     if any(not result["pass"] for result in results):

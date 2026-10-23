@@ -35,13 +35,13 @@ FATAL_PREFIXES = ("STOP", "ERROR:", "Error:", "MPI_ABORT")
 #--------------------------------------------------------------------------------
 
 
-def source_identity() -> dict[str, Any]:
+def source_identity(source_root: Path = SOURCE_ROOT) -> dict[str, Any]:
     """Record the revision and local edits; ordinary testing allows both."""
 
     def git(*args: str) -> str:
         """Read identity from the source worktree without changing it."""
         return subprocess.check_output(
-            ["git", "-C", str(SOURCE_ROOT), *args], text=True).strip()
+            ["git", "-C", str(source_root), *args], text=True).strip()
 
     return {
         "revision": git("rev-parse", "HEAD"),
@@ -100,7 +100,10 @@ def run_model(command: list[str], directory: Path, environment: dict[str, str],
     if process.returncode:
         result["reasons"].append(
             f"Model exited with status {process.returncode}")
-    logs = [directory / "model.log", *directory.glob("PET*.ESMF_LogFile")]
+    logs = [
+        directory / "model.log", *directory.glob("PET*.ESMF_LogFile"),
+        *directory.glob("rsl.error.*")
+    ]
     for log in logs:
         lines = log.read_text(errors="replace").splitlines()
         result["reasons"].extend(
@@ -108,8 +111,12 @@ def run_model(command: list[str], directory: Path, environment: dict[str, str],
             for line in lines
             if line.strip().startswith(FATAL_PREFIXES) or " ERROR " in line)
     if driver != "standalone":
-        marker = ("esmApp FINISHED" if driver == "nuopc" else
-                  "ESMX (Earth System Model eXecutable) FINISHED")
+        marker = {
+            "nuopc": "esmApp FINISHED",
+            "esmx": "ESMX (Earth System Model eXecutable) FINISHED",
+            "wrf": "SUCCESS COMPLETE WRF",
+            "wrf_ideal": "SUCCESS COMPLETE IDEAL INIT"
+        }[driver]
         completed = any(
             marker in log.read_text(errors="replace") for log in logs)
         result["coupled_finalize_observed"] = completed
@@ -120,6 +127,11 @@ def run_model(command: list[str], directory: Path, environment: dict[str, str],
 
 def run_case(args: Any) -> dict[str, Any]:
     """Stage a case, launch the model, and reject incomplete integrations."""
+    if args.driver == "wrf":
+        if not args.wrf_ideal or not args.wrf_source:
+            raise ValueError("WRF requires --wrf-ideal and --wrf-source")
+        from wrf_coupled import run_wrf_case
+        return run_wrf_case(args)
     if Path("/glade").exists() and not os.environ.get("PBS_JOBID"):
         raise RuntimeError(
             "On NCAR HPC, run model cases inside a PBS allocation")
