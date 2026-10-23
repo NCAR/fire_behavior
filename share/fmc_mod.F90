@@ -9,7 +9,7 @@
 
     private
     
-    public :: fmc_t, FMC_WRFFIRE, Check_fmc
+    public :: fmc_t, FMC_WRFFIRE
 
     integer, parameter :: FMC_WRFFIRE = -1
 
@@ -18,6 +18,7 @@
       procedure (Advance_fmc_model), deferred :: Advance_fmc_model
       procedure (Add_restart_vars), deferred :: Add_restart_vars
       procedure (Init), deferred :: Init
+      procedure, public :: Check_fmc => Check_fmc
     end type fmc_t
 
     abstract interface
@@ -61,10 +62,11 @@
 
   contains
 
-    subroutine Check_fmc (ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, no_fuel_cat, fmc_g, source)
+    subroutine Check_fmc (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, no_fuel_cat, fmc_g, source)
 
       implicit none
 
+      class (fmc_t), intent (in) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, no_fuel_cat
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
       character (len = *), intent (in) :: source
@@ -73,6 +75,8 @@
 
 
       ! Check computed or restored moisture before it reaches spread physics.
+      ! Prescribed moisture has an FMC object but no initialized class arrays;
+      ! this common check therefore uses only the supplied effective moisture.
       ! Only owned burnable cells require moisture; halo values may be unavailable.
       do j = jfts, jfte
         do i = ifts, ifte

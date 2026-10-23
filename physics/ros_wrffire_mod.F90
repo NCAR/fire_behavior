@@ -176,7 +176,9 @@
 
              ! net fuel loading, lb/ft^2
             wn = fuelload/(1 + fuels%st(k))
+              ! moist damp coef
               ! Zero reaction at extinction without capping physical moisture.
+              ! Polynomial cancellation can leave a positive residual at equality.
               ! Retain the existing polynomial and arithmetic below extinction.
             if (fmc_g(i, j) >= fuels%fuelmce(k)) then
               etam = 0.0

@@ -13,7 +13,7 @@ program moisture_extinction_unit
       ieee_positive_inf, ieee_negative_inf
   use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
   use fuel_anderson_mod, only : fuel_anderson_t
-  use fmc_mod, only : Check_fmc
+  use fmc_wrffire_mod, only : fmc_wrffire_t
   use ros_wrffire_mod, only : ros_wrffire_t
   use fire_physics_mod, only : Calc_flame_length
 #ifdef DM_PARALLEL
@@ -23,6 +23,7 @@ program moisture_extinction_unit
   implicit none
 
   type(fuel_anderson_t) :: fuels
+  type(fmc_wrffire_t) :: moisture_params
   type(ros_wrffire_t) :: params
   real :: category(0:15,0:3), moisture(0:15,0:3), original(1:14,1:2)
   real :: spread(0:15,0:3), flame(0:15,0:3), front(0:15,0:3), area(0:15,0:3)
@@ -34,6 +35,8 @@ program moisture_extinction_unit
   call MPI_Init(ierr)
 #endif
   call get_command_argument(1, scenario)
+  ! Prescribed moisture allocates an FMC object without initializing class state.
+  ! Its inherited Check_fmc binding must validate the supplied array in this case.
   call fuels%Initialization(1.0)
   call params%Init(0,15,0,3)
   nan = ieee_value(0.0, ieee_quiet_nan)
@@ -96,10 +99,10 @@ program moisture_extinction_unit
       ! Match initialization/restart validation on the initial thread. Fuel-table
       ! mutations emulate an invalid definition before Check_fuels is called.
       call fuels%Check_fuels ()
-      call Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
+      call moisture_params%Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
       error stop 'invalid input was accepted'
     end if
-    call Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
+    call moisture_params%Check_fmc (0,15,0,3,1,14,1,2,category,fuels%no_fuel_cat,moisture,'Restart')
     ! Exercise disjoint owned tiles, concurrently in OpenMP builds. Set_params
     ! also reconstructs derived spread parameters after restart; checkpoint I/O
     ! and continuous-versus-restarted evolution are covered by regression cases.

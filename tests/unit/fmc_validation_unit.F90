@@ -10,7 +10,6 @@ program fmc_validation_unit
 
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite, ieee_value, ieee_quiet_nan, &
       ieee_positive_inf, ieee_negative_inf
-  use fmc_mod, only : Check_fmc
   use fmc_wrffire_mod, only : fmc_wrffire_t
   use fuel_anderson_mod, only : fuel_anderson_t
   use ros_wrffire_mod, only : ros_wrffire_t
@@ -80,9 +79,10 @@ program fmc_validation_unit
     fmc(4,2) = nan
     moisture%fmc_gc(4,:,2) = nan
     call moisture%Check_moisture_classes (0,5,0,3,1,4,1,2,category,fuels%no_fuel_cat,'Restart')
-    ! The restart reader loads fmc_g independently of the valid class array.
+    ! The restart reader loads fmc_g independently of the valid class array and
+    ! validates it through the common binding inherited from the FMC base type.
     if (scenario /= 'restored_zero' .and. scenario /= 'restored_wet') fmc(2,1) = invalid
-    call Check_fmc (0,5,0,3,1,4,1,2,category,fuels%no_fuel_cat,fmc,'Restart')
+    call moisture%Check_fmc (0,5,0,3,1,4,1,2,category,fuels%no_fuel_cat,fmc,'Restart')
     if (scenario /= 'restored_zero' .and. scenario /= 'restored_wet') error stop 'invalid restored moisture was accepted'
     if (any (fmc(1:3,1:2) /= restored)) error stop 'restored moisture was modified'
     if (any (moisture%fmc_gc(1:3,:,1:2) /= restored)) error stop 'restored class moisture was modified'

@@ -8,7 +8,6 @@
     use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
     use fmc_wrffire_mod, only : fmc_wrffire_t, NAME_VAR_FMC_GC, NAME_ATT_FMOIST_LASTTIME, NAME_ATT_FMOIST_NEXTTIME, &
         NAME_ATT_FMC_INITIALIZED, NAME_ATT_FMC_INITTIME
-    use fmc_mod, only : Check_fmc
     use mpi_mod, only : Do_halo_exchange_with_corners
     use netcdf_mod, only : Add_netcdf_att, Get_netcdf_att, Get_netcdf_var_mpi, Is_netcdf_file_present, Is_netcdf_var_present
 
@@ -524,7 +523,7 @@
           ! fmc_g is read independently from the checkpoint, not recomputed from
           ! fmc_gc. Valid classes cannot establish its validity, and prescribed
           ! moisture restarts have no class state; check it before rebuilding ROS.
-          call Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
+          call this%fmc_param%Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
               this%j_start(ij), this%j_end(ij), this%nfuel_cat, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
           call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
               this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
