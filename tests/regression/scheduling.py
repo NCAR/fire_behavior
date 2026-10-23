@@ -4,7 +4,7 @@
 #                University Corporation for Atmospheric Research (UCAR)
 #--------------------------------------------------------------------------------
 # Created by Maria Frediani (frediani@ucar.edu) on 2026-10-20
-# run python -B tests/regression/regression.py suite --suite scheduling --help
+# run python -B tests/regression/regression.py suite --suite restart --help
 """Exercise invalid schedules and checkpoint metadata with the case launcher."""
 from __future__ import annotations
 

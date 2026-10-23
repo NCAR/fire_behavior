@@ -18,7 +18,7 @@ all times are seconds from the original 2020-01-01 00:00:00 origin.
 | terrain/restart_time | `fmoist_freq=0`, `fmoist_dt=16` | Every 12 s | 4, 12, 28 | Observed perimeter at 8 s |
 | terrain/restart_step | `fmoist_freq=3`, `fmoist_dt=12` | Every 12 s | 4, 12, 28 | Observed perimeter at 8 s |
 
-All integrations use `dt=4`, run through 60 s, write regular output every 12 s,
+The three configurations above use `dt=4`, run through 60 s, write regular output every 12 s,
 and write checkpoints every 4 s. Time-based moisture updates occur at 4, 20,
 36, and 52 s. The split at 4 s precedes perimeter activation; 12 and 28 s
 follow it. The 28 s split is between moisture updates
@@ -53,7 +53,7 @@ it; `fz0` and atmospheric forcing are checked only for real cases. Idealized
 runs do not use those atmospheric fields.
 Regular-output tolerances do not weaken the exact checkpoint-state comparison.
 
-The complete selection contains 15 cases across `serial`, `omp4`, `mpi1`,
+The integer-step configurations contain 15 cases across `serial`, `omp4`, `mpi1`,
 `mpi4`, and `hybrid4`: 65 model invocations, including the 15 continuous runs,
 and 315 file comparisons (90 output and 225 checkpoint comparisons). Counts
 of attempted/completed segments and failed comparisons are recorded separately
@@ -64,7 +64,7 @@ outputs and the existing comparison policy.
 
 The new configurations use same-revision comparisons and do not select the
 historical `github-pr` reference, which does not contain their keys. The
-existing `pr` suite remains unchanged and checks its approved reference.
+existing reference cases in `pr` retain their approved baseline checks.
 No reference candidate is created or approved by this suite.
 
 The suite additionally runs 30 restart-loading probes for moisture initialization
@@ -84,9 +84,12 @@ cross-revision equivalence.
 Restart experiments currently require the standalone driver. NUOPC/ESMX and
 WRF-host restart continuity are not established here. Existing coupled PR
 tests exercise ordinary integrations only. Cross-layout checkpoint transfers,
-legacy-file compatibility across revisions, fractional timesteps, and coupled
-flux accumulation/reset are outside this suite's coverage and require separate
-validation.
+legacy-file equivalence across scientific corrections, and coupled restart
+continuity require separate validation. Fractional timesteps, original-origin
+restart phase, and clock/cadence rejection checks are included through the
+three [fractional restart configurations](scheduling.md). Together the six
+configurations select 30 case-level tests. See the [count breakdown](../README.md#how-test-counts-are-reported)
+for CTest, model-invocation, checkpoint-check, and comparison totals.
 
 ## Extend a restart experiment
 

@@ -369,17 +369,6 @@ executions:
     timeout_seconds: 1800
     build: mpi
 suites:
-  scheduling:
-    scale: small
-    cases:
-      circle:
-        configurations: [restart_prescribed]
-        executions: [serial, omp4, mpi4, hybrid4]
-      terrain:
-        configurations: [schedule_03, schedule_rounded, schedule_nested,
-                         schedule_03_restart, schedule_rounded_restart,
-                         schedule_nested_restart]
-        executions: [serial, omp4, mpi4, hybrid4]
   restart:
     scale: small
     cases:
@@ -387,7 +376,8 @@ suites:
         configurations: [restart_prescribed]
         executions: [serial, omp4, mpi1, mpi4, hybrid4]
       terrain:
-        configurations: [restart_time, restart_step]
+        configurations: [restart_time, restart_step, schedule_03_restart,
+                         schedule_rounded_restart, schedule_nested_restart]
         executions: [serial, omp4, mpi1, mpi4, hybrid4]
   quick:
     scale: small
@@ -438,6 +428,9 @@ suites:
         configurations:
         - u10m
         - u3d
+        - schedule_03
+        - schedule_rounded
+        - schedule_nested
         executions:
         - serial
         - omp1

@@ -1,11 +1,15 @@
 # Fractional event schedules
 
-Run `regression.py suite --suite scheduling --build-dir=BUILD --run-root=RESULTS`
-inside PBS. Repeat `--build-dir` for serial, OpenMP, MPI, and hybrid builds.
-This suite uses P00's restart runner and the existing terrain geometry, fuel
-map, forcing endpoints, and propagation method. The geometry figures remain
-applicable; the table below records the different timing. The observed
-perimeter is active at time zero, and moisture updates every fire step.
+Fractional scheduling coverage runs in the existing `pr` and `restart` suites,
+including GitHub CI. Use `regression.py suite --suite pr` for continuous runs
+and `--suite restart` for checkpoint chains and rejected schedules. Supply
+`--build-dir=BUILD` for each serial, OpenMP, MPI, and hybrid build and
+`--run-root=RESULTS`; run inside PBS on NCAR systems.
+
+The cases use the existing terrain geometry, fuel map, forcing endpoints,
+propagation method, and restart runner. The geometry figures remain applicable;
+the table below records the different timing. The observed perimeter is active
+at time zero, and moisture updates every fire step.
 
 | Configuration suffix | Input dt (s) | Clock dt (s) | End (s) | Output (s) | Atmosphere (s) | Restart (s) | Chained restart splits (s) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -13,31 +17,37 @@ perimeter is active at time zero, and moisture updates every fire step.
 | rounded | 0.222222 | 2/9 | 72 | 12 | 18 | 8 | 8, 24 |
 | nested | 0.277777777777778 | 5/18 | 60 | 15 | 20 | 10 | 10, 30 |
 
-Each `schedule_*` configuration runs continuously through standalone, NUOPC,
-and ESMX where the build supports them. The matching `schedule_*_restart`
-configuration adds standalone chained restarts. These remain separate test
-names: a coupled continuous run does not establish coupled restart continuity.
-The suite selects serial, omp4, mpi4, and hybrid4. It also includes P00's
-`circle/restart_prescribed` to check the legacy idealized clock schema. Four
-copies of that checkpoint lose only the P04 clock attributes before restart;
-the input checkpoints remain unchanged. This is a schema compatibility fixture,
-not a claim of equivalence across a scientific correction.
+The `pr` suite runs each `schedule_*` configuration continuously through
+standalone, NUOPC, and ESMX where supported, using its normal `serial`, `omp1`,
+`omp4`, `mpi1`, `mpi4`, and `hybrid4` layouts. This adds 36 model runs to the
+36 existing reference cases. The `restart` suite runs the three matching
+`schedule_*_restart` configurations on `serial`, `omp4`, `mpi1`, `mpi4`, and
+`hybrid4`, adding 15 case-level tests. A coupled continuous run does not
+establish coupled restart continuity.
 
-The 40 continuous cases, 44 restart-segment integrations, 28 expected startup
-rejections, four runs ending between events, and four legacy-schema restarts
-give 120 model invocations. Each rejected configuration must produce its specific
-diagnostic before writing history. Rejections cover unaligned output/end times,
-forcing-record gaps, incompatible or incomplete clock/cadence metadata, and legacy forcing
-state whose cadence cannot be established. The valid 69 s endpoint is between
-output, atmospheric, and checkpoint events and must be reached exactly.
+The existing `circle/restart_prescribed` configuration also checks legacy
+idealized checkpoints without `clock_seconds`, `clock_steps`, and `interval_atm`.
+Only checkpoint copies lose these attributes; original files remain unchanged.
+This tests whether the original clock can be reconstructed from the remaining
+metadata, not equivalence across a scientific correction.
+
+Each `schedule_03_restart` case additionally runs seven expected startup
+rejections and one valid run ending between events. Across five layouts this
+gives 35 rejection probes and five endpoint checks. Rejections must produce
+their specific diagnostic before writing history: unaligned output/end times,
+forcing-record gaps, incompatible or incomplete clock/cadence metadata, and
+legacy forcing state whose cadence cannot be established. The valid 69 s
+endpoint is between output, atmospheric, and checkpoint events and must be
+reached exactly. `scheduling.py` supplies these checks to the existing case
+runner; there is no separate scheduling suite or launcher.
 
 Acceptance requires the exact history-file inventory, forcing temperature and
 humidity from the correct record at every output, existing physical checks,
-layout/driver comparisons, and P00's bitwise checkpoint comparisons. Restart
-splits include times between output and atmospheric events. P04 does not change
-P00's moisture initialization acceptance or convert its known P02 failures into
-passes. New configurations have no approved historical baseline; existing `pr`
-checks retain their baseline selection and tolerances.
+layout/driver comparisons, and bitwise checkpoint comparisons. Restart splits
+include times between output and atmospheric events. Fractional configurations
+have no approved historical baseline; their exact timing/forcing assertions
+and same-revision comparisons provide acceptance. The existing 36 reference
+cases retain their baseline selection and tolerances.
 
 `fire_clock_unit` checks seven-day event counts, exact event timestamps, leap-day
 rollover, subsecond resolution at long elapsed times, independent output/restart
@@ -48,6 +58,7 @@ missed events. Python checks reject partial steps and stale intermediate forcing
 records even when the final forcing record is correct.
 
 The new clock treats input rounding as specified in `doc/Configuration.rst`.
-The physics timestep remains the configured default-real value. P02 must use the
-shared REAL64 scheduling-time interface explicitly when integrating its moisture
-lifecycle; this suite does not implement that separate correction.
+The physics timestep remains the configured default-real value. Moisture elapsed
+time still follows the component's configured timestep. Connecting that lifecycle
+to the REAL64 scheduling clock, including long-duration moisture-time precision,
+requires separate validation; these short cases do not establish that behavior.

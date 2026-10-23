@@ -259,13 +259,28 @@ class PythonHarnessTests(unittest.TestCase):
         records = []
         for build in ("serial", "omp", "mpi", "hybrid"):
             drivers = ["standalone", "nuopc", "esmx"
-                      ] if build == "mpi" else ["standalone"]
+                      ] if build in ("mpi", "hybrid") else ["standalone"]
             records.extend(registrations(self.document, build, drivers))
-        for suite, count in (("quick", 14), ("pr", 32), ("full", 80)):
+        for suite, count in (("quick", 18), ("pr", 72), ("full", 88)):
             selected = [r for r in records if suite in r["labels"]]
             self.assertEqual(len(selected), count)
             self.assertEqual({r["case"] for r in selected},
                              {"circle", "fuels", "terrain"})
+        # CI's existing selections must include all three fractional clocks.
+        # Continuous coupled runs belong to pr; checkpoint chains belong to
+        # restart and must not imply support for coupled restart execution.
+        self.assertNotIn("scheduling", self.document["suites"])
+        fractional = [
+            r for r in records if r["configuration"].startswith("schedule_")
+        ]
+        self.assertEqual(len(fractional), 51)
+        for record in fractional:
+            if record["configuration"].endswith("_restart"):
+                self.assertEqual(record["labels"], ["restart"])
+                self.assertEqual(record["driver"], "standalone")
+            else:
+                self.assertEqual(record["labels"], ["pr"])
+        self.assertEqual(sum("restart" in r["labels"] for r in records), 30)
         args = SimpleNamespace(test=None,
                                suite="pr",
                                case="terrain",
@@ -427,11 +442,13 @@ class PythonHarnessTests(unittest.TestCase):
     #------------------------------------------------------------------------
 
     def test_restart_registration_and_phase(self) -> None:
-        """Select standalone restart cases without changing existing PR matrices."""
+        """Select integer/fractional restart chains and retain original output phase."""
         records = registrations(self.document, "mpi",
                                 ["standalone", "nuopc", "esmx"])
         selected = [r for r in records if "restart" in r["labels"]]
-        self.assertEqual(len(selected), 6)
+        # Six restart configurations each run with one and four MPI ranks;
+        # NUOPC/ESMX continuous tests must not acquire restart labels.
+        self.assertEqual(len(selected), 12)
         self.assertEqual({r["driver"] for r in selected}, {"standalone"})
         self.assertTrue(all("pr" not in r["labels"] for r in selected))
         spec = resolve_spec(self.document,
