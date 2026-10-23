@@ -248,10 +248,11 @@ output fields retain their existing single-precision NetCDF representation.
    last/next update times, and the moisture activation and cadence settings.
    A resumed run restores this state without reinitialization and requires the
    same activation and cadence. New checkpoints cannot be written before
-   moisture initialization. PR #39 time-based checkpoints are accepted when their
-   positive next-update time establishes initialization and their saved interval
-   matches ``fmoist_dt``. Legacy step-based files are rejected because their
-   metadata cannot distinguish initialized state from the old delayed-initialization
+   moisture initialization. Older checkpoints without explicit initialization
+   status or time are accepted for time-based cadence when their positive next-update
+   time establishes initialization and their saved interval matches ``fmoist_dt``.
+   Legacy step-based files are rejected because their metadata cannot distinguish
+   initialized state from the old delayed-initialization
    defect. Prescribed-moisture legacy files remain readable. This compatibility
    rule does not resolve the separate humidity-convention audit.
 
@@ -315,10 +316,11 @@ output fields retain their existing single-precision NetCDF representation.
 
    Restart files retain physical moisture. The reader reconstructs spread
    parameters from that state using the current damping calculation, so no
-   new restart field or namelist option is required. Existing PR #39 files
-   remain readable when their inputs satisfy the same validation. A legacy
-   checkpoint can contain flame diagnostics calculated with the old damping;
-   these are replaced at the next fire advance. Readability does not imply
+   new restart field or namelist option is required. Checkpoints from earlier
+   versions remain readable when their state and metadata satisfy the restart
+   compatibility checks. A legacy checkpoint can contain flame diagnostics
+   calculated with the old damping; these are replaced at the next fire advance.
+   Readability does not imply
    numerical equivalence across the extinction correction. Continuity must be
    assessed with continuous and restarted runs of the same model revision.
 
@@ -500,9 +502,8 @@ single-precision multiplication cannot stall output or drift across calendar
 boundaries. Physics retains the configured ``dt``; normalization corrects the
 schedule within the documented input-rounding allowance. The shared
 ``grid%clock%Elapsed(itimestep)`` interface returns REAL64 scheduling seconds
-from the original origin. Moisture initialization and its elapsed-time state
-remain the separate P02 change; the existing component still receives the
-configured physics timestep.
+from the original origin. The moisture component computes its initialization
+and elapsed update time from the configured physics timestep.
 
 With the 0.3 s clock above, output every 12 s means output at steps 40, 80,
 120, and so on. The event check compares the current step with those integers;
@@ -546,12 +547,12 @@ those outputs to 00:00:21 and 00:00:33. Checkpoints continue on their own
 9 s schedule, next at step 60 (00:00:18). Both schedules remain measured
 from 00:00:00, although their events do not always coincide.
 
-Legacy PR #39 idealized checkpoints are accepted when their timestamp agrees
-with the reconstructed original clock and their other configuration metadata
-match. Legacy file-driven checkpoints lack atmospheric-cadence metadata and are
-rejected with a specific compatibility diagnostic. This does not infer unknown
-forcing or humidity semantics. NUOPC/WRF-host checkpoint support is not added by
-this change.
+Idealized checkpoints without ``clock_seconds``, ``clock_steps``, and
+``interval_atm`` are accepted when their timestamp agrees with the reconstructed
+original clock and their other configuration metadata match. File-driven
+checkpoints without ``interval_atm`` are rejected with a specific compatibility
+diagnostic. This does not infer unknown forcing or humidity semantics. This
+checkpoint interface does not provide NUOPC/WRF-host restart support.
 
 For a supplied perimeter, ``fire_ignition_start_time1`` must be nonnegative
 and align with a fire timestep. Roundoff-sized offsets are normalized to that
