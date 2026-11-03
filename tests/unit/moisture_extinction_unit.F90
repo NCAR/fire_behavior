@@ -25,7 +25,9 @@ program moisture_extinction_unit
   type(fuel_anderson_t) :: fuels
   type(fmc_wrffire_t) :: moisture_params
   type(ros_wrffire_t) :: params
-  real :: category(0:15,0:3), moisture(0:15,0:3), original(1:14,1:2)
+  ! Physics interfaces consume resolved integer rows; zero marks unused test halos.
+  integer :: category(0:15,0:3)
+  real :: moisture(0:15,0:3), original(1:14,1:2)
   real :: spread(0:15,0:3), flame(0:15,0:3), front(0:15,0:3), area(0:15,0:3)
   real :: ir, expected_ir, expected_r0, expected_iboros, factor, nan, wind, slope
   integer :: i, j, tile, sample, direction, ierr
@@ -41,10 +43,10 @@ program moisture_extinction_unit
   call params%Init(0,15,0,3)
   nan = ieee_value(0.0, ieee_quiet_nan)
   ! Unavailable halos and the nonburnable cell must not enter fuel physics.
-  category = nan
+  category = 0
   moisture = nan
   do i = 1, 14
-    category(i,1:2) = real(i)
+    category(i,1:2) = i
   end do
   area = 0.5
 

@@ -983,8 +983,9 @@ module fire_behavior_nuopc
         ! Apply the fuel wind adjustment after both arrays use fire-grid indices.
         do j = grid%jfps, grid%jfpe
           do i = grid%ifps, grid%ifpe
-            grid%uf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * grid%uf(i,j)
-            grid%vf(i,j) = grid%fuels%waf(int(grid%nfuel_cat(i,j))) * grid%vf(i,j)
+            ! Use resolved table rows, including the shared NB row.
+            grid%uf(i,j) = grid%fuels%waf(grid%fuel_index(i,j)) * grid%uf(i,j)
+            grid%vf(i,j) = grid%fuels%waf(grid%fuel_index(i,j)) * grid%vf(i,j)
           end do
         end do
       case default

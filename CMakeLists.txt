@@ -98,7 +98,9 @@ list(APPEND _wrffire_physics physics/level_set_mod.F90
 			     physics/fire_physics_mod.F90
 			     physics/fmc_wrffire_mod.F90
 			     physics/ros_wrffire_mod.F90
-			     physics/fuel_anderson_mod.F90)
+			     physics/fuel_anderson_mod.F90
+                             physics/fuel_scott_burgan_mod.F90
+                             physics/ros_sb40_mod.F90)
 
 # Driver
 list(APPEND _driver_files driver/advance_mod.F90

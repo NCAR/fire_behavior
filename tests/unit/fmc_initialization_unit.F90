@@ -25,7 +25,9 @@ program fmc_initialization_unit
   type (ros_wrffire_t) :: ros
   real :: rain(0:5,0:3), t(0:5,0:3), q(0:5,0:3), p(0:5,0:3)
   real :: rain_old(0:5,0:3), t_old(0:5,0:3), q_old(0:5,0:3), p_old(0:5,0:3)
-  real :: rh(0:5,0:3), fmc(0:5,0:3), category(0:5,0:3)
+  ! Physics interfaces consume resolved integer rows; zero marks unused test halos.
+  integer :: category(0:5,0:3)
+  real :: rh(0:5,0:3), fmc(0:5,0:3)
   real :: initial(4,5,2), initial_fmc(4,2), interval, elapsed, expected, d, w, change
   integer :: first_step, next_step, frequency, step, ierr
   integer :: i_start(2) = [1,1], i_end(2) = [4,4], j_start(2) = [1,2], j_end(2) = [1,2]
@@ -52,7 +54,7 @@ program fmc_initialization_unit
   q_old = NF90_FILL_FLOAT
   p_old = NF90_FILL_FLOAT
   rain_old = NF90_FILL_FLOAT
-  category = 1.0
+  category = 1
   frequency = 3
   interval = 16.0
   first_step = 1

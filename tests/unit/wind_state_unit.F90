@@ -35,10 +35,13 @@ program wind_state_unit
   fire%j_start = [1]
   fire%j_end = [2]
   allocate (fire%lats(3,2), fire%lons(3,2), fire%fz0(3,2))
-  allocate (fire%uf(3,2), fire%vf(3,2), fire%nfuel_cat(3,2))
+  allocate (fire%uf(3,2), fire%vf(3,2), fire%nfuel_cat(3,2), fire%fuel_index(3,2))
   allocate (fire%fire_t2(3,2), fire%fire_q2(3,2), fire%fire_psfc(3,2), fire%fire_rain(3,2))
   fire%lats = 40.0
   fire%lons = -105.0
+  ! WAF uses validated rows while external category metadata is retained.
+  fire%fuel_index(:,1) = 1
+  fire%fuel_index(:,2) = 2
   fire%nfuel_cat(:,1) = 1.0
   fire%nfuel_cat(:,2) = 2.0
   allocate (fuel_anderson_t :: fire%fuels)

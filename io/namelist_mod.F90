@@ -75,7 +75,8 @@
 
       real :: frac_fburnt_to_smoke = 0.02     ! "parts per unit of burned fuel becoming smoke" "g_smoke/kg_air"
       real :: fuelmc_g = 0.08                 ! Fuel moisture content ground (Dead FMC)
-      real :: fuelmc_g_live = 0.30            ! Fuel moisture content ground (Live FMC). 30% Completely cured, treat as dead fuel
+      real :: fuelmc_g_woody = 0.90           ! SB40 live woody initial/fixed moisture [kg kg-1 dry fuel]
+      real :: fuelmc_g_live = 0.30            ! Initial/fixed live FMC [kg kg-1 dry fuel]; herbaceous for SB40
       real :: fuelmc_c = 1.00                 ! Fuel moisture content canopy
 
       logical :: fmoist_run = .false.         ! run moisture model
@@ -86,7 +87,7 @@
       integer :: devel_opt = 0                ! 0) Standard nml options, 1) reads options in the devel nml block
 
         ! Objects
-      integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson 13 
+      integer :: fuel_opt = FUEL_ANDERSON     !  1) Anderson 13, 2) Scott and Burgan 40
       integer :: ros_opt = ROS_WRFFIRE        !  0) WRF-Fire ROS
       integer :: fmc_opt = FMC_WRFFIRE        ! -1) WRF-Fire FMC
       integer :: emis_opt = EMIS_WRFFIRE      !  0) WRF-Fire emiss, 1) PM2.5 as a function of FMC. Objects to be added
@@ -216,6 +217,7 @@
       call Broadcast_real (this%frac_fburnt_to_smoke)
       call Broadcast_real (this%fuelmc_g)
       call Broadcast_real (this%fuelmc_g_live)
+      call Broadcast_real (this%fuelmc_g_woody)
       call Broadcast_real (this%fuelmc_c)
 
       call Broadcast_integer (this%ideal_opt)
@@ -399,6 +401,10 @@
       ! Prescribed moisture may describe dry fuel, but must be a physical mass ratio.
       if (.not. ieee_is_finite (this%fuelmc_g)) call Stop_simulation ('fuelmc_g must be finite')
       if (this%fuelmc_g < 0.0) call Stop_simulation ('fuelmc_g must be nonnegative')
+      if (.not. ieee_is_finite(this%fuelmc_g_live)) call Stop_simulation('fuelmc_g_live must be finite')
+      if (this%fuelmc_g_live < 0.0) call Stop_simulation('fuelmc_g_live must be nonnegative')
+      if (.not. ieee_is_finite(this%fuelmc_g_woody)) call Stop_simulation('fuelmc_g_woody must be finite')
+      if (this%fuelmc_g_woody < 0.0) call Stop_simulation('fuelmc_g_woody must be nonnegative')
       if (this%fire_is_real_perim .and. this%fire_num_ignitions /= 1) &
           call Stop_simulation ('perimeter mode requires one ignition record for its ignition time')
       if (.not. this%fire_is_real_perim .and. this%fire_num_ignitions <= 0) &
@@ -536,7 +542,7 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_viscosity_ngp, wind_vinterp_opt, hinterp_opt, ideal_opt, devel_opt, &
           fuel_opt, ros_opt, fmc_opt, emis_opt, fmoist_freq
       real :: fire_atm_feedback, fire_viscosity, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
-          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, reinit_pseudot_coef
+          fmoist_dt, fire_wind_height, frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_g_woody, fuelmc_c, reinit_pseudot_coef
       logical :: fire_lsm_reinit, fire_lsm_zcoupling, fmoist_run, fire_is_real_perim
 
         ! ignitions
@@ -556,7 +562,7 @@
           fast_dist_reinit_opt, fast_dist_reinit_freq, fire_lsm_reinit_iter, fire_upwinding_reinit, &
           fire_lsm_band_ngp, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_viscosity_bg, fire_viscosity_band, &
           fire_viscosity_ngp, fmoist_run, fmoist_freq, fmoist_dt, fire_wind_height, fire_is_real_perim, &
-          frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
+          frac_fburnt_to_smoke, fuelmc_g, fuelmc_g_live, fuelmc_g_woody, fuelmc_c, ideal_opt, devel_opt, fuel_opt, ros_opt, fmc_opt, emis_opt, &
           wind_vinterp_opt, hinterp_opt, reinit_pseudot_coef, &
             ! Ignitions
           fire_num_ignitions, &
@@ -605,6 +611,7 @@
       frac_fburnt_to_smoke = this%frac_fburnt_to_smoke
       fuelmc_g = this%fuelmc_g
       fuelmc_g_live = this%fuelmc_g_live
+      fuelmc_g_woody = this%fuelmc_g_woody
       fuelmc_c = this%fuelmc_c
 
       ideal_opt = this%ideal_opt
@@ -701,6 +708,7 @@
       this%frac_fburnt_to_smoke = frac_fburnt_to_smoke
       this%fuelmc_g = fuelmc_g
       this%fuelmc_g_live = fuelmc_g_live
+      this%fuelmc_g_woody = fuelmc_g_woody
       this%fuelmc_c = fuelmc_c
 
       this%ideal_opt = ideal_opt

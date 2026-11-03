@@ -4,6 +4,7 @@
     use, intrinsic :: iso_fortran_env, only : REAL64
 
     use constants_mod, only : XLV, CMBCNST
+    use fuel_scott_burgan_mod, only : fuel_scott_burgan_t
     use state_mod, only: state_fire_t
     use namelist_mod, only: namelist_t
     use emis_mod, only : EMIS_WRFFIRE, EMIS_FMC_PM2P5
@@ -30,10 +31,25 @@
       real(REAL64), dimension(ifms:ifme, jfms:jfme), intent (in) :: fuel_frac_burnt_dt
       real, dimension(ifms:ifme, jfms:jfme), intent (out) :: grnhft, grnqft
 
-      integer :: i, j
+      integer :: i, j, k
       real(REAL64) :: dmass
       real :: bmst
 
+
+      select type(fuels => grid%fuels)
+      type is(fuel_scott_burgan_t)
+        ! SB40 inventory is oven-dry. Retain the common exponential consumption
+        ! fraction, but use category heat and water per dry mass consistently.
+        do j = jfts, jfte
+          do i = ifts, ifte
+            k = grid%fuel_index(i,j)
+            dmass = fuel_load_g(i,j) * fuel_frac_burnt_dt(i,j)
+            grnhft(i,j) = real(dmass/dt * fuels%fuelheat(k) * (1055.0_REAL64/0.45359237_REAL64))
+            grnqft(i,j) = real((grid%fmc_g(i,j) + 0.56_REAL64) * dmass/dt * XLV)
+          end do
+        end do
+        return
+      end select
 
       do j = jfts, jfte
         do i = ifts, ifte

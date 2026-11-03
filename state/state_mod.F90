@@ -8,7 +8,7 @@
     use constants_mod, only : PI
     use datetime_mod, only : datetime_t
     use fmc_mod, only : fmc_t
-    use fuel_mod, only : fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    use fuel_mod, only : fuel_t, FUEL_SCOTT_BURGAN
     use geogrid_mod, only : geogrid_t
     use ignition_line_mod, only : ignition_line_t
     use interp_mod, only : VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
@@ -77,7 +77,10 @@
       real, dimension(:, :), allocatable :: lats_c ! "latitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: lons_c ! "longitude of corners of fire cells" "degrees"
       real, dimension(:, :), allocatable :: fz0 ! "roughness length of fire cells" "m"
-      real, dimension(:, :), allocatable :: nfuel_cat ! "fuel data"
+      ! External classification remains unchanged in outputs and restarts.
+      real, dimension(:, :), allocatable :: nfuel_cat
+      ! Validated table rows for physics; several external NB codes share one row.
+      integer, dimension(:, :), allocatable :: fuel_index
       real, dimension(:, :), allocatable :: fuel_time ! "fuel"
       real, dimension(:, :), allocatable :: emis_smoke
       real, dimension(:, :), allocatable :: grad_norm_ls ! Gracient norm of the level set function used to propagate level set function
@@ -130,7 +133,6 @@
       procedure, public :: Allocate_vars => Allocate_vars
       procedure, public :: Apply_wafs => Apply_wafs
       procedure, public :: Check_model_clock => Check_model_clock
-      procedure, public :: Convert_sb_to_ander => Convert_scottburgan_to_anderson
       procedure, public :: Handle_output => Handle_output
       procedure, public :: Handle_restart => Handle_restart
       procedure, public :: Handle_wrfdata_update => Handle_wrfdata_update
@@ -243,6 +245,7 @@
       allocate (this%dzdxf(ifms:ifme, jfms:jfme))
       allocate (this%dzdyf(ifms:ifme, jfms:jfme))
       allocate (this%nfuel_cat(ifms:ifme, jfms:jfme))
+      allocate (this%fuel_index(ifms:ifme, jfms:jfme))
       allocate (this%emis_smoke(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_ls(ifms:ifme, jfms:jfme))
       allocate (this%grad_norm_reinit(ifms:ifme, jfms:jfme))
@@ -269,7 +272,7 @@
 
         do j = jfts, jfte
           do i = ifts, ifte
-            waf = this%fuels%waf(int (this%nfuel_cat(i, j)))
+            waf = this%fuels%waf(this%fuel_index(i, j))
             this%uf(i, j) = waf * this%uf(i, j)
             this%vf(i, j) = waf * this%vf(i, j)
           end do
@@ -279,32 +282,6 @@
 
     end subroutine Apply_wafs
 
-    subroutine Convert_scottburgan_to_anderson (this)
-
-      implicit none
-
-      class (state_fire_t), intent(in out) :: this
-
-      integer :: i, j, ij, ifts, ifte, jfts, jfte
-
-
-      !$OMP PARALLEL DO   &
-      !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte)
-      do ij = 1, this%num_tiles
-        ifts = this%i_start(ij)
-        ifte = this%i_end(ij)
-        jfts = this%j_start(ij)
-        jfte = this%j_end(ij)
-
-        do j = jfts, jfte
-          do i = ifts, ifte
-            this%nfuel_cat(i, j) = real (Crosswalk_from_scottburgan_to_anderson (int (this%nfuel_cat(i, j))))
-          end do
-        end do
-      end do
-      !$OMP END PARALLEL DO
-
-    end subroutine Convert_scottburgan_to_anderson
 
     subroutine Check_model_clock (this)
 
@@ -715,7 +692,6 @@
 
       end select Set_topo_fuels
 
-      if (config_flags%fuel_opt == FUEL_ANDERSON .and. this%init_mode /= INIT_MODE_RESTART) call this%Convert_sb_to_ander ()
 
         ! Set clock
       if (DEBUG_LOCAL) call Print_message ('  Setting clock...')
@@ -748,7 +724,9 @@
         jfte = this%j_end(ij)
         do j = jfts, jfte
           do i = ifts, ifte
-            k = int (this%nfuel_cat(i, j))
+            k = this%fuel_index(i, j)
+            ! Consumable dry inventory: curing repartitions SB40 components but
+            ! must not change this mass or reset the accumulated burn fraction.
             this%fuel_load_g(i, j) = this%fuels%fgi(k)
             if (k == this%fuels%no_fuel_cat) then
                 ! Just what was there before

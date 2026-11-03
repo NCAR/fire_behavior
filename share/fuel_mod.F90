@@ -1,21 +1,22 @@
   module fuel_mod
 
     use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
-    use stderrout_mod, only : Stop_simulation
+    use stderrout_mod, only : Stop_simulation, Print_message
+    use mpi_mod, only : Sum_across_mpi_tasks
 
     implicit none
 
     private
 
-    public :: fuel_t, FUEL_ANDERSON, Crosswalk_from_scottburgan_to_anderson
+    public :: fuel_t, FUEL_ANDERSON, FUEL_SCOTT_BURGAN, UNKNOWN_FUEL_CAT, Crosswalk_from_scottburgan_to_anderson
 
-    integer, parameter :: FUEL_ANDERSON = 1, UNKNOWN_FUEL_CAT = 0
+    integer, parameter :: FUEL_ANDERSON = 1, FUEL_SCOTT_BURGAN = 2, UNKNOWN_FUEL_CAT = 0
 
     type, abstract :: fuel_t
        integer :: n_fuel_cat, no_fuel_cat
-        ! total fuel loading kg/m2
-        ! fgi: initial total mass of surface fuel [kg/m2]
-        !     ranges from ~5 (fast burnup) to 1000 ( ~40% decr over 10 min) ????
+      integer :: n_moisture_classes = 5
+        ! Initial consumable surface fuel [kg m-2]. Anderson keeps its legacy
+        ! table; SB40 includes all dead and live oven-dry component loads.
       real, dimension(:), allocatable :: fgi
         ! fueldepthm: fuel depth [m]  (in feet in Anderson 1982)
       real, dimension(:), allocatable :: fueldepthm
@@ -37,12 +38,17 @@
       real, dimension(:), allocatable :: se
         ! fuelmce: moisture content of extinction
       real, dimension(:), allocatable :: fuelmce
-        ! fuel loading 1-h, 10-h, 100-h, 1000-h, and live  [ton/acre]
+        ! Component loads [US short ton acre-1]. fgi_live belongs to the
+        ! Anderson five-class representation and is unallocated for SB40.
       real, dimension(:), allocatable :: fgi_1h, fgi_10h, fgi_100h, fgi_1000h, fgi_live
         ! wind adjustment factor
       real, dimension(:), allocatable :: waf
     contains
       procedure (Initialization), deferred :: Initialization
+      procedure (Resolve_fuel_index), deferred :: Resolve_fuel_index
+      procedure (Calc_effective_dead_load), deferred :: Calc_effective_dead_load
+      procedure, public :: Resolve_fuel_indices
+      procedure, public :: Moisture_loads
       procedure, public :: Check_fuels => Check_fuels
       procedure, public :: Calc_wind_adjustment_factor => Calc_wind_adjustment_factor
     end type fuel_t
@@ -53,9 +59,86 @@
         class (fuel_t), intent (in out) :: this
         real, intent(in) :: fuelmc_c
       end subroutine Initialization
+      pure integer function Resolve_fuel_index(this, external_code) result(idx)
+        import :: fuel_t
+        class(fuel_t), intent(in) :: this
+        integer, intent(in) :: external_code
+      end function
+
+      pure real function Calc_effective_dead_load(this, k, mc_live) result(load)
+        import :: fuel_t
+        class(fuel_t), intent(in) :: this
+        integer, intent(in) :: k
+        real, intent(in) :: mc_live
+      end function
     end interface
 
   contains
+
+    pure function Moisture_loads(this, k, mc_live) result(loads)
+      class(fuel_t), intent(in) :: this
+      integer, intent(in) :: k
+      real, intent(in) :: mc_live
+      real :: loads(this%n_moisture_classes)
+      ! Anderson retains its original five-class weighting in short tons/acre.
+      loads = [this%fgi_1h(k), this%fgi_10h(k), this%fgi_100h(k), this%fgi_1000h(k), this%fgi_live(k)]
+    end function
+
+    subroutine Resolve_fuel_indices(this, ifms, ifme, jfms, jfme, num_tiles, &
+        i_start, i_end, j_start, j_end, nfuel_cat, fuel_index, comm)
+      class(fuel_t), intent(in) :: this
+      integer, intent(in) :: ifms, ifme, jfms, jfme, num_tiles, comm
+      integer, intent(in) :: i_start(num_tiles), i_end(num_tiles), j_start(num_tiles), j_end(num_tiles)
+      real, intent(in) :: nfuel_cat(ifms:ifme,jfms:jfme)
+      integer, intent(out) :: fuel_index(ifms:ifme,jfms:jfme)
+      integer :: tile, i, j, idx, unknown, samples
+      real :: global_unknown
+      character(len=200) :: msg
+
+      ! Preserve external map codes. Only owned tiles contain valid categories;
+      ! leave halos explicitly unresolved rather than silently marking no fuel.
+      fuel_index = UNKNOWN_FUEL_CAT
+      unknown = 0
+      !$omp parallel do private(tile,i,j,idx) reduction(+:unknown)
+      do tile = 1, num_tiles
+        do j = j_start(tile), j_end(tile)
+          do i = i_start(tile), i_end(tile)
+            idx = UNKNOWN_FUEL_CAT
+            ! Validate before INT: missing, nonfinite and fractional map values
+            ! must not truncate to valid categories or reach a table subscript.
+            if (ieee_is_finite(nfuel_cat(i,j))) then
+              if (nfuel_cat(i,j) >= 1.0 .and. nfuel_cat(i,j) <= 1000000.0) then
+                if (nfuel_cat(i,j) == real(int(nfuel_cat(i,j)))) &
+                    idx = this%Resolve_fuel_index(int(nfuel_cat(i,j)))
+              end if
+            end if
+            fuel_index(i,j) = idx
+            if (idx <= 0 .or. idx > this%n_fuel_cat + 1) unknown = unknown + 1
+          end do
+        end do
+      end do
+      !$omp end parallel do
+      ! MPI and diagnostics remain on the initial thread after tile completion.
+      call Sum_across_mpi_tasks(real(unknown), comm, global_unknown)
+      if (global_unknown > 0.0) then
+        write(msg,'(a,i0,a,i0)') 'Unknown fuel categories: local_count=',unknown,' global_count=',nint(global_unknown)
+        call Print_message(trim(msg))
+        samples = 0
+        do tile = 1, num_tiles
+          do j = j_start(tile), j_end(tile)
+            do i = i_start(tile), i_end(tile)
+              idx = fuel_index(i,j)
+              if ((idx <= 0 .or. idx > this%n_fuel_cat + 1) .and. samples < 8) then
+                write(msg,'(a,es16.8,a,i0,a,i0)') '  invalid external fuel code ',nfuel_cat(i,j),' at i=',i,' j=',j
+                call Print_message(trim(msg))
+                samples = samples + 1
+              end if
+            end do
+          end do
+        end do
+        call Stop_simulation('Unknown nfuel_cat values require explicit fuel or nonburnable mapping')
+      end if
+    end subroutine Resolve_fuel_indices
 
     subroutine Check_fuels (this)
 
@@ -166,10 +249,11 @@
       real :: HF ! extent of the flame above the vegetation
 
 
-      allocate (this%waf(this%n_fuel_cat))
+      ! Both wind paths can index the no-fuel row; it must be allocated.
+      allocate (this%waf(this%n_fuel_cat + 1))
       wh = 10.0 ! input wind height in meter
 
-      do i = 1,this%n_fuel_cat
+      do i = 1,this%n_fuel_cat + 1
         h = this%fueldepthm(i)
         flamelength = 2.0 * h ! assume flamelength is double the fuel bed height
         if (flamelength > h) then
@@ -179,6 +263,8 @@
           this%waf(i) = 0.15
         endif
       end do
+
+      this%waf(this%no_fuel_cat) = 1.e-7
 
     end subroutine Calc_wind_adjustment_factor
 

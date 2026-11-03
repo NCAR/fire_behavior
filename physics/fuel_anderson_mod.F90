@@ -25,7 +25,7 @@
     !  FUEL MODEL 14: no fuel
     ! =============================================================================
 
-    use fuel_mod, only : fuel_t
+    use fuel_mod, only : fuel_t, Crosswalk_from_scottburgan_to_anderson
 
     implicit none
 
@@ -51,10 +51,31 @@
         ! fcbr: fuel canopy burn rate (kg/m2/s)
       real, dimension(N_FUEL_CAT_ANDERSON + 1) :: fcbr, fci
     contains
+      procedure :: Resolve_fuel_index => Resolve_anderson_index
+      procedure :: Calc_effective_dead_load => Anderson_dead_load
        procedure, public :: Initialization => Init_anderson_fuel_model
     end type fuel_anderson_t
 
   contains
+
+    pure integer function Resolve_anderson_index(this, external_code) result(idx)
+      class(fuel_anderson_t), intent(in) :: this
+      integer, intent(in) :: external_code
+      ! The crosswalk is degraded compatibility, not native SB40 physics.
+      select case(external_code)
+      case(14,91,92,93,98,99)
+        idx = this%no_fuel_cat
+      case default
+        idx = Crosswalk_from_scottburgan_to_anderson(external_code)
+      end select
+    end function
+
+    pure real function Anderson_dead_load(this, k, mc_live) result(load)
+      class(fuel_anderson_t), intent(in) :: this
+      integer, intent(in) :: k
+      real, intent(in) :: mc_live
+      load = this%fgi(k)
+    end function
 
    subroutine Init_anderson_fuel_model (this, fuelmc_c)
 

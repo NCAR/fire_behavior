@@ -36,17 +36,18 @@
         integer, intent (in) :: rank
       end subroutine Add_restart_vars
 
-      subroutine Init (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt)
+      subroutine Init (this, fuels, fuelmc_g, fuelmc_g_live, ifms, ifme, jfms, jfme, itimestep, dt, fuelmc_g_woody)
         import :: fmc_t, fuel_t
         class (fmc_t), intent (in out) :: this
         class (fuel_t), intent (in) :: fuels
         real, intent (in) :: fuelmc_g, fuelmc_g_live, dt
+        real, optional, intent(in) :: fuelmc_g_woody
         integer, intent (in) :: ifms, ifme, jfms, jfme, itimestep
       end subroutine Init
 
       subroutine Advance_fmc_model (this, fmoist_freq, fmoist_dt, itimestep, dt, ifms, ifme, jfms, jfme, i_start, i_end, &
             j_start, j_end, num_tiles, fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, fire_t2_old, fire_q2_old, &
-            fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, nfuel_cat, fuels, ros_param)
+            fire_psfc_old, fire_rh_fire, fuelmc_g, fmc_g, fuel_index, fuels, ros_param)
         import :: fmc_t, fuel_t, ros_t
         class (fmc_t), intent (in out) :: this
         class (fuel_t), intent (in) :: fuels
@@ -54,7 +55,7 @@
         integer, intent (in) :: fmoist_freq, itimestep, ifms, ifme, jfms, jfme, num_tiles
         integer, dimension(num_tiles) :: i_start, i_end, j_start, j_end
         real, intent (in) ::  fmoist_dt, dt, fuelmc_g
-        real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat
+        integer, dimension (ifms:ifme, jfms:jfme), intent (in) :: fuel_index
         real, dimension (ifms:ifme, jfms:jfme), intent (in out) :: fire_rain, fire_t2, fire_q2, fire_psfc, fire_rain_old, &
             fire_t2_old, fire_q2_old, fire_psfc_old, fire_rh_fire, fmc_g
       end subroutine Advance_fmc_model
@@ -62,13 +63,14 @@
 
   contains
 
-    subroutine Check_fmc (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, nfuel_cat, no_fuel_cat, fmc_g, source)
+    subroutine Check_fmc (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuel_index, no_fuel_cat, fmc_g, source)
 
       implicit none
 
       class (fmc_t), intent (in) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, no_fuel_cat
-      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: fmc_g
+      integer, dimension(ifms:ifme,jfms:jfme), intent(in) :: fuel_index
       character (len = *), intent (in) :: source
       integer :: i, j
       character (len = 160) :: msg
@@ -80,7 +82,7 @@
       ! Only owned burnable cells require moisture; halo values may be unavailable.
       do j = jfts, jfte
         do i = ifts, ifte
-          if (int (nfuel_cat(i, j)) == no_fuel_cat) cycle
+          if (fuel_index(i, j) == no_fuel_cat) cycle
           if (.not. ieee_is_finite (fmc_g(i, j))) then
             write (msg, '(a,a,2(1x,i0))') source, ' fmc_g must be finite at i,j:', i, j
             call Stop_simulation (msg)
