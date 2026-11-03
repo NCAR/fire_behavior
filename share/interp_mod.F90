@@ -35,7 +35,7 @@
         do i = ifts, ifte
           call proj_data_in%Calc_ij (lats_out(i, j), lons_out(i, j), i_real, j_real)
           i_in = min (max (ims, nint (i_real)), ime)
-          j_in = min (max (jms, nint (j_real)), ime)
+          j_in = min (max (jms, nint (j_real)), jme)
           data_out(i, j) = data_in(i_in, j_in)
         end do
       end do

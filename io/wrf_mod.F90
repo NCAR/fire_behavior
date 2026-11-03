@@ -1,8 +1,9 @@
   module wrf_mod
 
     use constants_mod, only : CP, XLV
+    use coupling_mod, only : Interp_horizontal
     use emis_mod, only : Calc_smoke_aod
-    use interp_mod, only : Interp_profile !, VINTERP_WINDS_FROM_3D_WINDS, VINTERP_WINDS_FROM_10M_WINDS
+    use interp_mod, only : Interp_profile
     use namelist_mod, only : namelist_t
     use proj_lc_mod, only : proj_lc_t
     use stderrout_mod, only : Stop_simulation
@@ -43,38 +44,62 @@
 
     end subroutine Interp_wrf2dvar_to_cfbm
 
-    subroutine Interp_wrfwinds_to_cfbm (u_phy, v_phy, z_at_w, ims, ime, kms, kme, jms, jme, ifms, ifme, jfms, jfme, ifps, ifpe, jfps, jfpe, &
-        kfds, kfde, lats_in, lons_in, proj, z0f, fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, u_out, v_out)
+    subroutine Interp_wrfwinds_to_cfbm (u_phy, v_phy, z_at_w, ims, ime, kms, kme, jms, jme, ifms, ifme, jfms, jfme, &
+        kfds, kfde, num_tiles, i_start, i_end, j_start, j_end, lats_in, lons_in, proj, z0f, zsf, &
+        fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, u_out, v_out, hinterp_opt)
 
       implicit none
 
       integer, intent (in) :: ims, ime, kms, kme, jms, jme, &
                               ifms, ifme, jfms, jfme, &
-                              ifps, ifpe, jfps, jfpe, &
-                              kfds, kfde
+                              kfds, kfde, num_tiles, hinterp_opt
+      integer, dimension (num_tiles), intent (in) :: i_start, i_end, j_start, j_end
       logical, intent (in) :: fire_lsm_zcoupling
       real, dimension(ims:ime, kms:kme, jms:jme), intent (in) :: u_phy, v_phy, z_at_w
       real, dimension(ifms:ifme, jfms:jfme), intent (in) :: lats_in, lons_in, z0f
+      real, dimension(ifms:ifme, jfms:jfme), intent (in) :: zsf ! Fire-grid terrain elevation above sea level (m)
       type (proj_lc_t), intent (in) :: proj
       real, intent (in) :: fire_wind_height, fire_lsm_zcoupling_ref
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: u_out, v_out
 
-      integer :: i, j, i_wrf, j_wrf
-      real :: i_real, j_real, uout, vout
+      integer :: i, j, k, ij, ifts, ifte, jfts, jfte
+      real :: uout, vout
+      real, dimension(:, :, :), allocatable :: u_fire, v_fire, z_fire
 
 
-      do j = jfps, jfpe
-        do i = ifps, ifpe
-          call proj%Calc_ij (lats_in(i, j), lons_in(i, j), i_real, j_real)
-          i_wrf = min (max (ims, nint (i_real)), ime)
-          j_wrf = min (max (jms, nint (j_real)), jme)
-          call Interp_profile (fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, kfds, kfde, &
-              u_phy(i_wrf, :, j_wrf), v_phy(i_wrf, :, j_wrf), z_at_w(i_wrf, :, j_wrf), z0f(i, j), &
-              uout, vout)
-          u_out(i, j) = uout
-          v_out(i, j) = vout
+      allocate (u_fire(ifms:ifme, jfms:jfme, kms:kme))
+      allocate (v_fire(ifms:ifme, jfms:jfme, kms:kme))
+      allocate (z_fire(ifms:ifme, jfms:jfme, kms:kme))
+
+      ! Map winds and interface heights over fire tiles before sampling profiles.
+      do k = kms, kme
+        call Interp_horizontal (u_phy(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+            num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, u_fire(:, :, k))
+        call Interp_horizontal (v_phy(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+            num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, v_fire(:, :, k))
+        call Interp_horizontal (z_at_w(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+            num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, z_fire(:, :, k))
+      end do
+
+      !$OMP PARALLEL DO   &
+      !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte, uout, vout)
+      do ij = 1, num_tiles
+        ifts = i_start(ij)
+        ifte = i_end(ij)
+        jfts = j_start(ij)
+        jfte = j_end(ij)
+
+        do j = jfts, jfte
+          do i = ifts, ifte
+            call Interp_profile (fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, kfds, kfde, &
+                u_fire(i, j, :), v_fire(i, j, :), z_fire(i, j, :), z0f(i, j), &
+                uout, vout)
+            u_out(i, j) = uout
+            v_out(i, j) = vout
+          end do
         end do
       end do
+      !$OMP END PARALLEL DO
 
     end subroutine  Interp_wrfwinds_to_cfbm
 
