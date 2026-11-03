@@ -4,9 +4,7 @@
     use fuel_mod, only : fuel_t
     use fuel_scott_burgan_mod, only : fuel_scott_burgan_t
     use ros_sb40_mod, only : Calc_sb40_parameters
-    use namelist_mod, only : namelist_t
     use ros_mod, only : ros_t
-    use state_mod, only : state_fire_t
 
     implicit none
 
@@ -22,7 +20,9 @@
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type, extends(ros_t) :: ros_wrffire_t
-      real :: fuelmc_g_live = 0.30, fuelmc_g_woody = 0.90, fuelmc_g = 0.08
+      ! Prescribed moisture is supplied by Init from the run configuration.
+      ! SB40 uses these scalars; Anderson uses cell moisture passed to Set_params.
+      real :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
       real, dimension(:, :), allocatable :: bbb, ischap, betafl, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
@@ -102,12 +102,12 @@
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme
-      real, optional, intent(in) :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
+      real, intent(in) :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
 
 
-      if (present(fuelmc_g)) this%fuelmc_g = fuelmc_g
-      if (present(fuelmc_g_live)) this%fuelmc_g_live = fuelmc_g_live
-      if (present(fuelmc_g_woody)) this%fuelmc_g_woody = fuelmc_g_woody
+      this%fuelmc_g = fuelmc_g
+      this%fuelmc_g_live = fuelmc_g_live
+      this%fuelmc_g_woody = fuelmc_g_woody
 
       allocate (this%iboros(ifms:ifme, jfms:jfme))
  

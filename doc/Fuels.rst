@@ -113,7 +113,18 @@ Albini's SAV-band weighting of net reaction load and separate dead/live damping.
 
 ``fuelmc_g_live`` retains the public Anderson name and default of 0.30. It
 initializes herbaceous moisture in SB40. ``fuelmc_g_woody`` initializes SB40
-woody moisture and defaults to 0.90. Specify these deliberately for the case:
+woody moisture and defaults to 0.90.
+
+The defaults are defined in ``namelist_t``. After the namelist is read and
+broadcast, the fire driver passes all three configured surface-moisture values
+to ``Init_ros_wrffire``. That routine assigns them to the ROS object before any
+spread parameters are calculated. All three arguments are required; the ROS
+class has no separate defaults. These scalar copies supply prescribed SB40 ROS;
+Anderson ROS uses cell-level ``fmc_g``. The namelist live-moisture control still
+initializes Anderson's live FMC class when the moisture model is active.
+The component unit test uses distinct nondefault
+values to verify prescribed-moisture propagation and subsequent replacement by
+evolving class state. Specify these moistures deliberately for the case:
 
 .. code-block:: fortran
 

@@ -95,7 +95,8 @@
           call Stop_simulation ('The selected ros_opt does not exist')
       end select
       call grid%ros_param%Init (grid%ifms, grid%ifme, grid%jfms, grid%jfme, &
-          config_flags%fuelmc_g_live, config_flags%fuelmc_g_woody, config_flags%fuelmc_g)
+          fuelmc_g_live=config_flags%fuelmc_g_live, fuelmc_g_woody=config_flags%fuelmc_g_woody, &
+          fuelmc_g=config_flags%fuelmc_g)
 
       !$OMP PARALLEL DO   &
       !$OMP PRIVATE (ij)

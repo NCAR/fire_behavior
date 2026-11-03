@@ -147,8 +147,20 @@ program sb40_unit
   call fmc%Average_moisture_classes(0,47,0,3,1,46,1,2,indices,aggregate,fuels)
   loads = fuels%Moisture_loads(10,0.75)
   call Check(aggregate(10,1),sum(loads*[0.06,0.07,0.08,0.08,0.75,0.90])/sum(loads),'component moisture mean')
-  call ros%Init(0,47,0,3)
+  ! Distinct nondefault prescribed moistures must reach ROS through Init. An
+  ! unrelated aggregate exposes accidental use of a fallback or the mean. Check
+  ! all fuel groups so both herbaceous and woody initialization affect results.
+  call ros%Init(0,47,0,3,fuelmc_g_live=0.65,fuelmc_g_woody=1.10,fuelmc_g=0.05)
   aggregate = 9.0
+  call ros%Set_params(0,47,0,3,1,46,1,2,fuels,indices,aggregate)
+  mc = [0.05,0.05,0.05,0.05,0.65,1.10]
+  do k = 1, 40
+    call Calc_sb40_parameters(fuels,k,mc,beta,b,wind,r0,iboros)
+    call Check(ros%r_0(k,1),r0,'ROS uses prescribed initialization moisture')
+    call Check(ros%iboros(k,1),iboros,'reaction uses prescribed initialization moisture')
+  end do
+  ! Once class state is available, its values must supersede the prescribed
+  ! controls, including distinct moisture for each dead size class.
   call ros%Set_params(0,47,0,3,1,46,1,2,fuels,indices,aggregate,fmc%fmc_gc)
   mc = [0.06,0.07,0.08,0.08,0.75,0.90]
   call Calc_sb40_parameters(fuels,10,mc,beta,b,wind,r0,iboros)

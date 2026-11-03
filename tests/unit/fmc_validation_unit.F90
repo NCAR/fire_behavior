@@ -66,7 +66,9 @@ program fmc_validation_unit
   end if
   call moisture%Init (fuels, 0.08, 0.30, 0, 5, 0, 3, 0, 4.0)
   if (index (scenario, 'load_') == 1) error stop 'invalid averaging fuel load was accepted'
-  call ros%Init (0, 5, 0, 3)
+  ! Prescribed seeds match the FMC setup; invalid or restored class state is
+  ! tested independently of these required ROS initialization inputs.
+  call ros%Init (0, 5, 0, 3, fuelmc_g_live=0.30, fuelmc_g_woody=0.90, fuelmc_g=0.08)
   category = 0
   category(1:4,1:2) = 1
   category(4,2) = fuels%no_fuel_cat

@@ -39,7 +39,9 @@ program fmc_initialization_unit
   call get_command_argument (1, scenario)
   call fuels%Initialization (0.8)
   call moisture%Init (fuels, 0.08, 0.30, 0, 5, 0, 3, 0, 4.0)
-  call ros%Init (0, 5, 0, 3)
+  ! Use the same prescribed seeds as the FMC setup; subsequent ROS updates use
+  ! the evolving Anderson moisture array exercised below.
+  call ros%Init (0, 5, 0, 3, fuelmc_g_live=0.30, fuelmc_g_woody=0.90, fuelmc_g=0.08)
   if (moisture%initialized) error stop 'allocation initialized moisture before forcing'
   moisture%fmc_gc = NF90_FILL_FLOAT
   t = NF90_FILL_FLOAT

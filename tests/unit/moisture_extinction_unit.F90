@@ -40,7 +40,9 @@ program moisture_extinction_unit
   ! Prescribed moisture allocates an FMC object without initializing class state.
   ! Its inherited Check_fmc binding must validate the supplied array in this case.
   call fuels%Initialization(1.0)
-  call params%Init(0,15,0,3)
+  ! Initialize the prescribed controls explicitly. Anderson ROS uses the cell
+  ! moisture array varied below to exercise each category's extinction limit.
+  call params%Init(0,15,0,3,fuelmc_g_live=0.30,fuelmc_g_woody=0.90,fuelmc_g=0.08)
   nan = ieee_value(0.0, ieee_quiet_nan)
   ! Unavailable halos and the nonburnable cell must not enter fuel physics.
   category = 0

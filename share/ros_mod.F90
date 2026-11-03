@@ -23,7 +23,7 @@
         import :: ros_t
         class (ros_t), intent (in out) :: this
         integer, intent (in) :: ifms, ifme, jfms, jfme
-      real, optional, intent(in) :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
+        real, intent(in) :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
       end subroutine Init
 
       subroutine Set_params (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, fuels, fuel_index, fmc_g, fmc_gc)
