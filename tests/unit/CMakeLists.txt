@@ -107,18 +107,23 @@ if(OPENMP)
   set_tests_properties(${fmc_tests} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
 endif()
 
-# Check the production wind routine's array bounds even in Release builds.
-# Keep its test module separate from firelib's normal compilation products.
+# Check production wind and interpolation array bounds even in Release builds.
+# Keep instrumented modules separate from firelib's normal compilation products.
 target_sources(wind_order_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90)
-set_target_properties(wind_order_unit PROPERTIES
-  Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules")
-target_include_directories(wind_order_unit PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules" "${CMAKE_Fortran_MODULE_DIRECTORY}")
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(wind_order_unit PRIVATE -fcheck=bounds)
-elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  target_compile_options(wind_order_unit PRIVATE -check bounds)
-endif()
+target_sources(wrf_wind_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/wrf_mod.F90
+                                     ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90
+                                     ${PROJECT_SOURCE_DIR}/share/interp_mod.F90)
+foreach(test IN ITEMS wind_order_unit wrf_wind_unit)
+  set_target_properties(${test} PROPERTIES
+    Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${test}_modules")
+  target_include_directories(${test} PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/${test}_modules" "${CMAKE_Fortran_MODULE_DIRECTORY}")
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${test} PRIVATE -fcheck=bounds)
+  elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    target_compile_options(${test} PRIVATE -check bounds)
+  endif()
+endforeach()
 
 # Atmospheric initialization validates timing without requiring an ignition.
 add_cfbm_unit_test(NAME namelist_atm_only_unit

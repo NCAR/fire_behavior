@@ -44,13 +44,13 @@
 
     end subroutine Interp_wrf2dvar_to_cfbm
 
-    subroutine Interp_wrfwinds_to_cfbm (u_phy, v_phy, z_at_w, ims, ime, kms, kme, jms, jme, ifms, ifme, jfms, jfme, &
-        kfds, kfde, num_tiles, i_start, i_end, j_start, j_end, lats_in, lons_in, proj, z0f, zsf, &
+    subroutine Interp_wrfwinds_to_cfbm (u_phy, v_phy, z_at_w, ims, ime, kms, kme, jms, jme, ids, ide, jds, jde, &
+        ifms, ifme, jfms, jfme, kfds, kfde, num_tiles, i_start, i_end, j_start, j_end, lats_in, lons_in, proj, z0f, zsf, &
         fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, u_out, v_out, hinterp_opt)
 
       implicit none
 
-      integer, intent (in) :: ims, ime, kms, kme, jms, jme, &
+      integer, intent (in) :: ims, ime, kms, kme, jms, jme, ids, ide, jds, jde, &
                               ifms, ifme, jfms, jfme, &
                               kfds, kfde, num_tiles, hinterp_opt
       integer, dimension (num_tiles), intent (in) :: i_start, i_end, j_start, j_end
@@ -62,22 +62,37 @@
       real, intent (in) :: fire_wind_height, fire_lsm_zcoupling_ref
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: u_out, v_out
 
-      integer :: i, j, k, ij, ifts, ifte, jfts, jfte
+      integer :: i, j, k, ij, ifts, ifte, jfts, jfte, ilo, ihi, jlo, jhi
       real :: uout, vout
       real, dimension(:, :, :), allocatable :: u_fire, v_fire, z_fire
 
 
-      allocate (u_fire(ifms:ifme, jfms:jfme, kms:kme))
-      allocate (v_fire(ifms:ifme, jfms:jfme, kms:kme))
-      allocate (z_fire(ifms:ifme, jfms:jfme, kms:kme))
+      allocate (u_fire(ifms:ifme, jfms:jfme, kfds:kfde - 2))
+      allocate (v_fire(ifms:ifme, jfms:jfme, kfds:kfde - 2))
+      allocate (z_fire(ifms:ifme, jfms:jfme, kfds:kfde - 1))
+
+      ! WRF domain ends are staggered; these derived fields occupy mass cells.
+      ! Retain exchanged cells inside the domain, excluding outer memory storage.
+      ilo = max (ims, ids)
+      ihi = min (ime, ide - 1)
+      jlo = max (jms, jds)
+      jhi = min (jme, jde - 1)
+      if (ilo > ihi .or. jlo > jhi) then
+        call Stop_simulation ('WRF wind interpolation requires physical source cells')
+        return
+      end if
 
       ! Map winds and interface heights over fire tiles before sampling profiles.
-      do k = kms, kme
-        call Interp_horizontal (u_phy(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+      ! Interp_profile consumes mass winds through kfde-2 and interfaces through
+      ! kfde-1. Do not read unused vertical storage, which WRF may not initialize.
+      do k = kfds, kfde - 2
+        call Interp_horizontal (u_phy(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, u_fire(:, :, k))
-        call Interp_horizontal (v_phy(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+        call Interp_horizontal (v_phy(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, v_fire(:, :, k))
-        call Interp_horizontal (z_at_w(:, k, :), proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+      end do
+      do k = kfds, kfde - 1
+        call Interp_horizontal (z_at_w(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, z_fire(:, :, k))
       end do
 

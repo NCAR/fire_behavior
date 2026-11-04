@@ -34,6 +34,11 @@ Example namelists can be found in the various test subdirectories under the ``te
 &time
 ---------------------------------
 
+For WRF-CFBM runs, WRF supplies the start/end fields marked required
+below, so they may be omitted from ``namelist.cfbm``. See
+:ref:`wrf_configuration_ownership` for the ownership and validation rules for
+coupled timing, restart, output, and tiling settings.
+
 ``start_year``: *integer* (**Required**)
    Start year of the simulation.
 
@@ -98,7 +103,7 @@ Example namelists can be found in the various test subdirectories under the ``te
    default ``-1`` is an unset value; it does not detect the interval automatically.
    Standalone idealized runs do not read atmospheric data and ignore this option,
    so it may be left at its default. NUOPC runs require a positive atmospheric
-   coupling interval. Direct WRF-CFBM coupling uses WRF's time stepping instead
+   coupling interval. WRF-CFBM coupling uses WRF's time stepping instead
    and does not use this option (see :ref:`WRF`).
 
 
@@ -258,6 +263,27 @@ output fields retain their existing single-precision NetCDF representation.
 ``fire_wind_height``: *real* (Default: ``6.096``)
    [Units: m]
    Height of uah,vah wind in fire spread formula
+
+``wind_vinterp_opt``: *integer* (Default: ``0``)
+   Selects the wind source and vertical treatment.
+
+   * ``0``: use 3D wind profiles. Horizontal mapping to the fire grid precedes
+     vertical sampling at ``fire_wind_height``. When ``fire_lsm_zcoupling`` is
+     enabled, sample at its reference height before applying the logarithmic
+     adjustment to the fire wind height.
+   * ``1``: use 10 m winds and apply fuel-dependent wind adjustment factors
+     (WAFs).
+
+``hinterp_opt``: *integer* (Default: ``2``)
+   Selects horizontal interpolation of atmospheric fields onto the fire grid
+   in standalone and WRF-CFBM runs.
+
+   * ``1``: nearest neighbor.
+   * ``2``: bilinear interpolation.
+
+   In WRF-CFBM runs, 3D winds honor this option for both wind components and their
+   height profiles. See :ref:`wrf_wind_interpolation` for the interpolation
+   sequence, roughness, and terrain reference used in WRF-CFBM runs.
 
 ``fire_is_real_perim``: *logical* (Default: ``.false.``)
    Determines if the supplied perimeter represents an observed fire boundary.
@@ -441,7 +467,7 @@ standalone forcing reader or NUOPC exchange schedule. For example, a 4 s fire
 step and 60 s atmospheric interval are aligned. An 8 s fire step with a 4 s
 atmospheric interval is not: the equality-based update trigger would miss the
 first update and retain its expired schedule. The interval is an exchange
-cadence, not necessarily the atmospheric solver timestep. Direct WRF stepping
+cadence, not necessarily the atmospheric solver timestep. WRF stepping
 and unforced ideal runs may leave ``interval_atm`` unset. Supplied positive
 intervals are checked; file-driven and NUOPC entry points also require that the
 interval is supplied. Programmatically constructed configurations are checked

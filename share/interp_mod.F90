@@ -66,8 +66,9 @@
 
           i0 = max (ims, min (ime - 1, int (floor (i_real))))
           j0 = max (jms, min (jme - 1, int (floor (j_real))))
-          i1 = i0 + 1
-          j1 = j0 + 1
+          ! A one-cell source extent reduces interpolation to that cell.
+          i1 = min (i0 + 1, ime)
+          j1 = min (j0 + 1, jme)
 
           di = max (0.0_REAL64, min (1.0_REAL64, real(i_real, REAL64) - i0))
           dj = max (0.0_REAL64, min (1.0_REAL64, real(j_real, REAL64) - j0))
