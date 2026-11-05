@@ -1,0 +1,5 @@
+module fuel_table_paths_mod
+  implicit none
+  character(len=*), parameter :: BUILD_TABLE_DIR = '@CMAKE_CURRENT_BINARY_DIR@/tables'
+  character(len=*), parameter :: INSTALL_TABLE_DIR = '@CMAKE_INSTALL_PREFIX@/share/fire_behavior'
+end module

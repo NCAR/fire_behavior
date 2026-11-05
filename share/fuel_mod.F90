@@ -2,6 +2,7 @@
 
     use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
     use stderrout_mod, only : Stop_simulation, Print_message
+    use fuel_table_mod, only: moisture_parameters_t
     use mpi_mod, only : Sum_across_mpi_tasks
 
     implicit none
@@ -15,6 +16,9 @@
     type, abstract :: fuel_t
        integer :: n_fuel_cat, no_fuel_cat
       integer :: n_moisture_classes = 5
+      type(moisture_parameters_t) :: moisture
+      character(len=16) :: table_fingerprint
+      logical :: legacy_table_compatible
         ! Initial consumable surface fuel [kg m-2]. Anderson keeps its legacy
         ! table; SB40 includes all dead and live oven-dry component loads.
       real, dimension(:), allocatable :: fgi
@@ -54,10 +58,12 @@
     end type fuel_t
 
     abstract interface
-      subroutine Initialization (this, fuelmc_c)
+      subroutine Initialization (this, fuelmc_c, filename, comm)
         import :: fuel_t
         class (fuel_t), intent (in out) :: this
         real, intent(in) :: fuelmc_c
+        character(len=*), intent(in), optional :: filename
+        integer, intent(in), optional :: comm
       end subroutine Initialization
       pure integer function Resolve_fuel_index(this, external_code) result(idx)
         import :: fuel_t

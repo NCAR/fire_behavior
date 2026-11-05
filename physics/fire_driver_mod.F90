@@ -55,7 +55,7 @@
         case default
           call Stop_simulation ('The selected fuel_opt does not exist')
       end select
-      call grid%fuels%Initialization (config_flags%fuelmc_c)
+      call grid%fuels%Initialization (config_flags%fuelmc_c, comm=grid%cfbm_comm)
       call grid%fuels%Resolve_fuel_indices(grid%ifms,grid%ifme,grid%jfms,grid%jfme,grid%num_tiles, &
           grid%i_start,grid%i_end,grid%j_start,grid%j_end,grid%nfuel_cat,grid%fuel_index,grid%cart_comm)
       call grid%Init_fuel_vars ()

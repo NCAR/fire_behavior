@@ -15,6 +15,7 @@
        NAME_DIM_X, NAME_DIM_Y, NF90_FILL_FLOAT
 
     interface Add_netcdf_att
+      module procedure Add_netcdf_att_char
       module procedure Add_netcdf_att_int32
       module procedure Add_netcdf_att_real32
     end interface Add_netcdf_att
@@ -48,6 +49,7 @@
     end interface Get_netcdf_var_mpi
 
     interface Get_netcdf_att
+      module procedure Get_netcdf_att_char
       module procedure Get_netcdf_att_int32
       module procedure Get_netcdf_att_real32
     end interface Get_netcdf_att
@@ -92,6 +94,44 @@
       call Check_status (status)
 
     end subroutine Add_netcdf_att_int32
+
+    subroutine Add_netcdf_att_char (file_name, var_name, att_name, att_value)
+
+      use netcdf
+
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, var_name, att_name
+      character (len = *), intent(in) :: att_value
+
+      integer :: status, ncid, varid
+
+
+      status = nf90_open (trim(file_name), NF90_WRITE, ncid)
+      call Check_status (status)
+
+      status = nf90_redef (ncid)
+      call Check_status (status)
+
+      if (var_name == 'global') then
+        status = nf90_put_att (ncid, NF90_GLOBAL, att_name, att_value)
+        call Check_status (status)
+      else
+        status = nf90_inq_varid (ncid, var_name, varid)
+        call Check_status (status)
+
+        status = nf90_put_att (ncid, varid, att_name, att_value)
+        call Check_status (status)
+      end if
+
+      status = nf90_enddef (ncid)
+      call Check_status (status)
+
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Add_netcdf_att_char
 
     subroutine Add_netcdf_att_real32 (file_name, var_name, att_name, att_value)
 
@@ -666,6 +706,50 @@
       call Check_status (status)
 
     end subroutine Get_netcdf_att_int32
+
+    subroutine Get_netcdf_att_char (file_name, var_name, att_name, att_value)
+
+      use netcdf
+
+
+      implicit none
+
+      character (len = *), intent(in) :: file_name, var_name, att_name
+      character (len = *), intent(out) :: att_value
+
+      integer :: status, ncid, varid, length
+
+
+        ! Open file
+      status = nf90_open (trim(file_name), NF90_NOWRITE, ncid)
+      call Check_status (status)
+
+        ! Get att length
+      att_value = ''
+      varid = NF90_GLOBAL
+      if (var_name /= 'global') then
+        status = nf90_inq_varid(ncid, var_name, varid)
+        call Check_status(status)
+      end if
+      status = nf90_inquire_attribute(ncid, varid, att_name, len=length)
+      call Check_status(status)
+      if (length > len(att_value)) call Stop_simulation('NetCDF text attribute exceeds destination length')
+      if (var_name == 'global') then
+        status = nf90_get_att (ncid, NF90_GLOBAL, att_name, att_value)
+        call Check_status (status)
+      else
+        status = nf90_inq_varid (ncid, var_name, varid)
+        call Check_status (status)
+
+        status = nf90_get_att (ncid, varid, att_name, att_value)
+        call Check_status (status)
+      end if
+
+        ! Close file
+      status = nf90_close (ncid)
+      call Check_status (status)
+
+    end subroutine Get_netcdf_att_char
 
     subroutine Get_netcdf_att_real32 (file_name, var_name, att_name, att_value)
 

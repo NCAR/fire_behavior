@@ -20,6 +20,7 @@
     use netcdf_mod, only : Add_netcdf_att, Add_netcdf_dim, Add_netcdf_var_mpi, NAME_DIM_X, NAME_DIM_Y
     use ros_mod, only : ros_t
     use fmc_mod, only : fmc_t
+    use fuel_table_mod, only: moisture_parameters_t
     use fuel_mod, only : fuel_t
 
     implicit none
@@ -30,7 +31,6 @@
     public :: NAME_ATT_FMC_INITIALIZED, NAME_ATT_FMC_INITTIME
 
     integer, parameter :: MOISTURE_CLASSES = 6, NUM_FMEP = 2
-    real, parameter :: FMEP_DECAY_TLAG = 999999 ! time constant of assimilated adjustments of equilibria decay
     character (len = *), parameter :: NAME_DIM_MOISTURE_CLASS = 'moisture_class'
     character (len = *), parameter :: NAME_VAR_FMC_GC = 'fmc_gc'
     character (len = *), parameter :: NAME_ATT_FMOIST_LASTTIME = 'fmc_fmoist_lasttime'
@@ -40,6 +40,7 @@
 
     type, extends(fmc_t) :: fmc_wrffire_t
       integer :: n_moisture_classes = 5
+      type(moisture_parameters_t) :: moisture
       real :: fmoist_lasttime, fmoist_nexttime, dt_moisture
       real :: initialization_time = 0.0
       ! Component-local state: all configured moisture classes and previous forcing
@@ -60,23 +61,6 @@
       procedure, public :: Add_restart_vars => Add_restart_vars
       procedure, public :: Init => Init_fmc_wrffire
     end type fmc_wrffire_t
-
-!    character (len = 80), dimension (MOISTURE_CLASSES) :: moisture_class_name
-!    data moisture_class_name /'1-h', '10-h', '100-h', '1000-h', 'Live'/
-                                                          ! time lag [h] approaching equilibrium moisture
-    real, dimension(MOISTURE_CLASSES), parameter :: drying_lag = [ 1.0, 10.0, 100.0, 1000.0, 1e9, 1e9 ], &
-                                                      ! time lag [h] for approaching saturation in rain
-                                                    wetting_lag = [ 1.4, 14.0, 140.0, 1400.0, 1e9, 1e9 ], &
-                                                      ! saturation moisture contents (1) in rain
-                                                    saturation_moisture = [ 2.5, 2.5, 2.5 ,2.5, 2.5, 2.5 ], &
-                                                      ! stronger rain matters only in duration [mm/h]
-                                                    saturation_rain = [ 8.0, 8.0, 8.0, 8.0, 8.0, 8.0 ], &
-                                                      ! rain intensity this small is same as nothing
-                                                    rain_threshold = [ 0.05, 0.05, 0.05, 0.05, 0.05, 0.05 ]
-    integer, dimension(MOISTURE_CLASSES), parameter :: drying_model = [ 1, 1, 1, 1, 1, 1 ], &
-                                                       wetting_model = [ 1, 1, 1, 1, 1, 1 ], &
-                                                         ! 0=input, 1=from fuelmc_g 2=from equilibrium, 3=from fmc_1h,...,fmc_live
-                                                       fmc_gc_initialization = [ 2, 2, 2, 2, 3, 3 ]
 
   contains
 
@@ -144,6 +128,7 @@
 
 
       this%n_moisture_classes = fuels%n_moisture_classes
+      this%moisture = fuels%moisture
       allocate (this%fmc_gc(ifms:ifme, this%n_moisture_classes, jfms:jfme))
       allocate (this%fmc_equi(ifms:ifme, this%n_moisture_classes, jfms:jfme))
       allocate (this%fmc_lag(ifms:ifme, this%n_moisture_classes, jfms:jfme))
@@ -216,8 +201,8 @@
 
         ! moisture model derived scalars
       do i = 1, this%n_moisture_classes
-        this%rec_drying_lag_sec(i) = 1.0 / (3600.0 * drying_lag(i))
-        this%rec_wetting_lag_sec(i) = 1.0 / (3600.0 * wetting_lag(i))
+        this%rec_drying_lag_sec(i) = 1.0 / (3600.0 * this%moisture%drying_lag(i))
+        this%rec_wetting_lag_sec(i) = 1.0 / (3600.0 * this%moisture%wetting_lag(i))
       end do
 
     end subroutine Init_fmc_wrffire
@@ -426,7 +411,7 @@
             endif
             rainmax = max (rainmax,rain_int)
             rainmin = min (rainmin,rain_int)
-            r = rain_int - rain_threshold(k)
+            r = rain_int - this%moisture%rain_threshold(k)
 
               ! average the inputs for second order accuracy
             t = 0.5 * (t2_old(i,j) + t2(i,j))
@@ -461,16 +446,16 @@
             end if 
 
             if (r > 0.0) then
-              select case (wetting_model(k))
+              select case (this%moisture%wetting_model(k))
                   ! saturation_moisture=2.5 wetting_lag=14h saturation_rain=8 mm/h calibrated to VanWagner&Pickett 1985 per 24 hours
                 case (1)
-                  emc_w = saturation_moisture(k) + deltas
-                  emc_d = saturation_moisture(k) + deltas
-                  rlag = this%rec_wetting_lag_sec(k) * (1.0 - exp(-r / saturation_rain(k)))
+                  emc_w = this%moisture%saturation_moisture(k) + deltas
+                  emc_d = this%moisture%saturation_moisture(k) + deltas
+                  rlag = this%rec_wetting_lag_sec(k) * (1.0 - exp(-r / this%moisture%saturation_rain(k)))
               end select
             else
                 ! not raining
-              select case (drying_model(k))
+              select case (this%moisture%drying_model(k))
                   ! Van Wagner and Pickett (1972) per Viney (1991) eq (7) (8)
                 case (1)
                   h = rh * 100.0
@@ -491,19 +476,19 @@
               ! SHOULD COMPUTE fmc_gc(i,k,j) DIRECTLY AND SET TLAG < 0
             If_rlag:  if (rlag > 0.0) then
                 ! take old from before, no initialization
-              if (.not. initialize .or. fmc_gc_initialization(k) == 0) then
+              if (.not. initialize .or. this%moisture%fmc_gc_initialization(k) == 0) then
                 fmc_old = this%fmc_gc(i, k, j)
-              else if (fmc_gc_initialization(k) == 1) then
+              else if (this%moisture%fmc_gc_initialization(k) == 1) then
                    ! from scalar fuelmc_g
                 fmc_old = fuelmc_g
-              else if (fmc_gc_initialization(k) == 2)then
+              else if (this%moisture%fmc_gc_initialization(k) == 2)then
                   ! from computed equilibrium
                 fmc_old = 0.5 * (emc_d + emc_w)
-              else if (fmc_gc_initialization(k) == 3)then
+              else if (this%moisture%fmc_gc_initialization(k) == 3)then
                   ! from scalar parameter
                 fmc_old = this%fmc_gc_initial_value(k)
               else
-                call Stop_simulation ('bad value of fmc_gc_initialization(k), must be between 0 and 2')
+                call Stop_simulation ('bad moisture initialization policy, must be between 1 and 3')
               end if
                  ! take lower or upper equilibrium value 
               equi = max (min (fmc_old, emc_d), emc_w)
@@ -532,7 +517,7 @@
       do j = jfts, jfte
         do k = 1, NUM_FMEP
           do i = ifts, ifte
-            change = this%dt_moisture / (FMEP_DECAY_TLAG * 3600.0)
+            change = this%dt_moisture / (this%moisture%decay_lag * 3600.0)
             if (change < TOL) then
               this%fmep(i, k, j) = this%fmep(i, k, j) * (1.0 - change * (1.0 - 0.5 * change))
             else

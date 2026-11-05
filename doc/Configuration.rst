@@ -297,7 +297,10 @@ output fields retain their existing single-precision NetCDF representation.
      2: Native Scott and Burgan 40 with dead/live component ROS.
 
    Input categories remain external identifiers. See :doc:`Fuels` for
-   ``fuel_index``, named nonburnable classes, component tables, and restart rules.
+   ``fuel_index``, named nonburnable classes, component tables, and restart rules. Fuel
+   and moisture-response parameters are read from ``ANDERSON13.TBL`` or
+   ``SCOTT_BURGAN40.TBL`` at startup; :doc:`Fuels` describes file lookup and
+   ``CFBM_FUEL_TABLE_DIR``. These parameter files are not namelists.
 
 ``ros_opt``: *integer* (Default: ``0``)
    Rate of Spread (ROS) parameterization option.
