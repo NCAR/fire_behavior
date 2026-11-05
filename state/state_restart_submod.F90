@@ -333,6 +333,7 @@
 
       type (datetime_t) :: datetime_restart, datetime_check
       character (len = :), allocatable :: file_restart
+      character(len=16) :: table_fingerprint
       integer (kind = INT32) :: att_int, restart_year, restart_month, restart_day, restart_hour, restart_minute, restart_second, &
           start_year, start_month, start_day, start_hour, start_minute, start_second
       integer (kind = INT32) :: perimeter_ignited
@@ -381,6 +382,17 @@
         call Validate_restart_integer (file_restart, 'sr_y', expected_sr_y)
         call Validate_restart_integer (file_restart, 'ideal_opt', config_flags%ideal_opt)
         call Validate_restart_integer (file_restart, 'fuel_opt', config_flags%fuel_opt)
+        if (Has_restart_attribute(file_restart, 'fuel_table_crc64')) then
+          call Validate_restart_integer(file_restart, 'fuel_table_schema', 1)
+          call Get_netcdf_att(file_restart, 'global', 'fuel_table_crc64', table_fingerprint)
+          if (table_fingerprint /= this%fuels%table_fingerprint) &
+              call Stop_simulation('Restart metadata mismatch: fuel_table_crc64')
+        else
+          ! Old checkpoints are compatible only with the unchanged distributed
+          ! table. Customized parameters cannot silently change a resumed run.
+          if (.not. this%fuels%legacy_table_compatible) &
+              call Stop_simulation('Restart lacks fuel table identity for customized parameters')
+        end if
         if (config_flags%fuel_opt == FUEL_SCOTT_BURGAN) then
           ! Component ROS requires total dry inventory and separate live FMC.
           ! Earlier dead-only SB40 files cannot reconstruct that state safely.
@@ -922,6 +934,8 @@
         call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (this%proj%true_lat_2, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
+        call Add_netcdf_att(file_restart, 'global', 'fuel_table_crc64', this%fuels%table_fingerprint)
+        call Add_netcdf_att(file_restart, 'global', 'fuel_table_schema', 1_INT32)
         if (config_flags%fuel_opt == FUEL_SCOTT_BURGAN) then
           call Add_netcdf_att (file_restart, 'global', 'sb40_formulation', 1_INT32)
           call Add_netcdf_att (file_restart, 'global', 'fuelmc_g', real (config_flags%fuelmc_g, kind = REAL32))

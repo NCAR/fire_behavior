@@ -81,6 +81,16 @@ list(APPEND _share_files share/proj_lc_mod.F90
 			 share/mpi_mod.F90
                          share/constants_mod.F90)
 
+# Runtime data are copied for builds and installed with the executable. Neither
+# family has a compiled-in fallback; an explicit runtime directory takes priority.
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tables")
+foreach(family IN ITEMS ANDERSON13 SCOTT_BURGAN40)
+  configure_file(tables/${family}.TBL tables/${family}.TBL COPYONLY)
+  install(FILES tables/${family}.TBL DESTINATION share/fire_behavior)
+endforeach()
+configure_file(io/fuel_table_paths_mod.F90.in fuel_table_paths_mod.F90 @ONLY)
+list(APPEND _io_files "${CMAKE_CURRENT_BINARY_DIR}/fuel_table_paths_mod.F90" io/fuel_table_mod.F90)
+
 # IO
 list(APPEND _io_files io/namelist_mod.F90
                       io/coupling_mod.F90

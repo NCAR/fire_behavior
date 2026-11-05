@@ -78,7 +78,7 @@ contains
     ! Convert US short ton acre-1 to lb ft-2 (2000 lb per ton, 43560 ft2 per
     ! acre). Table loads are already oven-dry; no wet-to-dry factor is needed.
     w = real(fuels%Component_loads(k, moisture(5)), REAL64) * (2000.0_REAL64/43560.0_REAL64)
-    sigma = real([fuels%savr_1h(k),109.0,30.0,fuels%savr_lh(k),fuels%savr_lh(k), &
+    sigma = real([fuels%savr_1h(k),fuels%savr_10h(k),fuels%savr_100h(k),fuels%savr_lh(k),fuels%savr_lh(k), &
         fuels%savr_live_woody(k)], REAL64)
     mc = real([moisture(1:3),moisture(1),moisture(5:6)], REAL64)
 

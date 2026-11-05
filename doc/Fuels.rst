@@ -6,14 +6,101 @@ selects native Scott and Burgan 40 (SB40), including dead/live Rothermel
 calculations and dynamic herbaceous curing. Both choices use the same external
 category convention for ideal input, geogrid input, WRF coupling, and restart.
 
-Compiled fuel parameters
+Runtime parameter tables
 ------------------------
 
-``physics/fuel_anderson_mod.F90`` and ``physics/fuel_scott_burgan_mod.F90``
-define the Anderson and SB40 parameter arrays. Initialization populates each
-fuel object from these compiled values. Moisture-response constants remain in
-``physics/fmc_wrffire_mod.F90``. Changing these parameters requires rebuilding
-the model executable.
+The distributed ``tables/ANDERSON13.TBL`` and ``tables/SCOTT_BURGAN40.TBL``
+contain fuel properties and moisture-class parameters. These are ordinary
+text tables with section markers and column headers, not Fortran namelists.
+``fuel_opt`` selects the family and therefore the filename. The supplied data
+preserve the preceding compiled parameters, including Anderson's independently
+rounded ``fgi`` and depth values. Recomputing that inventory from its component
+loads would change the legacy calculation. Anderson component loads follow
+Albini (1976), as reprinted in Anderson (1982), Table 1; other Anderson values
+retain CFBM/WRF-Fire conventions. SB40 component properties follow Scott and
+Burgan (2005), Table 7, while consumption weights retain the existing model
+convention.
+
+To use an experimental table, copy the selected file into the run directory
+and edit its numeric values, or set ``CFBM_FUEL_TABLE_DIR`` to a directory
+containing the selected filename. No rebuild is needed. File lookup is:
+
+1. The directory specified by ``CFBM_FUEL_TABLE_DIR``, if set and nonempty.
+2. The run directory.
+3. The table directory in the configured build tree.
+4. ``share/fire_behavior`` beneath the configured installation prefix.
+
+An explicitly selected directory or an existing file with invalid contents
+causes a fatal diagnostic; it does not fall back to another parameter set.
+For relocated installations, set ``CFBM_FUEL_TABLE_DIR`` or stage the files
+with the run inputs. CMake copies both files into the build and installs them
+with the executable. In MPI runs, rank zero of the fire communicator reads
+the file and broadcasts its contents before physics initialization. The
+timestepping routines access arrays in memory and perform no table I/O.
+
+The version-1 format contains these sections, in order:
+
+* ``CFBM_FUEL_TABLE 1`` and ``FAMILY`` identify the schema and fuel family.
+* ``FUEL_MODELS`` declares 14 Anderson or 41 SB40 property records. Each starts
+  with an external category, contains the numeric columns named in its header,
+  and ends with a double-quoted descriptive name. Records may be reordered;
+  the reader assigns each category to its canonical internal row.
+* ``NONBURNABLE_ALIASES`` lists the six accepted external no-fuel codes and
+  their names. It documents and checks the supported classification. It does
+  not add physics rows or permit arbitrary new aliases.
+* ``MOISTURE_CLASSES`` contains five Anderson or six SB40 rows: class number,
+  drying lag [h], wetting lag [h], saturation moisture [kg kg-1], saturation
+  rain intensity [mm h-1], rain threshold [mm h-1], drying-model selector,
+  wetting-model selector, initialization policy, and a quoted class name.
+* ``MOISTURE_ADJUSTMENT_DECAY_H`` specifies the decay time for assimilated
+  equilibrium-moisture adjustments. SB40 additionally specifies
+  ``CURING_FULL_MOISTURE`` and ``CURING_NONE_MOISTURE`` in kg kg-1.
+* ``END`` terminates the file; additional data records are rejected.
+
+Blank lines and full-line comments beginning with ``#`` or ``!`` are ignored.
+Numeric fields use whitespace separators. Missing values, nonfinite numbers,
+duplicate or unknown codes, incompatible headers or units, invalid selectors,
+and nonpositive lags are rejected during initialization. Column order and
+header text are fixed by the schema. Changing units requires converting the
+data to the stated units, not relabeling a column. Names are limited to 80
+characters; records to 4096 characters.
+
+Fuel columns identify their units explicitly. Component loads use US short
+tons per acre, particle density uses lb ft-3, and SAV uses ft-1. Anderson
+inventory and canopy dry load use kg m-2 and depth uses m. SB40 depth uses ft
+and heat content uses BTU lb-1; the reader retains the existing conversion
+order. Mineral contents and moisture are mass fractions. ``weight`` is the
+existing empirical consumption-time parameter; canopy burnout time is in s.
+Anderson ``ichap`` selects its chaparral treatment and ``windrf`` retains its
+legacy wind-reduction parameter. SB40's 1000-hour component remains structurally
+absent, and its live extinction is calculated from current fuelbed state.
+
+Only drying/wetting selector 1 is currently implemented. Initialization policy
+1 uses ``fuelmc_g``; 2 uses atmospheric equilibrium; 3 uses the corresponding
+class seed from ``fuelmc_g``, ``fuelmc_g_live``, or ``fuelmc_g_woody``. Policy 0
+is rejected in these tables because a cold start has no restored class state.
+Restart loading restores prognostic moisture without applying these cold-start
+policies. Run-specific initial/fixed moisture values remain model configuration;
+the tables contain the fuel and moisture-response parameters.
+
+The supplied moisture rows reproduce the existing WRF-Fire parameters: dead
+drying lags 1, 10, 100, and 1000 h; wetting lags 1.4 times those values; live
+lags 1e9 h; saturation moisture 2.5; saturation rain 8 mm h-1; and rain threshold
+0.05 mm h-1. These are inherited model parameters, not additional measurements
+from the Scott and Burgan fuel catalog. The equations and universal unit
+conversions remain in source code.
+
+Restart files record ``fuel_table_schema`` and ``fuel_table_crc64``. The table
+path and CRC64 are also written to the initialization log. History files retain
+their established metadata format. The CRC64-ECMA identifier is calculated over
+non-comment records with surrounding spaces removed and LF separators. A restart
+requires a matching table identity.
+Changes to record order, labels, internal whitespace, or numeric spelling also
+change this conservative identifier; blank lines and full-line comments do not.
+Older restart files without the identifier are accepted only with the unchanged
+distributed table. The original table identities are retained in the reader
+for this compatibility check. A customized table therefore requires either a
+matching checkpoint or a new integration.
 
 External categories and internal indices
 ---------------------------------------
@@ -112,7 +199,7 @@ to kg m-2 uses ``2000 * 0.45359237 / (43560 * 0.3048**2)``. Herbaceous and woody
 SAV values remain distinct from dead 1-hour SAV. Characteristic fuelbed SAV and
 dead/live moisture weighting are computed from component surface areas.
 
-At herbaceous moisture of 0.30 or less, all herbaceous load transfers to dead;
+With the distributed table, at herbaceous moisture of 0.30 or less, all herbaceous load transfers to dead;
 at 1.20 or greater, none transfers. Between those limits the transfer is linear.
 The cured fraction keeps herbaceous SAV and uses dead 1-hour moisture. Remaining
 herbaceous and woody loads enter the live reaction calculation. Live moisture
@@ -186,10 +273,22 @@ inventory and component moisture treatment. Earlier experimental SB40 files
 without this attribute are rejected. For prescribed moisture, the three
 namelist moisture values must also match the restart metadata. Evolving
 moisture is restored from its six-class state. Anderson restart compatibility
-is unchanged.
+with the distributed parameters is retained, subject to the table-identity
+check described above.
 
 Unit validation
 ---------------
+
+``fuel_table_*`` checks both distributed identities and Anderson's legacy
+rounding. An experimental SB40 table doubles GR1's 1-hour load, changes its
+drying lag, and shifts the curing interval; assertions require changes in
+inventory, reciprocal lag, and curing fraction. Reordered fuel records must
+retain identical model properties and names. Rejection cases cover malformed
+headers, units, codes, numeric fields, nonburnable loads, moisture policies,
+missing files, and incomplete or extra records. Text metadata must survive a
+NetCDF roundtrip. MPI cases reverse the communicator and give non-root ranks
+an invalid filename, requiring that only the communicator root open the table
+and that all ranks receive identical parameters or reject the same defect.
 
 ``sb40_components_unit`` checks every native category, all accepted no-fuel
 aliases, unchanged external metadata, four-tile coverage, the no-fuel WAF row,

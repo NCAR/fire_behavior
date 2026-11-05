@@ -5,7 +5,7 @@ program sb40_unit
   ! failures identify lost fuel mass, live components or unsafe category mapping.
   use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_finite
   use, intrinsic :: iso_fortran_env, only : REAL64
-  use fuel_scott_burgan_mod, only : fuel_scott_burgan_t, Cured_fraction
+  use fuel_scott_burgan_mod, only : fuel_scott_burgan_t
   use fuel_anderson_mod, only : fuel_anderson_t
   use constants_mod, only : CONVERT_TON_PER_ACRE_TO_KG_PER_M_SQ
   use ros_sb40_mod, only : Calc_sb40_parameters
@@ -99,9 +99,9 @@ program sb40_unit
   call Check(fuels%fgi_lh(10),0.50,'GS1 herb load')
   call Check(fuels%fgi_live_woody(10),0.65,'GS1 woody load')
   call Check(fuels%fuelheat(6),9000.0,'GR6 heat content')
-  call Check(Cured_fraction(0.30),1.0,'full curing')
-  call Check(Cured_fraction(0.75),0.5,'half curing')
-  call Check(Cured_fraction(1.20),0.0,'uncured')
+  call Check(fuels%Cured_fraction(0.30),1.0,'full curing')
+  call Check(fuels%Cured_fraction(0.75),0.5,'half curing')
+  call Check(fuels%Cured_fraction(1.20),0.0,'uncured')
   do k = 1, 40
     do n = 0, 2
       mc = [0.06,0.07,0.08,0.08,0.30+0.45*n,0.90]
