@@ -12,13 +12,14 @@
 
   contains
 
-    subroutine Interp_horizontal (data_in, proj_data_in, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+    subroutine Interp_horizontal (data_in, proj_data_in, ims, ime, jms, jme, ids, ide, jds, jde, ifms, ifme, jfms, jfme, &
         num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_out, lons_out, data_out)
 
       implicit none
 
       type (proj_lc_t), intent (in) :: proj_data_in
-      integer, intent (in) :: ifms, ifme, jfms, jfme, ims, ime, jms, jme, num_tiles, hinterp_opt
+      integer, intent (in) :: ifms, ifme, jfms, jfme, ims, ime, jms, jme, ids, ide, jds, jde, num_tiles, hinterp_opt
+      ! ids:ide and jds:jde are inclusive valid source bounds, not memory bounds.
       integer, dimension (num_tiles), intent (in) :: i_start, i_end, j_start, j_end
       real, dimension(ims:ime, jms:jme), intent (in) :: data_in
       real, dimension (ifms:ifme, jfms:jfme), intent (in) :: lats_out, lons_out
@@ -36,7 +37,8 @@
             ifte = i_end(ij)
             jfts = j_start(ij)
             jfte = j_end(ij)
-            call Interp_horizontal_nearest (data_in, proj_data_in, ims, ime, jms, jme, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+            call Interp_horizontal_nearest (data_in, proj_data_in, ims, ime, jms, jme, ids, ide, jds, jde, &
+                ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
                 lats_out, lons_out, data_out)
           end do
           !$OMP END PARALLEL DO
@@ -49,7 +51,8 @@
             ifte = i_end(ij)
             jfts = j_start(ij)
             jfte = j_end(ij)
-            call Interp_horizontal_bilinear (data_in, proj_data_in, ims, ime, jms, jme, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
+            call Interp_horizontal_bilinear (data_in, proj_data_in, ims, ime, jms, jme, ids, ide, jds, jde, &
+                ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
                 lats_out, lons_out, data_out)
           end do
           !$OMP END PARALLEL DO

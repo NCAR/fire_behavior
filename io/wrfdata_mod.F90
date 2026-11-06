@@ -570,7 +570,9 @@
       ime = size (var_wrf, dim = 1)
       jms = 1
       jme = size (var_wrf, dim = 2)
-      call Interp_horizontal (var_wrf, proj, ims, ime, jms, jme, ifms, ifme, jfms, jfme, &
+      ! Offline fields contain the complete mass domain, with no memory halos.
+      call Interp_horizontal (var_wrf, proj, ims, ime, jms, jme, ims, ime, jms, jme, &
+          ifms, ifme, jfms, jfme, &
           num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_out, lons_out, data_out)
 
     end subroutine Interp_var2grid
@@ -603,12 +605,15 @@
       ! Remap profiles before converting geopotential to height, as in NUOPC.
       do k = this%kds, this%kde - 1
         call Interp_horizontal (this%u3d(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            this%ids, this%ide - 1, this%jds, this%jde - 1, &
             ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
             lats_out, lons_out, u_fire(:, :, k))
         call Interp_horizontal (this%v3d(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            this%ids, this%ide - 1, this%jds, this%jde - 1, &
             ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
             lats_out, lons_out, v_fire(:, :, k))
         call Interp_horizontal (this%phl(:, :, k), proj, this%ids, this%ide - 1, this%jds, this%jde - 1, &
+            this%ids, this%ide - 1, this%jds, this%jde - 1, &
             ifms, ifme, jfms, jfme, num_tiles, i_start, i_end, j_start, j_end, config_flags%hinterp_opt, &
             lats_out, lons_out, ph_fire(:, :, k))
       end do

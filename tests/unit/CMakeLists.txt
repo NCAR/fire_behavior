@@ -17,7 +17,7 @@ endfunction()
 foreach(test IN ITEMS tiles_unit tile_namelist_unit observed_perimeter_unit
                       namelist_validation_unit time_interval_unit
                       coordinate_precision_unit projection_precision_unit bilinear_precision_unit
-                      fuel_precision_unit wind_order_unit wind_state_unit fmc_initialization_unit)
+                      fuel_precision_unit wind_order_unit wind_state_unit wrf_wind_unit fmc_initialization_unit)
   add_executable(${test} ${test}.F90)
   target_link_libraries(${test} PRIVATE firelib)
 endforeach()
@@ -107,18 +107,23 @@ if(OPENMP)
   set_tests_properties(${fmc_tests} PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE")
 endif()
 
-# Check the production wind routine's array bounds even in Release builds.
-# Keep its test module separate from firelib's normal compilation products.
+# Check production wind and interpolation array bounds even in Release builds.
+# Keep instrumented modules separate from firelib's normal compilation products.
 target_sources(wind_order_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90)
-set_target_properties(wind_order_unit PROPERTIES
-  Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules")
-target_include_directories(wind_order_unit PRIVATE
-  "${CMAKE_CURRENT_BINARY_DIR}/wind_order_modules" "${CMAKE_Fortran_MODULE_DIRECTORY}")
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(wind_order_unit PRIVATE -fcheck=bounds)
-elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  target_compile_options(wind_order_unit PRIVATE -check bounds)
-endif()
+target_sources(wrf_wind_unit PRIVATE ${PROJECT_SOURCE_DIR}/io/wrf_mod.F90
+                                     ${PROJECT_SOURCE_DIR}/io/coupling_mod.F90
+                                     ${PROJECT_SOURCE_DIR}/share/interp_mod.F90)
+foreach(test IN ITEMS wind_order_unit wrf_wind_unit)
+  set_target_properties(${test} PROPERTIES
+    Fortran_MODULE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${test}_modules")
+  target_include_directories(${test} PRIVATE
+    "${CMAKE_CURRENT_BINARY_DIR}/${test}_modules" "${CMAKE_Fortran_MODULE_DIRECTORY}")
+  if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${test} PRIVATE -fcheck=bounds)
+  elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    target_compile_options(${test} PRIVATE -check bounds)
+  endif()
+endforeach()
 
 # Atmospheric initialization validates timing without requiring an ignition.
 add_cfbm_unit_test(NAME namelist_atm_only_unit
@@ -208,6 +213,12 @@ add_cfbm_unit_test(NAME fuel_precision_unit COMMAND fuel_precision_unit
 
 add_cfbm_unit_test(NAME wind_order_unit COMMAND wind_order_unit
   LABELS wind interpolation EXPECT "horizontal-first wind checks passed")
+
+add_cfbm_unit_test(NAME wrf_wind_unit COMMAND wrf_wind_unit
+  LABELS wind interpolation EXPECT "WRF wind interpolation checks passed")
+if(OPENMP)
+  set_tests_properties(wrf_wind_unit PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=4;OMP_DYNAMIC=FALSE")
+endif()
 
 add_cfbm_unit_test(NAME wind_state_10m_unit COMMAND wind_state_unit u10m
   LABELS wind interpolation EXPECT "state wind checks passed")
