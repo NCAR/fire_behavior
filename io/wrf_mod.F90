@@ -1,9 +1,8 @@
   module wrf_mod
 
     use constants_mod, only : CP, XLV
-    use coupling_mod, only : Interp_horizontal
+    use coupling_mod, only : Interp_horizontal, Calc_fire_wind
     use emis_mod, only : Calc_smoke_aod
-    use interp_mod, only : Interp_profile
     use namelist_mod, only : namelist_t
     use proj_lc_mod, only : proj_lc_t
     use stderrout_mod, only : Stop_simulation
@@ -62,57 +61,42 @@
       real, intent (in) :: fire_wind_height, fire_lsm_zcoupling_ref
       real, dimension(ifms:ifme, jfms:jfme), intent (in out) :: u_out, v_out
 
-      integer :: i, j, k, ij, ifts, ifte, jfts, jfte, ilo, ihi, jlo, jhi
-      real :: uout, vout
+      integer :: k, ij, ifts, ifte, jfts, jfte
       real, dimension(:, :, :), allocatable :: u_fire, v_fire, z_fire
 
 
-      allocate (u_fire(ifms:ifme, jfms:jfme, kfds:kfde - 2))
-      allocate (v_fire(ifms:ifme, jfms:jfme, kfds:kfde - 2))
-      allocate (z_fire(ifms:ifme, jfms:jfme, kfds:kfde - 1))
-
-      ! WRF domain ends are staggered; these derived fields occupy mass cells.
-      ! Retain exchanged cells inside the domain, excluding outer memory storage.
-      ilo = max (ims, ids)
-      ihi = min (ime, ide - 1)
-      jlo = max (jms, jds)
-      jhi = min (jme, jde - 1)
-      if (ilo > ihi .or. jlo > jhi) then
-        call Stop_simulation ('WRF wind interpolation requires physical source cells')
-        return
-      end if
+      ! Match Calc_fire_wind's common profile shape and logical vertical limits.
+      allocate (u_fire(ifms:ifme, jfms:jfme, kfds:kfde))
+      allocate (v_fire(ifms:ifme, jfms:jfme, kfds:kfde))
+      allocate (z_fire(ifms:ifme, jfms:jfme, kfds:kfde))
 
       ! Map winds and interface heights over fire tiles before sampling profiles.
       ! Interp_profile consumes mass winds through kfde-2 and interfaces through
       ! kfde-1. Do not read unused vertical storage, which WRF may not initialize.
       do k = kfds, kfde - 2
-        call Interp_horizontal (u_phy(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
+        call Interp_horizontal (u_phy(:, k, :), proj, ims, ime, jms, jme, ids, ide, jds, jde, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, u_fire(:, :, k))
-        call Interp_horizontal (v_phy(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
+        call Interp_horizontal (v_phy(:, k, :), proj, ims, ime, jms, jme, ids, ide, jds, jde, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, v_fire(:, :, k))
       end do
       do k = kfds, kfde - 1
-        call Interp_horizontal (z_at_w(ilo:ihi, k, jlo:jhi), proj, ilo, ihi, jlo, jhi, ifms, ifme, jfms, jfme, &
+        call Interp_horizontal (z_at_w(:, k, :), proj, ims, ime, jms, jme, ids, ide, jds, jde, ifms, ifme, jfms, jfme, &
             num_tiles, i_start, i_end, j_start, j_end, hinterp_opt, lats_in, lons_in, z_fire(:, :, k))
       end do
 
       !$OMP PARALLEL DO   &
-      !$OMP PRIVATE (ij, i, j, ifts, ifte, jfts, jfte, uout, vout)
+      !$OMP PRIVATE (ij, ifts, ifte, jfts, jfte)
       do ij = 1, num_tiles
         ifts = i_start(ij)
         ifte = i_end(ij)
         jfts = j_start(ij)
         jfte = j_end(ij)
 
-        do j = jfts, jfte
-          do i = ifts, ifte
-            call Interp_profile (fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, kfds, kfde, &
-                u_fire(i, j, :), v_fire(i, j, :), z_fire(i, j, :), z0f(i, j), &
-                uout, vout)
-            u_out(i, j) = uout
-            v_out(i, j) = vout
-          end do
-        end do
+        ! Restrict intent(out) to this tile so other tiles and halos are preserved.
+        call Calc_fire_wind (u_fire, v_fire, z_fire, z0f, ifms, ifme, jfms, jfme, kfds, kfde, &
+            fire_lsm_zcoupling, fire_lsm_zcoupling_ref, fire_wind_height, &
+            ifts, ifte, jfts, jfte, ifts, ifte, jfts, jfte, &
+            u_out(ifts:ifte, jfts:jfte), v_out(ifts:ifte, jfts:jfte), cap_winds = .false.)
       end do
       !$OMP END PARALLEL DO
 

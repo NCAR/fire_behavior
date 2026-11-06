@@ -61,6 +61,7 @@ contains
   subroutine map_field()
 
     call Interp_horizontal_bilinear(field, projection, 1, 75, 1, 75, &
+        1, 75, 1, 75, &
         1, 7, 1, 5, 1, 7, 1, 5, lat, lon, mapped)
 
   end subroutine map_field

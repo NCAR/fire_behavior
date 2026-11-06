@@ -6,6 +6,7 @@ program wrf_wind_unit
   ! One-tile and four-tile results must agree for both horizontal methods.
   use, intrinsic :: ieee_arithmetic, only : ieee_is_finite
   use wrf_mod, only : Interp_wrfwinds_to_cfbm
+  use coupling_mod, only : Interp_horizontal
   use proj_lc_mod, only : proj_lc_t
   use interp_mod, only : HINTERP_NEAREST, HINTERP_BILINEAR
 
@@ -66,10 +67,10 @@ program wrf_wind_unit
     u_single = -999.0
     v_single = -999.0
 
-    call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 3, 1, 4, -1, 3, 4, 7, &
+    call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 2, 1, 3, -1, 3, 4, 7, &
         1, 4, 1, [0], [2], [5], [6], lat, lon, projection, z0, zsf, &
         .false., 10.0, 6.0, u_single, v_single, method)
-    call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 3, 1, 4, -1, 3, 4, 7, &
+    call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 2, 1, 3, -1, 3, 4, 7, &
         1, 4, 4, i_start, i_end, j_start, j_end, lat, lon, projection, z0, zsf, &
         .false., 10.0, 6.0, uf, vf, method)
 
@@ -90,7 +91,7 @@ program wrf_wind_unit
   factor = log(6.0 / z0) / log(15.0 / z0)
   uf = -999.0
   vf = -999.0
-  call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 3, 1, 4, -1, 3, 4, 7, &
+  call Interp_wrfwinds_to_cfbm(u, v, z, 1, 2, 1, 4, 1, 3, 1, 2, 1, 3, -1, 3, 4, 7, &
       1, 4, 2, [0, 2], [0, 2], [5, 6], [5, 6], lat, lon, projection, z0, zsf, &
       .false., 10.0, 6.0, uf, vf, HINTERP_BILINEAR)
   if (.not.all(ieee_is_finite(uf)) .or. .not.all(ieee_is_finite(vf))) error stop 'tile subset wind is not finite'
@@ -106,12 +107,13 @@ program wrf_wind_unit
 
   ! Full-domain and rank-local source bounds must exclude poisoned storage
   ! outside the physical domain. MPI halo exchange is tested in coupled runs.
-  call check_source_bounds(-1, 7, 0, 9, 2, 5, 3, 7)
-  call check_source_bounds(3, 7, 0, 9, 2, 5, 3, 7)
+  call check_source_bounds(-1, 7, 0, 9, 2, 4, 3, 6)
+  call check_source_bounds(3, 7, 0, 9, 2, 4, 3, 6)
+  call check_source_bounds(-1, 3, 0, 5, 2, 4, 3, 6)
   ! Small source extents reduce bilinear mapping to a line or a single column.
-  call check_source_bounds(-1, 7, 0, 9, 2, 3, 3, 7)
-  call check_source_bounds(-1, 7, 0, 9, 2, 5, 3, 4)
-  call check_source_bounds(-1, 7, 0, 9, 2, 3, 3, 4)
+  call check_source_bounds(-1, 7, 0, 9, 2, 2, 3, 6)
+  call check_source_bounds(-1, 7, 0, 9, 2, 4, 3, 3)
+  call check_source_bounds(-1, 7, 0, 9, 2, 2, 3, 3)
 
   call check_vertical_storage()
 
@@ -133,28 +135,32 @@ contains
 
     ! A linear wind field has an analytic horizontal result, followed by one
     ! common logarithmic height factor (6 m target, 10 m first mass level).
+    ! A 2 m temperature plane (K) exercises the same bounds for scalar forcing.
     ! Quiet NaNs outside physical cells expose even zero-weight ghost reads.
     ! Query all corners and edges, one interior point, and exterior points;
     ! the existing extrapolation policy must use the nearest valid endpoint.
     use, intrinsic :: ieee_arithmetic, only : ieee_value, ieee_quiet_nan, ieee_is_finite
     integer, intent(in) :: ims, ime, jms, jme, ids, ide, jds, jde
     real :: us(ims:ime,4,jms:jme), vs(ims:ime,4,jms:jme), zs(ims:ime,4,jms:jme)
+    real :: temperature(ims:ime,jms:jme), temperature_out(11,1)
     real :: lats(11,1), lons(11,1), roughness(11,1), terrain(11,1), uout(11,1), vout(11,1)
     real :: x(11), y(11), xr, yr, xm, ym, scale, expected_u, expected_v, nan
     integer :: ilo, ihi, jlo, jhi, i, j, k, n, method, method_index
 
     ilo = max(ims, ids)
-    ihi = min(ime, ide-1)
+    ihi = min(ime, ide)
     jlo = max(jms, jds)
-    jhi = min(jme, jde-1)
+    jhi = min(jme, jde)
     nan = ieee_value(0.0, ieee_quiet_nan)
     us = nan
     vs = nan
     zs = nan
+    temperature = nan
     do j = jlo, jhi
       do i = ilo, ihi
         us(i,:,j) = 2.0*i + 3.0*j
         vs(i,:,j) = -3.0*i + 2.0*j
+        temperature(i,j) = 280.0 + 2.0*i + 3.0*j
         do k = 1, 4
           zs(i,k,j) = 100.0 + interfaces(k)
         end do
@@ -174,11 +180,14 @@ contains
     scale = log(6.0/0.1) / log(10.0/0.1)
     do method_index = 1, size(methods)
       method = methods(method_index)
+      call Interp_horizontal(temperature, projection, ims, ime, jms, jme, ids, ide, jds, jde, &
+          1, 11, 1, 1, 2, [1,7], [6,11], [1,1], [1,1], method, lats, lons, temperature_out)
       call Interp_wrfwinds_to_cfbm(us, vs, zs, ims, ime, 1, 4, jms, jme, ids, ide, jds, jde, &
           1, 11, 1, 1, 1, 4, 2, [1,7], [6,11], [1,1], [1,1], lats, lons, projection, roughness, terrain, &
           .false., 10.0, 6.0, uout, vout, method)
       if (.not.all(ieee_is_finite(uout)) .or. .not.all(ieee_is_finite(vout))) &
           error stop 'physical ghost contaminated wind'
+      if (.not.all(ieee_is_finite(temperature_out))) error stop 'physical ghost contaminated temperature'
       do n = 1, 11
         ! Use the actual projection round trip to avoid ambiguity at nearest
         ! half-cell ties; source values remain independently analytic.
@@ -191,6 +200,8 @@ contains
         yr = max(real(jlo), min(real(jhi), yr))
         expected_u = (2.0*xr + 3.0*yr)*scale
         expected_v = (-3.0*xr + 2.0*yr)*scale
+        if (abs(temperature_out(n,1)-(280.0+2.0*xr+3.0*yr)) > 6.1e-5) &
+            error stop 'bounded temperature mapping differs'
         if (abs(uout(n,1)-expected_u) > 8.0e-6) error stop 'bounded U mapping differs'
         if (abs(vout(n,1)-expected_v) > 8.0e-6) error stop 'bounded V mapping differs'
       end do
@@ -243,7 +254,7 @@ contains
       do method_index = 1, size(methods)
         method = methods(method_index)
         call ieee_set_flag(ieee_invalid, .false.)
-        call Interp_wrfwinds_to_cfbm(us, vs, zs, 1, 2, 0, 6, 1, 3, 1, 3, 1, 4, &
+        call Interp_wrfwinds_to_cfbm(us, vs, zs, 1, 2, 0, 6, 1, 3, 1, 2, 1, 3, &
             1, 1, 1, 1, 1, 4, 1, [1], [1], [1], [1], lats, lons, projection, roughness, terrain, &
             .false., 10.0, target, uout, vout, method)
         call ieee_get_flag(ieee_invalid, invalid)

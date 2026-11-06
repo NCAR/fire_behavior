@@ -67,7 +67,7 @@
       integer :: fast_dist_reinit_opt = 0     ! Fast distance reinitialization method (or eikonal solver): 0) None, 1) FSM
       integer :: fast_dist_reinit_freq = 600  ! Number of time steps to perform a reinit with fast distance reinit method
 
-      real :: fire_wind_height = 6.096        ! "height of uah,vah wind in fire spread formula" "m"
+      real :: fire_wind_height = 1.0          ! "height of uah,vah wind in fire spread formula" "m"
       integer :: wind_vinterp_opt = VINTERP_WINDS_FROM_3D_WINDS ! "mid-flame height wind interpolation option: 0) Interp to specified height, 1) Use WAFs"
       integer :: hinterp_opt = HINTERP_BILINEAR ! "Horizontal interpolation from atm to fire: 1) nearest neighbour, 2) bi-linear"
       logical :: fire_lsm_zcoupling = .false. ! "flag to activate reference velocity at a different height from fire_wind_height"

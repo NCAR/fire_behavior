@@ -260,7 +260,7 @@ output fields retain their existing single-precision NetCDF representation.
    defect. Prescribed-moisture legacy files remain readable. This compatibility
    rule does not resolve the separate humidity-convention audit.
 
-``fire_wind_height``: *real* (Default: ``6.096``)
+``fire_wind_height``: *real* (Default: ``1.0``)
    [Units: m]
    Height of uah,vah wind in fire spread formula
 
