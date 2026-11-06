@@ -245,3 +245,29 @@ add_cfbm_unit_test(NAME fmc_missing_unit COMMAND fmc_initialization_unit missing
 
 add_cfbm_unit_test(NAME fmc_duplicate_unit COMMAND fmc_initialization_unit duplicate
   LABELS moisture restart EXPECT "STOP:FMC advance requires increasing moisture time")
+
+# Native SB40 mapping, mass conservation, component moisture and ROS behavior.
+add_executable(sb40_unit sb40_unit.F90)
+target_link_libraries(sb40_unit PRIVATE firelib)
+add_cfbm_unit_test(NAME sb40_components_unit COMMAND sb40_unit valid
+  LABELS fuel moisture ros EXPECT "SB40 unit checks passed")
+set_tests_properties(sb40_components_unit PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=4;OMP_DYNAMIC=FALSE")
+foreach(scenario IN ITEMS unknown reserved_nb fractional missing nonfinite)
+  add_cfbm_unit_test(NAME sb40_${scenario}_unit COMMAND sb40_unit ${scenario}
+    LABELS fuel mapping EXPECT "Unknown nfuel_cat values require explicit fuel or nonburnable mapping")
+  set_tests_properties(sb40_${scenario}_unit PROPERTIES ENVIRONMENT "OMP_NUM_THREADS=4;OMP_DYNAMIC=FALSE")
+endforeach()
+if(DM_PARALLEL)
+  # A defect on rank zero must stop all ranks after the tiled validation. This
+  # also exercises collective resolution with valid maps on the other rank.
+  add_cfbm_unit_test(NAME sb40_components_mpi COMMAND
+    ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS}
+    $<TARGET_FILE:sb40_unit> ${MPIEXEC_POSTFLAGS} valid
+    LABELS fuel mapping mpi EXPECT "SB40 unit checks passed")
+  add_cfbm_unit_test(NAME sb40_fractional_mpi COMMAND
+    ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2 ${MPIEXEC_PREFLAGS}
+    $<TARGET_FILE:sb40_unit> ${MPIEXEC_POSTFLAGS} fractional
+    LABELS fuel mapping mpi EXPECT "Unknown nfuel_cat values require explicit fuel or nonburnable mapping")
+  set_tests_properties(sb40_components_mpi sb40_fractional_mpi PROPERTIES
+    ENVIRONMENT "OMP_NUM_THREADS=2;OMP_DYNAMIC=FALSE" PROCESSORS 4 TIMEOUT 60)
+endif()

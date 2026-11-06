@@ -7,6 +7,7 @@ Community Fire Behavior Module (CFBM) Documentation (|version|)
    
    Introduction
    Configuration
+   Fuels
    SRW
    WRF
    Standalone

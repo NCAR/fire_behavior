@@ -2,9 +2,9 @@
 
     use constants_mod, only : CMBCNST, CONVERT_J_PER_KG_TO_BTU_PER_POUND
     use fuel_mod, only : fuel_t
-    use namelist_mod, only : namelist_t
+    use fuel_scott_burgan_mod, only : fuel_scott_burgan_t
+    use ros_sb40_mod, only : Calc_sb40_parameters
     use ros_mod, only : ros_t
-    use state_mod, only : state_fire_t
 
     implicit none
 
@@ -20,6 +20,9 @@
     integer, parameter :: FIRE_ADVECTION = 1 ! "0 = fire spread computed from normal wind speed/slope, 1 = fireline particle speed projected on normal" "0"
 
     type, extends(ros_t) :: ros_wrffire_t
+      ! Prescribed moisture is supplied by Init from the run configuration.
+      ! SB40 uses these scalars; Anderson uses cell moisture passed to Set_params.
+      real :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
       real, dimension(:, :), allocatable :: bbb, ischap, betafl, phiwc, r_0
     contains
       procedure, public :: Calc_ros => Calc_ros_wrffire
@@ -93,13 +96,18 @@
 
     end function Calc_ros_wrffire
 
-    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme)
+    subroutine Init_ros_wrffire (this, ifms, ifme, jfms, jfme, fuelmc_g_live, fuelmc_g_woody, fuelmc_g)
 
       implicit none
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent (in) :: ifms, ifme, jfms, jfme
+      real, intent(in) :: fuelmc_g_live, fuelmc_g_woody, fuelmc_g
 
+
+      this%fuelmc_g = fuelmc_g
+      this%fuelmc_g_live = fuelmc_g_live
+      this%fuelmc_g_woody = fuelmc_g_woody
 
       allocate (this%iboros(ifms:ifme, jfms:jfme))
  
@@ -112,25 +120,45 @@
     end subroutine Init_ros_wrffire
 
     subroutine Set_ros_parameters_wrffire (this, ifms, ifme, jfms, jfme, ifts, ifte, jfts, jfte, &
-        fuels, nfuel_cat, fmc_g)
+        fuels, fuel_index, fmc_g, fmc_gc)
 
       implicit none
 
       class (ros_wrffire_t), intent (in out) :: this
       integer, intent(in) :: ifts, ifte, jfts, jfte, ifms, ifme, jfms, jfme
       class (fuel_t), intent (in) :: fuels
-      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: nfuel_cat, fmc_g
+      real, dimension (ifms:ifme, jfms:jfme), intent (in) :: fmc_g
+      integer, dimension(ifms:ifme,jfms:jfme), intent(in) :: fuel_index
+      real, optional, intent(in) :: fmc_gc(ifms:,:,jfms:)
 
 
       real ::  fuelload, fueldepth, rtemp1, rtemp2, qig, epsilon, rhob, wn, betaop, e, c, &
           xifr, etas, etam, a, gammax, gamma, ratio, ir, fuelloadm, bmst
+      real :: moisture(6)
       integer:: i, j, k, kk
       character (len = 128) :: msg
 
 
+      ! Dispatch once per tile. Native SB40 uses class moisture before aggregation;
+      ! initial/fixed-moisture calls use the prescribed dead and live controls.
+      select type(fuels)
+      type is(fuel_scott_burgan_t)
+        do j = jfts, jfte
+          do i = ifts, ifte
+            k = fuel_index(i,j)
+            moisture = [this%fuelmc_g,this%fuelmc_g,this%fuelmc_g,this%fuelmc_g,this%fuelmc_g_live,this%fuelmc_g_woody]
+            if (present(fmc_gc)) moisture = fmc_gc(i,1:6,j)
+            this%ischap(i,j) = 0.0
+            call Calc_sb40_parameters(fuels,k,moisture,this%betafl(i,j),this%bbb(i,j), &
+                this%phiwc(i,j),this%r_0(i,j),this%iboros(i,j))
+          end do
+        end do
+        return
+      end select
+
       Loop_j: do j = jfts, jfte
         Loop_i: do i = ifts, ifte
-          k = int (nfuel_cat(i, j))
+          k = fuel_index(i, j)
           if(k == fuels%no_fuel_cat) then
             this%ischap(i, j) = 0.0
               ! set to 1.0 to prevent grid%betafl(i,j)**(-0.3) to be Inf in fire_ros
@@ -145,7 +173,7 @@
               ! No need to recalculate if FMC does not change
             bmst = fmc_g(i, j) / (1.0 + fmc_g(i, j))
               !  fuelload without moisture
-            fuelloadm = (1.0 - bmst) * fuels%fgi(k)
+            fuelloadm = (1.0 - bmst) * fuels%Calc_effective_dead_load(k, this%fuelmc_g_live)
             fuelload = fuelloadm * (0.3048) ** 2 * 2.205 ! to lb/ft^2
             fueldepth = fuels%fueldepthm(k) / 0.3048 ! to ft
               ! packing ratio

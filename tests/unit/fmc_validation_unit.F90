@@ -24,7 +24,9 @@ program fmc_validation_unit
   type (ros_wrffire_t) :: ros
   real :: rain(0:5,0:3), t(0:5,0:3), q(0:5,0:3), p(0:5,0:3)
   real :: rain_old(0:5,0:3), t_old(0:5,0:3), q_old(0:5,0:3), p_old(0:5,0:3)
-  real :: rh(0:5,0:3), fmc(0:5,0:3), category(0:5,0:3), nan, invalid, restored
+  ! Physics interfaces consume resolved integer rows; zero marks unused test halos.
+  integer :: category(0:5,0:3)
+  real :: rh(0:5,0:3), fmc(0:5,0:3), nan, invalid, restored
   integer :: i, j, ierr
   integer :: i_start(2) = [1,1], i_end(2) = [4,4], j_start(2) = [1,2], j_end(2) = [1,2]
   character (len = 40) :: scenario
@@ -64,10 +66,12 @@ program fmc_validation_unit
   end if
   call moisture%Init (fuels, 0.08, 0.30, 0, 5, 0, 3, 0, 4.0)
   if (index (scenario, 'load_') == 1) error stop 'invalid averaging fuel load was accepted'
-  call ros%Init (0, 5, 0, 3)
-  category = nan
-  category(1:4,1:2) = 1.0
-  category(4,2) = real (fuels%no_fuel_cat)
+  ! Prescribed seeds match the FMC setup; invalid or restored class state is
+  ! tested independently of these required ROS initialization inputs.
+  call ros%Init (0, 5, 0, 3, fuelmc_g_live=0.30, fuelmc_g_woody=0.90, fuelmc_g=0.08)
+  category = 0
+  category(1:4,1:2) = 1
+  category(4,2) = fuels%no_fuel_cat
   fmc = nan
   moisture%fmc_gc = nan
 

@@ -381,6 +381,18 @@
         call Validate_restart_integer (file_restart, 'sr_y', expected_sr_y)
         call Validate_restart_integer (file_restart, 'ideal_opt', config_flags%ideal_opt)
         call Validate_restart_integer (file_restart, 'fuel_opt', config_flags%fuel_opt)
+        if (config_flags%fuel_opt == FUEL_SCOTT_BURGAN) then
+          ! Component ROS requires total dry inventory and separate live FMC.
+          ! Earlier dead-only SB40 files cannot reconstruct that state safely.
+          if (.not. Has_restart_attribute (file_restart, 'sb40_formulation')) &
+              call Stop_simulation ('SB40 restart lacks component formulation metadata')
+          call Validate_restart_integer (file_restart, 'sb40_formulation', 1)
+          if (.not. config_flags%fmoist_run) then
+            call Validate_restart_real (file_restart, 'fuelmc_g', config_flags%fuelmc_g)
+            call Validate_restart_real (file_restart, 'fuelmc_g_live', config_flags%fuelmc_g_live)
+            call Validate_restart_real (file_restart, 'fuelmc_g_woody', config_flags%fuelmc_g_woody)
+          end if
+        end if
         call Validate_restart_integer (file_restart, 'ros_opt', config_flags%ros_opt)
         call Validate_restart_integer (file_restart, 'fmc_opt', config_flags%fmc_opt)
         if (Has_restart_attribute (file_restart, 'fmoist_run')) then
@@ -514,6 +526,10 @@
           call Read_restart_field (file_restart, 'fire_rain_old', this%fire_rain_old)
         end if
       end if
+      ! Rebuild internal rows from restored external codes before moisture
+      ! validation and ROS reconstruction; fuel_index is never serialized.
+      call this%fuels%Resolve_fuel_indices(this%ifms,this%ifme,this%jfms,this%jfme,this%num_tiles, &
+          this%i_start,this%i_end,this%j_start,this%j_end,this%nfuel_cat,this%fuel_index,this%cart_comm)
       if (config_flags%fmoist_run) call Read_restart_fmc (file_restart)
 
       call Exchange_restart_halos ()
@@ -524,9 +540,17 @@
           ! fmc_gc. Valid classes cannot establish its validity, and prescribed
           ! moisture restarts have no class state; check it before rebuilding ROS.
           call this%fmc_param%Check_fmc (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
-              this%j_start(ij), this%j_end(ij), this%nfuel_cat, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
-          call this%ros_param%Set_params (this%ifms, this%ifme, this%jfms, this%jfme, this%i_start(ij), this%i_end(ij), &
-              this%j_start(ij), this%j_end(ij), this%fuels, this%nfuel_cat, this%fmc_g)
+              this%j_start(ij), this%j_end(ij), this%fuel_index, this%fuels%no_fuel_cat, this%fmc_g, 'Restart')
+          if (config_flags%fmoist_run) then
+            select type(fmc => this%fmc_param)
+            type is(fmc_wrffire_t)
+              call this%ros_param%Set_params(this%ifms,this%ifme,this%jfms,this%jfme,this%i_start(ij),this%i_end(ij), &
+                  this%j_start(ij),this%j_end(ij),this%fuels,this%fuel_index,this%fmc_g,fmc%fmc_gc)
+            end select
+          else
+            call this%ros_param%Set_params(this%ifms,this%ifme,this%jfms,this%jfme,this%i_start(ij),this%i_end(ij), &
+                this%j_start(ij),this%j_end(ij),this%fuels,this%fuel_index,this%fmc_g)
+          end if
         end do
       end if
 
@@ -673,7 +697,7 @@
                 fmc_param%fmc_gc(this%ifps:this%ifpe, 1:n_moisture_classes, this%jfps:this%jfpe))
 
             call fmc_param%Check_moisture_classes (this%ifms, this%ifme, this%jfms, this%jfme, &
-                this%ifps, this%ifpe, this%jfps, this%jfpe, this%nfuel_cat, this%fuels%no_fuel_cat, 'Restart')
+                this%ifps, this%ifpe, this%jfps, this%jfpe, this%fuel_index, this%fuels%no_fuel_cat, 'Restart')
 
             fmoist_lasttime = 0.0
             fmoist_nexttime = 0.0
@@ -898,6 +922,12 @@
         call Add_netcdf_att (file_restart, 'global', 'true_lat_2', real (this%proj%true_lat_2, kind = REAL32))
         call Add_netcdf_att (file_restart, 'global', 'ideal_opt', int (config_flags%ideal_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fuel_opt', int (config_flags%fuel_opt, kind = INT32))
+        if (config_flags%fuel_opt == FUEL_SCOTT_BURGAN) then
+          call Add_netcdf_att (file_restart, 'global', 'sb40_formulation', 1_INT32)
+          call Add_netcdf_att (file_restart, 'global', 'fuelmc_g', real (config_flags%fuelmc_g, kind = REAL32))
+          call Add_netcdf_att (file_restart, 'global', 'fuelmc_g_live', real (config_flags%fuelmc_g_live, kind = REAL32))
+          call Add_netcdf_att (file_restart, 'global', 'fuelmc_g_woody', real (config_flags%fuelmc_g_woody, kind = REAL32))
+        end if
         call Add_netcdf_att (file_restart, 'global', 'ros_opt', int (config_flags%ros_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fmc_opt', int (config_flags%fmc_opt, kind = INT32))
         call Add_netcdf_att (file_restart, 'global', 'fmoist_run', int (merge (1, 0, config_flags%fmoist_run), kind = INT32))

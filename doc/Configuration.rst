@@ -305,14 +305,25 @@ output fields retain their existing single-precision NetCDF representation.
    Fuel moisture content ground (Dead :term:`FMC`)
 
 ``fuelmc_g_live``: *real* (Default: ``0.30``)
-   Fuel moisture content ground (Live :term:`FMC`). 30% Completely cured, treat as dead fuel
+   Generic live moisture for Anderson; live herbaceous moisture for SB40
+   [kg water per kg dry fuel]. SB40 herbaceous fuel is fully cured at 0.30
+   and uncured at 1.20. See :doc:`Fuels` for component handling.
+
+``fuelmc_g_woody``: *real* (Default: ``0.90``)
+   SB40 live woody initial or prescribed moisture [kg water per kg dry fuel].
+   Separate from herbaceous moisture; unused by Anderson.
 
 ``fuelmc_c``: *real* (Default: ``1.00``)
    Fuel moisture content of the canopy
 
 ``fuel_opt``: *integer* (Default: ``1``)
    Fuel type model.
-     1:  Anderson fuel model (only option currently implemented)
+     1: Anderson 13 compatibility mode.
+
+     2: Native Scott and Burgan 40 with dead/live component ROS.
+
+   Input categories remain external identifiers. See :doc:`Fuels` for
+   ``fuel_index``, named nonburnable classes, component tables, and restart rules.
 
 ``ros_opt``: *integer* (Default: ``0``)
    Rate of Spread (ROS) parameterization option.
@@ -427,7 +438,8 @@ atmospheric data.
    Constant meridional (south-north) wind component used to force the fire.
 
 ``fuel_cat``: *integer* (Default: ``1``)
-   Uniform fuel category assigned to the whole domain (Anderson fuel model; see ``fuel_opt``).
+   Uniform external fuel category assigned to the whole domain. For native SB40,
+   use a code such as 101 (GR1) or 204 (SB4), not an internal table row; see :doc:`Fuels`.
 
 ``dz_dx``: *real* (Default: ``0.0``)
    Terrain slope in the x direction (rise over run).
